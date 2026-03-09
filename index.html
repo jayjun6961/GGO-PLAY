@@ -290,10 +290,10 @@
 
   .hero-character {
     position: absolute;
-    right: 30px;
-    bottom: -30px;
-    width: 320px;
-    height: 320px;
+    right: 20px;
+    bottom: -20px;
+    width: 200px;
+    height: 200px;
     z-index: 10;
     animation: float 3s ease-in-out infinite;
     object-fit: contain;
@@ -746,7 +746,7 @@
     .content { padding: 12px; gap: 16px; }
     .hero-banner { height: 180px; }
     .hero-title { font-size: 24px; }
-    .hero-character { font-size: 72px; right: 20px; }
+    .hero-character { display: none; }
     .game-cards-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .topbar { padding: 14px 16px; }
     .search-bar { min-width: unset; flex: 1; }
@@ -1261,10 +1261,89 @@
     font-weight: 700;
   }
 
-  /* ── PAGE SECTIONS ── */
+  /* ══════════════════════════════════
+     PAGE SYSTEM - 완전 페이지 전환
+  ══════════════════════════════════ */
   .page-section { display: none; }
   .page-section.active { display: block; }
-  #page-home { display: block; }
+
+  /* 홈이 아닐 때 홈 topbar 숨김 */
+  #page-home:not(.active) { display: none; }
+  #page-battlepass:not(.active) { display: none; }
+  #page-tournament:not(.active) { display: none; }
+
+  /* 서브페이지 전용 상단 바 */
+  .subpage-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px;
+    background: rgba(10,6,18,0.9);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(124,58,237,0.15);
+    position: sticky; top: 0; z-index: 50;
+    gap: 12px;
+  }
+
+  .back-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(124,58,237,0.12);
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 10px;
+    padding: 8px 14px;
+    color: var(--purple-3);
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .back-btn:hover {
+    background: rgba(124,58,237,0.25);
+    box-shadow: var(--glow-purple);
+  }
+
+  .subpage-topbar-title {
+    display: flex; flex-direction: column; align-items: center;
+    flex: 1; text-align: center;
+  }
+
+  .subpage-topbar-sub {
+    font-size: 10px;
+    color: var(--purple-3);
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 1.5px;
+  }
+
+  .subpage-topbar-main {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--text-main);
+    letter-spacing: 1px;
+  }
+
+  .refresh-icon-btn {
+    width: 38px; height: 38px;
+    background: rgba(124,58,237,0.1);
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--purple-3);
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .refresh-icon-btn:hover {
+    background: rgba(124,58,237,0.25);
+    transform: rotate(30deg);
+    box-shadow: var(--glow-purple);
+  }
+
+  @media (max-width: 640px) {
+    .subpage-topbar { padding: 12px 16px; }
+    .subpage-topbar-main { font-size: 13px; }
+    .back-btn { padding: 7px 10px; font-size: 12px; }
+  }
 
   /* ── LEADERBOARD PAGE ── */
   .lb-page { padding: 28px; max-width: 900px; margin: 0 auto; }
@@ -1384,8 +1463,6 @@
   /* ══════════════════════════════════
      PAGE SYSTEM
   ══════════════════════════════════ */
-  .page-section { display: none; }
-  .page-section.active { display: block; }
 
   /* ══════════════════════════════════
      BATTLEPASS / TOURNAMENT PAGE
@@ -1641,6 +1718,10 @@
     border-radius: 3px;
     transition: width 0.8s ease;
   }
+
+  /* ── PAGE SYSTEM ── */
+  .page-section { display: none !important; }
+  .page-section.active { display: block !important; }
 </style>
 </head>
 <body>
@@ -1726,6 +1807,9 @@
 ═══════════════════════════════ -->
 <main class="main">
 
+  <!-- PAGE: HOME -->
+  <div id="page-home" class="page-section active">
+
   <!-- TOP BAR -->
   <header class="topbar">
     <div class="greeting">
@@ -1743,7 +1827,6 @@
   </header>
 
   <!-- CONTENT GRID -->
-  <div id="page-home" class="page-section active">
   <div class="content" id="mainContent">
 
     <!-- LEFT COLUMN -->
@@ -2129,6 +2212,20 @@
 
   <!-- ══ 배틀패스 페이지 ══ -->
   <div id="page-battlepass" class="page-section">
+    <!-- 서브페이지 헤더 -->
+    <header class="subpage-topbar">
+      <button class="back-btn" onclick="goHome()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M5 12l7 7M5 12l7-7"/></svg>
+        홈으로
+      </button>
+      <div class="subpage-topbar-title">
+        <span class="subpage-topbar-sub">⭐ BATTLE PASS</span>
+        <span class="subpage-topbar-main">배틀 패스 7</span>
+      </div>
+      <button class="refresh-icon-btn" onclick="loadBattlepass()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+      </button>
+    </header>
     <div class="lb-page">
       <div class="lb-page-header">
         <div class="lb-season-badge">⭐ BATTLE PASS</div>
@@ -2154,6 +2251,20 @@
 
   <!-- ══ 친선대회 페이지 ══ -->
   <div id="page-tournament" class="page-section">
+    <!-- 서브페이지 헤더 -->
+    <header class="subpage-topbar">
+      <button class="back-btn" onclick="goHome()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M5 12l7 7M5 12l7-7"/></svg>
+        홈으로
+      </button>
+      <div class="subpage-topbar-title">
+        <span class="subpage-topbar-sub">👑 TOURNAMENT</span>
+        <span class="subpage-topbar-main">친선 시즌 3</span>
+      </div>
+      <button class="refresh-icon-btn" onclick="loadTournament()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+      </button>
+    </header>
     <div class="lb-page">
       <div class="lb-page-header">
         <div class="lb-season-badge">👑 TOURNAMENT</div>
@@ -2295,112 +2406,167 @@
 
   // ── 배틀패스 로드 ──
   async function loadBattlepass() {
-    const el = document.getElementById('bp-content');
-    el.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><span>데이터 불러오는 중...</span></div>';
+    const top3El  = document.getElementById('bp-top3');
+    const listEl  = document.getElementById('bp-list');
+    const loadMsg = '<div class="lb-loading"><div class="spin"></div>불러오는 중...</div>';
+    if (top3El) top3El.innerHTML = loadMsg;
+    if (listEl) listEl.innerHTML = loadMsg;
     try {
-      const res = await fetch(CSV_BP + '&t=' + Date.now());
-      if (!res.ok) throw new Error('fetch fail');
+      const res = await fetch(CSV_BP + '&cachebust=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
       const rows = parseCSV(text);
+      if (!rows.length) throw new Error('empty');
 
-      // 점수 기준 정렬
       rows.sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0));
-
       const maxScore = Math.max(...rows.map(r => Number(r[1]) || 0), 1);
 
-      let html = `<div class="rank-table">
-        <div class="rank-table-header bp-header">
-          <span>순위</span><span>닉네임</span><span style="text-align:right">배틀패스 점수</span>
-        </div>`;
+      // TOP 3 카드
+      const avatars = ['⚔️','🔮','🏹','🛡️','🌟','🔥','💧','🌀'];
+      const topThree = rows.slice(0, 3);
+      const cardOrder = topThree.length >= 3 ? [topThree[1], topThree[0], topThree[2]] : topThree;
+      const classes   = topThree.length >= 3 ? ['top2','top1','top3'] : ['top1','top2','top3'];
+      const medals    = ['🥈','👑','🥉'];
+      const rankNums  = [2, 1, 3];
 
-      rows.forEach((row, i) => {
-        const rank = i + 1;
-        const nick = row[0] || '—';
+      let top3Html = '';
+      cardOrder.forEach((row, ci) => {
+        if (!row) return;
+        const origIdx = rows.indexOf(row);
         const score = Number(row[1]) || 0;
-        const pct = Math.round((score / maxScore) * 100);
-        const topCls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
-        const numCls = rank === 1 ? 'r1' : rank === 2 ? 'r2' : rank === 3 ? 'r3' : '';
-        const crown = rank === 1 ? '<span class="rank-crown-icon">👑</span>' : '';
+        const crown = classes[ci] === 'top1' ? '<div class="lb-top-crown">👑</div>' : '';
+        top3Html += `<div class="lb-top-card ${classes[ci]}">
+          ${crown}
+          <div class="lb-top-avatar">${avatars[origIdx % avatars.length]}</div>
+          <div class="lb-top-rank">${medals[ci]} ${rankNums[ci]}위</div>
+          <div class="lb-top-name">${row[0] || '—'}</div>
+          <div class="lb-top-score">${score.toLocaleString()} pts</div>
+        </div>`;
+      });
+      if (top3El) top3El.innerHTML = top3Html;
 
-        html += `<div class="rank-row bp-row ${topCls}">
-          <div class="rank-num-cell ${numCls}">${crown}${rank}</div>
-          <div class="rank-nick">${nick}</div>
-          <div class="rank-score-cell">
-            <div class="bp-score-wrap">
-              <div class="rank-score">${score.toLocaleString()}<small style="font-size:10px;color:var(--text-dim);margin-left:3px">pts</small></div>
-              <div class="bp-bar-outer"><div class="bp-bar-inner" style="width:${pct}%"></div></div>
+      // 전체 리스트
+      let listHtml = '';
+      rows.forEach((row, i) => {
+        const rank   = i + 1;
+        const score  = Number(row[1]) || 0;
+        const pct    = Math.round((score / maxScore) * 100);
+        const topCls = rank<=3 ? 'top'+rank : '';
+        const numCls = rank<=3 ? 'r'+rank : '';
+        listHtml += `<div class="lb-row bp-row ${topCls}">
+          <div class="lb-rank-num ${numCls}">${rank}</div>
+          <div class="lb-nick">
+            <div class="lb-nick-avatar">${avatars[i % avatars.length]}</div>
+            ${row[0] || '—'}
+          </div>
+          <div style="text-align:right">
+            <div class="lb-score">${score.toLocaleString()}</div>
+            <div style="width:100%;height:4px;background:rgba(124,58,237,0.15);border-radius:2px;margin-top:4px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--purple-1),var(--purple-3));border-radius:2px"></div>
             </div>
           </div>
         </div>`;
       });
+      if (listEl) listEl.innerHTML = listHtml || '<div class="lb-error">데이터가 없습니다</div>';
 
-      html += '</div>';
-      el.innerHTML = html;
-      document.getElementById('bp-update-time').textContent = nowStr();
     } catch(e) {
-      el.innerHTML = '<div class="error-wrap">⚠️ 데이터를 불러오지 못했어요.<br>구글 시트 공개 설정을 확인해주세요.</div>';
+      const errMsg = `<div class="lb-error">⚠️ 데이터를 불러오지 못했어요<br><small style="color:var(--text-dim)">${e.message}</small><br><br><button class="btn-refresh" onclick="loadBattlepass()">↻ 다시 시도</button></div>`;
+      if (top3El) top3El.innerHTML = '';
+      if (listEl) listEl.innerHTML = errMsg;
     }
   }
 
   // ── 친선대회 로드 ──
   async function loadTournament() {
-    const el = document.getElementById('tour-content');
-    el.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><span>데이터 불러오는 중...</span></div>';
+    const top3El  = document.getElementById('tour-top3');
+    const listEl  = document.getElementById('tour-list');
+    const loadMsg = '<div class="lb-loading"><div class="spin"></div>불러오는 중...</div>';
+    if (top3El) top3El.innerHTML = loadMsg;
+    if (listEl) listEl.innerHTML = loadMsg;
     try {
-      const res = await fetch(CSV_TOUR + '&t=' + Date.now());
-      if (!res.ok) throw new Error('fetch fail');
+      const res = await fetch(CSV_TOUR + '&cachebust=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
       const rows = parseCSV(text);
+      if (!rows.length) throw new Error('empty');
 
       rows.sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0));
 
-      let html = `<div class="rank-table">
-        <div class="rank-table-header tour-header">
-          <span>순위</span><span>닉네임</span><span style="text-align:right">친선점수</span><span style="text-align:right">랭크 티어</span>
+      const avatars = ['⚔️','🔮','🏹','🛡️','🌟','🔥','💧','🌀'];
+
+      // TOP 3 카드
+      const topThree = rows.slice(0, 3);
+      const cardOrder = topThree.length >= 3 ? [topThree[1], topThree[0], topThree[2]] : topThree;
+      const classes   = topThree.length >= 3 ? ['top2','top1','top3'] : ['top1','top2','top3'];
+      const medals    = ['🥈','👑','🥉'];
+      const rankNums  = [2, 1, 3];
+
+      let top3Html = '';
+      cardOrder.forEach((row, ci) => {
+        if (!row) return;
+        const origIdx = rows.indexOf(row);
+        const score   = Number(row[1]) || 0;
+        const tier    = getTier(score);
+        const crown   = classes[ci] === 'top1' ? '<div class="lb-top-crown">👑</div>' : '';
+        top3Html += `<div class="lb-top-card ${classes[ci]}">
+          ${crown}
+          <div class="lb-top-avatar">${avatars[origIdx % avatars.length]}</div>
+          <div class="lb-top-rank">${medals[ci]} ${rankNums[ci]}위</div>
+          <div class="lb-top-name">${row[0] || '—'}</div>
+          <div class="lb-top-score">${score.toLocaleString()} pts</div>
+          <div class="lb-top-tier tier-${tier.cls}">${tier.icon} ${tier.name}${tier.num ? ' '+tier.num : ''}</div>
         </div>`;
+      });
+      if (top3El) top3El.innerHTML = top3Html;
 
+      // 전체 리스트
+      let listHtml = '';
       rows.forEach((row, i) => {
-        const rank = i + 1;
-        const nick = row[0] || '—';
-        const score = Number(row[1]) || 0;
-        const tier = getTier(score);
-        const topCls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
-        const numCls = rank === 1 ? 'r1' : rank === 2 ? 'r2' : rank === 3 ? 'r3' : '';
-        const crown = rank === 1 ? '<span class="rank-crown-icon">👑</span>' : '';
-
-        html += `<div class="rank-row tour-row ${topCls}">
-          <div class="rank-num-cell ${numCls}">${crown}${rank}</div>
-          <div class="rank-nick">${nick}</div>
-          <div class="rank-score-cell">
-            <div class="rank-score">${score.toLocaleString()}<small style="font-size:10px;color:var(--text-dim);margin-left:3px">pts</small></div>
+        const rank   = i + 1;
+        const score  = Number(row[1]) || 0;
+        const tier   = getTier(score);
+        const topCls = rank<=3 ? 'top'+rank : '';
+        const numCls = rank<=3 ? 'r'+rank : '';
+        listHtml += `<div class="lb-row tour-row ${topCls}">
+          <div class="lb-rank-num ${numCls}">${rank}</div>
+          <div class="lb-nick">
+            <div class="lb-nick-avatar">${avatars[i % avatars.length]}</div>
+            ${row[0] || '—'}
           </div>
-          <div class="tier-badge tier-${tier.cls}">
-            <div class="tier-icon">${tier.icon}</div>
-            <div class="tier-name">${tier.name}${tier.num ? ' ' + tier.num : ''}</div>
+          <div class="lb-score" style="text-align:right">${score.toLocaleString()}</div>
+          <div class="lb-tier-badge tier-${tier.cls}">
+            <span class="tier-icon">${tier.icon}</span>
+            <span class="tier-name">${tier.name}${tier.num ? ' '+tier.num : ''}</span>
           </div>
         </div>`;
       });
+      if (listEl) listEl.innerHTML = listHtml || '<div class="lb-error">데이터가 없습니다</div>';
 
-      html += '</div>';
-      el.innerHTML = html;
-      document.getElementById('tour-update-time').textContent = nowStr();
     } catch(e) {
-      el.innerHTML = '<div class="error-wrap">⚠️ 데이터를 불러오지 못했어요.<br>구글 시트 공개 설정을 확인해주세요.</div>';
+      const errMsg = `<div class="lb-error">⚠️ 데이터를 불러오지 못했어요<br><small style="color:var(--text-dim)">${e.message}</small><br><br><button class="btn-refresh" onclick="loadTournament()">↻ 다시 시도</button></div>`;
+      if (top3El) top3El.innerHTML = '';
+      if (listEl) listEl.innerHTML = errMsg;
     }
+  }
+
+  // ── 홈으로 이동 ──
+  function goHome() {
+    const homeNav = document.querySelector('.nav-item');
+    setPage('home', homeNav);
   }
 
   // ── 페이지 전환 ──
   function setPage(page, el) {
-    // 사이드바 활성화
+    // 사이드바 아이콘 활성화
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     if (el) el.classList.add('active');
 
     // 모든 페이지 숨기기
     document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
 
-    // 해당 페이지 보이기
+    // 해당 페이지만 표시
     const pageMap = {
-      home: 'page-home',
+      home:       'page-home',
       battlepass: 'page-battlepass',
       tournament: 'page-tournament',
     };
@@ -2412,14 +2578,14 @@
     if (page === 'battlepass') loadBattlepass();
     if (page === 'tournament') loadTournament();
 
-    // 스크롤 상단
-    window.scrollTo(0, 0);
+    // 스크롤 최상단
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // Mobile nav
   function setPageMobile(page, el) {
     document.querySelectorAll('.bottom-nav-item').forEach(n => n.classList.remove('active'));
-    el.classList.add('active');
+    if (el) el.classList.add('active');
     setPage(page, null);
   }
 </script>
