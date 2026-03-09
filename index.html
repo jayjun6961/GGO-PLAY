@@ -935,6 +935,167 @@
     margin-bottom: 4px;
   }
 
+  /* ── SEASON AWARD ── */
+  .award-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  @media (max-width: 900px) {
+    .award-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .award-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  }
+
+  .award-card {
+    border-radius: 16px;
+    padding: 18px 14px 16px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid rgba(124,58,237,0.15);
+    background: var(--bg-card);
+    min-height: 260px;
+  }
+
+  .award-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+  }
+
+  .award-bg-glow {
+    position: absolute;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    filter: blur(40px);
+    top: -20px; left: 50%; transform: translateX(-50%);
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .award-glow-gold   { background: #fbbf24; }
+  .award-glow-silver { background: #c0c0c0; }
+  .award-glow-bronze { background: #cd7f32; }
+  .award-glow-cyan   { background: #22d3ee; }
+
+  .award-mvp   { background: linear-gradient(180deg, rgba(251,191,36,0.08) 0%, var(--bg-card) 60%); border-color: rgba(251,191,36,0.25); }
+  .award-motm  { background: linear-gradient(180deg, rgba(192,192,192,0.07) 0%, var(--bg-card) 60%); border-color: rgba(192,192,192,0.2); }
+  .award-mip   { background: linear-gradient(180deg, rgba(205,127,50,0.08) 0%, var(--bg-card) 60%); border-color: rgba(205,127,50,0.22); }
+  .award-roy   { background: linear-gradient(180deg, rgba(34,211,238,0.08) 0%, var(--bg-card) 60%); border-color: rgba(34,211,238,0.22); }
+
+  .award-rank-badge {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    position: relative; z-index: 1;
+  }
+
+  .award-badge-gold   { background: rgba(251,191,36,0.18); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); }
+  .award-badge-silver { background: rgba(192,192,192,0.15); color: #d4d4d4; border: 1px solid rgba(192,192,192,0.3); }
+  .award-badge-bronze { background: rgba(205,127,50,0.15); color: #e0974a; border: 1px solid rgba(205,127,50,0.3); }
+  .award-badge-cyan   { background: rgba(34,211,238,0.12); color: #22d3ee; border: 1px solid rgba(34,211,238,0.3); }
+
+  .award-crown {
+    font-size: 22px;
+    position: relative; z-index: 1;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .award-avatar {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    position: relative; z-index: 1;
+    border: 3px solid transparent;
+    flex-shrink: 0;
+  }
+
+  .award-av-gold   { background: linear-gradient(135deg,#78350f,#fbbf24); border-color: rgba(251,191,36,0.6); box-shadow: 0 0 16px rgba(251,191,36,0.35); }
+  .award-av-silver { background: linear-gradient(135deg,#334155,#94a3b8); border-color: rgba(192,192,192,0.5); box-shadow: 0 0 16px rgba(192,192,192,0.25); }
+  .award-av-bronze { background: linear-gradient(135deg,#431407,#cd7f32); border-color: rgba(205,127,50,0.5); box-shadow: 0 0 16px rgba(205,127,50,0.25); }
+  .award-av-cyan   { background: linear-gradient(135deg,#0c4a6e,#22d3ee); border-color: rgba(34,211,238,0.5); box-shadow: 0 0 16px rgba(34,211,238,0.25); }
+
+  .award-player-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-main);
+    text-align: center;
+    position: relative; z-index: 1;
+    word-break: break-all;
+  }
+
+  .award-score {
+    font-size: 12px;
+    color: var(--text-sub);
+    font-family: 'Orbitron', sans-serif;
+    position: relative; z-index: 1;
+  }
+
+  .award-label-row {
+    display: flex; align-items: center; gap: 6px;
+    position: relative; z-index: 1;
+  }
+
+  .award-chip {
+    font-size: 9px;
+    font-family: 'Orbitron', sans-serif;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+
+  .award-chip-gold   { background: rgba(251,191,36,0.2); color: #fbbf24; }
+  .award-chip-silver { background: rgba(192,192,192,0.15); color: #d4d4d4; }
+  .award-chip-bronze { background: rgba(205,127,50,0.15); color: #e0974a; }
+  .award-chip-cyan   { background: rgba(34,211,238,0.12); color: #22d3ee; }
+
+  .award-sub {
+    font-size: 9px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .award-stats-mini {
+    display: flex; gap: 4px;
+    width: 100%;
+    margin-top: 4px;
+    position: relative; z-index: 1;
+  }
+
+  .award-mini-stat {
+    flex: 1;
+    background: rgba(124,58,237,0.08);
+    border: 1px solid rgba(124,58,237,0.12);
+    border-radius: 8px;
+    padding: 5px 4px;
+    text-align: center;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+
+  .award-mini-stat span {
+    font-size: 8px;
+    color: var(--text-dim);
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.3px;
+  }
+
+  .award-mini-stat strong {
+    font-size: 10px;
+    color: var(--text-main);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+  }
+
   /* ── HOT SALE ── */
   .hot-sale-title-wrap {
     display: flex; align-items: center; gap: 8px;
@@ -1099,6 +1260,387 @@
     color: var(--accent-pink);
     font-weight: 700;
   }
+
+  /* ── PAGE SECTIONS ── */
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+  #page-home { display: block; }
+
+  /* ── LEADERBOARD PAGE ── */
+  .lb-page { padding: 28px; max-width: 900px; margin: 0 auto; }
+  @media (max-width: 640px) { .lb-page { padding: 16px; } }
+
+  .lb-page-header { text-align: center; margin-bottom: 32px; }
+  .lb-season-badge {
+    display: inline-block; font-family: 'Orbitron', sans-serif; font-size: 11px;
+    color: var(--purple-3); background: rgba(124,58,237,0.15);
+    border: 1px solid rgba(124,58,237,0.3); border-radius: 20px;
+    padding: 4px 14px; letter-spacing: 1px; margin-bottom: 12px;
+  }
+  .lb-page-title {
+    font-family: 'Orbitron', sans-serif; font-size: 32px; font-weight: 900;
+    background: linear-gradient(90deg, #fff 0%, var(--purple-3) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 6px;
+  }
+  @media (max-width: 640px) { .lb-page-title { font-size: 22px; } }
+  .lb-page-sub { font-size: 13px; color: var(--text-dim); }
+
+  .lb-top3 {
+    display: grid; grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 12px; margin-bottom: 24px; align-items: flex-end;
+  }
+  @media (max-width: 640px) { .lb-top3 { gap: 8px; } }
+
+  .lb-top-card {
+    background: var(--bg-card); border-radius: 16px;
+    padding: 20px 12px 16px; text-align: center;
+    border: 1px solid rgba(124,58,237,0.15);
+    position: relative; overflow: hidden; transition: transform 0.2s;
+  }
+  .lb-top-card:hover { transform: translateY(-3px); }
+  .lb-top-card.top1 { border-color: rgba(251,191,36,0.35); background: linear-gradient(180deg, rgba(251,191,36,0.08) 0%, var(--bg-card) 60%); padding-top: 28px; }
+  .lb-top-card.top2 { border-color: rgba(192,192,192,0.25); background: linear-gradient(180deg, rgba(192,192,192,0.06) 0%, var(--bg-card) 60%); }
+  .lb-top-card.top3 { border-color: rgba(205,127,50,0.25); background: linear-gradient(180deg, rgba(205,127,50,0.07) 0%, var(--bg-card) 60%); }
+
+  .lb-top-crown { font-size: 20px; margin-bottom: 4px; animation: float 2.5s ease-in-out infinite; }
+  .lb-top-avatar {
+    width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; border: 3px solid transparent;
+  }
+  .lb-top-card.top1 .lb-top-avatar { background: linear-gradient(135deg,#78350f,#fbbf24); border-color: rgba(251,191,36,0.6); box-shadow: 0 0 14px rgba(251,191,36,0.4); }
+  .lb-top-card.top2 .lb-top-avatar { background: linear-gradient(135deg,#334155,#94a3b8); border-color: rgba(192,192,192,0.5); }
+  .lb-top-card.top3 .lb-top-avatar { background: linear-gradient(135deg,#431407,#cd7f32); border-color: rgba(205,127,50,0.5); }
+
+  .lb-top-rank { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 900; margin-bottom: 4px; }
+  .lb-top-card.top1 .lb-top-rank { color: var(--accent-gold); }
+  .lb-top-card.top2 .lb-top-rank { color: #c0c0c0; }
+  .lb-top-card.top3 .lb-top-rank { color: #cd7f32; }
+  .lb-top-name { font-size: 11px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; word-break: break-all; }
+  .lb-top-score { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 900; color: var(--purple-3); }
+  .lb-top-tier { margin-top: 6px; font-size: 13px; }
+
+  .lb-table-wrap { background: var(--bg-card); border: 1px solid rgba(124,58,237,0.15); border-radius: 16px; overflow: hidden; }
+  .lb-table-header {
+    display: grid; padding: 12px 20px;
+    background: rgba(124,58,237,0.1); border-bottom: 1px solid rgba(124,58,237,0.15);
+    font-family: 'Orbitron', sans-serif; font-size: 10px; color: var(--text-dim); letter-spacing: 1px;
+  }
+  .lb-table-header.bp-header { grid-template-columns: 48px 1fr 120px; }
+  .lb-table-header.tour-header { grid-template-columns: 48px 1fr 90px 110px; }
+
+  .lb-row {
+    display: grid; padding: 13px 20px;
+    border-bottom: 1px solid rgba(124,58,237,0.07);
+    align-items: center; transition: background 0.15s; cursor: pointer;
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row:hover { background: rgba(124,58,237,0.07); }
+  .lb-row.bp-row { grid-template-columns: 48px 1fr 120px; }
+  .lb-row.tour-row { grid-template-columns: 48px 1fr 90px 110px; }
+
+  .lb-rank-num { font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 900; text-align: center; color: var(--text-dim); }
+  .lb-rank-num.r1 { color: var(--accent-gold); }
+  .lb-rank-num.r2 { color: #c0c0c0; }
+  .lb-rank-num.r3 { color: #cd7f32; }
+
+  .lb-nick { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--text-main); }
+  .lb-nick-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple-1), var(--purple-3));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+
+  .lb-score { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; color: var(--purple-3); text-align: right; }
+  .lb-tier-badge { display: flex; align-items: center; gap: 5px; justify-content: flex-end; }
+  .tier-icon { font-size: 16px; }
+  .tier-name { font-size: 10px; font-family: 'Orbitron', sans-serif; letter-spacing: 0.3px; }
+
+  .tier-bronze  { color: #cd7f32; }
+  .tier-silver  { color: #bfc9ca; }
+  .tier-gold    { color: #fbbf24; }
+  .tier-plat    { color: #4ade80; }
+  .tier-dia     { color: #60a5fa; }
+  .tier-master  { color: #c084fc; }
+  .tier-gmaster { color: #f472b6; }
+  .tier-echo    { color: #22d3ee; text-shadow: 0 0 8px #22d3ee; }
+
+  .lb-loading { text-align: center; padding: 48px 20px; color: var(--text-dim); font-family: 'Orbitron', sans-serif; font-size: 12px; letter-spacing: 1px; }
+  .lb-loading .spin { width: 32px; height: 32px; border: 3px solid rgba(124,58,237,0.2); border-top-color: var(--purple-2); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .lb-error { text-align: center; padding: 40px 20px; color: var(--accent-pink); font-size: 13px; }
+
+  .lb-refresh-btn { margin-top: 20px; display: flex; justify-content: flex-end; }
+  .btn-refresh {
+    background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 10px; padding: 8px 18px; color: var(--purple-3);
+    font-size: 12px; font-family: 'Orbitron', sans-serif;
+    cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px;
+  }
+  .btn-refresh:hover { background: rgba(124,58,237,0.3); box-shadow: var(--glow-purple); }
+
+  /* ══════════════════════════════════
+     PAGE SYSTEM
+  ══════════════════════════════════ */
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  /* ══════════════════════════════════
+     BATTLEPASS / TOURNAMENT PAGE
+  ══════════════════════════════════ */
+  .subpage-wrap {
+    padding: 28px 28px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 640px) {
+    .subpage-wrap { padding: 16px 14px 40px; }
+  }
+
+  .subpage-hero {
+    text-align: center;
+    padding: 36px 20px 28px;
+    position: relative;
+  }
+
+  .subpage-season-label {
+    display: inline-block;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--purple-3);
+    background: rgba(124,58,237,0.12);
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 20px;
+    padding: 4px 14px;
+    margin-bottom: 12px;
+  }
+
+  .subpage-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 36px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #fff 0%, var(--purple-3) 60%, var(--accent-pink) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    line-height: 1.1;
+  }
+
+  .subpage-subtitle {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .subpage-divider {
+    width: 60px; height: 3px;
+    background: linear-gradient(90deg, var(--purple-1), var(--purple-3));
+    border-radius: 2px;
+    margin: 16px auto 0;
+  }
+
+  /* 로딩 스피너 */
+  .loading-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 14px; padding: 48px 0; color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid rgba(124,58,237,0.2);
+    border-top-color: var(--purple-2);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 에러 메시지 */
+  .error-wrap {
+    text-align: center; padding: 40px 20px;
+    color: var(--accent-pink); font-size: 13px;
+  }
+
+  /* ── 랭킹 테이블 ── */
+  .rank-table {
+    background: var(--bg-card);
+    border: 1px solid rgba(124,58,237,0.15);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .rank-table-header {
+    display: grid;
+    padding: 12px 20px;
+    background: rgba(124,58,237,0.08);
+    border-bottom: 1px solid rgba(124,58,237,0.12);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .rank-table-header.bp-header {
+    grid-template-columns: 60px 1fr 140px;
+  }
+
+  .rank-table-header.tour-header {
+    grid-template-columns: 60px 1fr 100px 130px;
+  }
+
+  .rank-row {
+    display: grid;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(124,58,237,0.06);
+    align-items: center;
+    transition: background 0.15s;
+    cursor: default;
+  }
+
+  .rank-row:last-child { border-bottom: none; }
+
+  .rank-row:hover { background: rgba(124,58,237,0.06); }
+
+  .rank-row.bp-row {
+    grid-template-columns: 60px 1fr 140px;
+  }
+
+  .rank-row.tour-row {
+    grid-template-columns: 60px 1fr 100px 130px;
+  }
+
+  /* TOP 3 강조 */
+  .rank-row.top1 { background: rgba(251,191,36,0.05); }
+  .rank-row.top2 { background: rgba(192,192,192,0.04); }
+  .rank-row.top3 { background: rgba(205,127,50,0.04); }
+  .rank-row.top1:hover { background: rgba(251,191,36,0.09); }
+  .rank-row.top2:hover { background: rgba(192,192,192,0.08); }
+  .rank-row.top3:hover { background: rgba(205,127,50,0.08); }
+
+  .rank-num-cell {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--text-dim);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .rank-num-cell.r1 { color: var(--accent-gold); }
+  .rank-num-cell.r2 { color: #c0c0c0; }
+  .rank-num-cell.r3 { color: #cd7f32; }
+
+  .rank-crown-icon { font-size: 14px; }
+
+  .rank-nick {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+
+  .rank-score-cell {
+    text-align: right;
+  }
+
+  .rank-score {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--purple-3);
+  }
+
+  .rank-score-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* ── 티어 배지 ── */
+  .tier-badge {
+    display: flex; align-items: center; gap: 7px;
+    justify-content: flex-end;
+  }
+
+  .tier-icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .tier-name {
+    font-size: 11px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* 티어별 색상 */
+  .tier-bronze .tier-icon  { background: rgba(205,127,50,0.2); }
+  .tier-bronze .tier-name  { color: #cd7f32; }
+  .tier-silver .tier-icon  { background: rgba(192,192,192,0.15); }
+  .tier-silver .tier-name  { color: #c0c0c0; }
+  .tier-gold .tier-icon    { background: rgba(251,191,36,0.2); }
+  .tier-gold .tier-name    { color: #fbbf24; }
+  .tier-platinum .tier-icon { background: rgba(34,211,238,0.15); }
+  .tier-platinum .tier-name { color: #22d3ee; }
+  .tier-diamond .tier-icon { background: rgba(96,165,250,0.2); }
+  .tier-diamond .tier-name { color: #60a5fa; }
+  .tier-master .tier-icon  { background: rgba(192,132,252,0.2); }
+  .tier-master .tier-name  { color: var(--purple-3); }
+  .tier-grandmaster .tier-icon { background: rgba(244,114,182,0.2); }
+  .tier-grandmaster .tier-name { color: var(--accent-pink); }
+  .tier-ecomaster .tier-icon   { background: rgba(255,255,255,0.12); }
+  .tier-ecomaster .tier-name   { color: #fff; text-shadow: 0 0 8px rgba(192,132,252,0.8); }
+
+  /* 업데이트 시간 */
+  .update-info {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 14px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+
+  .refresh-btn {
+    background: rgba(124,58,237,0.15);
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 8px;
+    padding: 4px 12px;
+    color: var(--purple-3);
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .refresh-btn:hover {
+    background: rgba(124,58,237,0.3);
+    box-shadow: var(--glow-purple);
+  }
+
+  /* 배틀패스 점수 바 */
+  .bp-score-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+
+  .bp-bar-outer {
+    width: 120px; height: 5px;
+    background: rgba(124,58,237,0.12);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bp-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, var(--purple-1), var(--purple-3));
+    border-radius: 3px;
+    transition: width 0.8s ease;
+  }
 </style>
 </head>
 <body>
@@ -1142,6 +1684,16 @@
         <circle cx="19.5" cy="10.5" r="1" fill="currentColor"/>
       </svg>
       <span class="tooltip">친선대회</span>
+    </button>
+    <button class="nav-item" onclick="setPage('activity', this)">
+      <!-- 활동점수 아이콘 (차트/그래프) -->
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+        <line x1="2" y1="20" x2="22" y2="20"/>
+      </svg>
+      <span class="tooltip">활동점수</span>
     </button>
     <button class="nav-item" onclick="setPage('shop', this)">
       <!-- 상점 아이콘 -->
@@ -1191,6 +1743,7 @@
   </header>
 
   <!-- CONTENT GRID -->
+  <div id="page-home" class="page-section active">
   <div class="content" id="mainContent">
 
     <!-- LEFT COLUMN -->
@@ -1353,108 +1906,88 @@
         </div>
       </div>
 
-      <!-- HOT SALE -->
+      <!-- SEASON AWARD -->
       <div class="fade-in">
         <div class="section-header">
-          <div class="hot-sale-title-wrap">
-            <span class="section-title">🛍️ HOT SALE</span>
-            <span class="hot-sale-badge">상점 연동</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="section-title">🏆 SEASON AWARD</span>
+            <span style="background:linear-gradient(135deg,#fbbf24,#f97316);color:#0a0612;font-size:9px;font-family:'Orbitron',sans-serif;padding:2px 8px;border-radius:20px;letter-spacing:0.5px;">SEASON 7</span>
           </div>
-          <span class="see-more" onclick="setPage('shop', document.querySelector('.nav-item:nth-child(6)'))">상점 가기 →</span>
+          <span class="see-more">전체보기 →</span>
         </div>
-        <p class="hot-sale-sub">프로필 꾸미기 아이템을 지금 만나보세요</p>
-        <div class="hot-sale-grid">
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;margin-top:-8px;">이번 시즌 최고의 플레이어를 소개합니다</p>
+        <div class="award-grid">
 
-          <!-- 프로필 테두리 -->
-          <div class="sale-card">
-            <div class="sale-card-tag">프로필 테두리</div>
-            <div class="sale-preview-wrap">
-              <div class="sale-preview border-preview">
-                <div class="preview-avatar border-gold">👤</div>
-              </div>
-              <div class="sale-preview border-preview">
-                <div class="preview-avatar border-glow">👤</div>
-              </div>
-              <div class="sale-preview border-preview">
-                <div class="preview-avatar border-fire">👤</div>
-              </div>
+          <!-- MVP 1등 -->
+          <div class="award-card award-mvp">
+            <div class="award-bg-glow award-glow-gold"></div>
+            <div class="award-rank-badge award-badge-gold">MVP</div>
+            <div class="award-crown">👑</div>
+            <div class="award-avatar award-av-gold">⚔️</div>
+            <div class="award-player-name">NightFury_KR</div>
+            <div class="award-score">12,480 pts</div>
+            <div class="award-label-row">
+              <span class="award-chip award-chip-gold">1st</span>
+              <span class="award-sub">최우수 선수</span>
             </div>
-            <div class="sale-items-list">
-              <div class="sale-item">
-                <span class="sale-item-name">✨ 골드 프레임</span>
-                <span class="sale-item-price">⭐ 480</span>
-              </div>
-              <div class="sale-item hot">
-                <span class="sale-item-name">💜 퍼플 글로우</span>
-                <span class="sale-item-price sale-discount">
-                  <span class="old-price">⭐ 600</span>
-                  <span class="new-price">⭐ 420</span>
-                </span>
-              </div>
-              <div class="sale-item">
-                <span class="sale-item-name">🔥 파이어 링</span>
-                <span class="sale-item-price">⭐ 550</span>
-              </div>
+            <div class="award-stats-mini">
+              <div class="award-mini-stat"><span>배틀패스</span><strong id="award-mvp-bp">—</strong></div>
+              <div class="award-mini-stat"><span>친선</span><strong id="award-mvp-tour">—</strong></div>
+              <div class="award-mini-stat"><span>꾸미기</span><strong id="award-mvp-deco">—</strong></div>
             </div>
           </div>
 
-          <!-- 프로필 사진 -->
-          <div class="sale-card">
-            <div class="sale-card-tag">프로필 사진</div>
-            <div class="sale-preview-wrap">
-              <div class="sale-preview">
-                <div class="preview-avatar pfp-knight">⚔️</div>
-              </div>
-              <div class="sale-preview">
-                <div class="preview-avatar pfp-mage">🔮</div>
-              </div>
-              <div class="sale-preview">
-                <div class="preview-avatar pfp-archer">🏹</div>
-              </div>
+          <!-- MOTM 2등 -->
+          <div class="award-card award-motm">
+            <div class="award-bg-glow award-glow-silver"></div>
+            <div class="award-rank-badge award-badge-silver">MOTM</div>
+            <div class="award-avatar award-av-silver">🔮</div>
+            <div class="award-player-name">StarSlayer99</div>
+            <div class="award-score">11,920 pts</div>
+            <div class="award-label-row">
+              <span class="award-chip award-chip-silver">2nd</span>
+              <span class="award-sub">이달의 선수</span>
             </div>
-            <div class="sale-items-list">
-              <div class="sale-item hot">
-                <span class="sale-item-name">⚔️ 블레이드마스터</span>
-                <span class="sale-item-price sale-discount">
-                  <span class="old-price">⭐ 800</span>
-                  <span class="new-price">⭐ 560</span>
-                </span>
-              </div>
-              <div class="sale-item">
-                <span class="sale-item-name">🔮 아이스위저드</span>
-                <span class="sale-item-price">⭐ 800</span>
-              </div>
-              <div class="sale-item">
-                <span class="sale-item-name">🏹 헌터</span>
-                <span class="sale-item-price">⭐ 800</span>
-              </div>
+            <div class="award-stats-mini">
+              <div class="award-mini-stat"><span>배틀패스</span><strong id="award-motm-bp">—</strong></div>
+              <div class="award-mini-stat"><span>친선</span><strong id="award-motm-tour">—</strong></div>
+              <div class="award-mini-stat"><span>꾸미기</span><strong id="award-motm-deco">—</strong></div>
             </div>
           </div>
 
-          <!-- 프로필 이름 색상 효과 -->
-          <div class="sale-card">
-            <div class="sale-card-tag">이름 색상 효과</div>
-            <div class="sale-preview-wrap name-preview-wrap">
-              <span class="name-effect name-solid">NightFury</span>
-              <span class="name-effect name-gradient">StarSlayer</span>
-              <span class="name-effect name-rainbow">VoidWalker</span>
+          <!-- MIP 3등 -->
+          <div class="award-card award-mip">
+            <div class="award-bg-glow award-glow-bronze"></div>
+            <div class="award-rank-badge award-badge-bronze">MIP</div>
+            <div class="award-avatar award-av-bronze">🏹</div>
+            <div class="award-player-name">VoidWalker_X</div>
+            <div class="award-score">10,755 pts</div>
+            <div class="award-label-row">
+              <span class="award-chip award-chip-bronze">3rd</span>
+              <span class="award-sub">가장 성장한 선수</span>
             </div>
-            <div class="sale-items-list">
-              <div class="sale-item">
-                <span class="sale-item-name">🟣 단색 — 퍼플</span>
-                <span class="sale-item-price">⭐ 200</span>
-              </div>
-              <div class="sale-item hot">
-                <span class="sale-item-name">🌈 그라데이션 효과</span>
-                <span class="sale-item-price sale-discount">
-                  <span class="old-price">⭐ 500</span>
-                  <span class="new-price">⭐ 350</span>
-                </span>
-              </div>
-              <div class="sale-item">
-                <span class="sale-item-name">✨ 반짝임 애니</span>
-                <span class="sale-item-price">⭐ 650</span>
-              </div>
+            <div class="award-stats-mini">
+              <div class="award-mini-stat"><span>배틀패스</span><strong id="award-mip-bp">—</strong></div>
+              <div class="award-mini-stat"><span>친선</span><strong id="award-mip-tour">—</strong></div>
+              <div class="award-mini-stat"><span>꾸미기</span><strong id="award-mip-deco">—</strong></div>
+            </div>
+          </div>
+
+          <!-- ROY 신인왕/노력왕 -->
+          <div class="award-card award-roy">
+            <div class="award-bg-glow award-glow-cyan"></div>
+            <div class="award-rank-badge award-badge-cyan">ROY</div>
+            <div class="award-avatar award-av-cyan">🌟</div>
+            <div class="award-player-name">IceMage2026</div>
+            <div class="award-score">9,831 pts</div>
+            <div class="award-label-row">
+              <span class="award-chip award-chip-cyan">NEW</span>
+              <span class="award-sub">신인왕 · 노력왕</span>
+            </div>
+            <div class="award-stats-mini">
+              <div class="award-mini-stat"><span>배틀패스</span><strong id="award-roy-bp">—</strong></div>
+              <div class="award-mini-stat"><span>친선</span><strong id="award-roy-tour">—</strong></div>
+              <div class="award-mini-stat"><span>꾸미기</span><strong id="award-roy-deco">—</strong></div>
             </div>
           </div>
 
@@ -1592,6 +2125,58 @@
 
     </div>
   </div>
+  </div><!-- /page-home -->
+
+  <!-- ══ 배틀패스 페이지 ══ -->
+  <div id="page-battlepass" class="page-section">
+    <div class="lb-page">
+      <div class="lb-page-header">
+        <div class="lb-season-badge">⭐ BATTLE PASS</div>
+        <div class="lb-page-title">배틀 패스 7</div>
+        <div class="lb-page-sub">길드원 시즌 점수 순위</div>
+      </div>
+      <div class="lb-top3" id="bp-top3">
+        <div class="lb-loading"><div class="spin"></div>불러오는 중...</div>
+      </div>
+      <div class="lb-table-wrap">
+        <div class="lb-table-header bp-header">
+          <span>순위</span><span>닉네임</span><span style="text-align:right">시즌점수</span>
+        </div>
+        <div id="bp-list">
+          <div class="lb-loading"><div class="spin"></div>구글 시트 연동 중...</div>
+        </div>
+      </div>
+      <div class="lb-refresh-btn">
+        <button class="btn-refresh" onclick="loadBattlepass()">↻ 새로고침</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 친선대회 페이지 ══ -->
+  <div id="page-tournament" class="page-section">
+    <div class="lb-page">
+      <div class="lb-page-header">
+        <div class="lb-season-badge">👑 TOURNAMENT</div>
+        <div class="lb-page-title">친선 시즌 3</div>
+        <div class="lb-page-sub">길드원 친선대회 점수 순위</div>
+      </div>
+      <div class="lb-top3" id="tour-top3">
+        <div class="lb-loading"><div class="spin"></div>불러오는 중...</div>
+      </div>
+      <div class="lb-table-wrap">
+        <div class="lb-table-header tour-header">
+          <span>순위</span><span>닉네임</span><span style="text-align:right">친선점수</span><span style="text-align:right">랭크</span>
+        </div>
+        <div id="tour-list">
+          <div class="lb-loading"><div class="spin"></div>구글 시트 연동 중...</div>
+        </div>
+      </div>
+      <div class="lb-refresh-btn">
+        <button class="btn-refresh" onclick="loadTournament()">↻ 새로고침</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- BOTTOM NAV (Mobile) -->
@@ -1663,16 +2248,179 @@
     document.getElementById('pick-' + mode).classList.add('active');
   }
 
-  // Sidebar nav
+  // ── CSV URLs ──
+  const CSV_BP   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=0&single=true&output=csv';
+  const CSV_TOUR = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1871585691&single=true&output=csv';
+
+  // ── 티어 결정 함수 ──
+  function getTier(score) {
+    const s = Number(score) || 0;
+    if (s >= 1000) return { name:'에코마스터',  sub:'',  cls:'ecomaster',   icon:'🔱', num:'' };
+    if (s >= 901)  return { name:'그랜드마스터',sub:'3', cls:'grandmaster',  icon:'🔴', num:'3' };
+    if (s >= 851)  return { name:'그랜드마스터',sub:'2', cls:'grandmaster',  icon:'🔴', num:'2' };
+    if (s >= 801)  return { name:'그랜드마스터',sub:'1', cls:'grandmaster',  icon:'🔴', num:'1' };
+    if (s >= 751)  return { name:'마스터',      sub:'3', cls:'master',       icon:'💜', num:'3' };
+    if (s >= 701)  return { name:'마스터',      sub:'2', cls:'master',       icon:'💜', num:'2' };
+    if (s >= 651)  return { name:'마스터',      sub:'1', cls:'master',       icon:'💜', num:'1' };
+    if (s >= 601)  return { name:'다이아',      sub:'3', cls:'diamond',      icon:'💎', num:'3' };
+    if (s >= 551)  return { name:'다이아',      sub:'2', cls:'diamond',      icon:'💎', num:'2' };
+    if (s >= 501)  return { name:'다이아',      sub:'1', cls:'diamond',      icon:'💎', num:'1' };
+    if (s >= 451)  return { name:'플레티넘',    sub:'3', cls:'platinum',     icon:'🩵', num:'3' };
+    if (s >= 401)  return { name:'플레티넘',    sub:'2', cls:'platinum',     icon:'🩵', num:'2' };
+    if (s >= 351)  return { name:'플레티넘',    sub:'1', cls:'platinum',     icon:'🩵', num:'1' };
+    if (s >= 301)  return { name:'골드',        sub:'3', cls:'gold',         icon:'🥇', num:'3' };
+    if (s >= 251)  return { name:'골드',        sub:'2', cls:'gold',         icon:'🥇', num:'2' };
+    if (s >= 201)  return { name:'골드',        sub:'1', cls:'gold',         icon:'🥇', num:'1' };
+    if (s >= 161)  return { name:'실버',        sub:'3', cls:'silver',       icon:'🥈', num:'3' };
+    if (s >= 131)  return { name:'실버',        sub:'2', cls:'silver',       icon:'🥈', num:'2' };
+    if (s >= 101)  return { name:'실버',        sub:'1', cls:'silver',       icon:'🥈', num:'1' };
+    if (s >= 51)   return { name:'브론즈',      sub:'3', cls:'bronze',       icon:'🥉', num:'3' };
+    if (s >= 21)   return { name:'브론즈',      sub:'2', cls:'bronze',       icon:'🥉', num:'2' };
+    return           { name:'브론즈',            sub:'1', cls:'bronze',       icon:'🥉', num:'1' };
+  }
+
+  // ── CSV 파싱 ──
+  function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    return lines.slice(1).map(line => {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      return cols;
+    }).filter(row => row[0]);
+  }
+
+  // ── 날짜 포맷 ──
+  function nowStr() {
+    return new Date().toLocaleString('ko-KR', {month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}) + ' 기준';
+  }
+
+  // ── 배틀패스 로드 ──
+  async function loadBattlepass() {
+    const el = document.getElementById('bp-content');
+    el.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><span>데이터 불러오는 중...</span></div>';
+    try {
+      const res = await fetch(CSV_BP + '&t=' + Date.now());
+      if (!res.ok) throw new Error('fetch fail');
+      const text = await res.text();
+      const rows = parseCSV(text);
+
+      // 점수 기준 정렬
+      rows.sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0));
+
+      const maxScore = Math.max(...rows.map(r => Number(r[1]) || 0), 1);
+
+      let html = `<div class="rank-table">
+        <div class="rank-table-header bp-header">
+          <span>순위</span><span>닉네임</span><span style="text-align:right">배틀패스 점수</span>
+        </div>`;
+
+      rows.forEach((row, i) => {
+        const rank = i + 1;
+        const nick = row[0] || '—';
+        const score = Number(row[1]) || 0;
+        const pct = Math.round((score / maxScore) * 100);
+        const topCls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+        const numCls = rank === 1 ? 'r1' : rank === 2 ? 'r2' : rank === 3 ? 'r3' : '';
+        const crown = rank === 1 ? '<span class="rank-crown-icon">👑</span>' : '';
+
+        html += `<div class="rank-row bp-row ${topCls}">
+          <div class="rank-num-cell ${numCls}">${crown}${rank}</div>
+          <div class="rank-nick">${nick}</div>
+          <div class="rank-score-cell">
+            <div class="bp-score-wrap">
+              <div class="rank-score">${score.toLocaleString()}<small style="font-size:10px;color:var(--text-dim);margin-left:3px">pts</small></div>
+              <div class="bp-bar-outer"><div class="bp-bar-inner" style="width:${pct}%"></div></div>
+            </div>
+          </div>
+        </div>`;
+      });
+
+      html += '</div>';
+      el.innerHTML = html;
+      document.getElementById('bp-update-time').textContent = nowStr();
+    } catch(e) {
+      el.innerHTML = '<div class="error-wrap">⚠️ 데이터를 불러오지 못했어요.<br>구글 시트 공개 설정을 확인해주세요.</div>';
+    }
+  }
+
+  // ── 친선대회 로드 ──
+  async function loadTournament() {
+    const el = document.getElementById('tour-content');
+    el.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><span>데이터 불러오는 중...</span></div>';
+    try {
+      const res = await fetch(CSV_TOUR + '&t=' + Date.now());
+      if (!res.ok) throw new Error('fetch fail');
+      const text = await res.text();
+      const rows = parseCSV(text);
+
+      rows.sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0));
+
+      let html = `<div class="rank-table">
+        <div class="rank-table-header tour-header">
+          <span>순위</span><span>닉네임</span><span style="text-align:right">친선점수</span><span style="text-align:right">랭크 티어</span>
+        </div>`;
+
+      rows.forEach((row, i) => {
+        const rank = i + 1;
+        const nick = row[0] || '—';
+        const score = Number(row[1]) || 0;
+        const tier = getTier(score);
+        const topCls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+        const numCls = rank === 1 ? 'r1' : rank === 2 ? 'r2' : rank === 3 ? 'r3' : '';
+        const crown = rank === 1 ? '<span class="rank-crown-icon">👑</span>' : '';
+
+        html += `<div class="rank-row tour-row ${topCls}">
+          <div class="rank-num-cell ${numCls}">${crown}${rank}</div>
+          <div class="rank-nick">${nick}</div>
+          <div class="rank-score-cell">
+            <div class="rank-score">${score.toLocaleString()}<small style="font-size:10px;color:var(--text-dim);margin-left:3px">pts</small></div>
+          </div>
+          <div class="tier-badge tier-${tier.cls}">
+            <div class="tier-icon">${tier.icon}</div>
+            <div class="tier-name">${tier.name}${tier.num ? ' ' + tier.num : ''}</div>
+          </div>
+        </div>`;
+      });
+
+      html += '</div>';
+      el.innerHTML = html;
+      document.getElementById('tour-update-time').textContent = nowStr();
+    } catch(e) {
+      el.innerHTML = '<div class="error-wrap">⚠️ 데이터를 불러오지 못했어요.<br>구글 시트 공개 설정을 확인해주세요.</div>';
+    }
+  }
+
+  // ── 페이지 전환 ──
   function setPage(page, el) {
+    // 사이드바 활성화
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     if (el) el.classList.add('active');
+
+    // 모든 페이지 숨기기
+    document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+
+    // 해당 페이지 보이기
+    const pageMap = {
+      home: 'page-home',
+      battlepass: 'page-battlepass',
+      tournament: 'page-tournament',
+    };
+    const targetId = pageMap[page] || 'page-home';
+    const target = document.getElementById(targetId);
+    if (target) target.classList.add('active');
+
+    // 데이터 로드
+    if (page === 'battlepass') loadBattlepass();
+    if (page === 'tournament') loadTournament();
+
+    // 스크롤 상단
+    window.scrollTo(0, 0);
   }
 
   // Mobile nav
   function setPageMobile(page, el) {
     document.querySelectorAll('.bottom-nav-item').forEach(n => n.classList.remove('active'));
     el.classList.add('active');
+    setPage(page, null);
   }
 </script>
 </body>
