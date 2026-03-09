@@ -1066,9 +1066,9 @@
   }
 
   .award-stats-mini {
-    display: flex; gap: 4px;
+    display: flex; gap: 6px;
     width: 100%;
-    margin-top: 4px;
+    margin-top: 6px;
     position: relative; z-index: 1;
   }
 
@@ -1077,20 +1077,22 @@
     background: rgba(124,58,237,0.08);
     border: 1px solid rgba(124,58,237,0.12);
     border-radius: 8px;
-    padding: 5px 4px;
+    padding: 6px 4px;
     text-align: center;
-    display: flex; flex-direction: column; gap: 2px;
+    display: flex; flex-direction: column; gap: 3px;
   }
 
   .award-mini-stat span {
-    font-size: 8px;
+    font-size: 9px;
     color: var(--text-dim);
-    font-family: 'Orbitron', sans-serif;
-    letter-spacing: 0.3px;
+    font-family: 'Noto Sans KR', sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .award-mini-stat strong {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-main);
     font-family: 'Orbitron', sans-serif;
     font-weight: 700;
@@ -1953,84 +1955,14 @@
             <span class="section-title">🏆 SEASON AWARD</span>
             <span style="background:linear-gradient(135deg,#fbbf24,#f97316);color:#0a0612;font-size:9px;font-family:'Orbitron',sans-serif;padding:2px 8px;border-radius:20px;letter-spacing:0.5px;">SEASON 7</span>
           </div>
-          <span class="see-more">전체보기 →</span>
+          <span class="see-more" style="cursor:pointer" onclick="location.href='battlepass.html'">자세히 →</span>
         </div>
-        <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;margin-top:-8px;">이번 시즌 최고의 플레이어를 소개합니다</p>
-        <div class="award-grid">
-
-          <!-- MVP 1등 -->
-          <div class="award-card award-mvp">
-            <div class="award-bg-glow award-glow-gold"></div>
-            <div class="award-rank-badge award-badge-gold">MVP</div>
-            <div class="award-crown">👑</div>
-            <div class="award-avatar award-av-gold">⚔️</div>
-            <div class="award-player-name">NightFury_KR</div>
-            <div class="award-score">12,480 pts</div>
-            <div class="award-label-row">
-              <span class="award-chip award-chip-gold">1st</span>
-              <span class="award-sub">최우수 선수</span>
-            </div>
-            <div class="award-stats-mini">
-              <div class="award-mini-stat"><span>배틀패스</span><strong id="award-mvp-bp">—</strong></div>
-              <div class="award-mini-stat"><span>친선</span><strong id="award-mvp-tour">—</strong></div>
-              <div class="award-mini-stat"><span>꾸미기</span><strong id="award-mvp-deco">—</strong></div>
-            </div>
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;margin-top:-8px;">배틀패스 + 친선대회 합산 순위 기준</p>
+        <div class="award-grid" id="award-grid-container">
+          <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-dim);">
+            <div style="width:28px;height:28px;border:3px solid rgba(124,58,237,0.2);border-top-color:var(--purple-2);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px;"></div>
+            데이터 불러오는 중...
           </div>
-
-          <!-- MOTM 2등 -->
-          <div class="award-card award-motm">
-            <div class="award-bg-glow award-glow-silver"></div>
-            <div class="award-rank-badge award-badge-silver">MOTM</div>
-            <div class="award-avatar award-av-silver">🔮</div>
-            <div class="award-player-name">StarSlayer99</div>
-            <div class="award-score">11,920 pts</div>
-            <div class="award-label-row">
-              <span class="award-chip award-chip-silver">2nd</span>
-              <span class="award-sub">이달의 선수</span>
-            </div>
-            <div class="award-stats-mini">
-              <div class="award-mini-stat"><span>배틀패스</span><strong id="award-motm-bp">—</strong></div>
-              <div class="award-mini-stat"><span>친선</span><strong id="award-motm-tour">—</strong></div>
-              <div class="award-mini-stat"><span>꾸미기</span><strong id="award-motm-deco">—</strong></div>
-            </div>
-          </div>
-
-          <!-- MIP 3등 -->
-          <div class="award-card award-mip">
-            <div class="award-bg-glow award-glow-bronze"></div>
-            <div class="award-rank-badge award-badge-bronze">MIP</div>
-            <div class="award-avatar award-av-bronze">🏹</div>
-            <div class="award-player-name">VoidWalker_X</div>
-            <div class="award-score">10,755 pts</div>
-            <div class="award-label-row">
-              <span class="award-chip award-chip-bronze">3rd</span>
-              <span class="award-sub">가장 성장한 선수</span>
-            </div>
-            <div class="award-stats-mini">
-              <div class="award-mini-stat"><span>배틀패스</span><strong id="award-mip-bp">—</strong></div>
-              <div class="award-mini-stat"><span>친선</span><strong id="award-mip-tour">—</strong></div>
-              <div class="award-mini-stat"><span>꾸미기</span><strong id="award-mip-deco">—</strong></div>
-            </div>
-          </div>
-
-          <!-- ROY 신인왕/노력왕 -->
-          <div class="award-card award-roy">
-            <div class="award-bg-glow award-glow-cyan"></div>
-            <div class="award-rank-badge award-badge-cyan">ROY</div>
-            <div class="award-avatar award-av-cyan">🌟</div>
-            <div class="award-player-name">IceMage2026</div>
-            <div class="award-score">9,831 pts</div>
-            <div class="award-label-row">
-              <span class="award-chip award-chip-cyan">NEW</span>
-              <span class="award-sub">신인왕 · 노력왕</span>
-            </div>
-            <div class="award-stats-mini">
-              <div class="award-mini-stat"><span>배틀패스</span><strong id="award-roy-bp">—</strong></div>
-              <div class="award-mini-stat"><span>친선</span><strong id="award-roy-tour">—</strong></div>
-              <div class="award-mini-stat"><span>꾸미기</span><strong id="award-roy-deco">—</strong></div>
-            </div>
-          </div>
-
         </div>
       </div>
 
@@ -2260,6 +2192,88 @@
   }
 
   setActiveNav('home');
+
+  // ── SEASON AWARD: 구글시트 데이터 불러와 합산 순위 계산 ──
+  const AVATARS = ['⚔️','🔮','🏹','🛡️','🌟','🔥','💧','🌀'];
+
+  async function loadSeasonAward() {
+    try {
+      // 두 시트 동시 fetch
+      const [resBP, resTour] = await Promise.all([
+        fetch(CSV_BP  + '&t=' + Date.now(), { cache:'no-store' }),
+        fetch(CSV_TOUR + '&t=' + Date.now(), { cache:'no-store' })
+      ]);
+      const bpRows   = parseCSV(await resBP.text());
+      const tourRows = parseCSV(await resTour.text());
+
+      // 닉네임 기준으로 점수 맵 생성
+      const bpMap   = {};
+      const tourMap = {};
+      bpRows.forEach(r   => { if(r[0]) bpMap[r[0].trim()]   = Number(r[1]) || 0; });
+      tourRows.forEach(r => { if(r[0]) tourMap[r[0].trim()] = Number(r[1]) || 0; });
+
+      // 전체 닉네임 합집합
+      const allNicks = [...new Set([...Object.keys(bpMap), ...Object.keys(tourMap)])];
+
+      // 합산 점수 계산 후 정렬
+      const combined = allNicks.map(nick => ({
+        nick,
+        bp:    bpMap[nick]   || 0,
+        tour:  tourMap[nick] || 0,
+        total: (bpMap[nick] || 0) + (tourMap[nick] || 0)
+      }));
+      combined.sort((a, b) => b.total - a.total);
+
+      // AWARD 정의
+      const awards = [
+        { key:'mvp',  label:'MVP',  chip:'1st', sub:'최우수 선수',    cardCls:'award-mvp',  glowCls:'award-glow-gold',   badgeCls:'award-badge-gold',   avCls:'award-av-gold',   chipCls:'award-chip-gold',   crown:true  },
+        { key:'motm', label:'MOTM', chip:'2nd', sub:'이달의 선수',    cardCls:'award-motm', glowCls:'award-glow-silver', badgeCls:'award-badge-silver', avCls:'award-av-silver', chipCls:'award-chip-silver', crown:false },
+        { key:'mip',  label:'MIP',  chip:'3rd', sub:'가장 성장한 선수', cardCls:'award-mip',  glowCls:'award-glow-bronze', badgeCls:'award-badge-bronze', avCls:'award-av-bronze', chipCls:'award-chip-bronze', crown:false },
+        { key:'roy',  label:'ROY',  chip:'NEW', sub:'신인왕 · 노력왕', cardCls:'award-roy',  glowCls:'award-glow-cyan',   badgeCls:'award-badge-cyan',   avCls:'award-av-cyan',   chipCls:'award-chip-cyan',   crown:false },
+      ];
+
+      let gridHtml = '';
+      awards.forEach((aw, i) => {
+        const player = combined[i];
+        if (!player) return;
+        const avatar = AVATARS[i % AVATARS.length];
+        const crownHtml = aw.crown ? '<div class="award-crown">👑</div>' : '';
+        gridHtml += `
+          <div class="award-card ${aw.cardCls}">
+            <div class="award-bg-glow ${aw.glowCls}"></div>
+            <div class="award-rank-badge ${aw.badgeCls}">${aw.label}</div>
+            ${crownHtml}
+            <div class="award-avatar ${aw.avCls}">${avatar}</div>
+            <div class="award-player-name">${player.nick}</div>
+            <div class="award-score">${player.total.toLocaleString()} pts</div>
+            <div class="award-label-row">
+              <span class="award-chip ${aw.chipCls}">${aw.chip}</span>
+              <span class="award-sub">${aw.sub}</span>
+            </div>
+            <div class="award-stats-mini">
+              <div class="award-mini-stat">
+                <span>⭐ 배틀패스</span>
+                <strong>${player.bp.toLocaleString()}</strong>
+              </div>
+              <div class="award-mini-stat">
+                <span>👑 친선</span>
+                <strong>${player.tour.toLocaleString()}</strong>
+              </div>
+            </div>
+          </div>`;
+      });
+
+      const container = document.getElementById('award-grid-container');
+      if (container) container.innerHTML = gridHtml;
+
+    } catch(e) {
+      const container = document.getElementById('award-grid-container');
+      if (container) container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-dim);font-size:12px;">⚠️ 데이터를 불러오지 못했어요</div>';
+    }
+  }
+
+  // 페이지 로드 시 자동 실행
+  window.addEventListener('DOMContentLoaded', loadSeasonAward);
 
 </script>
 </body>
