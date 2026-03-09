@@ -1811,157 +1811,21 @@
       <div class="fade-in">
         <div class="section-header">
           <span class="section-title">🎯 캐릭터 픽률 TOP 3</span>
-          <span class="see-more">전체보기 →</span>
+          <span class="see-more" style="cursor:pointer" onclick="loadPickrate()">🔄 새로고침</span>
         </div>
-        <div class="tab-bar">
-          <button class="tab active" onclick="switchPickTab(this, 'br')">배틀로얄</button>
-          <button class="tab" onclick="switchPickTab(this, 'hill')">언덕의 왕</button>
-          <button class="tab" onclick="switchPickTab(this, 'tdm')">팀데스매치</button>
-          <button class="tab" onclick="switchPickTab(this, 'obs')">방해</button>
-          <button class="tab" onclick="switchPickTab(this, 'squad')">분대전투</button>
-        </div>
-
-        <!-- 배틀로얄 -->
-        <div class="pickrate-panel active" id="pick-br">
-          <div class="pickrate-list">
-            <div class="pickrate-item rank1">
-              <div class="pick-rank">
-                <span class="rank-num gold">1</span>
-                <div class="rank-crown">👑</div>
-              </div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#4c1d95,#7c3aed)">⚔️</div>
-              <div class="pick-info">
-                <div class="pick-name">블레이드마스터</div>
-                <div class="pick-bar-wrap">
-                  <div class="pick-bar" style="--w:72%"></div>
-                  <span class="pick-pct">72.4%</span>
-                </div>
-              </div>
-            </div>
-            <div class="pickrate-item">
-              <div class="pick-rank"><span class="rank-num silver">2</span></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#1e3a8a,#3b82f6)">🔮</div>
-              <div class="pick-info">
-                <div class="pick-name">아이스위저드</div>
-                <div class="pick-bar-wrap">
-                  <div class="pick-bar" style="--w:58%"></div>
-                  <span class="pick-pct">58.1%</span>
-                </div>
-              </div>
-            </div>
-            <div class="pickrate-item">
-              <div class="pick-rank"><span class="rank-num bronze">3</span></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#7c2d12,#ef4444)">🏹</div>
-              <div class="pick-info">
-                <div class="pick-name">헌터</div>
-                <div class="pick-bar-wrap">
-                  <div class="pick-bar" style="--w:44%"></div>
-                  <span class="pick-pct">44.8%</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="tab-bar" id="pick-tab-bar">
+          <button class="tab active" onclick="switchPickTab(this, '배틀로얄')">배틀로얄</button>
+          <button class="tab" onclick="switchPickTab(this, '언덕의왕')">언덕의 왕</button>
+          <button class="tab" onclick="switchPickTab(this, '팀데스매치')">팀데스매치</button>
+          <button class="tab" onclick="switchPickTab(this, '방해')">방해</button>
+          <button class="tab" onclick="switchPickTab(this, '분대전투')">분대전투</button>
         </div>
 
-        <!-- 언덕의 왕 -->
-        <div class="pickrate-panel" id="pick-hill">
-          <div class="pickrate-list">
-            <div class="pickrate-item rank1">
-              <div class="pick-rank"><span class="rank-num gold">1</span><div class="rank-crown">👑</div></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#14532d,#22c55e)">🛡️</div>
-              <div class="pick-info"><div class="pick-name">가디언</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:68%"></div><span class="pick-pct">68.2%</span></div></div>
-            </div>
-            <div class="pickrate-item">
-              <div class="pick-rank"><span class="rank-num silver">2</span></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#4c1d95,#c084fc)">⚡</div>
-              <div class="pick-info"><div class="pick-name">스톰콜러</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:51%"></div><span class="pick-pct">51.0%</span></div></div>
-            </div>
-            <div class="pickrate-item">
-              <div class="pick-rank"><span class="rank-num bronze">3</span></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#1e3a8a,#60a5fa)">❄️</div>
-              <div class="pick-info"><div class="pick-name">아이스위저드</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:39%"></div><span class="pick-pct">39.5%</span></div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 팀데스매치 -->
-        <div class="pickrate-panel" id="pick-tdm">
-          <div class="pickrate-list">
-            <div class="pickrate-item rank1">
-              <div class="pick-rank"><span class="rank-num gold">1</span><div class="rank-crown">👑</div></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#7c2d12,#f97316)">🔥</div>
-              <div class="pick-info"><div class="pick-name">파이어킹</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:79%"></div><span class="pick-pct">79.3%</span></div></div>
-            </div>
-            <div class="pickrate-item">
-              <div class="pick-rank"><span class="rank-num silver">2</span></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#4c1d95,#7c3aed)">⚔️</div>
-              <div class="pick-info"><div class="pick-name">블레이드마스터</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:61%"></div><span class="pick-pct">61.7%</span></div></div>
-            </div>
-            <div class="pickrate-item">
-              <div class="pick-rank"><span class="rank-num bronze">3</span></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#1e3a8a,#3b82f6)">💧</div>
-              <div class="pick-info"><div class="pick-name">워터메이지</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:47%"></div><span class="pick-pct">47.2%</span></div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 방해 -->
-        <div class="pickrate-panel" id="pick-obs">
-          <div class="pickrate-list">
-            <div class="pickrate-item rank1">
-              <div class="pick-rank"><span class="rank-num gold">1</span><div class="rank-crown">👑</div></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#701a75,#e879f9)">🌀</div>
-              <div class="pick-info"><div class="pick-name">보이드워커</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:65%"></div><span class="pick-pct">65.9%</span></div></div>
-            </div>
-            <div class="pickrate-item">
-              <div class="pick-rank"><span class="rank-num silver">2</span></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#14532d,#22c55e)">🍃</div>
-              <div class="pick-info"><div class="pick-name">네이처가디언</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:53%"></div><span class="pick-pct">53.4%</span></div></div>
-            </div>
-            <div class="pickrate-item">
-              <div class="pick-rank"><span class="rank-num bronze">3</span></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#1c1917,#78716c)">🗿</div>
-              <div class="pick-info"><div class="pick-name">스톤골렘</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:38%"></div><span class="pick-pct">38.1%</span></div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 분대전투 -->
-        <div class="pickrate-panel" id="pick-squad">
-          <div class="pickrate-list">
-            <div class="pickrate-item rank1">
-              <div class="pick-rank"><span class="rank-num gold">1</span><div class="rank-crown">👑</div></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#1e3a8a,#60a5fa)">🦅</div>
-              <div class="pick-info"><div class="pick-name">이글스카우트</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:70%"></div><span class="pick-pct">70.6%</span></div></div>
-            </div>
-            <div class="pickrate-item">
-              <div class="pick-rank"><span class="rank-num silver">2</span></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#7c2d12,#ef4444)">🏹</div>
-              <div class="pick-info"><div class="pick-name">헌터</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:55%"></div><span class="pick-pct">55.8%</span></div></div>
-            </div>
-            <div class="pickrate-item">
-              <div class="pick-rank"><span class="rank-num bronze">3</span></div>
-              <div class="pick-avatar" style="background: linear-gradient(135deg,#4c1d95,#c084fc)">⚡</div>
-              <div class="pick-info"><div class="pick-name">스톰콜러</div><div class="pick-bar-wrap"><div class="pick-bar" style="--w:41%"></div><span class="pick-pct">41.3%</span></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SEASON AWARD -->
-      <div class="fade-in">
-        <div class="section-header">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="section-title">🏆 SEASON AWARD</span>
-            <span style="background:linear-gradient(135deg,#fbbf24,#f97316);color:#0a0612;font-size:9px;font-family:'Orbitron',sans-serif;padding:2px 8px;border-radius:20px;letter-spacing:0.5px;">SEASON 7</span>
-          </div>
-          <span class="see-more" style="cursor:pointer" onclick="location.href='battlepass.html'">자세히 →</span>
-        </div>
-        <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;margin-top:-8px;">배틀패스 + 친선대회 합산 순위 기준</p>
-        <div class="award-grid" id="award-grid-container">
-          <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-dim);">
+        <!-- 픽률 패널 (구글시트 동적 로드) -->
+        <div id="pick-panels-wrap">
+          <div style="text-align:center;padding:32px;color:var(--text-dim);">
             <div style="width:28px;height:28px;border:3px solid rgba(124,58,237,0.2);border-top-color:var(--purple-2);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px;"></div>
-            데이터 불러오는 중...
+            픽률 데이터 불러오는 중...
           </div>
         </div>
       </div>
@@ -2187,8 +2051,96 @@
   function switchPickTab(el, mode) {
     el.closest('.tab-bar').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     el.classList.add('active');
-    document.querySelectorAll('.pickrate-panel').forEach(p=>p.classList.remove('active'));
-    document.getElementById('pick-'+mode).classList.add('active');
+    // 해당 모드 패널만 표시
+    document.querySelectorAll('.pickrate-panel').forEach(p => {
+      p.style.display = p.dataset.mode === mode ? 'block' : 'none';
+    });
+  }
+
+
+  const CSV_PICK = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=737130152&single=true&output=csv';
+
+  // ── 픽률 로드 ──
+  async function loadPickrate() {
+    const wrap = document.getElementById('pick-panels-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-dim);"><div style="width:28px;height:28px;border:3px solid rgba(124,58,237,0.2);border-top-color:var(--purple-2);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';
+
+    try {
+      const res = await fetch(CSV_PICK + '&t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const rows = parseCSV(await res.text());
+      if (!rows.length) throw new Error('데이터 없음');
+
+      // 모드별로 그룹화
+      const modeMap = {};
+      rows.forEach(row => {
+        const mode = (row[0] || '').trim();
+        const name = (row[1] || '').trim();
+        const pct  = parseFloat(row[2]) || 0;
+        const img  = (row[3] || '').trim();
+        if (!mode || !name) return;
+        if (!modeMap[mode]) modeMap[mode] = [];
+        modeMap[mode].push({ name, pct, img });
+      });
+
+      // 각 모드별 픽률 내림차순 정렬 후 TOP3만
+      Object.keys(modeMap).forEach(mode => {
+        modeMap[mode].sort((a, b) => b.pct - a.pct);
+        modeMap[mode] = modeMap[mode].slice(0, 3);
+      });
+
+      // 탭 순서 (시트에 있는 모드만 표시)
+      const TAB_MODES = ['배틀로얄', '언덕의왕', '팀데스매치', '방해', '분대전투'];
+      const TAB_LABELS = {'배틀로얄':'배틀로얄','언덕의왕':'언덕의 왕','팀데스매치':'팀데스매치','방해':'방해','분대전투':'분대전투'};
+      const rankColors = ['gold', 'silver', 'bronze'];
+      const rankCrowns = ['<div class="rank-crown">👑</div>', '', ''];
+
+      // 탭바 재생성 (데이터 있는 모드만)
+      const tabBar = document.getElementById('pick-tab-bar');
+      if (tabBar) {
+        const availModes = TAB_MODES.filter(m => modeMap[m]);
+        tabBar.innerHTML = availModes.map((m, i) =>
+          `<button class="tab${i===0?' active':''}" onclick="switchPickTab(this,'${m}')">${TAB_LABELS[m]||m}</button>`
+        ).join('');
+      }
+
+      // 패널 생성
+      let panelsHtml = '';
+      const availModes = TAB_MODES.filter(m => modeMap[m]);
+      availModes.forEach((mode, mi) => {
+        const chars = modeMap[mode];
+        const maxPct = chars[0]?.pct || 1;
+        let itemsHtml = '';
+        chars.forEach((c, i) => {
+          const barW = Math.round((c.pct / maxPct) * 100);
+          const avatarHtml = c.img
+            ? `<div class="pick-avatar" style="background:#1a1035;padding:0;overflow:hidden"><img src="${c.img}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='🎮'"></div>`
+            : `<div class="pick-avatar" style="background:linear-gradient(135deg,#4c1d95,#7c3aed)">🎮</div>`;
+          itemsHtml += `
+            <div class="pickrate-item${i===0?' rank1':''}">
+              <div class="pick-rank">
+                <span class="rank-num ${rankColors[i]}">${i+1}</span>
+                ${rankCrowns[i]}
+              </div>
+              ${avatarHtml}
+              <div class="pick-info">
+                <div class="pick-name">${c.name}</div>
+                <div class="pick-bar-wrap">
+                  <div class="pick-bar" style="--w:${barW}%"></div>
+                  <span class="pick-pct">${c.pct}%</span>
+                </div>
+              </div>
+            </div>`;
+        });
+        panelsHtml += `<div class="pickrate-panel" data-mode="${mode}" style="display:${mi===0?'block':'none'}"><div class="pickrate-list">${itemsHtml}</div></div>`;
+      });
+
+      wrap.innerHTML = panelsHtml || '<div style="text-align:center;padding:24px;color:var(--text-dim);font-size:13px;">데이터가 없습니다</div>';
+
+    } catch(e) {
+      if (wrap) wrap.innerHTML = `<div style="text-align:center;padding:24px;color:var(--accent-pink);font-size:13px;">⚠️ 불러오기 실패<br><small style="color:var(--text-dim)">${e.message}</small></div>`;
+    }
   }
 
   setActiveNav('home');
@@ -2273,7 +2225,7 @@
   }
 
   // 페이지 로드 시 자동 실행
-  window.addEventListener('DOMContentLoaded', loadSeasonAward);
+  window.addEventListener('DOMContentLoaded', () => { loadSeasonAward(); loadPickrate(); });
 
 </script>
 </body>
