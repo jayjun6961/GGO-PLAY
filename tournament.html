@@ -1398,7 +1398,7 @@
   .lb-top-card.top3 .lb-top-rank { color: #cd7f32; }
   .lb-top-name { font-size: 11px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; word-break: break-all; }
   .lb-top-score { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 900; color: var(--purple-3); }
-  .lb-top-tier { margin-top: 6px; font-size: 13px; }
+  .lb-top-tier { margin-top: 8px; display:flex; align-items:center; justify-content:center; gap:5px; font-size:11px; font-family:"Orbitron",sans-serif; }
 
   .lb-table-wrap { background: var(--bg-card); border: 1px solid rgba(124,58,237,0.15); border-radius: 16px; overflow: hidden; }
   .lb-table-header {
@@ -1434,7 +1434,8 @@
 
   .lb-score { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; color: var(--purple-3); text-align: right; }
   .lb-tier-badge { display: flex; align-items: center; gap: 5px; justify-content: flex-end; }
-  .tier-icon { font-size: 16px; }
+  .tier-icon { display:flex; align-items:center; justify-content:center; width:28px; height:28px; flex-shrink:0; }
+  .tier-icon svg { width:100%; height:100%; }
   .tier-name { font-size: 10px; font-family: 'Orbitron', sans-serif; letter-spacing: 0.3px; }
 
   .tier-bronze  { color: #cd7f32; }
@@ -1831,30 +1832,43 @@
   const CSV_BP   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=0&single=true&output=csv';
   const CSV_TOUR = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1871585691&single=true&output=csv';
 
+  // ── SVG 티어 아이콘 ──
+  const TIER_ICONS = {
+    bronze:  `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <defs><radialGradient id="bg3" cx="40%" cy="35%"><stop offset="0%" stop-color="#f5c07a"/><stop offset="100%" stop-color="#7c3a0a"/></radialGradient></defs> <circle cx="14" cy="14" r="12" fill="url(#bg3)" stroke="#cd7f32" stroke-width="1.5"/> <circle cx="14" cy="14" r="8" fill="none" stroke="#e8a050" stroke-width="1.2" opacity="0.6"/> <path d="M10 11 Q14 8 18 11 Q18 17 14 20 Q10 17 10 11Z" fill="none" stroke="#f5c07a" stroke-width="1.4" opacity="0.8"/></svg>`,
+    silver:  `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <defs><linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#d4d8e0"/><stop offset="100%" stop-color="#6b7a8d"/></linearGradient></defs> <polygon points="14,2 24.4,8 24.4,20 14,26 3.6,20 3.6,8" fill="url(#bg2)" stroke="#b0bac8" stroke-width="1.5"/> <polygon points="14,6 21,10 21,18 14,22 7,18 7,10" fill="none" stroke="#e0e4ec" stroke-width="1.2" opacity="0.7"/> <path d="M10 12 Q14 9 18 12 Q18 18 14 20 Q10 18 10 12Z" fill="none" stroke="#d4d8e0" stroke-width="1.3" opacity="0.9"/></svg>`,
+    gold:    `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <defs><linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffe066"/><stop offset="100%" stop-color="#b8860b"/></linearGradient></defs> <polygon points="14,2 26,24 2,24" fill="url(#bg1)" stroke="#fbbf24" stroke-width="1.5"/> <polygon points="14,7 23,22 5,22" fill="none" stroke="#ffe066" stroke-width="1.1" opacity="0.7"/> <path d="M11 17 Q14 11 17 17" fill="none" stroke="#ffe066" stroke-width="1.4" opacity="0.9"/></svg>`,
+    plat:    `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <defs><linearGradient id="bgp" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a8eeff"/><stop offset="100%" stop-color="#0ea5e9"/></linearGradient></defs> <polygon points="14,2 17.5,10.5 26.5,11 20,17 22,26 14,21.5 6,26 8,17 1.5,11 10.5,10.5" fill="url(#bgp)" stroke="#7dd3fc" stroke-width="1.5"/> <polygon points="14,6 16.5,12 22.5,12.5 18,17 19.5,23 14,19.5 8.5,23 10,17 5.5,12.5 11.5,12" fill="none" stroke="#bfefff" stroke-width="1" opacity="0.6"/></svg>`,
+    dia:     `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <defs><linearGradient id="bgd" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#93c5fd"/><stop offset="100%" stop-color="#1d4ed8"/></linearGradient></defs> <polygon points="14,2 24,10 20,26 8,26 4,10" fill="url(#bgd)" stroke="#60a5fa" stroke-width="1.5"/> <polygon points="14,5 22,11 18.5,24 9.5,24 6,11" fill="none" stroke="#bfdbfe" stroke-width="1" opacity="0.5"/> <polygon points="14,8 20,13 17,22 11,22 8,13" fill="none" stroke="#93c5fd" stroke-width="1" opacity="0.4"/></svg>`,
+    master:  `<svg width="32" height="28" viewBox="0 0 32 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <defs><linearGradient id="bgm" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e9d5ff"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs> <!-- 왼쪽 날개 --> <path d="M2 14 Q0 8 5 6 Q4 10 7 12 Q3 13 2 14Z" fill="#a855f7" opacity="0.8"/> <path d="M2 14 Q1 18 6 20 Q5 16 7 14 Q4 14 2 14Z" fill="#7c3aed" opacity="0.7"/> <!-- 오른쪽 날개 --> <path d="M30 14 Q32 8 27 6 Q28 10 25 12 Q29 13 30 14Z" fill="#a855f7" opacity="0.8"/> <path d="M30 14 Q31 18 26 20 Q27 16 25 14 Q28 14 30 14Z" fill="#7c3aed" opacity="0.7"/> <!-- 중앙 다이아 --> <polygon points="16,4 22,10 16,24 10,10" fill="url(#bgm)" stroke="#c084fc" stroke-width="1.5"/> <polygon points="16,7 20,11 16,21 12,11" fill="none" stroke="#e9d5ff" stroke-width="0.8" opacity="0.6"/></svg>`,
+    gmaster: `<svg width="32" height="28" viewBox="0 0 32 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <defs><linearGradient id="bggm" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fca5a5"/><stop offset="100%" stop-color="#991b1b"/></linearGradient> <radialGradient id="gem" cx="50%" cy="40%"><stop offset="0%" stop-color="#ff6b6b"/><stop offset="100%" stop-color="#7f1d1d"/></radialGradient></defs> <!-- 왼쪽 날개 --> <path d="M1 13 Q0 7 6 5 Q4 9 8 11 Q3 12 1 13Z" fill="#ef4444" opacity="0.9"/> <path d="M1 13 Q0 19 6 22 Q4 17 8 15 Q3 14 1 13Z" fill="#dc2626" opacity="0.8"/> <path d="M6 5 L8 11 L6 22" stroke="#fca5a5" stroke-width="0.8" opacity="0.5"/> <!-- 오른쪽 날개 --> <path d="M31 13 Q32 7 26 5 Q28 9 24 11 Q29 12 31 13Z" fill="#ef4444" opacity="0.9"/> <path d="M31 13 Q32 19 26 22 Q28 17 24 15 Q29 14 31 13Z" fill="#dc2626" opacity="0.8"/> <path d="M26 5 L24 11 L26 22" stroke="#fca5a5" stroke-width="0.8" opacity="0.5"/> <!-- 외곽 프레임 --> <polygon points="16,2 22,8 22,20 16,26 10,20 10,8" fill="url(#bggm)" stroke="#f87171" stroke-width="1.5"/> <!-- 중앙 보석 --> <polygon points="16,7 20,12 16,21 12,12" fill="url(#gem)" stroke="#fca5a5" stroke-width="1"/> <polygon points="16,9 19,13 16,19 13,13" fill="none" stroke="#ff9999" stroke-width="0.7" opacity="0.7"/></svg>`,
+    echo:    `<svg width="32" height="28" viewBox="0 0 32 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <defs><linearGradient id="bgec" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#c4b5fd"/></linearGradient> <radialGradient id="gemc" cx="50%" cy="40%"><stop offset="0%" stop-color="#ddd6fe"/><stop offset="100%" stop-color="#7c3aed"/></radialGradient> <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs> <!-- 왼쪽 날개 (흰색) --> <path d="M1 13 Q0 6 7 4 Q5 9 9 11 Q3 12 1 13Z" fill="white" opacity="0.95" filter="url(#glow)"/> <path d="M1 13 Q0 20 7 23 Q5 18 9 16 Q3 14.5 1 13Z" fill="#e9d5ff" opacity="0.9"/> <path d="M7 4 Q8 8 9 11 L9 16 Q8 19 7 23" stroke="white" stroke-width="0.8" opacity="0.6"/> <!-- 오른쪽 날개 (흰색) --> <path d="M31 13 Q32 6 25 4 Q27 9 23 11 Q29 12 31 13Z" fill="white" opacity="0.95" filter="url(#glow)"/> <path d="M31 13 Q32 20 25 23 Q27 18 23 16 Q29 14.5 31 13Z" fill="#e9d5ff" opacity="0.9"/> <path d="M25 4 Q24 8 23 11 L23 16 Q24 19 25 23" stroke="white" stroke-width="0.8" opacity="0.6"/> <!-- 외곽 프레임 --> <polygon points="16,2 22,8 22,20 16,26 10,20 10,8" fill="url(#bgec)" stroke="white" stroke-width="1.5" filter="url(#glow)"/> <!-- 중앙 보석 (보라) --> <polygon points="16,7 20,12 16,21 12,12" fill="url(#gemc)" stroke="#c4b5fd" stroke-width="1"/> <polygon points="16,9 19,13 16,19 13,13" fill="none" stroke="white" stroke-width="0.7" opacity="0.8"/></svg>`,
+  };
+
   function getTier(score) {
     const s = Number(score) || 0;
-    if (s >= 1000) return { name:'에코마스터',   cls:'echo',    icon:'🔱', num:'' };
-    if (s >= 901)  return { name:'그랜드마스터', cls:'gmaster', icon:'🔴', num:'3' };
-    if (s >= 851)  return { name:'그랜드마스터', cls:'gmaster', icon:'🔴', num:'2' };
-    if (s >= 801)  return { name:'그랜드마스터', cls:'gmaster', icon:'🔴', num:'1' };
-    if (s >= 751)  return { name:'마스터',       cls:'master',  icon:'💜', num:'3' };
-    if (s >= 701)  return { name:'마스터',       cls:'master',  icon:'💜', num:'2' };
-    if (s >= 651)  return { name:'마스터',       cls:'master',  icon:'💜', num:'1' };
-    if (s >= 601)  return { name:'다이아',       cls:'dia',     icon:'💎', num:'3' };
-    if (s >= 551)  return { name:'다이아',       cls:'dia',     icon:'💎', num:'2' };
-    if (s >= 501)  return { name:'다이아',       cls:'dia',     icon:'💎', num:'1' };
-    if (s >= 451)  return { name:'플레티넘',     cls:'plat',    icon:'🩵', num:'3' };
-    if (s >= 401)  return { name:'플레티넘',     cls:'plat',    icon:'🩵', num:'2' };
-    if (s >= 351)  return { name:'플레티넘',     cls:'plat',    icon:'🩵', num:'1' };
-    if (s >= 301)  return { name:'골드',         cls:'gold',    icon:'🥇', num:'3' };
-    if (s >= 251)  return { name:'골드',         cls:'gold',    icon:'🥇', num:'2' };
-    if (s >= 201)  return { name:'골드',         cls:'gold',    icon:'🥇', num:'1' };
-    if (s >= 161)  return { name:'실버',         cls:'silver',  icon:'🥈', num:'3' };
-    if (s >= 131)  return { name:'실버',         cls:'silver',  icon:'🥈', num:'2' };
-    if (s >= 101)  return { name:'실버',         cls:'silver',  icon:'🥈', num:'1' };
-    if (s >= 51)   return { name:'브론즈',       cls:'bronze',  icon:'🥉', num:'3' };
-    if (s >= 21)   return { name:'브론즈',       cls:'bronze',  icon:'🥉', num:'2' };
-    return           { name:'브론즈',            cls:'bronze',  icon:'🥉', num:'1' };
+    const ic = (k) => TIER_ICONS[k];
+    if (s >= 1000) return { name:'에코마스터',   cls:'echo',    icon:ic('echo'),    num:'' };
+    if (s >= 901)  return { name:'그랜드마스터', cls:'gmaster', icon:ic('gmaster'), num:'3' };
+    if (s >= 851)  return { name:'그랜드마스터', cls:'gmaster', icon:ic('gmaster'), num:'2' };
+    if (s >= 801)  return { name:'그랜드마스터', cls:'gmaster', icon:ic('gmaster'), num:'1' };
+    if (s >= 751)  return { name:'마스터',       cls:'master',  icon:ic('master'),  num:'3' };
+    if (s >= 701)  return { name:'마스터',       cls:'master',  icon:ic('master'),  num:'2' };
+    if (s >= 651)  return { name:'마스터',       cls:'master',  icon:ic('master'),  num:'1' };
+    if (s >= 601)  return { name:'다이아',       cls:'dia',     icon:ic('dia'),     num:'3' };
+    if (s >= 551)  return { name:'다이아',       cls:'dia',     icon:ic('dia'),     num:'2' };
+    if (s >= 501)  return { name:'다이아',       cls:'dia',     icon:ic('dia'),     num:'1' };
+    if (s >= 451)  return { name:'플레티넘',     cls:'plat',    icon:ic('plat'),    num:'3' };
+    if (s >= 401)  return { name:'플레티넘',     cls:'plat',    icon:ic('plat'),    num:'2' };
+    if (s >= 351)  return { name:'플레티넘',     cls:'plat',    icon:ic('plat'),    num:'1' };
+    if (s >= 301)  return { name:'골드',         cls:'gold',    icon:ic('gold'),    num:'3' };
+    if (s >= 251)  return { name:'골드',         cls:'gold',    icon:ic('gold'),    num:'2' };
+    if (s >= 201)  return { name:'골드',         cls:'gold',    icon:ic('gold'),    num:'1' };
+    if (s >= 161)  return { name:'실버',         cls:'silver',  icon:ic('silver'),  num:'3' };
+    if (s >= 131)  return { name:'실버',         cls:'silver',  icon:ic('silver'),  num:'2' };
+    if (s >= 101)  return { name:'실버',         cls:'silver',  icon:ic('silver'),  num:'1' };
+    if (s >= 51)   return { name:'브론즈',       cls:'bronze',  icon:ic('bronze'),  num:'3' };
+    if (s >= 21)   return { name:'브론즈',       cls:'bronze',  icon:ic('bronze'),  num:'2' };
+    return           { name:'브론즈',            cls:'bronze',  icon:ic('bronze'),  num:'1' };
   }
 
   function parseCSV(text) {
