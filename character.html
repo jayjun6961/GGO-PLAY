@@ -361,8 +361,8 @@
     display:flex; align-items:center; gap:8px;
   }
   .detail-pr-mode {
-    font-size:10px; color:var(--text-dim); width:72px; flex-shrink:0;
-    font-family:'Orbitron',sans-serif;
+    font-size:10px; color:var(--text-dim); width:64px; flex-shrink:0;
+    font-family:'Noto Sans KR',sans-serif; font-weight:500;
   }
   .detail-pr-bar-wrap {
     flex:1; height:5px; background:rgba(124,58,237,0.15); border-radius:3px; overflow:hidden;
@@ -390,6 +390,44 @@
   }
   .detail-section-title::after {
     content:''; flex:1; height:1px; background:rgba(124,58,237,0.15);
+  }
+
+  /* 스킬/패시브 카드 */
+  .ability-grid {
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .ability-card {
+    background:var(--bg-card2);
+    border:1px solid rgba(124,58,237,0.15);
+    border-radius:12px;
+    padding:14px 16px;
+    display:flex; flex-direction:column; gap:6px;
+    transition:border-color 0.2s;
+  }
+  .ability-card:hover { border-color:rgba(124,58,237,0.35); }
+  .ability-card-header {
+    display:flex; align-items:center; gap:8px;
+  }
+  .ability-type-badge {
+    font-size:9px; font-family:'Orbitron',sans-serif; font-weight:700;
+    letter-spacing:0.8px; padding:3px 8px; border-radius:20px;
+    flex-shrink:0;
+  }
+  .skill-badge {
+    background:rgba(34,211,238,0.15); color:var(--accent-cyan);
+    border:1px solid rgba(34,211,238,0.3);
+  }
+  .passive-badge {
+    background:rgba(244,114,182,0.12); color:var(--accent-pink);
+    border:1px solid rgba(244,114,182,0.25);
+  }
+  .ability-name {
+    font-size:13px; font-weight:700; color:var(--text-main);
+    font-family:'Noto Sans KR',sans-serif;
+  }
+  .ability-desc {
+    font-size:12px; color:var(--text-sub); line-height:1.6;
+    font-family:'Noto Sans KR',sans-serif;
   }
   .item-grid {
     display:flex; gap:8px; flex-wrap:wrap;
@@ -639,7 +677,7 @@
 
   // ── 게임 모드 ──
   const MODES = ['배틀로얄','언덕의왕','팀데스매치','방해','분대전투'];
-  const MODE_SHORT = { '배틀로얄':'BR', '언덕의왕':'HILL', '팀데스매치':'TDM', '방해':'OBS', '분대전투':'SQUAD' };
+  const MODE_SHORT = { '배틀로얄':'배틀로얄', '언덕의왕':'언덕의왕', '팀데스매치':'팀데스매치', '방해':'방해', '분대전투':'분대전투' };
 
   let charData = [];    // [{name, job, img, equips:[{name,img}x6], weapons:[{name,img}x4], drones:[{name,img}x2]}]
   let pickData = {};    // {캐릭터명: {모드: pct}}
@@ -673,12 +711,18 @@
 
       // 캐릭터 데이터 파싱 (A~AA 열)
       charData = charRows.map(r => ({
-        name:    r[0] || '',
-        job:     r[1] || '',
-        img:     r[2] || '',
-        equips:  [[r[3],r[4]],[r[5],r[6]],[r[7],r[8]],[r[9],r[10]],[r[11],r[12]],[r[13],r[14]]].map(([n,i])=>({name:n||'',img:i||''})),
-        weapons: [[r[15],r[16]],[r[17],r[18]],[r[19],r[20]],[r[21],r[22]]].map(([n,i])=>({name:n||'',img:i||''})),
-        drones:  [[r[23],r[24]],[r[25],r[26]]].map(([n,i])=>({name:n||'',img:i||''})),
+        name:         r[0] || '',
+        job:          r[1] || '',
+        img:          r[2] || '',
+        equips:       [[r[3],r[4]],[r[5],r[6]],[r[7],r[8]],[r[9],r[10]],[r[11],r[12]],[r[13],r[14]]].map(([n,i])=>({name:n||'',img:i||''})),
+        weapons:      [[r[15],r[16]],[r[17],r[18]],[r[19],r[20]],[r[21],r[22]]].map(([n,i])=>({name:n||'',img:i||''})),
+        drones:       [[r[23],r[24]],[r[25],r[26]]].map(([n,i])=>({name:n||'',img:i||''})),
+        skillName:    r[27] || '',
+        skillDesc:    r[28] || '',
+        passive1Name: r[29] || '',
+        passive1Desc: r[30] || '',
+        passive2Name: r[31] || '',
+        passive2Desc: r[32] || '',
       })).filter(c => c.name);
 
       // 픽률 데이터 파싱: {캐릭터명: {모드: pct}}
@@ -805,6 +849,36 @@
       ? `<img class="detail-char-img" src="${char.img}" onerror="this.outerHTML='<div class=\\'detail-char-img-placeholder\\'>🎮</div>'">`
       : `<div class="detail-char-img-placeholder">🎮</div>`;
 
+    // 스킬/패시브 HTML
+    const abilityHtml = (() => {
+      let h = '';
+      if (char.skillName) h += `
+        <div class="ability-card">
+          <div class="ability-card-header">
+            <span class="ability-type-badge skill-badge">SKILL</span>
+            <span class="ability-name">${char.skillName}</span>
+          </div>
+          <div class="ability-desc">${char.skillDesc || '—'}</div>
+        </div>`;
+      if (char.passive1Name) h += `
+        <div class="ability-card">
+          <div class="ability-card-header">
+            <span class="ability-type-badge passive-badge">PASSIVE 1</span>
+            <span class="ability-name">${char.passive1Name}</span>
+          </div>
+          <div class="ability-desc">${char.passive1Desc || '—'}</div>
+        </div>`;
+      if (char.passive2Name) h += `
+        <div class="ability-card">
+          <div class="ability-card-header">
+            <span class="ability-type-badge passive-badge">PASSIVE 2</span>
+            <span class="ability-name">${char.passive2Name}</span>
+          </div>
+          <div class="ability-desc">${char.passive2Desc || '—'}</div>
+        </div>`;
+      return h;
+    })();
+
     document.getElementById('char-detail').innerHTML = `
       <div class="detail-hero">
         <div class="detail-hero-bg"></div>
@@ -822,6 +896,7 @@
         </div>
       </div>
       <div class="detail-body">
+        ${abilityHtml ? `<div><div class="detail-section-title">스킬 · 패시브</div><div class="ability-grid">${abilityHtml}</div></div>` : ''}
         ${equipHtml ? `<div><div class="detail-section-title">장비 추천</div><div class="item-grid">${equipHtml}</div></div>` : ''}
         ${weaponHtml ? `<div><div class="detail-section-title">무기 추천</div><div class="item-grid">${weaponHtml}</div></div>` : ''}
         ${droneHtml ? `<div><div class="detail-section-title">드론 추천</div><div class="item-grid">${droneHtml}</div></div>` : ''}
