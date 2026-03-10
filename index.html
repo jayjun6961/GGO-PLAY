@@ -2225,10 +2225,13 @@
       const rows = parseCSV(await res.text());
       if (!rows.length) throw new Error('데이터 없음');
 
-      el.innerHTML = rows.map(row => {
+      // 진행중 이벤트만 표시 (C열 = '진행중')
+      const active = rows.filter(r => (r[2] || '').trim() === '진행중');
+      if (!active.length) { el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-dim);font-size:12px;">진행중인 이벤트가 없습니다</div>'; return; }
+
+      el.innerHTML = active.map(row => {
         const title = row[0] || '';
-        const days  = row[1] || '';
-        const img   = (row[2] || '').trim();
+        const img   = (row[3] || '').trim();
 
         const iconHtml = img
           ? `<div class="post-game-icon" style="background:#1a1035;padding:0;overflow:hidden;border-radius:10px;">
@@ -2236,18 +2239,12 @@
              </div>`
           : `<div class="post-game-icon">🎁</div>`;
 
-        const daysLabel = days ? `D-${days}` : '진행중';
-        const daysColor = Number(days) <= 3 ? 'var(--accent-pink)' : 'var(--accent-cyan)';
-
         return `
-          <div class="post-item">
+          <div class="post-item" style="cursor:pointer" onclick="location.href='event.html'">
             ${iconHtml}
             <div class="post-info">
-              <div class="post-category" style="color:${daysColor}">${daysLabel}</div>
+              <div class="post-category" style="color:var(--accent-cyan)">진행중</div>
               <div class="post-title">${title}</div>
-              <div class="post-meta">
-                <span class="chip">진행중</span>
-              </div>
             </div>
           </div>`;
       }).join('');
