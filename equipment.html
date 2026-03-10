@@ -349,7 +349,8 @@
       const wR=parseCSV(await rw.text());
 
       // 캐릭터: A=이름 B=직업 C=이미지
-      charData=cR.map(r=>({name:r[0]||'',job:r[1]||'',img:r[2]||''})).filter(c=>c.name);
+      const VALID_CHARS=new Set(['스크래치','파이어플라이','허리케인','셴지','고스트','엔젤','미라지','사토시','아니','사이클롭스','스파클','몰리','프레디','레이븐','앨리스','트윙클','블로트','슬레이어','링스','블리자드','스모그','드라군','베스천','베르타','레비아탄','램지','스토커','닥','레비','테스','비','그라비엘','알터']);
+      charData=cR.map(r=>({name:r[0]||'',job:r[1]||'',img:r[2]||''})).filter(c=>VALID_CHARS.has(c.name));
 
       // 장비: A=이름 B=부위 C=분류 D=대상 E=이미지 F~=등급쌍
       equipData=eR.map(r=>{
