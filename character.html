@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>캐릭터 — GGO PLAY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0a0612;
+    --bg-card: #130d24;
+    --bg-card2: #1a1035;
+    --purple-1: #7c3aed;
+    --purple-2: #9d5ff5;
+    --purple-3: #c084fc;
+    --purple-4: #e9d5ff;
+    --accent-pink: #f472b6;
+    --accent-cyan: #22d3ee;
+    --accent-gold: #fbbf24;
+    --text-main: #f0e8ff;
+    --text-sub: #9d8ec4;
+    --text-dim: #5c4e7a;
+    --sidebar-w: 72px;
+    --bottombar-h: 64px;
+    --glow-purple: 0 0 20px rgba(124,58,237,0.5);
+
+    /* 직업 컬러 */
+    --col-truper:   #3b82f6;
+    --col-executor: #ef4444;
+    --col-scout:    #eab308;
+    --col-tanker:   #a855f7;
+    --col-sniper:   #22c55e;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg-deep);
+    color: var(--text-main);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse 60% 40% at 15% 20%, rgba(124,58,237,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 85% 75%, rgba(157,95,245,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 30% at 50% 50%, rgba(34,211,238,0.05) 0%, transparent 70%);
+    pointer-events:none; z-index:0;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position:fixed; left:0; top:0; bottom:0; width:var(--sidebar-w);
+    background:rgba(19,13,36,0.95);
+    border-right:1px solid rgba(124,58,237,0.2);
+    display:flex; flex-direction:column; align-items:center;
+    padding:20px 0; z-index:100; backdrop-filter:blur(20px);
+  }
+  .sidebar-logo {
+    width:42px; height:42px;
+    background:linear-gradient(135deg,var(--purple-1),var(--purple-3));
+    border-radius:12px; display:flex; align-items:center; justify-content:center;
+    font-family:'Orbitron',sans-serif; font-weight:900; font-size:16px; color:white;
+    margin-bottom:32px; box-shadow:var(--glow-purple); flex-shrink:0;
+  }
+  .sidebar-nav { display:flex; flex-direction:column; gap:8px; flex:1; }
+  .nav-item {
+    width:48px; height:48px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:all 0.2s; position:relative;
+    color:var(--text-dim); font-size:22px; border:none; background:transparent;
+  }
+  .nav-item:hover, .nav-item.active {
+    background:rgba(124,58,237,0.2); color:var(--purple-3); box-shadow:var(--glow-purple);
+  }
+  .nav-item.active::before {
+    content:''; position:absolute; left:-12px;
+    width:3px; height:24px; background:var(--purple-2); border-radius:0 3px 3px 0;
+  }
+  .nav-item .tooltip {
+    position:absolute; left:60px;
+    background:rgba(19,13,36,0.95); color:var(--text-main);
+    font-size:12px; padding:6px 10px; border-radius:8px;
+    white-space:nowrap; opacity:0; pointer-events:none;
+    transition:opacity 0.15s; z-index:200;
+    border:1px solid rgba(124,58,237,0.2);
+  }
+  .nav-item:hover .tooltip { opacity:1; }
+  .sidebar-bottom { margin-top:auto; display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .avatar-sm {
+    width:36px; height:36px; border-radius:50%;
+    background:rgba(124,58,237,0.2); border:1px solid rgba(124,58,237,0.3);
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+  }
+
+  /* ── BOTTOM NAV (mobile) ── */
+  .bottom-nav {
+    display:none; position:fixed; bottom:0; left:0; right:0;
+    height:var(--bottombar-h);
+    background:rgba(19,13,36,0.97); border-top:1px solid rgba(124,58,237,0.2);
+    z-index:100; backdrop-filter:blur(20px);
+    justify-content:space-around; align-items:center; padding:0 8px;
+  }
+  .bottom-nav-item {
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    color:var(--text-dim); font-size:10px; cursor:pointer;
+    padding:6px 12px; border-radius:10px; transition:all 0.2s; flex:1;
+  }
+  .bottom-nav-item .icon { font-size:20px; }
+  .bottom-nav-item.active { color:var(--purple-3); }
+  @media (max-width:640px) {
+    .sidebar { display:none; }
+    .bottom-nav { display:flex; }
+    .main-wrap { margin-left:0 !important; padding-bottom:calc(var(--bottombar-h) + 16px) !important; }
+  }
+
+  /* ── MAIN ── */
+  .main-wrap {
+    margin-left:var(--sidebar-w);
+    padding:28px 28px 40px;
+    position:relative; z-index:1;
+    min-height:100vh;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    display:flex; align-items:center; gap:12px; margin-bottom:28px;
+  }
+  .topbar-back {
+    width:36px; height:36px; border-radius:10px;
+    background:rgba(124,58,237,0.15); border:1px solid rgba(124,58,237,0.25);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:var(--purple-3); font-size:18px;
+    transition:all 0.2s;
+  }
+  .topbar-back:hover { background:rgba(124,58,237,0.3); }
+  .topbar-title {
+    font-family:'Orbitron',sans-serif; font-size:20px; font-weight:900;
+    color:var(--text-main);
+  }
+  .topbar-badge {
+    background:linear-gradient(135deg,var(--purple-1),var(--purple-3));
+    color:white; font-size:9px; font-family:'Orbitron',sans-serif;
+    padding:3px 10px; border-radius:20px; letter-spacing:0.5px;
+  }
+
+  /* ══════════════════════════════
+     직업 배너 섹션
+  ══════════════════════════════ */
+  .job-section { margin-bottom:32px; }
+  .job-banners {
+    display:flex; gap:14px; justify-content:center;
+    flex-wrap:wrap;
+  }
+
+  .job-banner {
+    display:flex; flex-direction:column; align-items:center; gap:0;
+    cursor:pointer; position:relative;
+    transition:transform 0.2s;
+    width:110px;
+  }
+  .job-banner:hover { transform:translateY(-4px); }
+
+  /* 깃발 모양 */
+  .banner-flag {
+    width:80px; height:110px; position:relative;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    clip-path: polygon(10% 0%, 90% 0%, 100% 5%, 100% 85%, 50% 100%, 0% 85%, 0% 5%);
+    transition:all 0.25s; gap:8px;
+  }
+  .job-banner.active .banner-flag,
+  .job-banner:hover .banner-flag {
+    filter:brightness(1.2);
+  }
+  .job-banner.active .banner-flag::after {
+    content:'';
+    position:absolute; inset:0;
+    background:rgba(255,255,255,0.08);
+    clip-path: polygon(10% 0%, 90% 0%, 100% 5%, 100% 85%, 50% 100%, 0% 85%, 0% 5%);
+  }
+
+  .banner-flag-truper   { background:linear-gradient(180deg, #1d4ed8 0%, #1e40af 60%, #1e3a8a 100%); box-shadow:0 4px 20px rgba(59,130,246,0.4); }
+  .banner-flag-executor { background:linear-gradient(180deg, #dc2626 0%, #b91c1c 60%, #991b1b 100%); box-shadow:0 4px 20px rgba(239,68,68,0.4); }
+  .banner-flag-scout    { background:linear-gradient(180deg, #ca8a04 0%, #a16207 60%, #854d0e 100%); box-shadow:0 4px 20px rgba(234,179,8,0.4); }
+  .banner-flag-tanker   { background:linear-gradient(180deg, #7e22ce 0%, #6b21a8 60%, #581c87 100%); box-shadow:0 4px 20px rgba(168,85,247,0.4); }
+  .banner-flag-sniper   { background:linear-gradient(180deg, #15803d 0%, #166534 60%, #14532d 100%); box-shadow:0 4px 20px rgba(34,197,94,0.4); }
+
+  .banner-job-label {
+    font-family:'Orbitron',sans-serif; font-size:8px; font-weight:700;
+    color:rgba(255,255,255,0.6); letter-spacing:1px;
+    text-transform:uppercase;
+  }
+  .banner-job-name {
+    font-family:'Noto Sans KR',sans-serif; font-size:13px; font-weight:700;
+    color:white; letter-spacing:0.5px;
+  }
+
+  /* 직업별 총기 아이콘 SVG */
+  .banner-gun { width:44px; height:44px; opacity:0.9; }
+
+  .banner-name {
+    font-size:12px; font-weight:700; color:var(--text-sub);
+    text-align:center; margin-top:6px;
+    font-family:'Orbitron',sans-serif; letter-spacing:0.3px;
+  }
+  .job-banner.active .banner-name { color:var(--text-main); }
+
+  /* active 선택 표시 */
+  .job-banner.active .banner-flag {
+    transform:scale(1.05);
+  }
+  .banner-selector-dot {
+    width:6px; height:6px; border-radius:50%;
+    background:transparent; margin-top:4px;
+    transition:background 0.2s;
+  }
+  .job-banner.active .banner-selector-dot { background:white; }
+
+  /* ══════════════════════════════
+     직종 캐릭터 그리드
+  ══════════════════════════════ */
+  .char-grid-section { margin-bottom:28px; }
+  .char-grid-label {
+    display:flex; align-items:center; gap:8px; margin-bottom:14px;
+  }
+  .char-grid-label-bar {
+    width:3px; height:18px; border-radius:2px;
+  }
+  .char-grid-label-text {
+    font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; color:var(--text-main);
+  }
+  .char-grid-label-count {
+    font-size:11px; color:var(--text-dim); font-family:'Orbitron',sans-serif;
+  }
+
+  .char-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap:12px;
+  }
+  .char-card {
+    background:var(--bg-card);
+    border:1px solid rgba(124,58,237,0.15);
+    border-radius:14px; overflow:hidden;
+    cursor:pointer; transition:all 0.2s;
+    display:flex; flex-direction:column; align-items:center;
+    padding-bottom:10px;
+  }
+  .char-card:hover {
+    border-color:rgba(124,58,237,0.4);
+    transform:translateY(-3px);
+    box-shadow:0 6px 20px rgba(124,58,237,0.2);
+  }
+  .char-card.selected {
+    border-width:2px;
+    box-shadow:0 0 0 1px rgba(255,255,255,0.1), 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .char-card-img {
+    width:100%; aspect-ratio:1/1;
+    background:var(--bg-card2);
+    overflow:hidden; position:relative;
+  }
+  .char-card-img img {
+    width:100%; height:100%; object-fit:cover;
+    transition:transform 0.3s;
+  }
+  .char-card:hover .char-card-img img { transform:scale(1.08); }
+  .char-card-img-placeholder {
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    font-size:28px; background:linear-gradient(135deg,var(--bg-card2),rgba(124,58,237,0.1));
+  }
+  .char-card-name {
+    font-size:11px; font-weight:700; color:var(--text-main);
+    text-align:center; margin-top:8px; padding:0 6px;
+    word-break:keep-all; line-height:1.3;
+  }
+
+  /* ══════════════════════════════
+     캐릭터 상세 정보 패널
+  ══════════════════════════════ */
+  .char-detail {
+    display:none;
+    background:var(--bg-card);
+    border:1px solid rgba(124,58,237,0.2);
+    border-radius:20px;
+    overflow:hidden;
+    margin-bottom:32px;
+    animation: fadeSlideIn 0.3s ease;
+  }
+  .char-detail.visible { display:block; }
+
+  @keyframes fadeSlideIn {
+    from { opacity:0; transform:translateY(12px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* 상단 히어로 영역 */
+  .detail-hero {
+    position:relative;
+    display:flex; gap:0;
+    min-height:220px;
+    overflow:hidden;
+  }
+  .detail-hero-bg {
+    position:absolute; inset:0;
+    background:linear-gradient(135deg, var(--bg-card2) 0%, rgba(124,58,237,0.08) 100%);
+  }
+  .detail-hero-glow {
+    position:absolute; top:-40px; right:-40px;
+    width:300px; height:300px; border-radius:50%;
+    opacity:0.15; filter:blur(60px);
+    pointer-events:none;
+  }
+  .detail-char-img-wrap {
+    position:relative; z-index:1;
+    width:180px; flex-shrink:0;
+    display:flex; align-items:flex-end; justify-content:center;
+    padding:0 0 0 20px;
+  }
+  .detail-char-img {
+    width:160px; height:200px; object-fit:cover; object-position:top center;
+    border-radius:12px 12px 0 0;
+    filter:drop-shadow(0 8px 24px rgba(0,0,0,0.5));
+  }
+  .detail-char-img-placeholder {
+    width:140px; height:160px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:64px;
+    background:linear-gradient(135deg,rgba(124,58,237,0.1),rgba(124,58,237,0.05));
+    border-radius:12px;
+  }
+  .detail-info {
+    position:relative; z-index:1;
+    flex:1; padding:24px 28px;
+    display:flex; flex-direction:column; justify-content:center; gap:8px;
+  }
+  .detail-job-badge {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 12px; border-radius:20px;
+    font-size:10px; font-family:'Orbitron',sans-serif; letter-spacing:0.8px;
+    font-weight:700; width:fit-content;
+  }
+  .detail-char-name {
+    font-family:'Orbitron',sans-serif; font-size:28px; font-weight:900;
+    color:white; line-height:1.1;
+    text-shadow: 0 0 30px rgba(255,255,255,0.2);
+  }
+  .detail-char-name-sub {
+    font-size:12px; color:var(--text-dim); letter-spacing:2px;
+    text-transform:uppercase; font-family:'Orbitron',sans-serif;
+  }
+
+  /* 픽률 바 */
+  .detail-pickrates {
+    display:flex; flex-direction:column; gap:5px; margin-top:4px;
+  }
+  .detail-pr-row {
+    display:flex; align-items:center; gap:8px;
+  }
+  .detail-pr-mode {
+    font-size:10px; color:var(--text-dim); width:72px; flex-shrink:0;
+    font-family:'Orbitron',sans-serif;
+  }
+  .detail-pr-bar-wrap {
+    flex:1; height:5px; background:rgba(124,58,237,0.15); border-radius:3px; overflow:hidden;
+  }
+  .detail-pr-bar {
+    height:100%; border-radius:3px;
+    background:linear-gradient(90deg,var(--purple-1),var(--purple-3));
+    transition:width 0.6s ease;
+  }
+  .detail-pr-pct {
+    font-size:10px; color:var(--purple-3); font-family:'Orbitron',sans-serif; width:36px; text-align:right;
+  }
+
+  /* 하단 장비/무기/드론 섹션 */
+  .detail-body {
+    padding:24px 28px;
+    display:flex; flex-direction:column; gap:22px;
+    border-top:1px solid rgba(124,58,237,0.1);
+  }
+  .detail-section-title {
+    font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700;
+    color:var(--text-dim); letter-spacing:1.5px; text-transform:uppercase;
+    margin-bottom:10px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .detail-section-title::after {
+    content:''; flex:1; height:1px; background:rgba(124,58,237,0.15);
+  }
+  .item-grid {
+    display:flex; gap:8px; flex-wrap:wrap;
+  }
+  .item-box {
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    width:64px;
+  }
+  .item-img {
+    width:56px; height:56px; border-radius:10px;
+    background:var(--bg-card2);
+    border:1px solid rgba(124,58,237,0.2);
+    overflow:hidden; display:flex; align-items:center; justify-content:center;
+    position:relative; transition:all 0.2s;
+  }
+  .item-img:hover { border-color:rgba(124,58,237,0.5); transform:scale(1.05); }
+  .item-img img { width:100%; height:100%; object-fit:cover; }
+  .item-img-placeholder { font-size:22px; }
+  .item-name {
+    font-size:9px; color:var(--text-sub); text-align:center;
+    line-height:1.3; word-break:keep-all;
+  }
+
+  /* 무기 box 조금 크게 */
+  .item-box.weapon .item-img { width:68px; height:50px; border-radius:8px; }
+  .item-box.weapon { width:76px; }
+
+  /* 드론 box */
+  .item-box.drone .item-img { width:64px; height:64px; border-radius:50%; }
+
+  /* ── 로딩 스피너 ── */
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .spin { animation:spin 0.8s linear infinite; }
+  .loading-wrap {
+    text-align:center; padding:60px 20px; color:var(--text-dim);
+  }
+  .loading-wrap .spinner {
+    width:36px; height:36px;
+    border:3px solid rgba(124,58,237,0.15);
+    border-top-color:var(--purple-2);
+    border-radius:50%;
+    animation:spin 0.8s linear infinite;
+    margin:0 auto 14px;
+  }
+
+  /* 빈 상태 */
+  .empty-state {
+    text-align:center; padding:48px 20px; color:var(--text-dim);
+    font-size:13px;
+  }
+
+  @media (max-width:640px) {
+    .main-wrap { padding:16px 14px 80px; }
+    .job-banners { gap:8px; }
+    .job-banner { width:60px; }
+    .banner-flag { width:56px; height:78px; }
+    .banner-gun { width:30px; height:30px; }
+    .banner-job-label { font-size:6px; }
+    .banner-job-name { font-size:10px; }
+    .banner-name { font-size:9px; }
+    .char-grid { grid-template-columns: repeat(auto-fill, minmax(76px,1fr)); gap:8px; }
+    .detail-hero { flex-direction:column; min-height:auto; }
+    .detail-char-img-wrap { width:100%; justify-content:center; padding:20px 0 0; }
+    .detail-char-img { width:120px; height:140px; }
+    .detail-char-name { font-size:20px; }
+    .detail-body { padding:16px; }
+    .topbar-title { font-size:16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">G</div>
+  <nav class="sidebar-nav">
+    <button class="nav-item" id="nav-home" onclick="location.href='index.html'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg>
+      <span class="tooltip">홈</span>
+    </button>
+    <button class="nav-item active" id="nav-character" onclick="location.href='character.html'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span class="tooltip">캐릭터</span>
+    </button>
+    <button class="nav-item" id="nav-equipment" onclick="location.href='equipment.html'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+      <span class="tooltip">장비</span>
+    </button>
+    <button class="nav-item" id="nav-battlepass" onclick="location.href='battlepass.html'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span class="tooltip">배틀패스</span>
+    </button>
+    <button class="nav-item" id="nav-tournament" onclick="location.href='tournament.html'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 19h20M2 19l3-10 5 5 2-8 2 8 5-5 3 10"/><circle cx="12" cy="6" r="1" fill="currentColor"/></svg>
+      <span class="tooltip">친선대회</span>
+    </button>
+    <button class="nav-item" id="nav-activity" onclick="location.href='activity.html'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+      <span class="tooltip">활동점수</span>
+    </button>
+    <button class="nav-item" id="nav-shop" onclick="location.href='shop.html'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <span class="tooltip">상점</span>
+    </button>
+    <button class="nav-item" id="nav-event" onclick="location.href='event.html'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg>
+      <span class="tooltip">이벤트</span>
+    </button>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="nav-item" onclick="location.href='settings.html'">⚙️<span class="tooltip">설정</span></button>
+    <div class="avatar-sm">👤</div>
+  </div>
+</aside>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav" id="bottomNav">
+  <div class="bottom-nav-item" onclick="location.href='index.html'">
+    <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span>
+    <span>홈</span>
+  </div>
+  <div class="bottom-nav-item active" onclick="location.href='character.html'">
+    <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+    <span>캐릭터</span>
+  </div>
+  <div class="bottom-nav-item" onclick="location.href='battlepass.html'">
+    <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+    <span>배틀패스</span>
+  </div>
+  <div class="bottom-nav-item" onclick="location.href='tournament.html'">
+    <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 19h20M2 19l3-10 5 5 2-8 2 8 5-5 3 10"/></svg></span>
+    <span>친선대회</span>
+  </div>
+  <div class="bottom-nav-item" onclick="location.href='shop.html'">
+    <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+    <span>상점</span>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main-wrap">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-back" onclick="location.href='index.html'">←</div>
+    <span class="topbar-title">캐릭터</span>
+    <span class="topbar-badge">BULLET ECHO</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <button onclick="loadAll()" style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);color:var(--purple-3);padding:6px 14px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'Orbitron',sans-serif;">↻ 새로고침</button>
+    </div>
+  </div>
+
+  <!-- 로딩 상태 -->
+  <div id="loading-state" class="loading-wrap">
+    <div class="spinner"></div>
+    데이터 불러오는 중...
+  </div>
+
+  <!-- 콘텐츠 (로드 후 표시) -->
+  <div id="content-wrap" style="display:none">
+
+    <!-- ① 직업 배너 -->
+    <div class="job-section">
+      <div class="job-banners" id="job-banners"></div>
+    </div>
+
+    <!-- ② 캐릭터 그리드 -->
+    <div class="char-grid-section">
+      <div class="char-grid-label">
+        <div class="char-grid-label-bar" id="job-label-bar"></div>
+        <span class="char-grid-label-text" id="job-label-text">캐릭터 선택</span>
+        <span class="char-grid-label-count" id="job-label-count"></span>
+      </div>
+      <div class="char-grid" id="char-grid"></div>
+    </div>
+
+    <!-- ③ 캐릭터 상세 -->
+    <div class="char-detail" id="char-detail"></div>
+
+  </div>
+
+</main>
+
+<script>
+  // ── CSV URLs ──
+  const CSV_CHAR = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=599911059&single=true&output=csv';
+  const CSV_PICK = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=737130152&single=true&output=csv';
+
+  // ── 직업 설정 ──
+  const JOBS = [
+    { key:'트루퍼',  cls:'truper',   color:'#3b82f6', label:'TROOPER' },
+    { key:'집행자',  cls:'executor', color:'#ef4444', label:'EXECUTOR' },
+    { key:'정찰병',  cls:'scout',    color:'#eab308', label:'SCOUT' },
+    { key:'탱커',    cls:'tanker',   color:'#a855f7', label:'TANKER' },
+    { key:'스나이퍼',cls:'sniper',   color:'#22c55e', label:'SNIPER' },
+  ];
+
+  // ── 직업별 총기 SVG ──
+  const GUN_SVGS = {
+    // 트루퍼: 소총 (AR)
+    truper: `<svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="18" width="30" height="6" rx="2" fill="rgba(255,255,255,0.9)"/>
+      <rect x="34" y="19" width="7" height="4" rx="1" fill="rgba(255,255,255,0.7)"/>
+      <rect x="8" y="16" width="6" height="3" rx="1" fill="rgba(255,255,255,0.6)"/>
+      <rect x="16" y="24" width="4" height="6" rx="1" fill="rgba(255,255,255,0.5)"/>
+      <rect x="6" y="22" width="3" height="4" rx="1" fill="rgba(255,255,255,0.4)"/>
+      <circle cx="38" cy="21" r="1.5" fill="rgba(255,255,255,0.5)"/>
+    </svg>`,
+    // 집행자: 샷건
+    executor: `<svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="17" width="26" height="8" rx="3" fill="rgba(255,255,255,0.9)"/>
+      <rect x="29" y="18" width="10" height="6" rx="1.5" fill="rgba(255,255,255,0.7)"/>
+      <rect x="5" y="25" width="10" height="5" rx="2" fill="rgba(255,255,255,0.5)"/>
+      <rect x="8" y="14" width="5" height="4" rx="1" fill="rgba(255,255,255,0.5)"/>
+      <circle cx="30" cy="21" r="2" fill="rgba(255,255,255,0.4)"/>
+      <circle cx="35" cy="21" r="2" fill="rgba(255,255,255,0.4)"/>
+    </svg>`,
+    // 정찰병: SMG
+    scout: `<svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6" y="18" width="22" height="6" rx="2" fill="rgba(255,255,255,0.9)"/>
+      <rect x="28" y="19" width="10" height="4" rx="1" fill="rgba(255,255,255,0.7)"/>
+      <rect x="8" y="15" width="5" height="4" rx="1" fill="rgba(255,255,255,0.5)"/>
+      <rect x="14" y="24" width="3" height="5" rx="1" fill="rgba(255,255,255,0.5)"/>
+      <rect x="8" y="22" width="2" height="3" rx="1" fill="rgba(255,255,255,0.4)"/>
+      <rect x="12" y="22" width="2" height="3" rx="1" fill="rgba(255,255,255,0.4)"/>
+    </svg>`,
+    // 탱커: 기관총 (LMG)
+    tanker: `<svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="17" width="34" height="8" rx="2.5" fill="rgba(255,255,255,0.9)"/>
+      <rect x="36" y="18" width="7" height="6" rx="1" fill="rgba(255,255,255,0.7)"/>
+      <rect x="4" y="14" width="8" height="4" rx="1" fill="rgba(255,255,255,0.6)"/>
+      <rect x="14" y="25" width="5" height="7" rx="1.5" fill="rgba(255,255,255,0.5)"/>
+      <rect x="4" y="21" width="3" height="4" rx="1" fill="rgba(255,255,255,0.4)"/>
+      <rect x="9" y="21" width="3" height="4" rx="1" fill="rgba(255,255,255,0.4)"/>
+      <rect x="24" y="14" width="3" height="4" rx="1" fill="rgba(255,255,255,0.5)"/>
+    </svg>`,
+    // 스나이퍼: 저격총
+    sniper: `<svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="19" width="38" height="5" rx="1.5" fill="rgba(255,255,255,0.9)"/>
+      <rect x="40" y="20" width="3" height="3" rx="0.5" fill="rgba(255,255,255,0.6)"/>
+      <rect x="10" y="15" width="3" height="5" rx="1" fill="rgba(255,255,255,0.6)"/>
+      <rect x="15" y="13" width="8" height="7" rx="2" fill="rgba(255,255,255,0.5)"/>
+      <rect x="19" y="10" width="2" height="4" rx="1" fill="rgba(255,255,255,0.5)"/>
+      <rect x="8" y="23" width="4" height="5" rx="1.5" fill="rgba(255,255,255,0.4)"/>
+    </svg>`,
+  };
+
+  // ── 게임 모드 ──
+  const MODES = ['배틀로얄','언덕의왕','팀데스매치','방해','분대전투'];
+  const MODE_SHORT = { '배틀로얄':'BR', '언덕의왕':'HILL', '팀데스매치':'TDM', '방해':'OBS', '분대전투':'SQUAD' };
+
+  let charData = [];    // [{name, job, img, equips:[{name,img}x6], weapons:[{name,img}x4], drones:[{name,img}x2]}]
+  let pickData = {};    // {캐릭터명: {모드: pct}}
+  let selectedJob = null;
+  let selectedChar = null;
+
+  function parseCSV(text) {
+    return text.trim().split('\n').slice(1).map(line => {
+      const cols = [];
+      let cur = '', inQ = false;
+      for (let c of line) {
+        if (c === '"') { inQ = !inQ; continue; }
+        if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else cur += c;
+      }
+      cols.push(cur.trim());
+      return cols;
+    }).filter(r => r[0]);
+  }
+
+  async function loadAll() {
+    document.getElementById('loading-state').style.display = 'block';
+    document.getElementById('content-wrap').style.display = 'none';
+    try {
+      const [resChar, resPick] = await Promise.all([
+        fetch(CSV_CHAR + '&t=' + Date.now(), { cache:'no-store' }),
+        fetch(CSV_PICK + '&t=' + Date.now(), { cache:'no-store' }),
+      ]);
+      const charRows = parseCSV(await resChar.text());
+      const pickRows = parseCSV(await resPick.text());
+
+      // 캐릭터 데이터 파싱 (A~AA 열)
+      charData = charRows.map(r => ({
+        name:    r[0] || '',
+        job:     r[1] || '',
+        img:     r[2] || '',
+        equips:  [[r[3],r[4]],[r[5],r[6]],[r[7],r[8]],[r[9],r[10]],[r[11],r[12]],[r[13],r[14]]].map(([n,i])=>({name:n||'',img:i||''})),
+        weapons: [[r[15],r[16]],[r[17],r[18]],[r[19],r[20]],[r[21],r[22]]].map(([n,i])=>({name:n||'',img:i||''})),
+        drones:  [[r[23],r[24]],[r[25],r[26]]].map(([n,i])=>({name:n||'',img:i||''})),
+      })).filter(c => c.name);
+
+      // 픽률 데이터 파싱: {캐릭터명: {모드: pct}}
+      pickData = {};
+      pickRows.forEach(r => {
+        const mode = (r[0]||'').trim();
+        const name = (r[1]||'').trim();
+        const pct  = parseFloat(r[2]) || 0;
+        if (!name) return;
+        if (!pickData[name]) pickData[name] = {};
+        pickData[name][mode] = pct;
+      });
+
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('content-wrap').style.display = 'block';
+
+      renderJobBanners();
+      // 첫 번째 직업 자동 선택
+      const firstJob = JOBS.find(j => charData.some(c => c.job === j.key));
+      if (firstJob) selectJob(firstJob.key);
+
+    } catch(e) {
+      document.getElementById('loading-state').innerHTML =
+        `<div style="font-size:13px;color:var(--accent-pink)">⚠️ 데이터 불러오기 실패<br><small style="color:var(--text-dim)">${e.message}</small><br><br><button onclick="loadAll()" style="margin-top:8px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);color:var(--purple-3);padding:8px 20px;border-radius:8px;cursor:pointer;">↻ 다시 시도</button></div>`;
+    }
+  }
+
+  function renderJobBanners() {
+    const wrap = document.getElementById('job-banners');
+    wrap.innerHTML = JOBS.map(job => {
+      const count = charData.filter(c => c.job === job.key).length;
+      if (count === 0) return '';
+      return `
+        <div class="job-banner" id="banner-${job.cls}" onclick="selectJob('${job.key}')">
+          <div class="banner-flag banner-flag-${job.cls}">
+            <span class="banner-job-label">${job.label}</span>
+            <div class="banner-gun">${GUN_SVGS[job.cls]}</div>
+            <span class="banner-job-name">${job.key}</span>
+          </div>
+          <div class="banner-name">${job.key}</div>
+          <div class="banner-selector-dot"></div>
+        </div>`;
+    }).join('');
+  }
+
+  function selectJob(jobKey) {
+    selectedJob = jobKey;
+    selectedChar = null;
+
+    // 배너 active 토글
+    JOBS.forEach(j => {
+      const el = document.getElementById('banner-' + j.cls);
+      if (el) el.classList.toggle('active', j.key === jobKey);
+    });
+
+    const job = JOBS.find(j => j.key === jobKey);
+    const chars = charData.filter(c => c.job === jobKey);
+
+    // 레이블 업데이트
+    document.getElementById('job-label-bar').style.background = job?.color || 'var(--purple-2)';
+    document.getElementById('job-label-text').textContent = jobKey + ' 캐릭터';
+    document.getElementById('job-label-count').textContent = chars.length + '명';
+
+    // 캐릭터 그리드 렌더
+    const grid = document.getElementById('char-grid');
+    grid.innerHTML = chars.map(c => {
+      const imgHtml = c.img
+        ? `<img src="${c.img}" onerror="this.parentElement.innerHTML='<div class=\\'char-card-img-placeholder\\'>🎮</div>'">`
+        : `<div class="char-card-img-placeholder">🎮</div>`;
+      return `
+        <div class="char-card" id="ccard-${encodeURIComponent(c.name)}" onclick="selectChar('${c.name.replace(/'/g,"\\'")}')">
+          <div class="char-card-img">${imgHtml}</div>
+          <div class="char-card-name">${c.name}</div>
+        </div>`;
+    }).join('');
+
+    // 상세 숨기기
+    document.getElementById('char-detail').classList.remove('visible');
+  }
+
+  function selectChar(charName) {
+    selectedChar = charName;
+    const char = charData.find(c => c.name === charName);
+    if (!char) return;
+
+    // 카드 선택 표시
+    document.querySelectorAll('.char-card').forEach(el => el.classList.remove('selected'));
+    const job = JOBS.find(j => j.key === char.job);
+    const color = job?.color || 'var(--purple-2)';
+    const cardEl = document.getElementById('ccard-' + encodeURIComponent(charName));
+    if (cardEl) {
+      cardEl.classList.add('selected');
+      cardEl.style.borderColor = color;
+      cardEl.style.boxShadow = `0 0 0 1px ${color}40, 0 8px 24px rgba(0,0,0,0.4)`;
+    }
+
+    // 픽률 데이터
+    const picks = pickData[charName] || {};
+    const maxPct = Math.max(...Object.values(picks), 1);
+
+    // 장비 렌더
+    const itemBoxHtml = (item, cls='') => {
+      const imgHtml = item.img
+        ? `<img src="${item.img}" onerror="this.innerHTML='<span class=\\'item-img-placeholder\\'>📦</span>'">`
+        : `<span class="item-img-placeholder">${cls==='drone'?'🚁':cls==='weapon'?'🔫':'🛡️'}</span>`;
+      return `<div class="item-box ${cls}"><div class="item-img">${imgHtml}</div><div class="item-name">${item.name||'—'}</div></div>`;
+    };
+
+    const equipHtml  = char.equips.filter(e=>e.name).map(e=>itemBoxHtml(e)).join('');
+    const weaponHtml = char.weapons.filter(w=>w.name).map(w=>itemBoxHtml(w,'weapon')).join('');
+    const droneHtml  = char.drones.filter(d=>d.name).map(d=>itemBoxHtml(d,'drone')).join('');
+
+    const pickHtml = MODES.map(m => {
+      const pct = picks[m] || 0;
+      const w = pct > 0 ? Math.round((pct/maxPct)*100) : 0;
+      return `<div class="detail-pr-row">
+        <span class="detail-pr-mode">${MODE_SHORT[m]||m}</span>
+        <div class="detail-pr-bar-wrap"><div class="detail-pr-bar" style="width:${w}%"></div></div>
+        <span class="detail-pr-pct">${pct>0?pct+'%':'—'}</span>
+      </div>`;
+    }).join('');
+
+    const charImgHtml = char.img
+      ? `<img class="detail-char-img" src="${char.img}" onerror="this.outerHTML='<div class=\\'detail-char-img-placeholder\\'>🎮</div>'">`
+      : `<div class="detail-char-img-placeholder">🎮</div>`;
+
+    document.getElementById('char-detail').innerHTML = `
+      <div class="detail-hero">
+        <div class="detail-hero-bg"></div>
+        <div class="detail-hero-glow" style="background:${color}"></div>
+        <div class="detail-char-img-wrap">${charImgHtml}</div>
+        <div class="detail-info">
+          <div class="detail-job-badge" style="background:${color}22;color:${color};border:1px solid ${color}44">
+            <span>${job?.label||char.job}</span>
+            <span style="font-size:9px;opacity:0.7">·</span>
+            <span>${char.job}</span>
+          </div>
+          <div class="detail-char-name-sub">CHARACTER</div>
+          <div class="detail-char-name">${charName}</div>
+          <div class="detail-pickrates">${pickHtml}</div>
+        </div>
+      </div>
+      <div class="detail-body">
+        ${equipHtml ? `<div><div class="detail-section-title">장비 추천</div><div class="item-grid">${equipHtml}</div></div>` : ''}
+        ${weaponHtml ? `<div><div class="detail-section-title">무기 추천</div><div class="item-grid">${weaponHtml}</div></div>` : ''}
+        ${droneHtml ? `<div><div class="detail-section-title">드론 추천</div><div class="item-grid">${droneHtml}</div></div>` : ''}
+      </div>`;
+
+    const detail = document.getElementById('char-detail');
+    detail.classList.add('visible');
+
+    // 부드럽게 스크롤
+    setTimeout(() => detail.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
+  }
+
+  window.addEventListener('DOMContentLoaded', loadAll);
+</script>
+</body>
+</html>
