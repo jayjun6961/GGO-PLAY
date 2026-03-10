@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>활동점수 — GGO PLAY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:#0a0612; --bg-card:#130d24; --bg-card2:#1a1035;
+    --purple-1:#7c3aed; --purple-2:#9d5ff5; --purple-3:#c084fc;
+    --accent-pink:#f472b6; --accent-cyan:#22d3ee; --accent-gold:#fbbf24;
+    --text-main:#f0e8ff; --text-sub:#9d8ec4; --text-dim:#5c4e7a;
+    --sidebar-w:72px; --bottombar-h:64px;
+    --gold:#fbbf24; --silver:#e2e8f0; --bronze:#cd7f32;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg-deep);color:var(--text-main);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 15% 20%,rgba(124,58,237,0.18) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 85% 75%,rgba(157,95,245,0.12) 0%,transparent 70%);pointer-events:none;z-index:0;}
+
+  /* SIDEBAR */
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:rgba(19,13,36,0.95);border-right:1px solid rgba(124,58,237,0.2);display:flex;flex-direction:column;align-items:center;padding:20px 0;z-index:100;backdrop-filter:blur(20px);}
+  .sidebar-logo{width:42px;height:42px;background:linear-gradient(135deg,var(--purple-1),var(--purple-3));border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:white;margin-bottom:32px;box-shadow:0 0 20px rgba(124,58,237,0.5);}
+  .sidebar-nav{display:flex;flex-direction:column;gap:8px;flex:1;}
+  .nav-item{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;position:relative;color:var(--text-dim);border:none;background:transparent;}
+  .nav-item:hover,.nav-item.active{background:rgba(124,58,237,0.2);color:var(--purple-3);box-shadow:0 0 20px rgba(124,58,237,0.3);}
+  .nav-item.active::before{content:'';position:absolute;left:-12px;width:3px;height:24px;background:var(--purple-2);border-radius:0 3px 3px 0;}
+  .nav-item .tooltip{position:absolute;left:60px;background:rgba(19,13,36,0.95);color:var(--text-main);font-size:12px;padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.15s;z-index:200;border:1px solid rgba(124,58,237,0.2);}
+  .nav-item:hover .tooltip{opacity:1;}
+  .sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .avatar-sm{width:36px;height:36px;border-radius:50%;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);display:flex;align-items:center;justify-content:center;font-size:18px;}
+
+  /* BOTTOM NAV */
+  .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottombar-h);background:rgba(19,13,36,0.97);border-top:1px solid rgba(124,58,237,0.2);z-index:100;backdrop-filter:blur(20px);justify-content:space-around;align-items:center;padding:0 8px;}
+  .bottom-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-dim);font-size:10px;cursor:pointer;padding:6px 12px;border-radius:10px;transition:all 0.2s;flex:1;}
+  .bottom-nav-item .icon{font-size:20px;}
+  .bottom-nav-item.active{color:var(--purple-3);}
+
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+
+  @media(max-width:640px){
+    .sidebar{display:none}.bottom-nav{display:flex}
+    .main-wrap{margin-left:0!important;padding-bottom:calc(var(--bottombar-h)+20px)!important}
+    .top3-wrap{grid-template-columns:1fr!important;}
+    .lb-table{font-size:11px!important;}
+    .lb-col-bp,.lb-col-ts,.lb-col-deco{display:none!important;}
+    .lb-head-bp,.lb-head-ts,.lb-head-deco{display:none!important;}
+  }
+
+  /* MAIN */
+  .main-wrap{margin-left:var(--sidebar-w);padding:28px 28px 48px;position:relative;z-index:1;min-height:100vh;}
+
+  /* TOPBAR */
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+  .topbar-back{width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--purple-3);font-size:18px;transition:all 0.2s;}
+  .topbar-back:hover{background:rgba(124,58,237,0.3);}
+
+  /* 페이지 타이틀 */
+  .page-header{text-align:center;margin-bottom:36px;}
+  .page-eyebrow{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:3px;color:var(--text-dim);margin-bottom:8px;}
+  .page-title{font-family:'Orbitron',sans-serif;font-size:26px;font-weight:900;
+    background:linear-gradient(135deg,var(--purple-3),var(--accent-cyan),var(--purple-2));
+    background-size:200% auto;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    animation:shimmer 4s linear infinite;}
+  .page-formula{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.18);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--text-dim);}
+  .formula-item{color:var(--text-sub);}
+  .formula-sep{color:var(--text-dim);}
+
+  /* ── TOP3 ── */
+  .top3-section{margin-bottom:36px;}
+  .section-label{font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text-dim);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .section-label::after{content:'';flex:1;height:1px;background:rgba(124,58,237,0.15);}
+
+  .top3-wrap{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:14px;align-items:end;}
+
+  .top-card{
+    background:var(--bg-card);
+    border:1px solid rgba(124,58,237,0.2);
+    border-radius:18px;
+    padding:20px 16px 18px;
+    text-align:center;
+    position:relative;
+    animation:fadeUp 0.4s ease both;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+  }
+  .top-card.rank1{border-color:rgba(251,191,36,0.35);background:linear-gradient(180deg,rgba(251,191,36,0.08) 0%,var(--bg-card) 60%);animation-delay:0.1s;}
+  .top-card.rank2{border-color:rgba(226,232,240,0.25);background:linear-gradient(180deg,rgba(226,232,240,0.05) 0%,var(--bg-card) 60%);animation-delay:0.2s;}
+  .top-card.rank3{border-color:rgba(205,127,50,0.25);background:linear-gradient(180deg,rgba(205,127,50,0.06) 0%,var(--bg-card) 60%);animation-delay:0.3s;}
+
+  .top-crown{font-size:22px;animation:float 2.5s ease-in-out infinite;line-height:1;}
+  .top-avatar{width:62px;height:62px;border-radius:50%;object-fit:cover;border:2px solid rgba(124,58,237,0.3);}
+  .top-avatar-placeholder{width:62px;height:62px;border-radius:50%;background:var(--bg-card2);border:2px solid rgba(124,58,237,0.2);display:flex;align-items:center;justify-content:center;font-size:24px;}
+  .top-rank-badge{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;}
+  .rank1 .top-rank-badge{background:rgba(251,191,36,0.15);color:var(--gold);border:1px solid rgba(251,191,36,0.3);}
+  .rank2 .top-rank-badge{background:rgba(226,232,240,0.1);color:var(--silver);border:1px solid rgba(226,232,240,0.2);}
+  .rank3 .top-rank-badge{background:rgba(205,127,50,0.1);color:var(--bronze);border:1px solid rgba(205,127,50,0.2);}
+  .top-name{font-size:13px;font-weight:700;color:var(--text-main);}
+  .top-server{font-size:10px;color:var(--accent-cyan);font-family:'Orbitron',sans-serif;}
+  .top-score{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:var(--purple-3);}
+  .rank1 .top-score{color:var(--gold);}
+  .rank2 .top-score{color:var(--silver);}
+  .rank3 .top-score{color:var(--bronze);}
+  .top-score-label{font-size:9px;color:var(--text-dim);font-family:'Orbitron',sans-serif;}
+  .top-sub-stats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:2px;}
+  .top-sub-stat{font-size:10px;color:var(--text-dim);background:rgba(124,58,237,0.07);border:1px solid rgba(124,58,237,0.12);border-radius:6px;padding:2px 7px;}
+  .top-sub-stat span{color:var(--text-sub);}
+
+  /* ── 리더보드 테이블 ── */
+  .lb-section{background:var(--bg-card);border:1px solid rgba(124,58,237,0.15);border-radius:16px;overflow:hidden;}
+  .lb-head{display:grid;grid-template-columns:48px 42px 1fr 70px 90px 90px 80px 100px;align-items:center;padding:10px 16px;background:rgba(124,58,237,0.07);border-bottom:1px solid rgba(124,58,237,0.12);}
+  .lb-head-cell{font-family:'Orbitron',sans-serif;font-size:9px;color:var(--text-dim);text-align:center;}
+  .lb-head-cell.left{text-align:left;}
+
+  .lb-row{display:grid;grid-template-columns:48px 42px 1fr 70px 90px 90px 80px 100px;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(124,58,237,0.07);transition:background 0.15s;animation:fadeUp 0.3s ease both;}
+  .lb-row:last-child{border-bottom:none;}
+  .lb-row:hover{background:rgba(124,58,237,0.06);}
+
+  .lb-rank{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;text-align:center;color:var(--text-dim);}
+  .lb-rank.r1{color:var(--gold);}
+  .lb-rank.r2{color:var(--silver);}
+  .lb-rank.r3{color:var(--bronze);}
+
+  .lb-avatar-cell{display:flex;justify-content:center;}
+  .lb-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid rgba(124,58,237,0.25);}
+  .lb-avatar-ph{width:32px;height:32px;border-radius:50%;background:var(--bg-card2);border:1px solid rgba(124,58,237,0.2);display:flex;align-items:center;justify-content:center;font-size:14px;}
+
+  .lb-name-cell{display:flex;flex-direction:column;gap:1px;}
+  .lb-name{font-size:12px;font-weight:600;color:var(--text-main);}
+
+  .lb-cell{font-family:'Orbitron',sans-serif;font-size:11px;text-align:center;color:var(--text-sub);}
+  .lb-cell.server{color:var(--accent-cyan);font-size:10px;}
+  .lb-cell.score-total{color:var(--purple-3);font-size:13px;font-weight:700;}
+  .lb-cell.r1{color:var(--gold);}
+  .lb-cell.r2{color:var(--silver);}
+  .lb-cell.r3{color:var(--bronze);}
+
+  /* 로딩 */
+  .loading-wrap{text-align:center;padding:60px;color:var(--text-dim);}
+  .spinner{width:32px;height:32px;border:3px solid rgba(124,58,237,0.15);border-top-color:var(--purple-2);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">G</div>
+  <nav class="sidebar-nav">
+    <button class="nav-item" onclick="location.href='index.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg><span class="tooltip">홈</span></button>
+    <button class="nav-item" onclick="location.href='character.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="tooltip">캐릭터</span></button>
+    <button class="nav-item" onclick="location.href='equipment.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg><span class="tooltip">장비</span></button>
+    <button class="nav-item" onclick="location.href='battlepass.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="tooltip">배틀패스</span></button>
+    <button class="nav-item" onclick="location.href='tournament.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 19h20M2 19l3-10 5 5 2-8 2 8 5-5 3 10"/><circle cx="12" cy="6" r="1" fill="currentColor"/></svg><span class="tooltip">친선대회</span></button>
+    <button class="nav-item active" onclick="location.href='activity.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tooltip">활동점수</span></button>
+    <button class="nav-item" onclick="location.href='shop.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><span class="tooltip">상점</span></button>
+    <button class="nav-item" onclick="location.href='event.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg><span class="tooltip">이벤트</span></button>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="nav-item">⚙️<span class="tooltip">설정</span></button>
+    <div class="avatar-sm">👤</div>
+  </div>
+</aside>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-item" onclick="location.href='index.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span><span>홈</span></div>
+  <div class="bottom-nav-item" onclick="location.href='character.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span><span>캐릭터</span></div>
+  <div class="bottom-nav-item" onclick="location.href='equipment.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg></span><span>장비</span></div>
+  <div class="bottom-nav-item active" onclick="location.href='activity.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span><span>활동점수</span></div>
+  <div class="bottom-nav-item" onclick="location.href='tournament.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 19h20M2 19l3-10 5 5 2-8 2 8 5-5 3 10"/></svg></span><span>친선</span></div>
+</nav>
+
+<main class="main-wrap">
+  <div class="topbar">
+    <div class="topbar-back" onclick="location.href='index.html'">←</div>
+    <span style="font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900">활동점수</span>
+    <div style="margin-left:auto">
+      <button onclick="loadActivity()" style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);color:var(--purple-3);padding:6px 14px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'Orbitron',sans-serif;">↻ 새로고침</button>
+    </div>
+  </div>
+
+  <div id="loading-state" class="loading-wrap"><div class="spinner"></div>데이터 불러오는 중...</div>
+
+  <div id="content-wrap" style="display:none">
+
+    <!-- 페이지 타이틀 -->
+    <div class="page-header">
+      <div class="page-eyebrow">SEASON RANKING</div>
+      <div class="page-title">활동점수</div>
+      <div style="margin-top:10px;display:flex;justify-content:center;">
+        <div class="page-formula">
+          <span class="formula-item">배틀패스 ÷ 100</span>
+          <span class="formula-sep">＋</span>
+          <span class="formula-item">친선대회 ÷ 10</span>
+          <span class="formula-sep">＋</span>
+          <span class="formula-item">꾸미기 레벨</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOP 3 -->
+    <div class="top3-section">
+      <div class="section-label">🏆 TOP 3</div>
+      <div class="top3-wrap" id="top3-wrap"></div>
+    </div>
+
+    <!-- 전체 순위 테이블 -->
+    <div class="section-label" style="margin-bottom:14px;">📋 전체 순위</div>
+    <div class="lb-section">
+      <div class="lb-head">
+        <div class="lb-head-cell">순위</div>
+        <div class="lb-head-cell">프로필</div>
+        <div class="lb-head-cell left">이름</div>
+        <div class="lb-head-cell">서버</div>
+        <div class="lb-head-cell lb-head-bp">배틀패스</div>
+        <div class="lb-head-cell lb-head-ts">친선대회</div>
+        <div class="lb-head-cell lb-head-deco">꾸미기</div>
+        <div class="lb-head-cell">활동점수</div>
+      </div>
+      <div id="lb-body"></div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1396354260&single=true&output=csv';
+
+  function parseCSV(txt) {
+    return txt.trim().split('\n').slice(1).map(line => {
+      const cols=[]; let cur='',inQ=false;
+      for(let c of line){if(c==='"'){inQ=!inQ;continue;}if(c===','&&!inQ){cols.push(cur.trim());cur='';}else cur+=c;}
+      cols.push(cur.trim()); return cols;
+    }).filter(r=>r[0]);
+  }
+
+  function calcScore(bp, ts, deco) {
+    return Math.round((bp/100) + (ts/10) + deco * 1);
+  }
+
+  function avatarHtml(imgUrl, size, cls) {
+    if(imgUrl) return `<img class="${cls}" src="${imgUrl}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;" onerror="this.outerHTML='<div style=\\'width:${size}px;height:${size}px;border-radius:50%;background:var(--bg-card2);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.4)}px;\\'>👤</div>'">`;
+    return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:var(--bg-card2);border:1px solid rgba(124,58,237,0.2);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.4)}px;">👤</div>`;
+  }
+
+  const CROWNS = ['🥇','🥈','🥉'];
+  const RANK_CLS = ['r1','r2','r3'];
+  const RANK_LABELS = ['rank1','rank2','rank3'];
+
+  async function loadActivity() {
+    document.getElementById('loading-state').style.display='block';
+    document.getElementById('content-wrap').style.display='none';
+    try {
+      const res = await fetch(CSV_ACT+'&t='+Date.now(), {cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const rows = parseCSV(await res.text());
+
+      // 데이터 파싱 + 점수 계산
+      const players = rows.map(r => {
+        const bp   = parseFloat(r[3]) || 0;
+        const ts   = parseFloat(r[4]) || 0;
+        const deco = parseFloat(r[5]) || 0;
+        return {
+          name: r[0]||'',
+          server: r[1]||'',
+          img:  (r[2]||'').trim(),
+          bp, ts, deco,
+          score: calcScore(bp, ts, deco)
+        };
+      }).filter(p=>p.name);
+
+      // 점수 내림차순 정렬
+      players.sort((a,b) => b.score - a.score);
+
+      // ── TOP 3 ──
+      const top3Html = players.slice(0,3).map((p,i) => {
+        const cls = RANK_LABELS[i] || '';
+        const rankLabel = `${i+1}위`;
+        return `
+          <div class="top-card ${cls}">
+            <div class="top-crown">${CROWNS[i]}</div>
+            ${avatarHtml(p.img, 62, 'top-avatar')}
+            <div class="top-rank-badge">${rankLabel}</div>
+            <div class="top-name">${p.name}</div>
+            <div class="top-server">${p.server}</div>
+            <div class="top-score">${p.score.toFixed(1)}</div>
+            <div class="top-score-label">활동점수</div>
+            <div class="top-sub-stats">
+              <div class="top-sub-stat">BP <span>${p.bp}</span></div>
+              <div class="top-sub-stat">친선 <span>${p.ts}</span></div>
+              <div class="top-sub-stat">꾸미기 <span>Lv.${p.deco}</span></div>
+            </div>
+          </div>`;
+      });
+
+      // 1위가 가운데로: 2위, 1위, 3위 순서로 배치
+      const ordered = players.length >= 3
+        ? [top3Html[1], top3Html[0], top3Html[2]]
+        : top3Html;
+      document.getElementById('top3-wrap').innerHTML = ordered.join('');
+
+      // ── 전체 테이블 ──
+      document.getElementById('lb-body').innerHTML = players.map((p,i) => {
+        const rankN = i+1;
+        const rankCls = rankN<=3 ? RANK_CLS[i] : '';
+        const rankDisp = rankN<=3 ? CROWNS[i] : rankN;
+        const delay = Math.min(i*30, 400);
+        return `
+          <div class="lb-row" style="animation-delay:${delay}ms">
+            <div class="lb-rank ${rankCls}">${rankDisp}</div>
+            <div class="lb-avatar-cell">${avatarHtml(p.img, 32, 'lb-avatar')}</div>
+            <div class="lb-name-cell"><div class="lb-name">${p.name}</div></div>
+            <div class="lb-cell server">${p.server}</div>
+            <div class="lb-cell lb-col-bp">${p.bp.toLocaleString()}</div>
+            <div class="lb-cell lb-col-ts">${p.ts.toLocaleString()}</div>
+            <div class="lb-cell lb-col-deco">Lv.${p.deco}</div>
+            <div class="lb-cell score-total ${rankCls}">${p.score.toFixed(1)}</div>
+          </div>`;
+      }).join('');
+
+      document.getElementById('loading-state').style.display='none';
+      document.getElementById('content-wrap').style.display='block';
+
+    } catch(e) {
+      document.getElementById('loading-state').innerHTML=`<div style="color:var(--accent-pink);font-size:13px">⚠️ 불러오기 실패<br><small style="color:var(--text-dim)">${e.message}</small><br><br><button onclick="loadActivity()" style="margin-top:8px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);color:var(--purple-3);padding:8px 20px;border-radius:8px;cursor:pointer;">↻ 다시 시도</button></div>`;
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', loadActivity);
+</script>
+</body>
+</html>
