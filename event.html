@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이벤트 — GGO PLAY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:#0a0612; --bg-card:#130d24; --bg-card2:#1a1035;
+    --purple-1:#7c3aed; --purple-2:#9d5ff5; --purple-3:#c084fc;
+    --accent-pink:#f472b6; --accent-cyan:#22d3ee; --accent-gold:#fbbf24;
+    --text-main:#f0e8ff; --text-sub:#9d8ec4; --text-dim:#5c4e7a;
+    --sidebar-w:72px; --bottombar-h:64px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg-deep);color:var(--text-main);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 15% 20%,rgba(124,58,237,0.18) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 85% 75%,rgba(157,95,245,0.12) 0%,transparent 70%);pointer-events:none;z-index:0;}
+
+  /* SIDEBAR */
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:rgba(19,13,36,0.95);border-right:1px solid rgba(124,58,237,0.2);display:flex;flex-direction:column;align-items:center;padding:20px 0;z-index:100;backdrop-filter:blur(20px);}
+  .sidebar-logo{width:42px;height:42px;background:linear-gradient(135deg,var(--purple-1),var(--purple-3));border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:white;margin-bottom:32px;box-shadow:0 0 20px rgba(124,58,237,0.5);}
+  .sidebar-nav{display:flex;flex-direction:column;gap:8px;flex:1;}
+  .nav-item{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;position:relative;color:var(--text-dim);border:none;background:transparent;}
+  .nav-item:hover,.nav-item.active{background:rgba(124,58,237,0.2);color:var(--purple-3);box-shadow:0 0 20px rgba(124,58,237,0.3);}
+  .nav-item.active::before{content:'';position:absolute;left:-12px;width:3px;height:24px;background:var(--purple-2);border-radius:0 3px 3px 0;}
+  .nav-item .tooltip{position:absolute;left:60px;background:rgba(19,13,36,0.95);color:var(--text-main);font-size:12px;padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.15s;z-index:200;border:1px solid rgba(124,58,237,0.2);}
+  .nav-item:hover .tooltip{opacity:1;}
+  .sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .avatar-sm{width:36px;height:36px;border-radius:50%;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);display:flex;align-items:center;justify-content:center;font-size:18px;}
+
+  /* BOTTOM NAV */
+  .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottombar-h);background:rgba(19,13,36,0.97);border-top:1px solid rgba(124,58,237,0.2);z-index:100;backdrop-filter:blur(20px);justify-content:space-around;align-items:center;padding:0 8px;}
+  .bottom-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-dim);font-size:10px;cursor:pointer;padding:6px 12px;border-radius:10px;transition:all 0.2s;flex:1;}
+  .bottom-nav-item .icon{font-size:20px;}
+  .bottom-nav-item.active{color:var(--purple-3);}
+
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+  @media(max-width:640px){
+    .sidebar{display:none}.bottom-nav{display:flex}
+    .main-wrap{margin-left:0!important;padding-bottom:calc(var(--bottombar-h)+20px)!important}
+    .event-grid{grid-template-columns:1fr!important}
+  }
+
+  /* MAIN */
+  .main-wrap{margin-left:var(--sidebar-w);padding:28px 28px 48px;position:relative;z-index:1;min-height:100vh;}
+
+  /* TOPBAR */
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+  .topbar-back{width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--purple-3);font-size:18px;transition:all 0.2s;}
+  .topbar-back:hover{background:rgba(124,58,237,0.3);}
+
+  /* PAGE HEADER */
+  .page-header{margin-bottom:28px;}
+  .page-title-row{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+  .page-title{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;}
+  .page-title span{color:var(--purple-3);}
+  .event-counts{display:flex;gap:8px;}
+  .count-chip{font-size:11px;padding:3px 10px;border-radius:20px;font-family:'Orbitron',sans-serif;}
+  .count-chip.active{background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.25);}
+  .count-chip.ended{background:rgba(148,163,184,0.1);color:#94a3b8;border:1px solid rgba(148,163,184,0.2);}
+
+  /* 섹션 구분 */
+  .section-divider{display:flex;align-items:center;gap:12px;margin:0 0 18px;}
+  .section-divider-label{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;white-space:nowrap;}
+  .section-divider-line{flex:1;height:1px;background:rgba(124,58,237,0.15);}
+
+  /* 이벤트 그리드 */
+  .event-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-bottom:36px;}
+
+  /* 이벤트 카드 */
+  .event-card{
+    background:var(--bg-card);
+    border:1px solid rgba(124,58,237,0.15);
+    border-radius:16px;
+    overflow:hidden;
+    transition:all 0.22s;
+    position:relative;
+    animation:fadeUp 0.3s ease both;
+  }
+  .event-card:hover{border-color:rgba(124,58,237,0.35);transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,0.3);}
+  .event-card.ended{opacity:0.55;filter:grayscale(30%);}
+  .event-card.ended:hover{opacity:0.75;}
+
+  /* 상태 뱃지 */
+  .status-badge{
+    position:absolute;top:10px;right:10px;
+    font-size:9px;font-family:'Orbitron',sans-serif;font-weight:700;
+    padding:3px 9px;border-radius:20px;z-index:2;letter-spacing:0.5px;
+  }
+  .status-badge.active{background:rgba(52,211,153,0.2);color:#34d399;border:1px solid rgba(52,211,153,0.4);box-shadow:0 0 8px rgba(52,211,153,0.2);}
+  .status-badge.ended{background:rgba(100,100,120,0.3);color:#94a3b8;border:1px solid rgba(148,163,184,0.2);}
+
+  /* 카드 이미지 */
+  .card-img-wrap{width:100%;height:160px;overflow:hidden;background:var(--bg-card2);position:relative;}
+  .card-img-wrap img{width:100%;height:100%;object-fit:cover;transition:transform 0.3s;}
+  .event-card:hover .card-img-wrap img{transform:scale(1.04);}
+  .card-img-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;background:linear-gradient(135deg,rgba(124,58,237,0.1),rgba(34,211,238,0.05));}
+
+  /* 카드 바디 */
+  .card-body{padding:14px 16px 16px;}
+  .card-title{font-size:14px;font-weight:700;color:var(--text-main);line-height:1.4;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .card-desc{font-size:12px;color:var(--text-sub);line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+
+  /* 로딩 */
+  .loading-wrap{text-align:center;padding:60px;color:var(--text-dim);}
+  .spinner{width:32px;height:32px;border:3px solid rgba(124,58,237,0.15);border-top-color:var(--purple-2);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+  .empty-msg{text-align:center;padding:40px;color:var(--text-dim);font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">G</div>
+  <nav class="sidebar-nav">
+    <button class="nav-item" onclick="location.href='index.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg><span class="tooltip">홈</span></button>
+    <button class="nav-item" onclick="location.href='character.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="tooltip">캐릭터</span></button>
+    <button class="nav-item" onclick="location.href='equipment.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg><span class="tooltip">장비</span></button>
+    <button class="nav-item" onclick="location.href='battlepass.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="tooltip">배틀패스</span></button>
+    <button class="nav-item" onclick="location.href='tournament.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 19h20M2 19l3-10 5 5 2-8 2 8 5-5 3 10"/><circle cx="12" cy="6" r="1" fill="currentColor"/></svg><span class="tooltip">친선대회</span></button>
+    <button class="nav-item" onclick="location.href='activity.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tooltip">활동점수</span></button>
+    <button class="nav-item" onclick="location.href='shop.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><span class="tooltip">상점</span></button>
+    <button class="nav-item active" onclick="location.href='event.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg><span class="tooltip">이벤트</span></button>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="nav-item">⚙️<span class="tooltip">설정</span></button>
+    <div class="avatar-sm">👤</div>
+  </div>
+</aside>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-item" onclick="location.href='index.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span><span>홈</span></div>
+  <div class="bottom-nav-item" onclick="location.href='character.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span><span>캐릭터</span></div>
+  <div class="bottom-nav-item" onclick="location.href='equipment.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg></span><span>장비</span></div>
+  <div class="bottom-nav-item" onclick="location.href='battlepass.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span>배틀패스</span></div>
+  <div class="bottom-nav-item active" onclick="location.href='event.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg></span><span>이벤트</span></div>
+</nav>
+
+<main class="main-wrap">
+  <div class="topbar">
+    <div class="topbar-back" onclick="location.href='index.html'">←</div>
+    <span style="font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900">이벤트</span>
+    <div style="margin-left:auto">
+      <button onclick="loadEvents()" style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);color:var(--purple-3);padding:6px 14px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'Orbitron',sans-serif;">↻ 새로고침</button>
+    </div>
+  </div>
+
+  <div id="loading-state" class="loading-wrap"><div class="spinner"></div>이벤트 불러오는 중...</div>
+
+  <div id="content-wrap" style="display:none">
+    <div class="page-header">
+      <div class="page-title-row">
+        <div class="page-title">🎁 <span>이벤트</span></div>
+        <div class="event-counts">
+          <span class="count-chip active" id="active-count"></span>
+          <span class="count-chip ended" id="ended-count"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 진행중 -->
+    <div id="active-section">
+      <div class="section-divider">
+        <span class="section-divider-label" style="color:#34d399">● 진행중</span>
+        <div class="section-divider-line"></div>
+      </div>
+      <div class="event-grid" id="active-grid">
+        <div class="empty-msg">진행중인 이벤트가 없습니다</div>
+      </div>
+    </div>
+
+    <!-- 종료 -->
+    <div id="ended-section">
+      <div class="section-divider">
+        <span class="section-divider-label" style="color:#94a3b8">● 종료된 이벤트</span>
+        <div class="section-divider-line"></div>
+      </div>
+      <div class="event-grid" id="ended-grid">
+        <div class="empty-msg">종료된 이벤트가 없습니다</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const CSV_EVENT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1449309893&single=true&output=csv';
+
+  function parseCSV(txt) {
+    return txt.trim().split('\n').slice(1).map(line => {
+      const cols=[]; let cur='',inQ=false;
+      for(let c of line){if(c==='"'){inQ=!inQ;continue;}if(c===','&&!inQ){cols.push(cur.trim());cur='';}else cur+=c;}
+      cols.push(cur.trim()); return cols;
+    }).filter(r=>r[0]);
+  }
+
+  function makeCard(row, isActive, delay) {
+    const title  = row[0] || '';
+    const desc   = row[1] || '';
+    const status = (row[2] || '').trim();
+    const img    = (row[3] || '').trim();
+
+    const imgHtml = img
+      ? `<img src="${img}" onerror="this.parentElement.innerHTML='<div class=\\'card-img-placeholder\\'>🎁</div>'">`
+      : `<div class="card-img-placeholder">🎁</div>`;
+
+    const badgeCls   = isActive ? 'active' : 'ended';
+    const badgeLabel = isActive ? '진행중' : '종료';
+    const cardCls    = isActive ? '' : 'ended';
+
+    return `
+      <div class="event-card ${cardCls}" style="animation-delay:${delay}ms">
+        <span class="status-badge ${badgeCls}">${badgeLabel}</span>
+        <div class="card-img-wrap">${imgHtml}</div>
+        <div class="card-body">
+          <div class="card-title">${title}</div>
+          ${desc ? `<div class="card-desc">${desc}</div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  async function loadEvents() {
+    document.getElementById('loading-state').style.display='block';
+    document.getElementById('content-wrap').style.display='none';
+    try {
+      const res = await fetch(CSV_EVENT+'&t='+Date.now(), {cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const rows = parseCSV(await res.text());
+
+      const active = rows.filter(r=>(r[2]||'').trim()==='진행중');
+      const ended  = rows.filter(r=>(r[2]||'').trim()==='종료');
+
+      // 카운트 뱃지
+      document.getElementById('active-count').textContent = `진행중 ${active.length}`;
+      document.getElementById('ended-count').textContent  = `종료 ${ended.length}`;
+
+      // 진행중 그리드
+      document.getElementById('active-grid').innerHTML = active.length
+        ? active.map((r,i)=>makeCard(r,true,i*60)).join('')
+        : '<div class="empty-msg">진행중인 이벤트가 없습니다</div>';
+
+      // 종료 그리드
+      document.getElementById('ended-grid').innerHTML = ended.length
+        ? ended.map((r,i)=>makeCard(r,false,i*40)).join('')
+        : '<div class="empty-msg">종료된 이벤트가 없습니다</div>';
+
+      // 종료 섹션 — 없으면 숨김
+      document.getElementById('ended-section').style.display = ended.length ? 'block' : 'none';
+
+      document.getElementById('loading-state').style.display='none';
+      document.getElementById('content-wrap').style.display='block';
+    } catch(e) {
+      document.getElementById('loading-state').innerHTML=`<div style="color:var(--accent-pink);font-size:13px">⚠️ 불러오기 실패<br><small style="color:var(--text-dim)">${e.message}</small><br><br><button onclick="loadEvents()" style="margin-top:8px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);color:var(--purple-3);padding:8px 20px;border-radius:8px;cursor:pointer;">↻ 다시 시도</button></div>`;
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', loadEvents);
+</script>
+</body>
+</html>
