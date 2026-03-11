@@ -137,6 +137,7 @@
   .sidebar-bottom {
     display: flex; flex-direction: column; align-items: center; gap: 12px;
   }
+  #logout-box button:hover { background:rgba(244,114,182,0.2)!important; }
 
   .avatar-sm {
     width: 38px; height: 38px;
@@ -1764,8 +1765,14 @@
     </button>
   </nav>
   <div class="sidebar-bottom">
-    <button class="nav-item" onclick="location.href='settings.html'">⚙️<span class="tooltip">설정</span></button>
-    <div class="avatar-sm" id="sidebar-avatar" onclick="goLoginOrLogout()" style="cursor:pointer" title="로그인">👤</div>
+    <div style="position:relative">
+      <button class="nav-item" id="settings-btn" onclick="toggleLogoutBox(event)">⚙️<span class="tooltip">설정</span></button>
+      <div id="logout-box" style="display:none;position:absolute;left:58px;bottom:0;background:rgba(19,13,36,0.97);border:1px solid rgba(124,58,237,0.25);border-radius:12px;padding:8px;white-space:nowrap;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,0.4);backdrop-filter:blur(20px);">
+        <div id="logout-user-name" style="font-size:11px;color:var(--text-dim);padding:4px 10px 8px;border-bottom:1px solid rgba(124,58,237,0.12);margin-bottom:6px;font-family:'Orbitron',sans-serif;"></div>
+        <button onclick="doLogout()" style="width:100%;background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.2);color:var(--accent-pink);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;gap:6px;">🚪 로그아웃</button>
+      </div>
+    </div>
+    <div class="avatar-sm" id="sidebar-avatar" onclick="goMyPage()" style="cursor:pointer" title="마이페이지">👤</div>
   </div>
 </aside>
 <main class="main">
@@ -2267,23 +2274,38 @@
       const av = document.getElementById('sidebar-avatar');
       av.textContent = username.charAt(0).toUpperCase();
       av.style.background = 'linear-gradient(135deg,var(--purple-1),var(--accent-cyan))';
-      av.title = username + ' · 로그아웃';
+      av.title = username + ' · 마이페이지';
     }
     loadSeasonAward(); loadPickrate(); loadHomeBpRank(); loadHomeEvents();
   });
 
-  function goLoginOrLogout() {
+  function toggleLogoutBox(e) {
+    e.stopPropagation();
+    const box = document.getElementById('logout-box');
     const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
-    if(isLoggedIn) {
-      if(confirm('로그아웃 하시겠습니까?')) {
-        localStorage.removeItem('ggo_logged_in');
-        localStorage.removeItem('ggo_username');
-        location.reload();
-      }
-    } else {
-      location.href = 'login.html';
-    }
+    if(!isLoggedIn) { location.href='login.html'; return; }
+    box.style.display = box.style.display==='none' ? 'block' : 'none';
+    const username = localStorage.getItem('ggo_username') || '';
+    document.getElementById('logout-user-name').textContent = username + ' 님';
   }
+
+  function doLogout() {
+    localStorage.removeItem('ggo_logged_in');
+    localStorage.removeItem('ggo_username');
+    location.reload();
+  }
+
+  function goMyPage() {
+    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    if(!isLoggedIn) { location.href='login.html'; return; }
+    location.href='mypage.html';
+  }
+
+  // 외부 클릭 시 로그아웃 박스 닫기
+  document.addEventListener('click', () => {
+    const box = document.getElementById('logout-box');
+    if(box) box.style.display='none';
+  });
 
 </script>
 </body>
