@@ -2281,7 +2281,7 @@
 
 
   // ── MY ACTIVITY: 로그인 유저 활동점수 로드 ──
-  const CSV_MEMBER_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1396354260&single=true&output=csv';
+  const CSV_MEMBER_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1765510409&single=true&output=csv';
 
   async function loadMyActivity() {
     const username   = localStorage.getItem('ggo_username') || '';
@@ -2299,19 +2299,22 @@
     }
 
     try {
+      // 회원 시트: A=ID, B=GGO NUMBER, C=배틀패스점수, D=친선대회점수
       const res  = await fetch(CSV_MEMBER_ACT + '&t=' + Date.now(), { cache:'no-store' });
       const rows = parseCSV(await res.text());
-      // 활동점수 시트: A=닉네임, B=서버, C=프로필, D=배틀패스, E=친선대회, F=꾸미기레벨
-      // (activity.html과 동일 GID)
       const user = rows.find(r => r[0].trim() === username);
       if(!user) {
         [totalEl,bpEl,tsEl,decoEl].forEach(el=>{ if(el) el.textContent='?'; });
         return;
       }
-      const bp   = parseFloat(user[3])||0;
-      const ts   = parseFloat(user[4])||0;
-      const deco = parseFloat(user[5])||0;
-      const total = Math.round((bp/100) + (ts/10) + deco);
+      const bp   = parseFloat(user[2])||0;   // C열 = 배틀패스점수
+      const ts   = parseFloat(user[3])||0;   // D열 = 친선대회점수
+      // 꾸미기 레벨: localStorage 보유아이템 기반 계산
+      const EXP_MAP = {일반:100, 희귀:300, 에픽:500, 전설:1000};
+      const items   = JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
+      const totalExp= items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
+      const deco    = Math.floor(totalExp/1000)+1;
+      const total   = Math.round((bp/100) + (ts/10) + deco);
 
       if(totalEl) totalEl.textContent = total.toFixed(1);
       if(bpEl)    bpEl.textContent    = bp.toLocaleString();
@@ -2328,6 +2331,19 @@
       }
     } catch(e) {
       [totalEl,bpEl,tsEl,decoEl].forEach(el=>{ if(el) el.textContent='?'; });
+    }
+  }
+
+  function goLoginOrLogout() {
+    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    if(isLoggedIn) {
+      if(confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('ggo_logged_in');
+        localStorage.removeItem('ggo_username');
+        location.reload();
+      }
+    } else {
+      location.href = 'login.html';
     }
   }
 
