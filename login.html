@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로그인 — GGO PLAY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:#0a0612; --bg-card:#130d24; --bg-card2:#1a1035;
+    --purple-1:#7c3aed; --purple-2:#9d5ff5; --purple-3:#c084fc;
+    --accent-pink:#f472b6; --accent-cyan:#22d3ee; --accent-gold:#fbbf24;
+    --text-main:#f0e8ff; --text-sub:#9d8ec4; --text-dim:#5c4e7a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg-deep);color:var(--text-main);font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 60% at 20% 20%,rgba(124,58,237,0.22) 0%,transparent 70%),radial-gradient(ellipse 60% 50% at 80% 80%,rgba(34,211,238,0.1) 0%,transparent 70%),radial-gradient(ellipse 40% 40% at 50% 50%,rgba(157,95,245,0.08) 0%,transparent 70%);pointer-events:none;}
+
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,0.4)}50%{box-shadow:0 0 0 8px rgba(124,58,237,0)}}
+
+  .login-wrap{
+    width:100%;max-width:420px;padding:20px;
+    animation:fadeUp 0.5s ease;
+    position:relative;z-index:1;
+  }
+
+  /* 로고 */
+  .login-logo{text-align:center;margin-bottom:32px;}
+  .logo-icon{width:56px;height:56px;background:linear-gradient(135deg,var(--purple-1),var(--purple-3));border-radius:16px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:900;font-size:22px;color:white;margin:0 auto 14px;box-shadow:0 0 30px rgba(124,58,237,0.5);animation:pulse 2.5s infinite;}
+  .logo-title{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;background:linear-gradient(135deg,var(--purple-3),var(--accent-cyan));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 3s linear infinite;}
+  .logo-sub{font-size:12px;color:var(--text-dim);margin-top:6px;}
+
+  /* 카드 */
+  .login-card{background:var(--bg-card);border:1px solid rgba(124,58,237,0.2);border-radius:20px;padding:28px 28px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+
+  .card-title{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:var(--text-main);margin-bottom:4px;}
+  .card-sub{font-size:12px;color:var(--text-dim);margin-bottom:24px;}
+
+  /* 입력 필드 */
+  .field{margin-bottom:16px;}
+  .field-label{font-size:11px;font-family:'Orbitron',sans-serif;color:var(--text-dim);margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+  .field-label-required{color:var(--accent-pink);font-size:10px;}
+
+  .field-input-wrap{position:relative;}
+  .field-input{
+    width:100%;background:var(--bg-card2);border:1px solid rgba(124,58,237,0.2);
+    border-radius:12px;padding:12px 40px 12px 14px;
+    color:var(--text-main);font-size:13px;font-family:'Noto Sans KR',sans-serif;
+    outline:none;transition:border-color 0.2s,box-shadow 0.2s;
+  }
+  .field-input:focus{border-color:var(--purple-2);box-shadow:0 0 0 3px rgba(124,58,237,0.15);}
+  .field-input::placeholder{color:var(--text-dim);}
+  .field-input.ggo{font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;}
+  .field-input.error{border-color:var(--accent-pink);}
+  .field-input.success{border-color:#34d399;}
+
+  .field-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;}
+
+  /* 자동저장 체크박스 */
+  .remember-row{display:flex;align-items:center;gap:8px;margin-bottom:20px;cursor:pointer;}
+  .remember-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--purple-2);cursor:pointer;}
+  .remember-label{font-size:12px;color:var(--text-sub);}
+
+  /* 에러 메시지 */
+  .error-msg{display:none;font-size:11px;color:var(--accent-pink);margin-top:6px;padding:8px 12px;background:rgba(244,114,182,0.08);border:1px solid rgba(244,114,182,0.2);border-radius:8px;}
+  .error-msg.show{display:block;}
+
+  /* 버튼 */
+  .btn-login{
+    width:100%;padding:14px;border:none;border-radius:12px;
+    background:linear-gradient(135deg,var(--purple-1),var(--purple-2));
+    color:white;font-size:14px;font-weight:700;
+    font-family:'Noto Sans KR',sans-serif;
+    cursor:pointer;transition:all 0.2s;
+    box-shadow:0 4px 20px rgba(124,58,237,0.35);
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn-login:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(124,58,237,0.45);}
+  .btn-login:active{transform:translateY(0);}
+  .btn-login:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
+
+  .btn-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
+  .btn-login.loading .btn-spinner{display:block;}
+  .btn-login.loading .btn-text{display:none;}
+
+  /* 구분선 */
+  .divider{display:flex;align-items:center;gap:10px;margin:20px 0 16px;}
+  .divider-line{flex:1;height:1px;background:rgba(124,58,237,0.12);}
+  .divider-text{font-size:10px;color:var(--text-dim);white-space:nowrap;}
+
+  /* 안내 */
+  .info-box{background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.15);border-radius:10px;padding:10px 14px;font-size:11px;color:var(--text-dim);line-height:1.6;}
+  .info-box strong{color:var(--accent-cyan);}
+
+  /* 로그인 성공 화면 */
+  .success-screen{display:none;text-align:center;padding:8px 0;}
+  .success-icon{font-size:48px;margin-bottom:14px;}
+  .success-title{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;color:#34d399;margin-bottom:6px;}
+  .success-name{font-size:20px;font-weight:700;color:var(--text-main);margin-bottom:16px;}
+  .success-sub{font-size:12px;color:var(--text-dim);}
+</style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <!-- 로고 -->
+  <div class="login-logo">
+    <div class="logo-icon">G</div>
+    <div class="logo-title">GGO PLAY</div>
+    <div class="logo-sub">모바일 게임 정보 커뮤니티</div>
+  </div>
+
+  <!-- 로그인 카드 -->
+  <div class="login-card">
+    <div id="login-form-wrap">
+      <div class="card-title">🔐 로그인</div>
+      <div class="card-sub">ID와 GGO NUMBER를 입력하세요</div>
+
+      <!-- ID 입력 -->
+      <div class="field">
+        <div class="field-label">ID <span class="field-label-required">필수</span></div>
+        <div class="field-input-wrap">
+          <input class="field-input" id="input-id" type="text" placeholder="닉네임을 입력하세요" autocomplete="username" maxlength="20">
+          <span class="field-icon">👤</span>
+        </div>
+      </div>
+
+      <!-- GGO NUMBER 입력 -->
+      <div class="field">
+        <div class="field-label">GGO NUMBER <span class="field-label-required">필수</span></div>
+        <div class="field-input-wrap">
+          <input class="field-input ggo" id="input-ggo" type="text" placeholder="8자리 고유코드" maxlength="8" autocomplete="current-password">
+          <span class="field-icon">🔑</span>
+        </div>
+      </div>
+
+      <!-- 자동저장 -->
+      <label class="remember-row">
+        <input type="checkbox" id="remember-me" checked>
+        <span class="remember-label">다음에도 자동으로 로그인 (ID · GGO NUMBER 저장)</span>
+      </label>
+
+      <!-- 에러 메시지 -->
+      <div class="error-msg" id="error-msg">❌ ID 또는 GGO NUMBER가 올바르지 않습니다.</div>
+
+      <!-- 로그인 버튼 -->
+      <button class="btn-login" id="btn-login" onclick="doLogin()">
+        <div class="btn-spinner"></div>
+        <span class="btn-text">로그인</span>
+      </button>
+
+      <div class="divider"><div class="divider-line"></div><div class="divider-text">안내</div><div class="divider-line"></div></div>
+      <div class="info-box">
+        <strong>GGO NUMBER</strong>는 영문+숫자 8자리 고유 코드입니다.<br>
+        본인의 코드를 정확히 입력해야 로그인됩니다.
+      </div>
+    </div>
+
+    <!-- 로그인 성공 -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">로그인 성공!</div>
+      <div class="success-name" id="success-name"></div>
+      <div class="success-sub">메인화면으로 이동합니다...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const CSV_MEMBER = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1765510409&single=true&output=csv';
+
+  function parseCSV(txt) {
+    return txt.trim().split('\n').slice(1).map(line => {
+      const cols=[]; let cur='',inQ=false;
+      for(let c of line){if(c==='"'){inQ=!inQ;continue;}if(c===','&&!inQ){cols.push(cur.trim());cur='';}else cur+=c;}
+      cols.push(cur.trim()); return cols;
+    }).filter(r=>r[0]);
+  }
+
+  // ── 자동완성: 저장된 값 불러오기 ──
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedId  = localStorage.getItem('ggo_id')  || '';
+    const savedGgo = localStorage.getItem('ggo_num') || '';
+    if(savedId)  document.getElementById('input-id').value  = savedId;
+    if(savedGgo) document.getElementById('input-ggo').value = savedGgo;
+
+    // Enter 키 로그인
+    ['input-id','input-ggo'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if(e.key==='Enter') doLogin();
+      });
+    });
+
+    // 이미 로그인 상태면 바로 이동
+    const already = localStorage.getItem('ggo_logged_in');
+    if(already === 'true') location.href = 'index.html';
+  });
+
+  async function doLogin() {
+    const inputId  = document.getElementById('input-id').value.trim();
+    const inputGgo = document.getElementById('input-ggo').value.trim().toUpperCase();
+    const errEl    = document.getElementById('error-msg');
+    const btn      = document.getElementById('btn-login');
+
+    errEl.classList.remove('show');
+    document.getElementById('input-id').classList.remove('error');
+    document.getElementById('input-ggo').classList.remove('error');
+
+    if(!inputId || !inputGgo) {
+      errEl.textContent = '⚠️ ID와 GGO NUMBER를 모두 입력해주세요.';
+      errEl.classList.add('show');
+      return;
+    }
+    if(inputGgo.length !== 8) {
+      errEl.textContent = '⚠️ GGO NUMBER는 8자리입니다.';
+      errEl.classList.add('show');
+      document.getElementById('input-ggo').classList.add('error');
+      return;
+    }
+
+    // 로딩
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(CSV_MEMBER+'&t='+Date.now(), {cache:'no-store'});
+      if(!res.ok) throw new Error('네트워크 오류');
+      const rows = parseCSV(await res.text());
+
+      // A열=ID, B열=GGO NUMBER (대소문자 무시)
+      const matched = rows.find(r =>
+        r[0].trim() === inputId &&
+        (r[1]||'').trim().toUpperCase() === inputGgo
+      );
+
+      if(matched) {
+        // 로그인 성공
+        const remember = document.getElementById('remember-me').checked;
+        if(remember) {
+          localStorage.setItem('ggo_id',  inputId);
+          localStorage.setItem('ggo_num', inputGgo);
+        } else {
+          localStorage.removeItem('ggo_id');
+          localStorage.removeItem('ggo_num');
+        }
+        localStorage.setItem('ggo_logged_in', 'true');
+        localStorage.setItem('ggo_username', inputId);
+
+        // 성공 화면
+        document.getElementById('login-form-wrap').style.display='none';
+        document.getElementById('success-screen').style.display='block';
+        document.getElementById('success-name').textContent = inputId + ' 님';
+
+        setTimeout(() => location.href='index.html', 1500);
+      } else {
+        // 로그인 실패
+        errEl.textContent = '❌ ID 또는 GGO NUMBER가 올바르지 않습니다.';
+        errEl.classList.add('show');
+        document.getElementById('input-id').classList.add('error');
+        document.getElementById('input-ggo').classList.add('error');
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    } catch(e) {
+      errEl.textContent = '⚠️ 서버 연결 오류. 잠시 후 다시 시도해주세요.';
+      errEl.classList.add('show');
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
