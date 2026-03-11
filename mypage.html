@@ -155,6 +155,26 @@
   .exp-info-wrap{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
   .exp-chip{font-size:10px;padding:3px 9px;border-radius:8px;font-family:'Orbitron',sans-serif;background:var(--bg-card2);border:1px solid rgba(124,58,237,0.15);color:var(--text-dim);}
   .exp-chip span{color:var(--text-sub);}
+
+  /* ── 재화 카드 ── */
+  .currency-section { padding: 20px 28px 0; animation: fadeUp 0.4s ease 0.05s both; }
+  .currency-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .currency-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(124,58,237,0.15);
+    border-radius: 14px;
+    padding: 14px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    transition: all 0.2s;
+  }
+  .currency-card:hover { border-color: rgba(124,58,237,0.35); transform: translateY(-2px); }
+  .currency-icon { font-size: 24px; line-height: 1; }
+  .currency-value { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 900; }
+  .currency-label { font-size: 10px; color: var(--text-dim); }
+  .currency-card.ruby   .currency-value { color: #f87171; }
+  .currency-card.crystal .currency-value { color: #60a5fa; }
+  .currency-card.gp     .currency-value { color: #fbbf24; }
+
 </style>
 </head>
 <body>
@@ -214,6 +234,27 @@
         <div class="profile-title-badge" id="profile-title" style="display:none"></div>
         <div class="profile-name" id="profile-name">—</div>
         <div class="profile-server" id="profile-server"></div>
+      </div>
+
+      <!-- 재화 -->
+      <div class="currency-section" style="padding:18px 0 0">
+        <div class="currency-row">
+          <div class="currency-card ruby">
+            <div class="currency-icon">🔴</div>
+            <div class="currency-value" id="cur-ruby">0</div>
+            <div class="currency-label">루비</div>
+          </div>
+          <div class="currency-card crystal">
+            <div class="currency-icon">💎</div>
+            <div class="currency-value" id="cur-crystal">0</div>
+            <div class="currency-label">크리스탈</div>
+          </div>
+          <div class="currency-card gp">
+            <div class="currency-icon">🪙</div>
+            <div class="currency-value" id="cur-gp">0 GP</div>
+            <div class="currency-label">GP</div>
+          </div>
+        </div>
       </div>
 
       <!-- 스탯 -->
@@ -390,6 +431,13 @@
         titleEl.textContent = '< ' + equippedTitle.name + ' >';
         titleEl.style.display = 'inline-block';
       }
+
+      // 재화
+      const currKey = 'ggo_currency_' + username;
+      const curr    = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
+      document.getElementById('cur-ruby').textContent    = (curr['루비']||0).toLocaleString();
+      document.getElementById('cur-crystal').textContent = (curr['크리스탈']||0).toLocaleString();
+      document.getElementById('cur-gp').textContent      = (curr['GP']||0).toLocaleString() + ' GP';
 
       // 꾸미기 레벨
       renderDecoLevel(allItems);
