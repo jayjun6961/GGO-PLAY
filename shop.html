@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상점 — GGO PLAY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-deep:#0a0612; --bg-card:#130d24; --bg-card2:#1a1035;
+  --purple-1:#7c3aed; --purple-2:#9d5ff5; --purple-3:#c084fc;
+  --accent-pink:#f472b6; --accent-cyan:#22d3ee; --accent-gold:#fbbf24;
+  --text-main:#f0e8ff; --text-sub:#9d8ec4; --text-dim:#5c4e7a;
+  --sidebar-w:72px; --bottombar-h:64px;
+  --ruby:#f87171; --crystal:#60a5fa; --gp:#fbbf24;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg-deep);color:var(--text-main);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 15% 20%,rgba(124,58,237,0.18) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 85% 75%,rgba(157,95,245,0.12) 0%,transparent 70%);pointer-events:none;z-index:0;}
+
+/* SIDEBAR */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:rgba(19,13,36,0.95);border-right:1px solid rgba(124,58,237,0.2);display:flex;flex-direction:column;align-items:center;padding:20px 0;z-index:100;backdrop-filter:blur(20px);}
+.sidebar-logo{width:42px;height:42px;background:linear-gradient(135deg,var(--purple-1),var(--purple-3));border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:white;margin-bottom:32px;box-shadow:0 0 20px rgba(124,58,237,0.5);}
+.sidebar-nav{display:flex;flex-direction:column;gap:8px;flex:1;}
+.nav-item{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;position:relative;color:var(--text-dim);border:none;background:transparent;}
+.nav-item:hover,.nav-item.active{background:rgba(124,58,237,0.2);color:var(--purple-3);box-shadow:0 0 20px rgba(124,58,237,0.3);}
+.nav-item.active::before{content:'';position:absolute;left:-12px;width:3px;height:24px;background:var(--purple-2);border-radius:0 3px 3px 0;}
+.nav-item .tooltip{position:absolute;left:60px;background:rgba(19,13,36,0.95);color:var(--text-main);font-size:12px;padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.15s;z-index:200;border:1px solid rgba(124,58,237,0.2);}
+.nav-item:hover .tooltip{opacity:1;}
+.sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:8px;align-items:center;}
+
+/* BOTTOM NAV */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottombar-h);background:rgba(19,13,36,0.97);border-top:1px solid rgba(124,58,237,0.2);z-index:100;backdrop-filter:blur(20px);justify-content:space-around;align-items:center;padding:0 8px;}
+.bottom-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-dim);font-size:10px;cursor:pointer;padding:6px 12px;border-radius:10px;transition:all 0.2s;flex:1;}
+.bottom-nav-item.active{color:var(--purple-3);}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes rotateBorder{to{transform:rotate(360deg)}}
+@keyframes glowPulse{0%,100%{opacity:0.6}50%{opacity:1}}
+@keyframes legendaryFlow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes particleDrift{0%{transform:translateY(0) translateX(0);opacity:0.8}100%{transform:translateY(-30px) translateX(10px);opacity:0}}
+@keyframes boxShake{0%,100%{transform:rotate(0)}20%{transform:rotate(-5deg)}40%{transform:rotate(5deg)}60%{transform:rotate(-3deg)}80%{transform:rotate(3deg)}}
+@keyframes openPop{0%{transform:scale(0.3) rotate(-20deg);opacity:0}60%{transform:scale(1.15) rotate(5deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes itemReveal{0%{opacity:0;transform:translateY(20px) scale(0.8)}100%{opacity:1;transform:translateY(0) scale(1)}}
+
+@media(max-width:640px){
+  .sidebar{display:none}.bottom-nav{display:flex}
+  .main-wrap{margin-left:0!important;padding-bottom:calc(var(--bottombar-h)+20px)!important}
+  .shop-grid{grid-template-columns:1fr!important}
+  .currency-bar-inner{gap:10px!important}
+}
+
+/* MAIN */
+.main-wrap{margin-left:var(--sidebar-w);padding:0 0 60px;position:relative;z-index:1;min-height:100vh;}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:12px;padding:18px 28px;position:sticky;top:0;z-index:50;background:rgba(10,6,18,0.9);backdrop-filter:blur(16px);border-bottom:1px solid rgba(124,58,237,0.1);}
+.topbar-back{width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--purple-3);font-size:18px;transition:all 0.2s;}
+.topbar-back:hover{background:rgba(124,58,237,0.3);}
+.topbar-title{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;}
+
+/* 재화 바 */
+.currency-bar{background:rgba(124,58,237,0.07);border-bottom:1px solid rgba(124,58,237,0.1);padding:12px 28px;}
+.currency-bar-inner{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+.currency-item{display:flex;align-items:center;gap:7px;}
+.currency-icon-wrap{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.currency-icon-wrap.ruby{background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.25);}
+.currency-icon-wrap.crystal{background:rgba(96,165,250,0.15);border:1px solid rgba(96,165,250,0.25);}
+.currency-icon-wrap.gp{background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.25);}
+.currency-amount{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;}
+.currency-amount.ruby{color:var(--ruby);}
+.currency-amount.crystal{color:var(--crystal);}
+.currency-amount.gp{color:var(--gp);}
+.currency-label-sm{font-size:10px;color:var(--text-dim);}
+.login-notice-bar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim);padding:10px 0;}
+.login-notice-bar a{color:var(--accent-pink);cursor:pointer;text-decoration:underline;}
+
+/* 페이지 헤더 */
+.page-header{padding:28px 28px 20px;text-align:center;}
+.page-eyebrow{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:3px;color:var(--text-dim);margin-bottom:8px;}
+.page-title{font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;background:linear-gradient(135deg,var(--accent-gold),var(--accent-pink),var(--purple-3));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 3s linear infinite;}
+.page-sub{font-size:12px;color:var(--text-dim);margin-top:8px;}
+
+/* 상점 그리드 */
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:24px;padding:0 28px 28px;}
+
+/* ── 상자 카드 ── */
+.box-card{
+  background:var(--bg-card);
+  border:1px solid rgba(124,58,237,0.2);
+  border-radius:22px;
+  overflow:hidden;
+  transition:all 0.25s;
+  animation:fadeUp 0.4s ease both;
+  position:relative;
+}
+.box-card:hover{transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,0.4);border-color:rgba(124,58,237,0.4);}
+
+/* 상자 비주얼 영역 */
+.box-visual{height:200px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+
+/* 배너상자 비주얼 */
+.box-visual.banner-box{background:linear-gradient(135deg,#0f0330 0%,#1a0550 30%,#2d1070 60%,#1a0550 80%,#0f0330 100%);}
+.box-visual.banner-box::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(124,58,237,0.08) 0,rgba(124,58,237,0.08) 1px,transparent 0,transparent 50%);background-size:20px 20px;}
+.box-visual.banner-box::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 50%,rgba(157,95,245,0.3) 0%,transparent 70%);animation:glowPulse 2s ease-in-out infinite;}
+
+/* 아이콘상자 비주얼 */
+.box-visual.icon-box{background:linear-gradient(135deg,#051530 0%,#0a2850 40%,#051530 100%);}
+.box-visual.icon-box::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,rgba(34,211,238,0.12) 0%,transparent 50%),radial-gradient(circle at 70% 70%,rgba(96,165,250,0.12) 0%,transparent 50%);}
+
+/* 테두리상자 비주얼 */
+.box-visual.border-box{background:linear-gradient(135deg,#030d20 0%,#0a1f40 40%,#030d20 100%);}
+.box-visual.border-box::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg at 50% 50%,rgba(34,211,238,0.05),rgba(96,165,250,0.1),rgba(34,211,238,0.05));animation:rotateBorder 8s linear infinite;}
+
+/* 이름효과상자 비주얼 */
+.box-visual.name-box{background:linear-gradient(135deg,#150520 0%,#2a0a40 40%,#150520 100%);}
+.box-visual.name-box::before{content:'';position:absolute;inset:0;background:linear-gradient(45deg,rgba(244,114,182,0.08),rgba(192,132,252,0.12),rgba(244,114,182,0.08));background-size:200% 200%;animation:legendaryFlow 4s ease infinite;}
+
+/* 상자 아이콘 */
+.box-main-icon{font-size:72px;position:relative;z-index:2;animation:float 3s ease-in-out infinite;filter:drop-shadow(0 0 20px rgba(124,58,237,0.6));}
+.banner-box .box-main-icon{filter:drop-shadow(0 0 20px rgba(157,95,245,0.7));}
+.icon-box .box-main-icon{filter:drop-shadow(0 0 20px rgba(34,211,238,0.7));}
+.border-box .box-main-icon{filter:drop-shadow(0 0 20px rgba(96,165,250,0.7));}
+.name-box .box-main-icon{filter:drop-shadow(0 0 20px rgba(244,114,182,0.7));}
+
+/* 파티클 */
+.box-particles{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
+.particle{position:absolute;width:3px;height:3px;border-radius:50%;animation:particleDrift 2s ease-in-out infinite;}
+.particle:nth-child(1){left:20%;top:70%;background:var(--purple-3);animation-delay:0s;}
+.particle:nth-child(2){left:40%;top:80%;background:var(--accent-cyan);animation-delay:0.4s;}
+.particle:nth-child(3){left:60%;top:75%;background:var(--accent-gold);animation-delay:0.8s;}
+.particle:nth-child(4){left:75%;top:65%;background:var(--accent-pink);animation-delay:1.2s;}
+.particle:nth-child(5){left:85%;top:80%;background:var(--purple-3);animation-delay:1.6s;}
+
+/* 등급 확률 배지 */
+.prob-row{display:flex;gap:5px;position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:3;flex-wrap:nowrap;}
+.prob-badge{font-size:8px;font-family:'Orbitron',sans-serif;padding:2px 7px;border-radius:10px;white-space:nowrap;}
+.prob-badge.g1{background:rgba(148,163,184,0.15);color:#94a3b8;border:1px solid rgba(148,163,184,0.3);}
+.prob-badge.g2{background:rgba(96,165,250,0.15);color:#60a5fa;border:1px solid rgba(96,165,250,0.3);}
+.prob-badge.g3{background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3);}
+.prob-badge.g4{background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);}
+
+/* 상자 정보 영역 */
+.box-info{padding:18px 18px 16px;}
+.box-name{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;color:var(--text-main);margin-bottom:5px;}
+.box-desc{font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:14px;}
+
+/* 가격 + 버튼 행 */
+.box-actions{display:flex;align-items:center;gap:10px;}
+.box-price{display:flex;align-items:center;gap:6px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.15);border-radius:10px;padding:7px 12px;}
+.box-price-icon{font-size:16px;}
+.box-price-amount{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;}
+.box-price.ruby-price .box-price-amount{color:var(--ruby);}
+.box-price.crystal-price .box-price-amount{color:var(--crystal);}
+
+.btn-buy{flex:1;padding:10px 0;border-radius:12px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all 0.2s;position:relative;overflow:hidden;}
+.btn-buy.ruby-btn{background:linear-gradient(135deg,#dc2626,#f87171);color:white;box-shadow:0 4px 16px rgba(248,113,113,0.35);}
+.btn-buy.ruby-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(248,113,113,0.5);}
+.btn-buy.crystal-btn{background:linear-gradient(135deg,#0ea5e9,#60a5fa);color:white;box-shadow:0 4px 16px rgba(96,165,250,0.35);}
+.btn-buy.crystal-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(96,165,250,0.5);}
+.btn-buy:disabled{opacity:0.45;cursor:not-allowed;transform:none!important;}
+
+.btn-contents{padding:9px 14px;border-radius:12px;border:1px solid rgba(124,58,237,0.25);background:rgba(124,58,237,0.08);color:var(--text-sub);font-size:12px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.btn-contents:hover{border-color:rgba(124,58,237,0.45);color:var(--purple-3);background:rgba(124,58,237,0.15);}
+
+/* ── 구성품 패널 (인라인 펼치기) ── */
+.contents-panel{
+  display:none;
+  border-top:1px solid rgba(124,58,237,0.12);
+  padding:16px 18px;
+  background:rgba(10,6,18,0.4);
+}
+.contents-panel.open{display:block;}
+.contents-title{font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text-dim);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.contents-title::after{content:'';flex:1;height:1px;background:rgba(124,58,237,0.1);}
+
+.items-by-grade{display:flex;flex-direction:column;gap:10px;}
+.grade-group{}
+.grade-group-title{font-size:10px;font-family:'Orbitron',sans-serif;margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+.grade-group-title .prob{font-size:9px;color:var(--text-dim);}
+.grade-items{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* 아이템 미리보기 카드 */
+.item-preview{
+  border-radius:10px;padding:8px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  min-width:80px;max-width:100px;cursor:pointer;
+  border:1px solid transparent;transition:all 0.18s;
+}
+.item-preview:hover{transform:translateY(-2px);}
+.item-preview-visual{width:52px;height:52px;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;}
+.item-preview-name{font-size:9px;text-align:center;color:var(--text-sub);line-height:1.3;word-break:keep-all;}
+
+/* 등급별 아이템 카드 스타일 */
+.grade-일반 .item-preview{background:rgba(148,163,184,0.05);border-color:rgba(148,163,184,0.15);}
+.grade-일반 .item-preview:hover{border-color:rgba(148,163,184,0.35);}
+.grade-희귀 .item-preview{background:rgba(96,165,250,0.06);border-color:rgba(96,165,250,0.18);}
+.grade-희귀 .item-preview:hover{border-color:rgba(96,165,250,0.4);}
+.grade-에픽 .item-preview{background:rgba(168,85,247,0.07);border-color:rgba(168,85,247,0.2);}
+.grade-에픽 .item-preview:hover{border-color:rgba(168,85,247,0.45);}
+.grade-전설 .item-preview{background:rgba(251,191,36,0.07);border-color:rgba(251,191,36,0.2);}
+.grade-전설 .item-preview:hover{border-color:rgba(251,191,36,0.45);}
+
+/* ── 아이템 비주얼 CSS 렌더 ── */
+/* 배너 - 일반 */
+.banner-normal-0{background:#3b1fa8;}
+.banner-normal-1{background:#1a5a9e;}
+.banner-normal-2{background:#15803d;}
+.banner-normal-3{background:#7c2d12;}
+.banner-normal-4{background:#4a044e;}
+/* 배너 - 희귀 */
+.banner-rare-0{background:linear-gradient(135deg,#7c3aed,#06b6d4);}
+.banner-rare-1{background:linear-gradient(135deg,#db2777,#9333ea);}
+.banner-rare-2{background:linear-gradient(135deg,#0ea5e9,#10b981);}
+.banner-rare-3{background:linear-gradient(135deg,#f97316,#eab308);}
+.banner-rare-4{background:linear-gradient(135deg,#8b5cf6,#ec4899);}
+/* 배너 - 에픽 */
+.banner-epic-0{background:linear-gradient(135deg,#0f0230,#1e0755);position:relative;}
+.banner-epic-0::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(124,58,237,0.2) 0,rgba(124,58,237,0.2) 1px,transparent 0,transparent 8px);}
+.banner-epic-1{background:linear-gradient(135deg,#030d1f,#0a1f3d);position:relative;}
+.banner-epic-1::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(34,211,238,0.15) 0,rgba(34,211,238,0.15) 1px,transparent 0,transparent 6px);}
+.banner-epic-2{background:radial-gradient(circle at 30% 30%,#3b1fa8,#0a0612);}
+.banner-epic-3{background:conic-gradient(from 45deg,#1e0755,#0a2850,#1e0755);}
+/* 배너 - 전설 */
+.banner-legend-0{background:linear-gradient(-45deg,#7c3aed,#db2777,#f97316,#eab308);background-size:300% 300%;animation:legendaryFlow 3s ease infinite;}
+.banner-legend-1{background:linear-gradient(-45deg,#0ea5e9,#7c3aed,#ec4899,#0ea5e9);background-size:300% 300%;animation:legendaryFlow 4s ease infinite;}
+.banner-legend-2{background:linear-gradient(-45deg,#10b981,#0ea5e9,#7c3aed,#10b981);background-size:300% 300%;animation:legendaryFlow 3.5s ease infinite;}
+/* 아이콘 - 일반 */
+.icon-normal{background:rgba(124,58,237,0.12);display:flex;align-items:center;justify-content:center;font-size:28px;}
+/* 테두리 - 일반 */
+.border-normal{border-radius:50%;width:38px;height:38px;border:3px solid;}
+.border-normal-0{border-color:#7c3aed;}
+.border-normal-1{border-color:#22d3ee;}
+.border-normal-2{border-color:#f472b6;}
+.border-normal-3{border-color:#fbbf24;}
+/* 테두리 - 희귀 */
+.border-rare{border-radius:50%;width:38px;height:38px;border:3px solid transparent;background-clip:padding-box;}
+/* 테두리 - 에픽 */
+.border-epic-glow{border-radius:50%;width:38px;height:38px;border:3px solid #a855f7;box-shadow:0 0 10px #a855f7,0 0 20px rgba(168,85,247,0.4);animation:glowPulse 1.5s ease-in-out infinite;}
+.border-epic-glow-cyan{border:3px solid #22d3ee;box-shadow:0 0 10px #22d3ee,0 0 20px rgba(34,211,238,0.4);}
+/* 테두리 - 전설 */
+.border-legend-wrap{width:44px;height:44px;border-radius:50%;background:linear-gradient(to right,#fbbf24,#f472b6,#7c3aed,#22d3ee);animation:rotateBorder 2s linear infinite;display:flex;align-items:center;justify-content:center;}
+.border-legend-inner{width:36px;height:36px;border-radius:50%;background:var(--bg-card2);}
+/* 이름효과 */
+.name-normal-0{color:#7c3aed;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;}
+.name-normal-1{color:#22d3ee;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;}
+.name-normal-2{color:#f472b6;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;}
+.name-rare-0{background:linear-gradient(90deg,#7c3aed,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;}
+.name-rare-1{background:linear-gradient(90deg,#f472b6,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;}
+.name-epic-0{color:#a855f7;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;text-shadow:0 0 8px rgba(168,85,247,0.8);animation:glowPulse 1.5s ease-in-out infinite;}
+.name-epic-1{color:#22d3ee;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;text-shadow:0 0 8px rgba(34,211,238,0.8);animation:glowPulse 1.5s ease-in-out infinite;}
+.name-legend-0{background:linear-gradient(90deg,#fbbf24,#f472b6,#7c3aed,#22d3ee);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 2s linear infinite;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;}
+.name-legend-1{background:linear-gradient(90deg,#10b981,#0ea5e9,#7c3aed);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 2.5s linear infinite;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;}
+
+/* ── 오픈 결과 모달 ── */
+.open-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+.open-modal-bg.show{display:flex;}
+.open-modal{background:var(--bg-card);border:1px solid rgba(124,58,237,0.3);border-radius:24px;padding:36px 32px;text-align:center;max-width:360px;width:92%;position:relative;overflow:hidden;}
+.open-modal::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 20%,rgba(124,58,237,0.15),transparent);pointer-events:none;}
+.modal-sparks{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.spark{position:absolute;width:4px;height:4px;border-radius:50%;animation:particleDrift 1.5s ease-out infinite;}
+
+.open-anim-wrap{height:140px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;}
+.open-box-icon{font-size:80px;animation:boxShake 0.4s ease 0.1s both;}
+.open-box-icon.opening{animation:openPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;}
+
+.result-visual-wrap{display:none;flex-direction:column;align-items:center;gap:10px;}
+.result-visual-wrap.show{display:flex;}
+.result-item-visual{width:80px;height:80px;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;animation:itemReveal 0.5s cubic-bezier(0.34,1.56,0.64,1) both;}
+.result-grade-badge{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;}
+.result-grade-badge.g-일반{background:rgba(148,163,184,0.15);color:#94a3b8;border:1px solid rgba(148,163,184,0.3);}
+.result-grade-badge.g-희귀{background:rgba(96,165,250,0.15);color:#60a5fa;border:1px solid rgba(96,165,250,0.3);}
+.result-grade-badge.g-에픽{background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3);}
+.result-grade-badge.g-전설{background:rgba(251,191,36,0.2);color:#fbbf24;border:1px solid rgba(251,191,36,0.4);box-shadow:0 0 10px rgba(251,191,36,0.3);}
+
+.modal-title{font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;margin-bottom:4px;}
+.modal-item-name{font-size:20px;font-weight:700;color:var(--text-main);margin-bottom:14px;}
+.modal-desc{font-size:12px;color:var(--text-dim);margin-bottom:20px;line-height:1.6;}
+.modal-close-btn{padding:11px 32px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--purple-1),var(--purple-2));color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+
+/* 로딩 */
+.loading-wrap{text-align:center;padding:60px;color:var(--text-dim);}
+.spinner{width:32px;height:32px;border:3px solid rgba(124,58,237,0.15);border-top-color:var(--purple-2);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">G</div>
+  <nav class="sidebar-nav">
+    <button class="nav-item" onclick="location.href='index.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg><span class="tooltip">홈</span></button>
+    <button class="nav-item" onclick="location.href='character.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="tooltip">캐릭터</span></button>
+    <button class="nav-item" onclick="location.href='equipment.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg><span class="tooltip">장비</span></button>
+    <button class="nav-item" onclick="location.href='battlepass.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="tooltip">배틀패스</span></button>
+    <button class="nav-item" onclick="location.href='tournament.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 19h20M2 19l3-10 5 5 2-8 2 8 5-5 3 10"/></svg><span class="tooltip">친선대회</span></button>
+    <button class="nav-item" onclick="location.href='activity.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tooltip">활동점수</span></button>
+    <button class="nav-item active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><span class="tooltip">상점</span></button>
+    <button class="nav-item" onclick="location.href='event.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg><span class="tooltip">이벤트</span></button>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="nav-item" onclick="location.href='index.html'">⚙️<span class="tooltip">홈으로</span></button>
+    <div style="width:36px;height:36px;border-radius:50%;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;" onclick="location.href='mypage.html'">👤</div>
+  </div>
+</aside>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-item" onclick="location.href='index.html'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg><span>홈</span></div>
+  <div class="bottom-nav-item" onclick="location.href='character.html'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span>캐릭터</span></div>
+  <div class="bottom-nav-item active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><span>상점</span></div>
+  <div class="bottom-nav-item" onclick="location.href='mypage.html'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span>마이페이지</span></div>
+  <div class="bottom-nav-item" onclick="location.href='event.html'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg><span>이벤트</span></div>
+</nav>
+
+<main class="main-wrap">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-back" onclick="location.href='index.html'">←</div>
+    <span class="topbar-title">🛒 상점</span>
+  </div>
+
+  <!-- 재화 바 -->
+  <div class="currency-bar">
+    <div id="currency-bar-content">
+      <div class="login-notice-bar">🔐 <a onclick="location.href='login.html'">로그인</a> 후 상자를 구매할 수 있습니다</div>
+    </div>
+  </div>
+
+  <!-- 로딩 -->
+  <div id="loading-state" class="loading-wrap"><div class="spinner"></div>상점 불러오는 중...</div>
+
+  <!-- 상점 본문 -->
+  <div id="shop-content" style="display:none">
+    <div class="page-header">
+      <div class="page-eyebrow">GGO PLAY STORE</div>
+      <div class="page-title">꾸미기 상점</div>
+      <div class="page-sub">상자를 열어 프로필을 꾸며보세요! 등급에 따라 다른 효과를 얻을 수 있습니다</div>
+    </div>
+
+    <div class="shop-grid" id="shop-grid"></div>
+  </div>
+</main>
+
+<!-- 오픈 결과 모달 -->
+<div class="open-modal-bg" id="open-modal-bg" onclick="closeOpenModal()">
+  <div class="open-modal" onclick="event.stopPropagation()">
+    <div class="modal-sparks" id="modal-sparks"></div>
+    <div class="open-anim-wrap">
+      <div class="open-box-icon" id="open-box-icon">📦</div>
+    </div>
+    <div class="result-visual-wrap" id="result-visual-wrap">
+      <div class="result-item-visual" id="result-item-visual"></div>
+      <div class="result-grade-badge" id="result-grade-badge"></div>
+    </div>
+    <div class="modal-title" id="modal-title">상자 개봉 중...</div>
+    <div class="modal-item-name" id="modal-item-name"></div>
+    <div class="modal-desc" id="modal-desc"></div>
+    <button class="modal-close-btn" id="modal-close-btn" style="display:none" onclick="closeOpenModal()">확인</button>
+  </div>
+</div>
+
+<script>
+const CSV_SHOP = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=780892307&single=true&output=csv';
+
+const BOX_DEFS = [
+  {
+    key:'배너상자', name:'배너 상자', icon:'🖼️',
+    visualClass:'banner-box',
+    desc:'프로필 배너를 꾸밀 수 있는 상자. 일반부터 전설까지 다양한 배너를 획득하세요.',
+    currency:'루비', cost:200,
+    btnClass:'ruby-btn', priceClass:'ruby-price', priceIcon:'🔴',
+    animDelay:'0s'
+  },
+  {
+    key:'아이콘상자', name:'아이콘 상자', icon:'👤',
+    visualClass:'icon-box',
+    desc:'프로필 아이콘을 꾸밀 수 있는 상자. 랜덤한 캐릭터 아이콘을 획득하세요.',
+    currency:'루비', cost:200,
+    btnClass:'ruby-btn', priceClass:'ruby-price', priceIcon:'🔴',
+    animDelay:'0.1s'
+  },
+  {
+    key:'테두리상자', name:'테두리 상자', icon:'💫',
+    visualClass:'border-box',
+    desc:'프로필 원형 테두리를 꾸밀 수 있는 상자. 글로우 효과부터 애니메이션까지!',
+    currency:'크리스탈', cost:200,
+    btnClass:'crystal-btn', priceClass:'crystal-price', priceIcon:'💎',
+    animDelay:'0.2s'
+  },
+  {
+    key:'이름효과상자', name:'이름 효과 상자', icon:'✨',
+    visualClass:'name-box',
+    desc:'프로필 이름 색상 효과를 꾸밀 수 있는 상자. 반짝이는 이름을 완성하세요!',
+    currency:'크리스탈', cost:200,
+    btnClass:'crystal-btn', priceClass:'crystal-price', priceIcon:'💎',
+    animDelay:'0.3s'
+  }
+];
+
+const GRADE_PROBS = [{grade:'일반',prob:0.50},{grade:'희귀',prob:0.30},{grade:'에픽',prob:0.15},{grade:'전설',prob:0.05}];
+const GRADE_COLOR = {일반:'#94a3b8',희귀:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+const EXP_MAP = {일반:100,희귀:300,에픽:500,전설:1000};
+
+// 아이템 타입별 시각적 렌더 함수
+const ITEM_VISUALS = {
+  배너상자: (item, idx) => {
+    const g = item.grade;
+    const ci = idx % 5;
+    if(g==='일반')  return `<div class="banner-normal-${ci}" style="width:100%;height:100%"></div>`;
+    if(g==='희귀')  return `<div class="banner-rare-${ci%5}" style="width:100%;height:100%"></div>`;
+    if(g==='에픽')  return `<div class="banner-epic-${ci%4}" style="width:100%;height:100%"></div>`;
+    if(g==='전설')  return `<div class="banner-legend-${ci%3}" style="width:100%;height:100%"></div>`;
+    return '';
+  },
+  아이콘상자: (item, idx) => {
+    const icons = ['🐯','🦊','🐺','🦁','🐉','🦅','🐻','🦋','🌙','⚡'];
+    return `<div class="icon-normal" style="width:100%;height:100%;border-radius:8px">${icons[idx%icons.length]}</div>`;
+  },
+  테두리상자: (item, idx) => {
+    const g = item.grade;
+    const ci = idx % 4;
+    const colors = ['#7c3aed','#22d3ee','#f472b6','#fbbf24'];
+    const gradients = ['linear-gradient(135deg,#7c3aed,#22d3ee)','linear-gradient(135deg,#f472b6,#fbbf24)','linear-gradient(135deg,#0ea5e9,#a855f7)'];
+    if(g==='일반') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="width:38px;height:38px;border-radius:50%;border:3px solid ${colors[ci]};background:transparent"></div></div>`;
+    if(g==='희귀') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="width:38px;height:38px;border-radius:50%;border:3px solid transparent;background:${gradients[ci%3]} padding-box, ${gradients[ci%3]} border-box;box-sizing:border-box;border:3px solid transparent;outline:3px solid;outline-color:transparent;box-shadow:inset 0 0 0 3px transparent;position:relative"><div style="position:absolute;inset:-3px;border-radius:50%;background:${gradients[ci%3]};-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;padding:3px"></div></div></div>`;
+    if(g==='에픽') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="width:38px;height:38px;border-radius:50%;border:3px solid #a855f7;box-shadow:0 0 12px #a855f7,0 0 24px rgba(168,85,247,0.4)"></div></div>`;
+    if(g==='전설') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(to right,#fbbf24,#f472b6,#7c3aed,#22d3ee);animation:rotateBorder 2s linear infinite;display:flex;align-items:center;justify-content:center;"><div style="width:36px;height:36px;border-radius:50%;background:var(--bg-card2)"></div></div></div>`;
+    return '';
+  },
+  이름효과상자: (item, idx) => {
+    const g = item.grade;
+    const ci = idx % 3;
+    const normals = ['#7c3aed','#22d3ee','#f472b6'];
+    const rareGrads = ['linear-gradient(90deg,#7c3aed,#22d3ee)','linear-gradient(90deg,#f472b6,#fbbf24)','linear-gradient(90deg,#0ea5e9,#a855f7)'];
+    const name = item.name.length > 4 ? item.name.slice(0,4) : item.name;
+    if(g==='일반') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:${normals[ci]}">${name}</span></div>`;
+    if(g==='희귀') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;background:${rareGrads[ci]};-webkit-background-clip:text;-webkit-text-fill-color:transparent">${name}</span></div>`;
+    if(g==='에픽') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:#a855f7;text-shadow:0 0 10px rgba(168,85,247,0.9);animation:glowPulse 1.5s ease-in-out infinite">${name}</span></div>`;
+    if(g==='전설') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;background:linear-gradient(90deg,#fbbf24,#f472b6,#7c3aed,#22d3ee);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 2s linear infinite">${name}</span></div>`;
+    return '';
+  }
+};
+
+function parseCSV(txt) {
+  return txt.trim().split('\n').slice(1).map(line => {
+    const cols=[]; let cur='',inQ=false;
+    for(let c of line){if(c==='"'){inQ=!inQ;continue;}if(c===','&&!inQ){cols.push(cur.trim());cur='';}else cur+=c;}
+    cols.push(cur.trim()); return cols;
+  }).filter(r=>r[0]);
+}
+
+function getCurrency() {
+  const u = localStorage.getItem('ggo_username')||'';
+  return JSON.parse(localStorage.getItem('ggo_currency_'+u)||'{"루비":0,"크리스탈":0,"GP":0}');
+}
+function saveCurrency(curr) {
+  const u = localStorage.getItem('ggo_username')||'';
+  localStorage.setItem('ggo_currency_'+u, JSON.stringify(curr));
+}
+
+function renderCurrencyBar() {
+  const isLoggedIn = localStorage.getItem('ggo_logged_in')==='true';
+  const username   = localStorage.getItem('ggo_username')||'';
+  const el = document.getElementById('currency-bar-content');
+  if(!isLoggedIn) {
+    el.innerHTML = '<div class="login-notice-bar">🔐 <a onclick="location.href=\'login.html\'">로그인</a> 후 상자를 구매할 수 있습니다</div>';
+    return;
+  }
+  const curr = getCurrency();
+  el.innerHTML = `
+    <div class="currency-bar-inner">
+      <div class="currency-item">
+        <div class="currency-icon-wrap ruby">🔴</div>
+        <div><div class="currency-amount ruby" id="hud-ruby">${(curr['루비']||0).toLocaleString()}</div><div class="currency-label-sm">루비</div></div>
+      </div>
+      <div class="currency-item">
+        <div class="currency-icon-wrap crystal">💎</div>
+        <div><div class="currency-amount crystal" id="hud-crystal">${(curr['크리스탈']||0).toLocaleString()}</div><div class="currency-label-sm">크리스탈</div></div>
+      </div>
+      <div class="currency-item">
+        <div class="currency-icon-wrap gp">🪙</div>
+        <div><div class="currency-amount gp" id="hud-gp">${(curr['GP']||0).toLocaleString()} GP</div><div class="currency-label-sm">GP</div></div>
+      </div>
+      <div style="margin-left:auto;font-size:11px;color:var(--text-dim)">👤 ${username}</div>
+    </div>`;
+}
+
+function updateHUD() {
+  const curr = getCurrency();
+  const r = document.getElementById('hud-ruby');
+  const c = document.getElementById('hud-crystal');
+  const g = document.getElementById('hud-gp');
+  if(r) r.textContent = (curr['루비']||0).toLocaleString();
+  if(c) c.textContent = (curr['크리스탈']||0).toLocaleString();
+  if(g) g.textContent = (curr['GP']||0).toLocaleString()+' GP';
+}
+
+// 확률 뽑기
+function drawGrade() {
+  const r = Math.random();
+  let acc = 0;
+  for(const {grade, prob} of GRADE_PROBS) {
+    acc += prob;
+    if(r < acc) return grade;
+  }
+  return '일반';
+}
+
+// 해당 등급의 아이템 중 랜덤 선택
+function pickItem(boxKey, grade, allItems) {
+  const pool = allItems.filter(it => it.boxKey===boxKey && it.grade===grade);
+  if(!pool.length) return null;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+// 상자 카드 HTML 생성
+function buildBoxCard(boxDef, allItems) {
+  const isLoggedIn = localStorage.getItem('ggo_logged_in')==='true';
+  const boxItems = allItems.filter(it=>it.boxKey===boxDef.key);
+
+  // 등급별 그룹
+  const gradeGroups = {일반:[],희귀:[],에픽:[],전설:[]};
+  boxItems.forEach((it,i)=>{ if(gradeGroups[it.grade]) gradeGroups[it.grade].push({...it,_idx:i}); });
+
+  const gradeLabels = {일반:{label:'일반',color:'#94a3b8',prob:'50%'},희귀:{label:'희귀',color:'#60a5fa',prob:'30%'},에픽:{label:'에픽',color:'#a855f7',prob:'15%'},전설:{label:'전설',color:'#fbbf24',prob:'5%'}};
+
+  let contentsHtml = '';
+  ['일반','희귀','에픽','전설'].forEach(g => {
+    const items = gradeGroups[g];
+    if(!items.length) return;
+    const gl = gradeLabels[g];
+    const itemsHtml = items.map((it,li) => {
+      const visual = (ITEM_VISUALS[boxDef.key]||(() => ''))(it, li);
+      return `<div class="item-preview">
+        <div class="item-preview-visual">${visual}</div>
+        <div class="item-preview-name">${it.name}</div>
+      </div>`;
+    }).join('');
+    contentsHtml += `<div class="grade-group grade-${g}">
+      <div class="grade-group-title" style="color:${gl.color}">${g} <span class="prob">${gl.prob}</span></div>
+      <div class="grade-items">${itemsHtml}</div>
+    </div>`;
+  });
+
+  const canBuy = isLoggedIn;
+  const btnDisabled = canBuy ? '' : 'disabled';
+
+  return `
+    <div class="box-card" style="animation-delay:${boxDef.animDelay}">
+      <div class="box-visual ${boxDef.visualClass}">
+        <div class="box-particles">
+          <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+          <div class="particle"></div><div class="particle"></div>
+        </div>
+        <div class="box-main-icon">${boxDef.icon}</div>
+        <div class="prob-row">
+          <span class="prob-badge g1">일반 50%</span>
+          <span class="prob-badge g2">희귀 30%</span>
+          <span class="prob-badge g3">에픽 15%</span>
+          <span class="prob-badge g4">전설 5%</span>
+        </div>
+      </div>
+      <div class="box-info">
+        <div class="box-name">${boxDef.name}</div>
+        <div class="box-desc">${boxDef.desc}</div>
+        <div class="box-actions">
+          <div class="box-price ${boxDef.priceClass}">
+            <span class="box-price-icon">${boxDef.priceIcon}</span>
+            <span class="box-price-amount">${boxDef.cost}</span>
+          </div>
+          <button class="btn-buy ${boxDef.btnClass}" ${btnDisabled}
+            onclick="buyBox('${boxDef.key}')">
+            ${canBuy ? `🎁 상자 구매` : `🔐 로그인 필요`}
+          </button>
+          <button class="btn-contents" onclick="toggleContents('contents-${boxDef.key}')">📋 구성품</button>
+        </div>
+      </div>
+      <div class="contents-panel" id="contents-${boxDef.key}">
+        <div class="contents-title">📦 상자 구성품</div>
+        <div class="items-by-grade">${contentsHtml || '<div style="font-size:11px;color:var(--text-dim)">등록된 아이템이 없습니다</div>'}</div>
+      </div>
+    </div>`;
+}
+
+function toggleContents(id) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.classList.toggle('open');
+}
+
+function buyBox(boxKey) {
+  const username = localStorage.getItem('ggo_username')||'';
+  if(!username) { location.href='login.html'; return; }
+
+  const boxDef = BOX_DEFS.find(b=>b.key===boxKey);
+  if(!boxDef) return;
+
+  // 재화 확인
+  const curr = getCurrency();
+  if((curr[boxDef.currency]||0) < boxDef.cost) {
+    alert(`${boxDef.currency}가 부족합니다!\n현재: ${curr[boxDef.currency]||0} / 필요: ${boxDef.cost}`);
+    return;
+  }
+
+  // 재화 차감
+  curr[boxDef.currency] -= boxDef.cost;
+  saveCurrency(curr);
+  updateHUD();
+
+  // 등급 뽑기
+  const grade = drawGrade();
+
+  // 아이템 풀에서 선택
+  const item = pickItem(boxKey, grade, window._shopItems||[]);
+
+  // 모달 오픈 애니메이션
+  showOpenModal(boxDef, grade, item, username);
+}
+
+function showOpenModal(boxDef, grade, item, username) {
+  const bg   = document.getElementById('open-modal-bg');
+  const iconEl = document.getElementById('open-box-icon');
+  const titleEl= document.getElementById('modal-title');
+  const nameEl = document.getElementById('modal-item-name');
+  const descEl = document.getElementById('modal-desc');
+  const closeBtn= document.getElementById('modal-close-btn');
+  const resultWrap = document.getElementById('result-visual-wrap');
+  const resultVisual = document.getElementById('result-item-visual');
+  const resultBadge  = document.getElementById('result-grade-badge');
+  const sparksEl = document.getElementById('modal-sparks');
+
+  // 초기화
+  iconEl.textContent = boxDef.icon;
+  iconEl.className   = 'open-box-icon';
+  titleEl.textContent= '상자 개봉 중...';
+  nameEl.textContent = '';
+  descEl.textContent = '';
+  closeBtn.style.display = 'none';
+  resultWrap.classList.remove('show');
+  sparksEl.innerHTML = '';
+  bg.classList.add('show');
+
+  // 흔들기 애니메이션
+  setTimeout(()=>{ iconEl.classList.add('opening'); }, 200);
+
+  // 결과 공개
+  setTimeout(() => {
+    iconEl.style.display = 'none';
+
+    // 결과 아이템 이름 / 타입
+    const itemName = item ? item.name : `${grade} ${boxDef.name.replace('상자','')}`;
+    const itemType = boxDef.key.replace('상자','');
+
+    // 결과 비주얼
+    const visIdx = item ? (window._shopItems||[]).filter(i=>i.boxKey===boxDef.key&&i.grade===grade).indexOf(item) : 0;
+    const visual = (ITEM_VISUALS[boxDef.key]||(() => ''))(item||{grade,name:itemName}, visIdx);
+    resultVisual.innerHTML = visual;
+    resultVisual.style.width  = '80px';
+    resultVisual.style.height = '80px';
+    resultVisual.style.borderRadius = '14px';
+    resultVisual.style.overflow = 'hidden';
+
+    resultBadge.textContent = grade;
+    resultBadge.className   = `result-grade-badge g-${grade}`;
+    resultWrap.classList.add('show');
+
+    titleEl.textContent = '획득!';
+    nameEl.textContent  = itemName;
+    descEl.textContent  = grade==='전설' ? '🎉 전설 등급 획득! 마이페이지에서 확인하세요.' : '마이페이지에서 확인하세요.';
+    closeBtn.style.display = 'block';
+
+    // 전설 이면 스파크
+    if(grade==='전설'||grade==='에픽') {
+      const sparkColors = ['#fbbf24','#f472b6','#7c3aed','#22d3ee','#a855f7'];
+      for(let i=0;i<12;i++) {
+        const s = document.createElement('div');
+        s.className = 'spark';
+        s.style.left  = Math.random()*100+'%';
+        s.style.top   = Math.random()*100+'%';
+        s.style.background = sparkColors[i%sparkColors.length];
+        s.style.animationDelay = Math.random()*1+'s';
+        s.style.animationDuration = (1+Math.random())*1.5+'s';
+        sparksEl.appendChild(s);
+      }
+    }
+
+    // 아이템 저장 (마이페이지 연동)
+    const TYPE_MAP = {배너상자:'프로필배너',아이콘상자:'프로필아이콘',테두리상자:'테두리효과',이름효과상자:'이름색상효과'};
+    const itemKey = 'ggo_items_'+username;
+    const items = JSON.parse(localStorage.getItem(itemKey)||'[]');
+    items.push({
+      name: itemName,
+      type: TYPE_MAP[boxDef.key]||boxDef.key,
+      grade,
+      img: '',
+      equipped: false,
+      source: '상점',
+      visualKey: boxDef.key,
+      visualIdx: visIdx
+    });
+    localStorage.setItem(itemKey, JSON.stringify(items));
+
+  }, 900);
+}
+
+function closeOpenModal() {
+  document.getElementById('open-modal-bg').classList.remove('show');
+  document.getElementById('open-box-icon').style.display = 'block';
+}
+
+async function loadShop() {
+  try {
+    const res = await fetch(CSV_SHOP+'&t='+Date.now(), {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows = parseCSV(await res.text());
+
+    // A=상자종류, B=아이템이름, C=등급, D=설명
+    window._shopItems = rows.map(r => ({
+      boxKey: (r[0]||'').trim(),
+      name:   (r[1]||'').trim(),
+      grade:  (r[2]||'').trim(),
+      desc:   (r[3]||'').trim(),
+    })).filter(r=>r.boxKey&&r.name);
+
+    // 상자 카드 렌더
+    const grid = document.getElementById('shop-grid');
+    grid.innerHTML = BOX_DEFS.map(b => buildBoxCard(b, window._shopItems)).join('');
+
+    document.getElementById('loading-state').style.display='none';
+    document.getElementById('shop-content').style.display='block';
+  } catch(e) {
+    document.getElementById('loading-state').innerHTML = `<div style="color:var(--accent-pink);font-size:13px">⚠️ 불러오기 실패<br><small style="color:var(--text-dim)">${e.message}</small><br><br><button onclick="loadShop()" style="margin-top:8px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);color:var(--purple-3);padding:8px 20px;border-radius:8px;cursor:pointer;">↻ 다시 시도</button></div>`;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  renderCurrencyBar();
+  loadShop();
+});
+</script>
+</body>
+</html>
