@@ -1059,6 +1059,13 @@ function showOpenModal(boxDef, grade, item, username) {
         itemIdx:   item ? item._itemIdx   : undefined,
       });
       localStorage.setItem(itemKey, JSON.stringify(items));
+
+      // 꾸미기 EXP 누적 (삭제해도 유지)
+      const EXP_MAP_SHOP = {일반:100, 희귀:300, 에픽:500, 전설:1000};
+      const expGain  = EXP_MAP_SHOP[grade] || 0;
+      const expKey   = 'ggo_deco_exp_' + username;
+      const prevExp  = parseInt(localStorage.getItem(expKey) || '0');
+      localStorage.setItem(expKey, prevExp + expGain);
     }
 
   }, 900);
