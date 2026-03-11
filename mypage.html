@@ -219,6 +219,27 @@
   .name-shimmer { animation:shimmer 2s linear infinite; }
   .name-glow    { animation:nameGlow 2s ease-in-out infinite; }
 
+
+  /* 에픽/전설 배너 패턴 */
+  #profile-banner.banner-epic-grid::after,
+  #profile-banner.banner-epic-lines::after,
+  #profile-banner.banner-epic-hex::after,
+  #profile-banner.banner-epic-stars::after,
+  #profile-banner.banner-epic-cross::after,
+  #profile-banner.banner-legend-hex::after,
+  #profile-banner.banner-legend-circle::after,
+  #profile-banner.banner-legend-diamond::after {
+    content:''; position:absolute; inset:0; pointer-events:none;
+  }
+  #profile-banner.banner-epic-grid::after { background:repeating-linear-gradient(45deg,rgba(124,58,237,0.15) 0,rgba(124,58,237,0.15) 1px,transparent 0,transparent 12px); }
+  #profile-banner.banner-epic-lines::after { background:repeating-linear-gradient(0deg,rgba(34,211,238,0.1) 0,rgba(34,211,238,0.1) 1px,transparent 0,transparent 8px); }
+  #profile-banner.banner-epic-hex::after { background:repeating-linear-gradient(60deg,rgba(168,85,247,0.1) 0,rgba(168,85,247,0.1) 1px,transparent 0,transparent 14px); }
+  #profile-banner.banner-epic-stars::after { background:radial-gradient(circle,rgba(255,255,255,0.3) 1px,transparent 1px) 0 0/20px 20px; }
+  #profile-banner.banner-epic-cross::after { background:repeating-linear-gradient(90deg,rgba(129,140,248,0.1) 0,rgba(129,140,248,0.1) 1px,transparent 0,transparent 16px),repeating-linear-gradient(0deg,rgba(129,140,248,0.1) 0,rgba(129,140,248,0.1) 1px,transparent 0,transparent 16px); }
+  #profile-banner.banner-legend-hex::after { background:repeating-linear-gradient(60deg,rgba(255,255,255,0.08) 0,rgba(255,255,255,0.08) 1px,transparent 0,transparent 18px); }
+  #profile-banner.banner-legend-circle::after { background:radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px) 0 0/18px 18px; }
+  #profile-banner.banner-legend-diamond::after { background:repeating-linear-gradient(45deg,rgba(255,255,255,0.06) 0,rgba(255,255,255,0.06) 1px,transparent 0,transparent 14px); }
+
 </style>
 </head>
 <body>
@@ -550,7 +571,58 @@
   //  꾸미기 아이템 시각화 데이터 정의
   // ──────────────────────────────────────────
 
-  // 배너 CSS 데이터 (shop.html ITEM_VISUALS와 동일 로직)
+
+  // ── 배너 데이터 (shop.html과 동일) ──
+  const MP_BANNER_ITEMS = {
+    일반: [
+      {name:'미드나잇 블루',css:'background:#1e3a5f;'},
+      {name:'딥 퍼플',css:'background:#2d1b69;'},
+      {name:'포레스트 그린',css:'background:#1a3d2b;'},
+      {name:'크림슨 레드',css:'background:#6b1a1a;'},
+      {name:'다크 마젠타',css:'background:#4a1040;'},
+      {name:'오션 딥',css:'background:#0d2e4a;'},
+      {name:'아이언 그레이',css:'background:#2c3140;'},
+      {name:'다크 슬레이트',css:'background:#1c2b3a;'},
+      {name:'브론즈 틴트',css:'background:#3d2b1a;'},
+      {name:'에메랄드 나이트',css:'background:#0d3b2e;'},
+      {name:'인디고 다크',css:'background:#1a1f5e;'},
+      {name:'마룬 섀도우',css:'background:#4a1525;'},
+      {name:'틸 어비스',css:'background:#0d3535;'},
+      {name:'다크 올리브',css:'background:#2a2e1a;'},
+      {name:'딥 코랄',css:'background:#5c2a1a;'},
+      {name:'나이트 바이올렛',css:'background:#2e1545;'},
+      {name:'스틸 블루',css:'background:#1e3050;'},
+      {name:'다크 사이안',css:'background:#0d3040;'},
+      {name:'어쉬 블랙',css:'background:#1a1a2e;'},
+      {name:'다크 앰버',css:'background:#3d2800;'},
+    ],
+    희귀: [
+      {name:'오로라',css:'background:linear-gradient(135deg,#0ea5e9,#7c3aed);'},
+      {name:'선셋 글로우',css:'background:linear-gradient(135deg,#f97316,#db2777);'},
+      {name:'오션 드림',css:'background:linear-gradient(135deg,#0891b2,#0d9488);'},
+      {name:'포레스트 미스트',css:'background:linear-gradient(135deg,#15803d,#0ea5e9);'},
+      {name:'갤럭시 더스트',css:'background:linear-gradient(135deg,#4c1d95,#1e3a8a);'},
+      {name:'로즈 골드',css:'background:linear-gradient(135deg,#9f1239,#c2410c);'},
+      {name:'민트 초콜릿',css:'background:linear-gradient(135deg,#065f46,#1e3a5f);'},
+      {name:'노던 라이트',css:'background:linear-gradient(135deg,#7c3aed,#0891b2);'},
+      {name:'피치 블러쉬',css:'background:linear-gradient(135deg,#be185d,#9333ea);'},
+      {name:'아쿠아 마린',css:'background:linear-gradient(135deg,#0369a1,#0f766e);'},
+    ],
+    에픽: [
+      {name:'사이버 그리드',css:'background:linear-gradient(135deg,#0f0230,#1e0755);',patternClass:'banner-epic-grid'},
+      {name:'디지털 레인',css:'background:linear-gradient(180deg,#020d18,#0a2a1a);',patternClass:'banner-epic-lines'},
+      {name:'헥사곤 필드',css:'background:linear-gradient(135deg,#1a0a3a,#0a1f3d);',patternClass:'banner-epic-hex'},
+      {name:'스타 필드',css:'background:radial-gradient(ellipse at 50% 50%,#1a0a3a 0%,#000 100%);',patternClass:'banner-epic-stars'},
+      {name:'크로스 웨이브',css:'background:linear-gradient(135deg,#0f172a,#1e1b4b);',patternClass:'banner-epic-cross'},
+    ],
+    전설: [
+      {name:'갤럭시 스톰',css:'background:linear-gradient(-45deg,#7c3aed,#db2777,#f97316,#7c3aed);background-size:300% 300%;',animated:true,patternClass:'banner-legend-hex'},
+      {name:'오로라 리플',css:'background:linear-gradient(-45deg,#0ea5e9,#7c3aed,#10b981,#0ea5e9);background-size:300% 300%;',animated:true,patternClass:'banner-legend-circle'},
+      {name:'코스믹 블레이즈',css:'background:linear-gradient(-45deg,#fbbf24,#f472b6,#7c3aed,#22d3ee);background-size:300% 300%;',animated:true,patternClass:'banner-legend-diamond'},
+    ],
+  };
+
+  // (BANNER_STYLES 유지 - 하위 호환)
   const BANNER_STYLES = {
     일반: [
       {bg:'#3b1fa8'},{bg:'#1a5a9e'},{bg:'#15803d'},{bg:'#7c2d12'},{bg:'#4a044e'}
@@ -624,25 +696,26 @@
     const bannerItem = items.find(it=>it.type==='프로필배너'&&it.equipped);
     const bannerEl   = document.getElementById('profile-banner');
     if(bannerEl) {
+      const epicClasses=['banner-epic-grid','banner-epic-lines','banner-epic-hex','banner-epic-stars','banner-epic-cross','banner-legend-hex','banner-legend-circle','banner-legend-diamond'];
+      epicClasses.forEach(cls=>bannerEl.classList.remove(cls));
       if(bannerItem) {
-        const g = bannerItem.grade;
-        const idx = (bannerItem.visualIdx||0) % (BANNER_STYLES[g]?.length||1);
-        const st  = BANNER_STYLES[g]?.[idx];
-        if(st) {
-          bannerEl.style.background    = st.bg;
-          bannerEl.style.backgroundSize= st.bgSize||'';
-          bannerEl.style.animation     = st.animated ? 'legendaryFlow 4s ease infinite' : '';
-          // 에픽 패턴 클래스
-          bannerEl.classList.remove('banner-epic-grid','banner-epic-lines');
-          if(st.patternClass) bannerEl.classList.add(st.patternClass);
-          bannerEl.style.position = 'relative';
+        const g  = bannerItem.grade;
+        const bi = bannerItem.bannerIdx !== undefined ? bannerItem.bannerIdx : (bannerItem.visualIdx||0);
+        const bList = MP_BANNER_ITEMS[g]||[];
+        const b  = bList[bi % (bList.length||1)];
+        if(b) {
+          // CSS 파싱 후 적용
+          const tempDiv = document.createElement('div');
+          tempDiv.setAttribute('style', b.css);
+          bannerEl.style.background     = tempDiv.style.background || tempDiv.style.backgroundImage || b.css.replace('background:','').replace(';','');
+          bannerEl.style.backgroundSize = b.css.includes('300% 300%') ? '300% 300%' : '';
+          bannerEl.style.animation      = b.animated ? 'legendaryFlow 4s ease infinite' : '';
+          if(b.patternClass) bannerEl.classList.add(b.patternClass);
         }
       } else {
-        // 기본 배너 복원
-        bannerEl.style.background    = 'linear-gradient(135deg,#1a0533 0%,#2d1060 40%,#1a0a3a 70%,#0f0620 100%)';
-        bannerEl.style.backgroundSize= '';
-        bannerEl.style.animation     = '';
-        bannerEl.classList.remove('banner-epic-grid','banner-epic-lines');
+        bannerEl.style.background     = 'linear-gradient(135deg,#1a0533 0%,#2d1060 40%,#1a0a3a 70%,#0f0620 100%)';
+        bannerEl.style.backgroundSize = '';
+        bannerEl.style.animation      = '';
       }
     }
 
