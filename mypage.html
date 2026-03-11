@@ -305,7 +305,25 @@
       <div class="currency-section" style="padding:18px 0 0">
         <div class="currency-row">
           <div class="currency-card ruby">
-            <div class="currency-icon">🔴</div>
+            <div class="currency-icon" style="display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="3" y="3" width="16" height="16" rx="3" transform="rotate(0 11 11)" fill="#ef4444" opacity="0.15"/>
+  <rect x="3" y="3" width="16" height="16" rx="3" fill="url(#rubyGrad)" stroke="#f87171" stroke-width="0.5"/>
+  <polygon points="11,5 17,9 17,15 11,18 5,15 5,9" fill="url(#rubyInner)" opacity="0.7"/>
+  <line x1="5" y1="9" x2="17" y2="9" stroke="white" stroke-width="0.5" opacity="0.4"/>
+  <line x1="11" y1="5" x2="5" y2="9" stroke="white" stroke-width="0.5" opacity="0.3"/>
+  <line x1="11" y1="5" x2="17" y2="9" stroke="white" stroke-width="0.5" opacity="0.3"/>
+  <defs>
+    <linearGradient id="rubyGrad" x1="3" y1="3" x2="19" y2="19" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="50%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#991b1b"/>
+    </linearGradient>
+    <linearGradient id="rubyInner" x1="5" y1="5" x2="17" y2="18" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="white" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#7f1d1d" stop-opacity="0.4"/>
+    </linearGradient>
+  </defs>
+</svg></div>
             <div class="currency-value" id="cur-ruby">0</div>
             <div class="currency-label">루비</div>
           </div>
@@ -315,6 +333,24 @@
             <div class="currency-label">크리스탈</div>
           </div>
           <div class="currency-card gp">
+            <div class="currency-icon" style="display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <polygon points="11,2 20,18 2,18" fill="url(#gpGrad)" stroke="#fbbf24" stroke-width="0.5"/>
+  <polygon points="11,5 17.5,16.5 4.5,16.5" fill="url(#gpInner)" opacity="0.6"/>
+  <line x1="11" y1="2" x2="4.5" y2="16.5" stroke="white" stroke-width="0.4" opacity="0.3"/>
+  <line x1="11" y1="2" x2="17.5" y2="16.5" stroke="white" stroke-width="0.4" opacity="0.3"/>
+  <line x1="7.5" y1="11" x2="14.5" y2="11" stroke="white" stroke-width="0.4" opacity="0.25"/>
+  <defs>
+    <linearGradient id="gpGrad" x1="2" y1="2" x2="20" y2="18" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="50%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="gpInner" x1="4" y1="5" x2="18" y2="18" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="white" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#92400e" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+</svg></div>
             <div class="currency-value" id="cur-gp" style="font-size:13px;font-family:'Orbitron',sans-serif;">0 GP</div>
             <div class="currency-label">GP</div>
           </div>
@@ -622,6 +658,105 @@
     ],
   };
 
+  // ── 아이콘/테두리/이름효과 데이터 (shop.html과 동일) ──
+  const MP_ICON_ITEMS = {
+    일반: [
+      {name:'레드 서클',svg:'<circle cx="26" cy="26" r="20" fill="#ef4444"/>'},
+      {name:'블루 스퀘어',svg:'<rect x="6" y="6" width="40" height="40" rx="4" fill="#3b82f6"/>'},
+      {name:'그린 트라이',svg:'<polygon points="26,4 48,46 4,46" fill="#22c55e"/>'},
+      {name:'퍼플 다이아',svg:'<polygon points="26,4 48,26 26,48 4,26" fill="#a855f7"/>'},
+      {name:'옐로우 스타',svg:'<polygon points="26,4 31,18 46,18 34,28 38,44 26,35 14,44 18,28 6,18 21,18" fill="#fbbf24"/>'},
+      {name:'핑크 하트',svg:'<path d="M26,42 C26,42 6,28 6,17 C6,11 11,6 17,8 C21,9 24,13 26,17 C28,13 31,9 35,8 C41,6 46,11 46,17 C46,28 26,42 26,42Z" fill="#ec4899"/>'},
+      {name:'시안 헥사',svg:'<polygon points="26,4 44,14 44,34 26,44 8,34 8,14" fill="#22d3ee"/>'},
+      {name:'오렌지 펜타',svg:'<polygon points="26,4 47,19 39,43 13,43 5,19" fill="#f97316"/>'},
+      {name:'인디고 크로스',svg:'<rect x="16" y="4" width="20" height="44" rx="4" fill="#6366f1"/><rect x="4" y="16" width="44" height="20" rx="4" fill="#6366f1"/>'},
+      {name:'틸 링',svg:'<circle cx="26" cy="26" r="20" fill="none" stroke="#0d9488" stroke-width="8"/>'},
+      {name:'로즈 화살',svg:'<polygon points="26,4 38,22 34,22 34,46 18,46 18,22 14,22" fill="#f43f5e"/>'},
+      {name:'라임 클로버',svg:'<circle cx="18" cy="18" r="12" fill="#84cc16"/><circle cx="34" cy="18" r="12" fill="#84cc16"/><circle cx="18" cy="34" r="12" fill="#84cc16"/><circle cx="34" cy="34" r="12" fill="#84cc16"/>'},
+      {name:'앰버 볼트',svg:'<polygon points="30,4 46,26 36,26 24,48 16,26 6,26" fill="#f59e0b"/>'},
+      {name:'스카이 실드',svg:'<path d="M26,4 L44,12 L44,26 C44,35 36,43 26,47 C16,43 8,35 8,26 L8,12 Z" fill="#0ea5e9"/>'},
+      {name:'바이올렛 리프',svg:'<ellipse cx="26" cy="26" rx="20" ry="10" fill="#8b5cf6" transform="rotate(30 26 26)"/>'},
+      {name:'에메랄드 큐브',svg:'<rect x="8" y="12" width="36" height="28" rx="3" fill="#10b981"/>'},
+      {name:'슬레이트 옥타',svg:'<polygon points="17,5 35,5 45,15 45,35 35,45 17,45 7,35 7,15" fill="#475569"/>'},
+      {name:'코랄 플러스',svg:'<rect x="18" y="4" width="16" height="44" rx="5" fill="#fb923c"/><rect x="4" y="18" width="44" height="16" rx="5" fill="#fb923c"/>'},
+      {name:'네이비 다트',svg:'<polygon points="26,4 46,46 26,36 6,46" fill="#1e3a8a"/>'},
+      {name:'화이트 링2',svg:'<circle cx="26" cy="26" r="18" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="6"/><circle cx="26" cy="26" r="8" fill="rgba(255,255,255,0.3)"/>'},
+    ],
+    희귀: [
+      {name:'호랑이',emoji:'🐯'},{name:'여우',emoji:'🦊'},{name:'늑대',emoji:'🐺'},
+      {name:'사자',emoji:'🦁'},{name:'드래곤',emoji:'🐉'},{name:'독수리',emoji:'🦅'},
+      {name:'곰',emoji:'🐻'},{name:'나비',emoji:'🦋'},{name:'표범',emoji:'🐆'},{name:'매',emoji:'🦆'},
+    ],
+    에픽: [
+      {name:'홀로 레인보우',holo:'linear-gradient(135deg,#ff0080,#ff8c00,#40e0d0,#8000ff,#ff0080)',anim:true},
+      {name:'홀로 오로라',holo:'linear-gradient(135deg,#00c6ff,#0072ff,#00c6ff,#7b2ff7)',anim:true},
+      {name:'홀로 선셋',holo:'linear-gradient(135deg,#f7971e,#ffd200,#f7971e,#ff416c)',anim:true},
+      {name:'홀로 사이버',holo:'linear-gradient(135deg,#00f5ff,#7b2ff7,#ff006e,#00f5ff)',anim:true},
+      {name:'홀로 포레스트',holo:'linear-gradient(135deg,#00b09b,#96c93d,#00b09b,#00c6ff)',anim:true},
+    ],
+    전설: [
+      {name:'크리스탈 아이스',glass:'rgba(200,240,255,0.15)',border:'rgba(150,220,255,0.5)'},
+      {name:'다크 오브시디안',glass:'rgba(20,10,40,0.4)',border:'rgba(168,85,247,0.6)'},
+      {name:'골든 미스트',glass:'rgba(251,191,36,0.12)',border:'rgba(251,191,36,0.5)'},
+    ],
+  };
+
+  const MP_BORDER_ITEMS = {
+    일반:[
+      {color:'#ef4444'},{color:'#8b5cf6'},{color:'#22d3ee'},{color:'#10b981'},{color:'#fbbf24'},
+      {color:'#ec4899'},{color:'#3b82f6'},{color:'#6366f1'},{color:'#f97316'},{color:'#0d9488'},
+      {color:'#84cc16'},{color:'#f43f5e'},{color:'#0ea5e9'},{color:'#f59e0b'},{color:'#a855f7'},
+      {color:'#34d399'},{color:'#fb923c'},{color:'#c4b5fd'},{color:'#94a3b8'},{color:'rgba(255,255,255,0.85)'},
+    ],
+    희귀:[
+      {grad:'linear-gradient(135deg,#7c3aed,#22d3ee)'},{grad:'linear-gradient(135deg,#f97316,#db2777)'},
+      {grad:'linear-gradient(135deg,#0891b2,#0d9488)'},{grad:'linear-gradient(135deg,#4c1d95,#1e3a8a)'},
+      {grad:'linear-gradient(135deg,#9f1239,#f97316)'},{grad:'linear-gradient(135deg,#7c3aed,#0891b2)'},
+      {grad:'linear-gradient(135deg,#be185d,#9333ea)'},{grad:'linear-gradient(135deg,#15803d,#0ea5e9)'},
+      {grad:'linear-gradient(135deg,#ef4444,#3b82f6)'},{grad:'linear-gradient(135deg,#fbbf24,#a855f7)'},
+    ],
+    에픽:[
+      {color:'#a855f7',glow:'0 0 12px #a855f7,0 0 24px rgba(168,85,247,0.5)'},
+      {color:'#22d3ee',glow:'0 0 12px #22d3ee,0 0 24px rgba(34,211,238,0.5)'},
+      {color:'#f472b6',glow:'0 0 12px #f472b6,0 0 24px rgba(244,114,182,0.5)'},
+      {color:'#fbbf24',glow:'0 0 12px #fbbf24,0 0 24px rgba(251,191,36,0.5)'},
+      {color:'#34d399',glow:'0 0 12px #34d399,0 0 24px rgba(52,211,153,0.5)'},
+    ],
+    전설:[
+      {grad:'linear-gradient(to right,#fbbf24,#f472b6,#7c3aed,#22d3ee)',rotating:true},
+      {grad:'linear-gradient(to right,#10b981,#0ea5e9,#7c3aed,#f472b6)',rotating:true},
+      {grad:'linear-gradient(to right,#fbbf24,#f97316,#ef4444,#7c3aed)',rotating:true},
+    ],
+  };
+
+  const MP_NAME_EFF_ITEMS = {
+    일반:[
+      {color:'#ef4444'},{color:'#8b5cf6'},{color:'#22d3ee'},{color:'#10b981'},{color:'#fbbf24'},
+      {color:'#ec4899'},{color:'#3b82f6'},{color:'#6366f1'},{color:'#f97316'},{color:'#0d9488'},
+      {color:'#84cc16'},{color:'#f43f5e'},{color:'#0ea5e9'},{color:'#f59e0b'},{color:'#a855f7'},
+      {color:'#34d399'},{color:'#fb923c'},{color:'#c4b5fd'},{color:'#94a3b8'},{color:'rgba(255,255,255,0.9)'},
+    ],
+    희귀:[
+      {grad:'linear-gradient(90deg,#7c3aed,#22d3ee)'},{grad:'linear-gradient(90deg,#f97316,#db2777)'},
+      {grad:'linear-gradient(90deg,#0891b2,#10b981)'},{grad:'linear-gradient(90deg,#4c1d95,#7c3aed)'},
+      {grad:'linear-gradient(90deg,#f43f5e,#f97316)'},{grad:'linear-gradient(90deg,#a855f7,#0891b2)'},
+      {grad:'linear-gradient(90deg,#ec4899,#9333ea)'},{grad:'linear-gradient(90deg,#15803d,#0ea5e9)'},
+      {grad:'linear-gradient(90deg,#ef4444,#3b82f6)'},{grad:'linear-gradient(90deg,#fbbf24,#a855f7)'},
+    ],
+    에픽:[
+      {color:'#a855f7',glow:'0 0 10px #a855f7,0 0 20px rgba(168,85,247,0.6)'},
+      {color:'#22d3ee',glow:'0 0 10px #22d3ee,0 0 20px rgba(34,211,238,0.6)'},
+      {color:'#f472b6',glow:'0 0 10px #f472b6,0 0 20px rgba(244,114,182,0.6)'},
+      {color:'#fbbf24',glow:'0 0 10px #fbbf24,0 0 20px rgba(251,191,36,0.6)'},
+      {color:'#34d399',glow:'0 0 10px #34d399,0 0 20px rgba(52,211,153,0.6)'},
+    ],
+    전설:[
+      {grad:'linear-gradient(90deg,#fbbf24,#f472b6,#7c3aed,#22d3ee)',anim:true},
+      {grad:'linear-gradient(90deg,#10b981,#0ea5e9,#7c3aed,#f472b6)',anim:true},
+      {grad:'linear-gradient(90deg,#fbbf24,#f97316,#ef4444,#a855f7)',anim:true},
+    ],
+  };
+
   // (BANNER_STYLES 유지 - 하위 호환)
   const BANNER_STYLES = {
     일반: [
@@ -724,22 +859,31 @@
     const avatarEl = document.getElementById('profile-avatar');
     if(avatarEl) {
       if(iconItem) {
-        const iconIdx = (iconItem.visualIdx||0) % ICON_LIST.length;
-        const icon    = ICON_LIST[iconIdx];
-        avatarEl.innerHTML  = icon;
-        avatarEl.style.background  = 'rgba(124,58,237,0.15)';
-        avatarEl.style.fontSize    = '42px';
-        avatarEl.style.lineHeight  = '1';
-        avatarEl.style.display     = 'flex';
-        avatarEl.style.alignItems  = 'center';
-        avatarEl.style.justifyContent = 'center';
+        const g   = iconItem.grade;
+        const bi  = iconItem.itemIdx !== undefined ? iconItem.itemIdx : (iconItem.visualIdx||0);
+        const it2 = (MP_ICON_ITEMS[g]||[])[bi % (MP_ICON_ITEMS[g]?.length||1)];
+        if(it2) {
+          avatarEl.style.background = 'rgba(124,58,237,0.1)';
+          avatarEl.style.overflow   = 'hidden';
+          if(it2.emoji) {
+            avatarEl.innerHTML = `<span style="font-size:44px;line-height:1">${it2.emoji}</span>`;
+          } else if(it2.svg) {
+            avatarEl.innerHTML = `<svg width="60" height="60" viewBox="0 0 52 52" fill="none">${it2.svg}</svg>`;
+          } else if(it2.holo) {
+            avatarEl.innerHTML = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.holo};background-size:200%;${it2.anim?'animation:legendaryFlow 3s ease infinite':''}"></div><div style="position:relative;font-size:32px">✦</div>`;
+            avatarEl.style.position='relative';
+          } else if(it2.glass) {
+            avatarEl.innerHTML = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.glass};border:2px solid ${it2.border}"></div><div style="position:relative;font-size:32px">💠</div>`;
+            avatarEl.style.position='relative';
+          }
+        }
       } else {
-        // 기본 아이콘 복원
         const u = localStorage.getItem('ggo_username')||'';
-        avatarEl.innerHTML   = u.charAt(0).toUpperCase()||'?';
-        avatarEl.style.background   = 'linear-gradient(135deg,var(--purple-1),var(--purple-2))';
-        avatarEl.style.fontSize     = '';
-        avatarEl.style.lineHeight   = '';
+        avatarEl.innerHTML = u.charAt(0).toUpperCase()||'?';
+        avatarEl.style.background  = 'linear-gradient(135deg,var(--purple-1),var(--purple-2))';
+        avatarEl.style.fontSize    = '';
+        avatarEl.style.overflow    = '';
+        avatarEl.style.position    = '';
       }
     }
 
@@ -756,41 +900,30 @@
         const idx = (borderItem.visualIdx||0) % (BORDER_STYLES[g]?.length||1);
         const st  = BORDER_STYLES[g]?.[idx];
         if(st) {
-          if(st.rotating) {
-            // 전설: 회전 그라데이션 래퍼
-            borderEl.style.border     = 'none';
-            borderEl.style.boxShadow  = '';
-            borderEl.style.background = 'transparent';
-            const wrap = document.createElement('div');
-            wrap.id = 'border-rotating-wrap';
-            wrap.className = 'border-rotating-wrap';
-            wrap.style.cssText = `position:absolute;inset:-6px;border-radius:50%;background:${st.gradient};animation:rotateBorder 2s linear infinite;`;
-            const inner = document.createElement('div');
-            inner.style.cssText = 'position:absolute;inset:4px;border-radius:50%;background:var(--bg-card);';
+          // MP_BORDER_ITEMS 기반 적용
+          const g2  = borderItem.grade;
+          const bi2 = borderItem.itemIdx !== undefined ? borderItem.itemIdx : (borderItem.visualIdx||0);
+          const bst = (MP_BORDER_ITEMS[g2]||[])[bi2 % (MP_BORDER_ITEMS[g2]?.length||1)];
+          if(!bst) {}
+          else if(bst.rotating) {
+            borderEl.style.border='none'; borderEl.style.boxShadow=''; borderEl.style.background='transparent';
+            const wrap=document.createElement('div');
+            wrap.id='border-rotating-wrap'; wrap.className='border-rotating-wrap';
+            wrap.style.cssText=`position:absolute;inset:-6px;border-radius:50%;background:${bst.grad};animation:rotateBorder 2s linear infinite;`;
+            const inner=document.createElement('div');
+            inner.style.cssText='position:absolute;inset:4px;border-radius:50%;background:var(--bg-card);';
             wrap.appendChild(inner);
             borderEl.parentElement.style.position='relative';
             borderEl.parentElement.appendChild(wrap);
-          } else if(st.gradient) {
-            // 희귀: 그라데이션 테두리
-            borderEl.style.background = `${st.gradient}`;
-            borderEl.style.border     = 'none';
-            borderEl.style.padding    = '3px';
-            borderEl.style.boxShadow  = '';
-            borderEl.style.inset      = '-3px';
-          } else if(st.glow) {
-            // 에픽: 글로우
-            borderEl.style.border     = `3px solid ${st.color}`;
-            borderEl.style.boxShadow  = st.glow;
-            borderEl.style.background = 'transparent';
-            borderEl.style.padding    = '';
-            borderEl.style.inset      = '-4px';
-          } else {
-            // 일반: 단색
-            borderEl.style.border     = `3px solid ${st.color}`;
-            borderEl.style.boxShadow  = '';
-            borderEl.style.background = 'transparent';
-            borderEl.style.padding    = '';
-            borderEl.style.inset      = '-4px';
+          } else if(bst.glow) {
+            borderEl.style.border=`3px solid ${bst.color}`; borderEl.style.boxShadow=bst.glow;
+            borderEl.style.background='transparent'; borderEl.style.padding=''; borderEl.style.inset='-4px';
+          } else if(bst.grad) {
+            borderEl.style.background=bst.grad; borderEl.style.border='none';
+            borderEl.style.padding='3px'; borderEl.style.boxShadow=''; borderEl.style.inset='-3px';
+          } else if(bst.color) {
+            borderEl.style.border=`3px solid ${bst.color}`; borderEl.style.boxShadow='';
+            borderEl.style.background='transparent'; borderEl.style.padding=''; borderEl.style.inset='-4px';
           }
         }
       } else {
@@ -814,23 +947,20 @@
       nameEl.classList.remove('name-gradient','name-shimmer','name-glow');
 
       if(nameEffItem) {
-        const g   = nameEffItem.grade;
-        const idx = (nameEffItem.visualIdx||0) % (NAME_STYLES[g]?.length||1);
-        const st  = NAME_STYLES[g]?.[idx];
-        if(st) {
-          if(st.gradient) {
-            nameEl.style.background     = st.gradient;
+        const g2  = nameEffItem.grade;
+        const bi2 = nameEffItem.itemIdx !== undefined ? nameEffItem.itemIdx : (nameEffItem.visualIdx||0);
+        const nst = (MP_NAME_EFF_ITEMS[g2]||[])[bi2 % (MP_NAME_EFF_ITEMS[g2]?.length||1)];
+        if(nst) {
+          if(nst.grad) {
+            nameEl.style.background     = nst.grad;
             nameEl.style.backgroundSize = '200%';
             nameEl.style.webkitBackgroundClip = 'text';
             nameEl.style.webkitTextFillColor  = 'transparent';
             nameEl.style.backgroundClip       = 'text';
-            if(st.animated) nameEl.classList.add('name-shimmer');
-          } else if(st.color) {
-            nameEl.style.color = st.color;
-            if(st.glow) {
-              nameEl.style.textShadow = `0 0 10px ${st.color}, 0 0 20px ${st.color}80`;
-              nameEl.classList.add('name-glow');
-            }
+            if(nst.anim) nameEl.classList.add('name-shimmer');
+          } else if(nst.color) {
+            nameEl.style.color = nst.color;
+            if(nst.glow) { nameEl.style.textShadow=nst.glow; nameEl.classList.add('name-glow'); }
           }
         }
       } else {
