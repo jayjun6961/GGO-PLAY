@@ -1765,7 +1765,7 @@
   </nav>
   <div class="sidebar-bottom">
     <button class="nav-item" onclick="location.href='settings.html'">⚙️<span class="tooltip">설정</span></button>
-    <div class="avatar-sm">👤</div>
+    <div class="avatar-sm" id="sidebar-avatar" onclick="goLoginOrLogout()" style="cursor:pointer" title="로그인">👤</div>
   </div>
 </aside>
 <main class="main">
@@ -1773,7 +1773,7 @@
   <header class="topbar">
     <div class="greeting">
       <div class="time" id="timeDisplay"></div>
-      <h2>안녕하세요, <span>게이머</span> 님</h2>
+      <h2>안녕하세요, <span id="greet-name">게이머</span> 님</h2>
     </div>
     <div class="search-bar">
       <span>🔍</span>
@@ -1802,7 +1802,7 @@
           <div class="hero-title">GGO PLAY</div>
           <div class="hero-desc">모바일 게임 정보의 모든 것.<br>공략, 티어표, 커뮤니티를 한 곳에서.</div>
           <div class="hero-actions">
-            <button class="btn-primary">🔐 로그인하기</button>
+            <button class="btn-primary" id="hero-login-btn" onclick="goLoginOrLogout()">🔐 로그인하기</button>
           </div>
         </div>
       </div>
@@ -2254,7 +2254,36 @@
     }
   }
 
-  window.addEventListener('DOMContentLoaded', () => { loadSeasonAward(); loadPickrate(); loadHomeBpRank(); loadHomeEvents(); });
+  window.addEventListener('DOMContentLoaded', () => {
+    // 로그인 상태 체크
+    const username = localStorage.getItem('ggo_username');
+    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    if(isLoggedIn && username) {
+      document.getElementById('greet-name').textContent = username;
+      document.getElementById('hero-login-btn').innerHTML = '👋 ' + username + ' 님';
+      document.getElementById('hero-login-btn').style.background = 'linear-gradient(135deg,rgba(52,211,153,0.2),rgba(34,211,238,0.15))';
+      document.getElementById('hero-login-btn').style.border = '1px solid rgba(52,211,153,0.35)';
+      document.getElementById('hero-login-btn').style.color = '#34d399';
+      const av = document.getElementById('sidebar-avatar');
+      av.textContent = username.charAt(0).toUpperCase();
+      av.style.background = 'linear-gradient(135deg,var(--purple-1),var(--accent-cyan))';
+      av.title = username + ' · 로그아웃';
+    }
+    loadSeasonAward(); loadPickrate(); loadHomeBpRank(); loadHomeEvents();
+  });
+
+  function goLoginOrLogout() {
+    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    if(isLoggedIn) {
+      if(confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('ggo_logged_in');
+        localStorage.removeItem('ggo_username');
+        location.reload();
+      }
+    } else {
+      location.href = 'login.html';
+    }
+  }
 
 </script>
 </body>
