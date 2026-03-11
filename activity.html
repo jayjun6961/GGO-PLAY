@@ -228,7 +228,7 @@
 </main>
 
 <script>
-  const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1396354260&single=true&output=csv';
+  const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1765510409&single=true&output=csv';
 
   function parseCSV(txt) {
     return txt.trim().split('\n').slice(1).map(line => {
@@ -261,17 +261,16 @@
 
       // 데이터 파싱 + 점수 계산
       const players = rows.map(r => {
-        const bp   = parseFloat(r[3]) || 0;
-        const ts   = parseFloat(r[4]) || 0;
-        const deco = parseFloat(r[5]) || 0;
-        return {
-          name: r[0]||'',
-          server: r[1]||'',
-          img:  (r[2]||'').trim(),
-          bp, ts, deco,
-          score: calcScore(bp, ts, deco)
-        };
-      }).filter(p=>p.name);
+        const name=(r[0]||'').trim();
+        if(!name) return null;
+        const bp=parseFloat(r[2])||0;
+        const ts=parseFloat(r[3])||0;
+        const EXP_MAP={일반:100,희귀:300,에픽:500,전설:1000};
+        const items=JSON.parse(localStorage.getItem('ggo_items_'+name)||'[]');
+        const totalExp=items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
+        const deco=Math.floor(totalExp/1000)+1;
+        return{name,server:r[1]||'',img:'',bp,ts,deco,score:calcScore(bp,ts,deco)};
+      }).filter(p=>p&&p.name);
 
       // 점수 내림차순 정렬
       players.sort((a,b) => b.score - a.score);
