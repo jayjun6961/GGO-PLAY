@@ -1876,7 +1876,7 @@
               <circle class="stats-ring-fill" cx="50" cy="50" r="40"/>
             </svg>
             <div class="stats-ring-text">
-              <div class="num">247</div>
+              <div class="num" id="activity-total">?</div>
               <div class="label">총 점수</div>
             </div>
           </div>
@@ -1884,17 +1884,17 @@
         <div class="stats-grid">
           <div class="stat-item">
             <div class="stat-icon">⭐</div>
-            <div class="stat-num">1,240</div>
+            <div class="stat-num" id="activity-bp">?</div>
             <div class="stat-label">배틀패스</div>
           </div>
           <div class="stat-item">
             <div class="stat-icon">⚔️</div>
-            <div class="stat-num">890</div>
+            <div class="stat-num" id="activity-ts">?</div>
             <div class="stat-label">친선대회</div>
           </div>
           <div class="stat-item">
             <div class="stat-icon">✨</div>
-            <div class="stat-num">Lv.34</div>
+            <div class="stat-num" id="activity-deco">?</div>
             <div class="stat-label">꾸미기</div>
           </div>
         </div>
@@ -2276,8 +2276,60 @@
       av.style.background = 'linear-gradient(135deg,var(--purple-1),var(--accent-cyan))';
       av.title = username + ' · 마이페이지';
     }
-    loadSeasonAward(); loadPickrate(); loadHomeBpRank(); loadHomeEvents();
+    loadSeasonAward(); loadPickrate(); loadHomeBpRank(); loadHomeEvents(); loadMyActivity();
   });
+
+
+  // ── MY ACTIVITY: 로그인 유저 활동점수 로드 ──
+  const CSV_MEMBER_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1396354260&single=true&output=csv';
+
+  async function loadMyActivity() {
+    const username   = localStorage.getItem('ggo_username') || '';
+    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+
+    const totalEl = document.getElementById('activity-total');
+    const bpEl    = document.getElementById('activity-bp');
+    const tsEl    = document.getElementById('activity-ts');
+    const decoEl  = document.getElementById('activity-deco');
+
+    if(!isLoggedIn || !username) {
+      // 로그인 안 한 경우 물음표
+      [totalEl,bpEl,tsEl,decoEl].forEach(el=>{ if(el) el.textContent='?'; });
+      return;
+    }
+
+    try {
+      const res  = await fetch(CSV_MEMBER_ACT + '&t=' + Date.now(), { cache:'no-store' });
+      const rows = parseCSV(await res.text());
+      // 활동점수 시트: A=닉네임, B=서버, C=프로필, D=배틀패스, E=친선대회, F=꾸미기레벨
+      // (activity.html과 동일 GID)
+      const user = rows.find(r => r[0].trim() === username);
+      if(!user) {
+        [totalEl,bpEl,tsEl,decoEl].forEach(el=>{ if(el) el.textContent='?'; });
+        return;
+      }
+      const bp   = parseFloat(user[3])||0;
+      const ts   = parseFloat(user[4])||0;
+      const deco = parseFloat(user[5])||0;
+      const total = Math.round((bp/100) + (ts/10) + deco);
+
+      if(totalEl) totalEl.textContent = total.toFixed(1);
+      if(bpEl)    bpEl.textContent    = bp.toLocaleString();
+      if(tsEl)    tsEl.textContent    = ts.toLocaleString();
+      if(decoEl)  decoEl.textContent  = 'Lv.' + deco;
+
+      // 링 차트 업데이트 (최대 500 기준 비율)
+      const pct = Math.min(total / 500, 1);
+      const ring = document.querySelector('.stats-ring-fill');
+      if(ring) {
+        const circumference = 2 * Math.PI * 40;
+        ring.style.strokeDasharray  = circumference;
+        ring.style.strokeDashoffset = circumference * (1 - pct);
+      }
+    } catch(e) {
+      [totalEl,bpEl,tsEl,decoEl].forEach(el=>{ if(el) el.textContent='?'; });
+    }
+  }
 
   function toggleLogoutBox(e) {
     e.stopPropagation();
