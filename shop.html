@@ -365,7 +365,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 </div>
 
 <script>
-const CSV_SHOP = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=780892307&single=true&output=csv';
+// 상점 아이템은 하드코딩 — CSV 시트 불필요
 
 
   // ══════════════════════════════════════════════
@@ -1069,29 +1069,16 @@ function closeOpenModal() {
   document.getElementById('open-box-icon').style.display = 'block';
 }
 
-async function loadShop() {
-  try {
-    const res = await fetch(CSV_SHOP+'&t='+Date.now(), {cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const rows = parseCSV(await res.text());
+function loadShop() {
+  // 모든 아이템 하드코딩 — CSV 불필요
+  window._shopItems = [];
 
-    // A=상자종류, B=아이템이름, C=등급, D=설명
-    window._shopItems = rows.map(r => ({
-      boxKey: (r[0]||'').trim(),
-      name:   (r[1]||'').trim(),
-      grade:  (r[2]||'').trim(),
-      desc:   (r[3]||'').trim(),
-    })).filter(r=>r.boxKey&&r.name);
+  // 상자 카드 렌더
+  const grid = document.getElementById('shop-grid');
+  grid.innerHTML = BOX_DEFS.map(b => buildBoxCard(b, window._shopItems)).join('');
 
-    // 상자 카드 렌더
-    const grid = document.getElementById('shop-grid');
-    grid.innerHTML = BOX_DEFS.map(b => buildBoxCard(b, window._shopItems)).join('');
-
-    document.getElementById('loading-state').style.display='none';
-    document.getElementById('shop-content').style.display='block';
-  } catch(e) {
-    document.getElementById('loading-state').innerHTML = `<div style="color:var(--accent-pink);font-size:13px">⚠️ 불러오기 실패<br><small style="color:var(--text-dim)">${e.message}</small><br><br><button onclick="loadShop()" style="margin-top:8px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);color:var(--purple-3);padding:8px 20px;border-radius:8px;cursor:pointer;">↻ 다시 시도</button></div>`;
-  }
+  document.getElementById('loading-state').style.display='none';
+  document.getElementById('shop-content').style.display='block';
 }
 
 window.addEventListener('DOMContentLoaded', () => {
