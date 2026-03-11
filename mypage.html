@@ -187,6 +187,38 @@
   .btn-unequip:hover { background:rgba(34,211,238,0.15); }
   .btn-delete:hover  { background:rgba(244,114,182,0.15); }
 
+
+  /* ── 장착 아이템 효과 ── */
+  @keyframes legendaryFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
+  @keyframes rotateBorder  { to{transform:rotate(360deg)} }
+  @keyframes glowPulse     { 0%,100%{opacity:0.6}50%{opacity:1} }
+  @keyframes shimmer       { 0%{background-position:200% center}100%{background-position:-200% center} }
+  @keyframes nameGlow      { 0%,100%{text-shadow:0 0 8px currentColor}50%{text-shadow:0 0 20px currentColor,0 0 40px currentColor} }
+
+  /* 배너 패턴 오버레이 */
+  .banner-epic-grid::after {
+    content:''; position:absolute; inset:0;
+    background:repeating-linear-gradient(45deg,rgba(255,255,255,0.04) 0,rgba(255,255,255,0.04) 1px,transparent 0,transparent 10px);
+  }
+  .banner-epic-lines::after {
+    content:''; position:absolute; inset:0;
+    background:repeating-linear-gradient(0deg,rgba(34,211,238,0.08) 0,rgba(34,211,238,0.08) 1px,transparent 0,transparent 8px);
+  }
+  /* 테두리 회전 래퍼 */
+  .border-rotating-wrap {
+    position:absolute; inset:-6px; border-radius:50%;
+    animation:rotateBorder 2s linear infinite;
+  }
+  /* 이름 그라데이션 텍스트 */
+  .name-gradient {
+    background-size:200%;
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  .name-shimmer { animation:shimmer 2s linear infinite; }
+  .name-glow    { animation:nameGlow 2s ease-in-out infinite; }
+
 </style>
 </head>
 <body>
@@ -513,15 +545,239 @@
   }
 
   // 장착 아이템 프로필 반영
+
+  // ──────────────────────────────────────────
+  //  꾸미기 아이템 시각화 데이터 정의
+  // ──────────────────────────────────────────
+
+  // 배너 CSS 데이터 (shop.html ITEM_VISUALS와 동일 로직)
+  const BANNER_STYLES = {
+    일반: [
+      {bg:'#3b1fa8'},{bg:'#1a5a9e'},{bg:'#15803d'},{bg:'#7c2d12'},{bg:'#4a044e'}
+    ],
+    희귀: [
+      {bg:'linear-gradient(135deg,#7c3aed,#06b6d4)'},
+      {bg:'linear-gradient(135deg,#db2777,#9333ea)'},
+      {bg:'linear-gradient(135deg,#0ea5e9,#10b981)'},
+      {bg:'linear-gradient(135deg,#f97316,#eab308)'},
+      {bg:'linear-gradient(135deg,#8b5cf6,#ec4899)'},
+    ],
+    에픽: [
+      {bg:'linear-gradient(135deg,#0f0230,#1e0755)', patternClass:'banner-epic-grid'},
+      {bg:'linear-gradient(135deg,#030d1f,#0a1f3d)', patternClass:'banner-epic-lines'},
+      {bg:'radial-gradient(circle at 30% 30%,#3b1fa8,#0a0612)'},
+      {bg:'conic-gradient(from 45deg,#1e0755,#0a2850,#1e0755)'},
+    ],
+    전설: [
+      {bg:'linear-gradient(-45deg,#7c3aed,#db2777,#f97316,#eab308)', animated:true, bgSize:'300% 300%'},
+      {bg:'linear-gradient(-45deg,#0ea5e9,#7c3aed,#ec4899,#0ea5e9)', animated:true, bgSize:'300% 300%'},
+      {bg:'linear-gradient(-45deg,#10b981,#0ea5e9,#7c3aed,#10b981)', animated:true, bgSize:'300% 300%'},
+    ]
+  };
+
+  const ICON_LIST = ['🐯','🦊','🐺','🦁','🐉','🦅','🐻','🦋','🌙','⚡'];
+
+  const BORDER_STYLES = {
+    일반: [
+      {color:'#7c3aed'},{color:'#22d3ee'},{color:'#f472b6'},{color:'#fbbf24'}
+    ],
+    희귀: [
+      {gradient:'linear-gradient(135deg,#7c3aed,#22d3ee)'},
+      {gradient:'linear-gradient(135deg,#f472b6,#fbbf24)'},
+      {gradient:'linear-gradient(135deg,#0ea5e9,#a855f7)'},
+    ],
+    에픽: [
+      {color:'#a855f7', glow:'0 0 12px #a855f7, 0 0 24px rgba(168,85,247,0.4)'},
+      {color:'#22d3ee', glow:'0 0 12px #22d3ee, 0 0 24px rgba(34,211,238,0.4)'},
+      {color:'#f472b6', glow:'0 0 12px #f472b6, 0 0 24px rgba(244,114,182,0.4)'},
+    ],
+    전설: [
+      {gradient:'linear-gradient(to right,#fbbf24,#f472b6,#7c3aed,#22d3ee)', rotating:true},
+      {gradient:'linear-gradient(to right,#10b981,#0ea5e9,#7c3aed)', rotating:true},
+    ]
+  };
+
+  const NAME_STYLES = {
+    일반: [
+      {color:'#7c3aed'},{color:'#22d3ee'},{color:'#f472b6'}
+    ],
+    희귀: [
+      {gradient:'linear-gradient(90deg,#7c3aed,#22d3ee)'},
+      {gradient:'linear-gradient(90deg,#f472b6,#fbbf24)'},
+      {gradient:'linear-gradient(90deg,#0ea5e9,#a855f7)'},
+    ],
+    에픽: [
+      {color:'#a855f7', glow:true},
+      {color:'#22d3ee', glow:true},
+    ],
+    전설: [
+      {gradient:'linear-gradient(90deg,#fbbf24,#f472b6,#7c3aed,#22d3ee)', animated:true},
+      {gradient:'linear-gradient(90deg,#10b981,#0ea5e9,#7c3aed)', animated:true},
+    ]
+  };
+
+  // ──────────────────────────────────────────
+  //  applyEquipped: 장착 아이템 → 프로필 반영
+  // ──────────────────────────────────────────
   function applyEquipped(items) {
-    // 칭호
-    const title = items.find(it=>it.type==='칭호'&&it.equipped);
-    const titleEl = document.getElementById('profile-title');
+    // ── 배너 ──
+    const bannerItem = items.find(it=>it.type==='프로필배너'&&it.equipped);
+    const bannerEl   = document.getElementById('profile-banner');
+    if(bannerEl) {
+      if(bannerItem) {
+        const g = bannerItem.grade;
+        const idx = (bannerItem.visualIdx||0) % (BANNER_STYLES[g]?.length||1);
+        const st  = BANNER_STYLES[g]?.[idx];
+        if(st) {
+          bannerEl.style.background    = st.bg;
+          bannerEl.style.backgroundSize= st.bgSize||'';
+          bannerEl.style.animation     = st.animated ? 'legendaryFlow 4s ease infinite' : '';
+          // 에픽 패턴 클래스
+          bannerEl.classList.remove('banner-epic-grid','banner-epic-lines');
+          if(st.patternClass) bannerEl.classList.add(st.patternClass);
+          bannerEl.style.position = 'relative';
+        }
+      } else {
+        // 기본 배너 복원
+        bannerEl.style.background    = 'linear-gradient(135deg,#1a0533 0%,#2d1060 40%,#1a0a3a 70%,#0f0620 100%)';
+        bannerEl.style.backgroundSize= '';
+        bannerEl.style.animation     = '';
+        bannerEl.classList.remove('banner-epic-grid','banner-epic-lines');
+      }
+    }
+
+    // ── 아이콘 ──
+    const iconItem = items.find(it=>it.type==='프로필아이콘'&&it.equipped);
+    const avatarEl = document.getElementById('profile-avatar');
+    if(avatarEl) {
+      if(iconItem) {
+        const iconIdx = (iconItem.visualIdx||0) % ICON_LIST.length;
+        const icon    = ICON_LIST[iconIdx];
+        avatarEl.innerHTML  = icon;
+        avatarEl.style.background  = 'rgba(124,58,237,0.15)';
+        avatarEl.style.fontSize    = '42px';
+        avatarEl.style.lineHeight  = '1';
+        avatarEl.style.display     = 'flex';
+        avatarEl.style.alignItems  = 'center';
+        avatarEl.style.justifyContent = 'center';
+      } else {
+        // 기본 아이콘 복원
+        const u = localStorage.getItem('ggo_username')||'';
+        avatarEl.innerHTML   = u.charAt(0).toUpperCase()||'?';
+        avatarEl.style.background   = 'linear-gradient(135deg,var(--purple-1),var(--purple-2))';
+        avatarEl.style.fontSize     = '';
+        avatarEl.style.lineHeight   = '';
+      }
+    }
+
+    // ── 테두리 ──
+    const borderItem = items.find(it=>it.type==='테두리효과'&&it.equipped);
+    const borderEl   = document.getElementById('profile-border');
+    if(borderEl) {
+      // 기존 회전 래퍼 제거
+      const existRotWrap = document.getElementById('border-rotating-wrap');
+      if(existRotWrap) existRotWrap.remove();
+
+      if(borderItem) {
+        const g   = borderItem.grade;
+        const idx = (borderItem.visualIdx||0) % (BORDER_STYLES[g]?.length||1);
+        const st  = BORDER_STYLES[g]?.[idx];
+        if(st) {
+          if(st.rotating) {
+            // 전설: 회전 그라데이션 래퍼
+            borderEl.style.border     = 'none';
+            borderEl.style.boxShadow  = '';
+            borderEl.style.background = 'transparent';
+            const wrap = document.createElement('div');
+            wrap.id = 'border-rotating-wrap';
+            wrap.className = 'border-rotating-wrap';
+            wrap.style.cssText = `position:absolute;inset:-6px;border-radius:50%;background:${st.gradient};animation:rotateBorder 2s linear infinite;`;
+            const inner = document.createElement('div');
+            inner.style.cssText = 'position:absolute;inset:4px;border-radius:50%;background:var(--bg-card);';
+            wrap.appendChild(inner);
+            borderEl.parentElement.style.position='relative';
+            borderEl.parentElement.appendChild(wrap);
+          } else if(st.gradient) {
+            // 희귀: 그라데이션 테두리
+            borderEl.style.background = `${st.gradient}`;
+            borderEl.style.border     = 'none';
+            borderEl.style.padding    = '3px';
+            borderEl.style.boxShadow  = '';
+            borderEl.style.inset      = '-3px';
+          } else if(st.glow) {
+            // 에픽: 글로우
+            borderEl.style.border     = `3px solid ${st.color}`;
+            borderEl.style.boxShadow  = st.glow;
+            borderEl.style.background = 'transparent';
+            borderEl.style.padding    = '';
+            borderEl.style.inset      = '-4px';
+          } else {
+            // 일반: 단색
+            borderEl.style.border     = `3px solid ${st.color}`;
+            borderEl.style.boxShadow  = '';
+            borderEl.style.background = 'transparent';
+            borderEl.style.padding    = '';
+            borderEl.style.inset      = '-4px';
+          }
+        }
+      } else {
+        // 기본 테두리 복원
+        borderEl.style.border     = '2px solid rgba(124,58,237,0.4)';
+        borderEl.style.boxShadow  = '';
+        borderEl.style.background = 'transparent';
+        borderEl.style.padding    = '';
+        borderEl.style.inset      = '-4px';
+      }
+    }
+
+    // ── 이름 색상 효과 ──
+    const nameEffItem = items.find(it=>it.type==='이름색상효과'&&it.equipped);
+    const nameEl      = document.getElementById('profile-name');
+    if(nameEl) {
+      // 초기화
+      nameEl.style.cssText='';
+      nameEl.style.fontSize='22px';
+      nameEl.style.fontWeight='700';
+      nameEl.classList.remove('name-gradient','name-shimmer','name-glow');
+
+      if(nameEffItem) {
+        const g   = nameEffItem.grade;
+        const idx = (nameEffItem.visualIdx||0) % (NAME_STYLES[g]?.length||1);
+        const st  = NAME_STYLES[g]?.[idx];
+        if(st) {
+          if(st.gradient) {
+            nameEl.style.background     = st.gradient;
+            nameEl.style.backgroundSize = '200%';
+            nameEl.style.webkitBackgroundClip = 'text';
+            nameEl.style.webkitTextFillColor  = 'transparent';
+            nameEl.style.backgroundClip       = 'text';
+            if(st.animated) nameEl.classList.add('name-shimmer');
+          } else if(st.color) {
+            nameEl.style.color = st.color;
+            if(st.glow) {
+              nameEl.style.textShadow = `0 0 10px ${st.color}, 0 0 20px ${st.color}80`;
+              nameEl.classList.add('name-glow');
+            }
+          }
+        }
+      } else {
+        nameEl.style.color = 'var(--text-main)';
+      }
+    }
+
+    // ── 칭호 ──
+    const titleItem = items.find(it=>it.type==='칭호'&&it.equipped);
+    const titleEl   = document.getElementById('profile-title');
     if(titleEl) {
-      if(title) { titleEl.textContent='< '+title.name+' >'; titleEl.style.display='inline-block'; }
-      else       { titleEl.style.display='none'; }
+      if(titleItem) {
+        titleEl.textContent  = '< '+titleItem.name+' >';
+        titleEl.style.display= 'inline-block';
+      } else {
+        titleEl.style.display='none';
+      }
     }
   }
+
 
   function filterCatByLabel(label) {
     const MAP = {'전체':'전체','🖼 배너':'프로필배너','👤 아이콘':'프로필아이콘','💫 테두리':'테두리효과','🏅 칭호':'칭호','🎨 이름색상':'이름색상효과'};
@@ -563,13 +819,7 @@
       document.getElementById('stat-bp').textContent = bp.toLocaleString();
       document.getElementById('stat-ts').textContent = ts.toLocaleString();
 
-      // 칭호 (보유 아이템 중 장착된 칭호)
-      const equippedTitle = allItems.find(it=>it.type==='칭호'&&it.equipped);
-      if(equippedTitle) {
-        const titleEl = document.getElementById('profile-title');
-        titleEl.textContent = '< ' + equippedTitle.name + ' >';
-        titleEl.style.display = 'inline-block';
-      }
+      // 칭호는 applyEquipped에서 처리
 
       // 재화
       const currKey = 'ggo_currency_' + username;
@@ -583,6 +833,9 @@
 
       // 아이템 렌더
       renderItems(allItems);
+
+      // 장착 아이템 프로필 반영
+      applyEquipped(allItems);
 
       document.getElementById('loading-state').style.display='none';
       document.getElementById('content-wrap').style.display='block';
