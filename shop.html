@@ -463,6 +463,157 @@ const CSV_SHOP = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeN
     }
   };
 
+  // ══════════════════════════════════════════════
+  //  아이콘 / 테두리 / 이름효과 상자 아이템 데이터
+  // ══════════════════════════════════════════════
+
+  const ICON_ITEMS = {
+    일반: [ // 도형 아이콘 20가지
+      {name:'레드 서클',    svg:'<circle cx="26" cy="26" r="20" fill="#ef4444"/>'},
+      {name:'블루 스퀘어',  svg:'<rect x="6" y="6" width="40" height="40" rx="4" fill="#3b82f6"/>'},
+      {name:'그린 트라이', svg:'<polygon points="26,4 48,46 4,46" fill="#22c55e"/>'},
+      {name:'퍼플 다이아', svg:'<polygon points="26,4 48,26 26,48 4,26" fill="#a855f7"/>'},
+      {name:'옐로우 스타',  svg:'<polygon points="26,4 31,18 46,18 34,28 38,44 26,35 14,44 18,28 6,18 21,18" fill="#fbbf24"/>'},
+      {name:'핑크 하트',   svg:'<path d="M26,42 C26,42 6,28 6,17 C6,11 11,6 17,8 C21,9 24,13 26,17 C28,13 31,9 35,8 C41,6 46,11 46,17 C46,28 26,42 26,42Z" fill="#ec4899"/>'},
+      {name:'시안 헥사',   svg:'<polygon points="26,4 44,14 44,34 26,44 8,34 8,14" fill="#22d3ee"/>'},
+      {name:'오렌지 펜타', svg:'<polygon points="26,4 47,19 39,43 13,43 5,19" fill="#f97316"/>'},
+      {name:'인디고 크로스',svg:'<rect x="16" y="4" width="20" height="44" rx="4" fill="#6366f1"/><rect x="4" y="16" width="44" height="20" rx="4" fill="#6366f1"/>'},
+      {name:'틸 링',       svg:'<circle cx="26" cy="26" r="20" fill="none" stroke="#0d9488" stroke-width="8"/>'},
+      {name:'로즈 화살',   svg:'<polygon points="26,4 38,22 34,22 34,46 18,46 18,22 14,22" fill="#f43f5e"/>'},
+      {name:'라임 클로버', svg:'<circle cx="18" cy="18" r="12" fill="#84cc16"/><circle cx="34" cy="18" r="12" fill="#84cc16"/><circle cx="18" cy="34" r="12" fill="#84cc16"/><circle cx="34" cy="34" r="12" fill="#84cc16"/>'},
+      {name:'앰버 볼트',   svg:'<polygon points="30,4 46,26 36,26 24,48 16,26 6,26" fill="#f59e0b"/>'},
+      {name:'스카이 실드', svg:'<path d="M26,4 L44,12 L44,26 C44,35 36,43 26,47 C16,43 8,35 8,26 L8,12 Z" fill="#0ea5e9"/>'},
+      {name:'바이올렛 리프',svg:'<ellipse cx="26" cy="26" rx="20" ry="10" fill="#8b5cf6" transform="rotate(30 26 26)"/>'},
+      {name:'에메랄드 큐브',svg:'<rect x="8" y="12" width="36" height="28" rx="3" fill="#10b981"/><parallelogram points="8,12 44,12 50,6 14,6" fill="#34d399"/>'},
+      {name:'슬레이트 옥타',svg:'<polygon points="17,5 35,5 45,15 45,35 35,45 17,45 7,35 7,15" fill="#475569"/>'},
+      {name:'코랄 플러스',  svg:'<rect x="18" y="4" width="16" height="44" rx="5" fill="#fb923c"/><rect x="4" y="18" width="44" height="16" rx="5" fill="#fb923c"/>'},
+      {name:'네이비 다트',  svg:'<polygon points="26,4 46,46 26,36 6,46" fill="#1e3a8a"/>'},
+      {name:'화이트 링2',  svg:'<circle cx="26" cy="26" r="18" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="6"/><circle cx="26" cy="26" r="8" fill="rgba(255,255,255,0.3)"/>'},
+    ],
+    희귀: [ // 동물 아이콘 10가지
+      {name:'호랑이',   emoji:'🐯'},
+      {name:'여우',     emoji:'🦊'},
+      {name:'늑대',     emoji:'🐺'},
+      {name:'사자',     emoji:'🦁'},
+      {name:'드래곤',   emoji:'🐉'},
+      {name:'독수리',   emoji:'🦅'},
+      {name:'곰',       emoji:'🐻'},
+      {name:'나비',     emoji:'🦋'},
+      {name:'표범',     emoji:'🐆'},
+      {name:'매',       emoji:'🦆'},
+    ],
+    에픽: [ // 홀로그램 색상효과 5가지
+      {name:'홀로 레인보우', holo:'linear-gradient(135deg,#ff0080,#ff8c00,#40e0d0,#8000ff,#ff0080)', anim:true},
+      {name:'홀로 오로라',   holo:'linear-gradient(135deg,#00c6ff,#0072ff,#00c6ff,#7b2ff7)', anim:true},
+      {name:'홀로 선셋',     holo:'linear-gradient(135deg,#f7971e,#ffd200,#f7971e,#ff416c)', anim:true},
+      {name:'홀로 사이버',   holo:'linear-gradient(135deg,#00f5ff,#7b2ff7,#ff006e,#00f5ff)', anim:true},
+      {name:'홀로 포레스트', holo:'linear-gradient(135deg,#00b09b,#96c93d,#00b09b,#00c6ff)', anim:true},
+    ],
+    전설: [ // 반투명 효과 3가지
+      {name:'크리스탈 아이스',  glass:'rgba(200,240,255,0.15)', border:'rgba(150,220,255,0.5)', blur:true, shimmer:'#a5f3fc'},
+      {name:'다크 오브시디안',   glass:'rgba(20,10,40,0.4)',    border:'rgba(168,85,247,0.6)', blur:true, shimmer:'#c4b5fd'},
+      {name:'골든 미스트',       glass:'rgba(251,191,36,0.12)', border:'rgba(251,191,36,0.5)', blur:true, shimmer:'#fde68a'},
+    ],
+  };
+
+  const BORDER_ITEMS = {
+    일반: [ // 단색 테두리 20가지
+      {name:'루비 레드',     color:'#ef4444'},
+      {name:'퍼플 바이올렛', color:'#8b5cf6'},
+      {name:'시안 블루',     color:'#22d3ee'},
+      {name:'에메랄드',      color:'#10b981'},
+      {name:'골드',          color:'#fbbf24'},
+      {name:'핑크 플라밍고', color:'#ec4899'},
+      {name:'코발트 블루',   color:'#3b82f6'},
+      {name:'인디고',        color:'#6366f1'},
+      {name:'오렌지',        color:'#f97316'},
+      {name:'틸',            color:'#0d9488'},
+      {name:'라임',          color:'#84cc16'},
+      {name:'로즈',          color:'#f43f5e'},
+      {name:'스카이 블루',   color:'#0ea5e9'},
+      {name:'앰버',          color:'#f59e0b'},
+      {name:'바이올렛',      color:'#a855f7'},
+      {name:'민트',          color:'#34d399'},
+      {name:'코랄',          color:'#fb923c'},
+      {name:'라벤더',        color:'#c4b5fd'},
+      {name:'실버',          color:'#94a3b8'},
+      {name:'화이트 펄',     color:'rgba(255,255,255,0.85)'},
+    ],
+    희귀: [ // 그라데이션 테두리 10가지
+      {name:'오로라 보레알리스', grad:'linear-gradient(135deg,#7c3aed,#22d3ee)'},
+      {name:'선셋 글로우',       grad:'linear-gradient(135deg,#f97316,#db2777)'},
+      {name:'오션 드림',         grad:'linear-gradient(135deg,#0891b2,#0d9488)'},
+      {name:'갤럭시 더스트',     grad:'linear-gradient(135deg,#4c1d95,#1e3a8a)'},
+      {name:'로즈 골드',         grad:'linear-gradient(135deg,#9f1239,#f97316)'},
+      {name:'노던 라이트',       grad:'linear-gradient(135deg,#7c3aed,#0891b2)'},
+      {name:'피치 블러쉬',       grad:'linear-gradient(135deg,#be185d,#9333ea)'},
+      {name:'포레스트 미스트',   grad:'linear-gradient(135deg,#15803d,#0ea5e9)'},
+      {name:'파이어 아이스',     grad:'linear-gradient(135deg,#ef4444,#3b82f6)'},
+      {name:'코스믹 선라이즈',   grad:'linear-gradient(135deg,#fbbf24,#a855f7)'},
+    ],
+    에픽: [ // 컬러 + 글로우 5가지
+      {name:'퍼플 글로우',  color:'#a855f7', glow:'0 0 12px #a855f7, 0 0 24px rgba(168,85,247,0.5), 0 0 40px rgba(168,85,247,0.2)'},
+      {name:'시안 글로우',  color:'#22d3ee', glow:'0 0 12px #22d3ee, 0 0 24px rgba(34,211,238,0.5), 0 0 40px rgba(34,211,238,0.2)'},
+      {name:'핑크 글로우',  color:'#f472b6', glow:'0 0 12px #f472b6, 0 0 24px rgba(244,114,182,0.5), 0 0 40px rgba(244,114,182,0.2)'},
+      {name:'골드 글로우',  color:'#fbbf24', glow:'0 0 12px #fbbf24, 0 0 24px rgba(251,191,36,0.5), 0 0 40px rgba(251,191,36,0.2)'},
+      {name:'그린 글로우',  color:'#34d399', glow:'0 0 12px #34d399, 0 0 24px rgba(52,211,153,0.5), 0 0 40px rgba(52,211,153,0.2)'},
+    ],
+    전설: [ // 그라데이션 + 무한 회전 3가지
+      {name:'갤럭시 오빗',    grad:'linear-gradient(to right,#fbbf24,#f472b6,#7c3aed,#22d3ee)', rotating:true},
+      {name:'오로라 스핀',    grad:'linear-gradient(to right,#10b981,#0ea5e9,#7c3aed,#f472b6)', rotating:true},
+      {name:'코스믹 링',      grad:'linear-gradient(to right,#fbbf24,#f97316,#ef4444,#7c3aed)', rotating:true},
+    ],
+  };
+
+  const NAME_EFF_ITEMS = {
+    일반: [ // 단색 텍스트 20가지
+      {name:'루비 레드',     color:'#ef4444'},
+      {name:'퍼플 드림',     color:'#8b5cf6'},
+      {name:'오션 블루',     color:'#22d3ee'},
+      {name:'에메랄드',      color:'#10b981'},
+      {name:'골드',          color:'#fbbf24'},
+      {name:'핑크',          color:'#ec4899'},
+      {name:'코발트',        color:'#3b82f6'},
+      {name:'인디고',        color:'#6366f1'},
+      {name:'오렌지',        color:'#f97316'},
+      {name:'틸',            color:'#0d9488'},
+      {name:'라임',          color:'#84cc16'},
+      {name:'로즈',          color:'#f43f5e'},
+      {name:'스카이',        color:'#0ea5e9'},
+      {name:'앰버',          color:'#f59e0b'},
+      {name:'바이올렛',      color:'#a855f7'},
+      {name:'민트',          color:'#34d399'},
+      {name:'코랄',          color:'#fb923c'},
+      {name:'라벤더',        color:'#c4b5fd'},
+      {name:'실버',          color:'#94a3b8'},
+      {name:'화이트',        color:'rgba(255,255,255,0.9)'},
+    ],
+    희귀: [ // 그라데이션 텍스트 10가지
+      {name:'오로라',        grad:'linear-gradient(90deg,#7c3aed,#22d3ee)'},
+      {name:'선셋',          grad:'linear-gradient(90deg,#f97316,#db2777)'},
+      {name:'오션',          grad:'linear-gradient(90deg,#0891b2,#10b981)'},
+      {name:'갤럭시',        grad:'linear-gradient(90deg,#4c1d95,#7c3aed)'},
+      {name:'로즈골드',      grad:'linear-gradient(90deg,#f43f5e,#f97316)'},
+      {name:'노던',          grad:'linear-gradient(90deg,#a855f7,#0891b2)'},
+      {name:'피치',          grad:'linear-gradient(90deg,#ec4899,#9333ea)'},
+      {name:'포레스트',      grad:'linear-gradient(90deg,#15803d,#0ea5e9)'},
+      {name:'파이어아이스',  grad:'linear-gradient(90deg,#ef4444,#3b82f6)'},
+      {name:'코스믹',        grad:'linear-gradient(90deg,#fbbf24,#a855f7)'},
+    ],
+    에픽: [ // 글로우 + 맥동 5가지
+      {name:'퍼플 펄스',  color:'#a855f7', glow:'0 0 10px #a855f7, 0 0 20px rgba(168,85,247,0.6)'},
+      {name:'시안 펄스',  color:'#22d3ee', glow:'0 0 10px #22d3ee, 0 0 20px rgba(34,211,238,0.6)'},
+      {name:'핑크 펄스',  color:'#f472b6', glow:'0 0 10px #f472b6, 0 0 20px rgba(244,114,182,0.6)'},
+      {name:'골드 펄스',  color:'#fbbf24', glow:'0 0 10px #fbbf24, 0 0 20px rgba(251,191,36,0.6)'},
+      {name:'그린 펄스',  color:'#34d399', glow:'0 0 10px #34d399, 0 0 20px rgba(52,211,153,0.6)'},
+    ],
+    전설: [ // 그라데이션 + 흐름 애니메이션 3가지
+      {name:'갤럭시 플로우', grad:'linear-gradient(90deg,#fbbf24,#f472b6,#7c3aed,#22d3ee)', anim:true},
+      {name:'오로라 플로우', grad:'linear-gradient(90deg,#10b981,#0ea5e9,#7c3aed,#f472b6)', anim:true},
+      {name:'코스믹 플로우', grad:'linear-gradient(90deg,#fbbf24,#f97316,#ef4444,#a855f7)', anim:true},
+    ],
+  };
+
   const BOX_DEFS = [
   {
     key:'배너상자', name:'배너 상자', icon:'🖼️',
@@ -510,7 +661,7 @@ const ITEM_VISUALS = {
       const gpColors={일반:'#94a3b8',희귀:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
       const gpBgs={일반:'rgba(148,163,184,0.1)',희귀:'rgba(96,165,250,0.1)',에픽:'rgba(168,85,247,0.1)',전설:'rgba(251,191,36,0.12)'};
       return `<div style="width:100%;height:100%;background:${gpBgs[item.grade]};display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;">
-        <span style="font-size:22px">🪙</span>
+        <span style="display:flex;align-items:center;justify-content:center;"><svg width="28" height="28" viewBox="0 0 22 22" fill="none"><polygon points="11,2 20,18 2,18" fill="url(#sGP)" stroke="#fbbf24" stroke-width="0.5"/><polygon points="11,5 17.5,16.5 4.5,16.5" fill="url(#sGPIn)" opacity="0.55"/><line x1="11" y1="2" x2="4.5" y2="16.5" stroke="white" stroke-width="0.4" opacity="0.25"/><line x1="11" y1="2" x2="17.5" y2="16.5" stroke="white" stroke-width="0.4" opacity="0.25"/><defs><linearGradient id="sGP" x1="2" y1="2" x2="20" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#fde68a"/><stop offset="100%" stop-color="#b45309"/></linearGradient><linearGradient id="sGPIn" x1="4" y1="5" x2="18" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.65"/><stop offset="100%" stop-color="#92400e" stop-opacity="0.2"/></linearGradient></defs></svg></span>
         <span style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:${gpColors[item.grade]}">${item.name}</span>
       </div>`;
     }
@@ -524,30 +675,50 @@ const ITEM_VISUALS = {
     return `<div style="width:100%;height:100%;position:relative;${b.css}">${overlay}</div>`;
   },
   아이콘상자: (item, idx) => {
-    const icons = ['🐯','🦊','🐺','🦁','🐉','🦅','🐻','🦋','🌙','⚡'];
-    return `<div class="icon-normal" style="width:100%;height:100%;border-radius:8px">${icons[idx%icons.length]}</div>`;
+    if(item.isGP) {
+      const c={일반:'#94a3b8',희귀:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+      return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:rgba(0,0,0,0.2)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><polygon points="11,2 20,18 2,18" fill="url(#vGP)" stroke="#fbbf24" stroke-width="0.5"/><defs><linearGradient id="vGP" x1="2" y1="2" x2="20" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#fde68a"/><stop offset="100%" stop-color="#b45309"/></linearGradient></defs></svg><span style="font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;color:${c[item.grade]}">${item.name}</span></div>`;
+    }
+    const g  = item.grade;
+    const bi = item._itemIdx !== undefined ? item._itemIdx : (idx % (ICON_ITEMS[g]?.length||1));
+    const it = (ICON_ITEMS[g]||[])[bi];
+    if(!it) return '';
+    if(it.emoji) return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(96,165,250,0.08);font-size:30px">${it.emoji}</div>`;
+    if(it.svg)   return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(148,163,184,0.06)"><svg width="40" height="40" viewBox="0 0 52 52" fill="none">${it.svg}</svg></div>`;
+    if(it.holo)  return `<div style="width:100%;height:100%;position:relative;overflow:hidden;"><div style="position:absolute;inset:0;background:${it.holo};background-size:200%;${it.anim?'animation:shimmer 2s linear infinite':''}"></div><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-family:'Orbitron',sans-serif;font-weight:900;color:white;text-shadow:0 0 10px rgba(255,255,255,0.8);mix-blend-mode:overlay">✦</div></div>`;
+    if(it.glass) return `<div style="width:100%;height:100%;position:relative;overflow:hidden;background:${it.glass};border:1px solid ${it.border};${it.blur?'backdrop-filter:blur(4px)':''}"><div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);"></div><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px">💠</div></div>`;
+    return '';
   },
   테두리상자: (item, idx) => {
-    const g = item.grade;
-    const ci = idx % 4;
-    const colors = ['#7c3aed','#22d3ee','#f472b6','#fbbf24'];
-    const gradients = ['linear-gradient(135deg,#7c3aed,#22d3ee)','linear-gradient(135deg,#f472b6,#fbbf24)','linear-gradient(135deg,#0ea5e9,#a855f7)'];
-    if(g==='일반') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="width:38px;height:38px;border-radius:50%;border:3px solid ${colors[ci]};background:transparent"></div></div>`;
-    if(g==='희귀') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="width:38px;height:38px;border-radius:50%;border:3px solid transparent;background:${gradients[ci%3]} padding-box, ${gradients[ci%3]} border-box;box-sizing:border-box;border:3px solid transparent;outline:3px solid;outline-color:transparent;box-shadow:inset 0 0 0 3px transparent;position:relative"><div style="position:absolute;inset:-3px;border-radius:50%;background:${gradients[ci%3]};-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;padding:3px"></div></div></div>`;
-    if(g==='에픽') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="width:38px;height:38px;border-radius:50%;border:3px solid #a855f7;box-shadow:0 0 12px #a855f7,0 0 24px rgba(168,85,247,0.4)"></div></div>`;
-    if(g==='전설') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(to right,#fbbf24,#f472b6,#7c3aed,#22d3ee);animation:rotateBorder 2s linear infinite;display:flex;align-items:center;justify-content:center;"><div style="width:36px;height:36px;border-radius:50%;background:var(--bg-card2)"></div></div></div>`;
+    if(item.isGP) {
+      const c={일반:'#94a3b8',희귀:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+      return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:rgba(0,0,0,0.2)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><polygon points="11,2 20,18 2,18" fill="url(#bGP)" stroke="#fbbf24" stroke-width="0.5"/><defs><linearGradient id="bGP" x1="2" y1="2" x2="20" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#fde68a"/><stop offset="100%" stop-color="#b45309"/></linearGradient></defs></svg><span style="font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;color:${c[item.grade]}">${item.name}</span></div>`;
+    }
+    const g  = item.grade;
+    const bi = item._itemIdx !== undefined ? item._itemIdx : (idx % (BORDER_ITEMS[g]?.length||1));
+    const it = (BORDER_ITEMS[g]||[])[bi];
+    if(!it) return '';
+    const sz = 38;
+    if(it.color && !it.glow) return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="width:${sz}px;height:${sz}px;border-radius:50%;border:3px solid ${it.color}"></div></div>`;
+    if(it.grad && !it.rotating) return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="position:relative;width:${sz}px;height:${sz}px;"><div style="position:absolute;inset:-3px;border-radius:50%;background:${it.grad};-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;padding:3px"></div></div></div>`;
+    if(it.glow) return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="width:${sz}px;height:${sz}px;border-radius:50%;border:3px solid ${it.color};box-shadow:${it.glow};animation:glowPulse 1.5s ease-in-out infinite"></div></div>`;
+    if(it.rotating) return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="width:${sz+6}px;height:${sz+6}px;border-radius:50%;background:${it.grad};animation:rotateBorder 2s linear infinite;display:flex;align-items:center;justify-content:center;"><div style="width:${sz}px;height:${sz}px;border-radius:50%;background:var(--bg-card)"></div></div></div>`;
     return '';
   },
   이름효과상자: (item, idx) => {
-    const g = item.grade;
-    const ci = idx % 3;
-    const normals = ['#7c3aed','#22d3ee','#f472b6'];
-    const rareGrads = ['linear-gradient(90deg,#7c3aed,#22d3ee)','linear-gradient(90deg,#f472b6,#fbbf24)','linear-gradient(90deg,#0ea5e9,#a855f7)'];
-    const name = item.name.length > 4 ? item.name.slice(0,4) : item.name;
-    if(g==='일반') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:${normals[ci]}">${name}</span></div>`;
-    if(g==='희귀') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;background:${rareGrads[ci]};-webkit-background-clip:text;-webkit-text-fill-color:transparent">${name}</span></div>`;
-    if(g==='에픽') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:#a855f7;text-shadow:0 0 10px rgba(168,85,247,0.9);animation:glowPulse 1.5s ease-in-out infinite">${name}</span></div>`;
-    if(g==='전설') return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;background:linear-gradient(90deg,#fbbf24,#f472b6,#7c3aed,#22d3ee);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 2s linear infinite">${name}</span></div>`;
+    if(item.isGP) {
+      const c={일반:'#94a3b8',희귀:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+      return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:rgba(0,0,0,0.2)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><polygon points="11,2 20,18 2,18" fill="url(#nGP)" stroke="#fbbf24" stroke-width="0.5"/><defs><linearGradient id="nGP" x1="2" y1="2" x2="20" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#fde68a"/><stop offset="100%" stop-color="#b45309"/></linearGradient></defs></svg><span style="font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;color:${c[item.grade]}">${item.name}</span></div>`;
+    }
+    const g   = item.grade;
+    const bi  = item._itemIdx !== undefined ? item._itemIdx : (idx % (NAME_EFF_ITEMS[g]?.length||1));
+    const it  = (NAME_EFF_ITEMS[g]||[])[bi];
+    if(!it) return '';
+    const label = it.name.length > 5 ? it.name.slice(0,5) : it.name;
+    if(it.color && !it.glow) return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.1)"><span style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:${it.color}">${label}</span></div>`;
+    if(it.grad && !it.anim) return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.1)"><span style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;background:${it.grad};-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">${label}</span></div>`;
+    if(it.glow) return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.15)"><span style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:${it.color};text-shadow:${it.glow};animation:glowPulse 1.5s ease-in-out infinite">${label}</span></div>`;
+    if(it.anim) return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.15)"><span style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;background:${it.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 2s linear infinite">${label}</span></div>`;
     return '';
   }
 };
@@ -581,7 +752,7 @@ function renderCurrencyBar() {
   el.innerHTML = `
     <div class="currency-bar-inner">
       <div class="currency-item">
-        <div class="currency-icon-wrap ruby">🔴</div>
+        <div class="currency-icon-wrap ruby" style="display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 22 22" fill="none"><rect x="3" y="3" width="16" height="16" rx="3" fill="url(#sRuby)" stroke="#f87171" stroke-width="0.5"/><polygon points="11,5 17,9 17,15 11,18 5,15 5,9" fill="url(#sRubyIn)" opacity="0.6"/><line x1="5" y1="9" x2="17" y2="9" stroke="white" stroke-width="0.5" opacity="0.35"/><defs><linearGradient id="sRuby" x1="3" y1="3" x2="19" y2="19" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#ff6b6b"/><stop offset="100%" stop-color="#991b1b"/></linearGradient><linearGradient id="sRubyIn" x1="5" y1="5" x2="17" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.6"/><stop offset="100%" stop-color="#7f1d1d" stop-opacity="0.3"/></linearGradient></defs></svg></div>
         <div><div class="currency-amount ruby" id="hud-ruby">${(curr['루비']||0).toLocaleString()}</div><div class="currency-label-sm">루비</div></div>
       </div>
       <div class="currency-item">
@@ -589,7 +760,7 @@ function renderCurrencyBar() {
         <div><div class="currency-amount crystal" id="hud-crystal">${(curr['크리스탈']||0).toLocaleString()}</div><div class="currency-label-sm">크리스탈</div></div>
       </div>
       <div class="currency-item">
-        <div class="currency-icon-wrap gp">🪙</div>
+        <div class="currency-icon-wrap gp" style="display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 22 22" fill="none"><polygon points="11,2 20,18 2,18" fill="url(#sGP)" stroke="#fbbf24" stroke-width="0.5"/><polygon points="11,5 17.5,16.5 4.5,16.5" fill="url(#sGPIn)" opacity="0.55"/><line x1="11" y1="2" x2="4.5" y2="16.5" stroke="white" stroke-width="0.4" opacity="0.25"/><line x1="11" y1="2" x2="17.5" y2="16.5" stroke="white" stroke-width="0.4" opacity="0.25"/><defs><linearGradient id="sGP" x1="2" y1="2" x2="20" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#fde68a"/><stop offset="100%" stop-color="#b45309"/></linearGradient><linearGradient id="sGPIn" x1="4" y1="5" x2="18" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.65"/><stop offset="100%" stop-color="#92400e" stop-opacity="0.2"/></linearGradient></defs></svg></div>
         <div><div class="currency-amount gp" id="hud-gp">${(curr['GP']||0).toLocaleString()} GP</div><div class="currency-label-sm">GP</div></div>
       </div>
       <div style="margin-left:auto;font-size:11px;color:var(--text-dim)">👤 ${username}</div>
@@ -639,6 +810,33 @@ function buildBoxCard(boxDef, allItems) {
       // GP 보상
       const gp = BANNER_ITEMS.GP[g];
       if(gp) boxItems.push({ boxKey:'배너상자', name:gp.name, grade:g, isGP:true, gpAmount:gp.amount });
+    });
+  } else if(boxDef.key === '아이콘상자') {
+    boxItems = [];
+    ['일반','희귀','에픽','전설'].forEach(g => {
+      (ICON_ITEMS[g]||[]).forEach((it,bi) => {
+        boxItems.push({ boxKey:'아이콘상자', name:it.name, grade:g, _itemIdx:bi, isGP:false });
+      });
+      const gp = BANNER_ITEMS.GP[g];
+      if(gp) boxItems.push({ boxKey:'아이콘상자', name:gp.name, grade:g, isGP:true, gpAmount:gp.amount });
+    });
+  } else if(boxDef.key === '테두리상자') {
+    boxItems = [];
+    ['일반','희귀','에픽','전설'].forEach(g => {
+      (BORDER_ITEMS[g]||[]).forEach((it,bi) => {
+        boxItems.push({ boxKey:'테두리상자', name:it.name, grade:g, _itemIdx:bi, isGP:false });
+      });
+      const gp = BANNER_ITEMS.GP[g];
+      if(gp) boxItems.push({ boxKey:'테두리상자', name:gp.name, grade:g, isGP:true, gpAmount:gp.amount });
+    });
+  } else if(boxDef.key === '이름효과상자') {
+    boxItems = [];
+    ['일반','희귀','에픽','전설'].forEach(g => {
+      (NAME_EFF_ITEMS[g]||[]).forEach((it,bi) => {
+        boxItems.push({ boxKey:'이름효과상자', name:it.name, grade:g, _itemIdx:bi, isGP:false });
+      });
+      const gp = BANNER_ITEMS.GP[g];
+      if(gp) boxItems.push({ boxKey:'이름효과상자', name:gp.name, grade:g, isGP:true, gpAmount:gp.amount });
     });
   } else {
     boxItems = allItems.filter(it=>it.boxKey===boxDef.key);
@@ -748,6 +946,18 @@ function buyBox(boxKey) {
       const bi = Math.floor(Math.random()*bannerList.length);
       item = { boxKey:'배너상자', name:bannerList[bi].name, grade, isGP:false, _bannerIdx:bi };
     }
+  } else if(boxKey === '아이콘상자') {
+    const isGPDrop2 = Math.random() < 0.3;
+    if(isGPDrop2) { const gp=BANNER_ITEMS.GP[grade]; item={boxKey,name:gp.name,grade,isGP:true,gpAmount:gp.amount}; }
+    else { const list=ICON_ITEMS[grade]||[]; const bi=Math.floor(Math.random()*list.length); item={boxKey,name:list[bi].name,grade,isGP:false,_itemIdx:bi}; }
+  } else if(boxKey === '테두리상자') {
+    const isGPDrop3 = Math.random() < 0.3;
+    if(isGPDrop3) { const gp=BANNER_ITEMS.GP[grade]; item={boxKey,name:gp.name,grade,isGP:true,gpAmount:gp.amount}; }
+    else { const list=BORDER_ITEMS[grade]||[]; const bi=Math.floor(Math.random()*list.length); item={boxKey,name:list[bi].name,grade,isGP:false,_itemIdx:bi}; }
+  } else if(boxKey === '이름효과상자') {
+    const isGPDrop4 = Math.random() < 0.3;
+    if(isGPDrop4) { const gp=BANNER_ITEMS.GP[grade]; item={boxKey,name:gp.name,grade,isGP:true,gpAmount:gp.amount}; }
+    else { const list=NAME_EFF_ITEMS[grade]||[]; const bi=Math.floor(Math.random()*list.length); item={boxKey,name:list[bi].name,grade,isGP:false,_itemIdx:bi}; }
   } else {
     item = pickItem(boxKey, grade, window._shopItems||[]);
   }
@@ -792,6 +1002,7 @@ function showOpenModal(boxDef, grade, item, username) {
     // visIdx: 배너는 _bannerIdx, 나머지는 풀 내 인덱스
     let visIdx = 0;
     if(item && item._bannerIdx !== undefined) visIdx = item._bannerIdx;
+    else if(item && item._itemIdx !== undefined) visIdx = item._itemIdx;
     else if(item) visIdx = (window._shopItems||[]).filter(i=>i.boxKey===boxDef.key&&i.grade===grade).indexOf(item);
     const visual = (ITEM_VISUALS[boxDef.key]||(() => ''))(item||{grade,name:itemName}, visIdx);
     resultVisual.innerHTML = visual;
@@ -845,6 +1056,7 @@ function showOpenModal(boxDef, grade, item, username) {
         visualKey: boxDef.key,
         visualIdx: visIdx,
         bannerIdx: item ? item._bannerIdx : undefined,
+        itemIdx:   item ? item._itemIdx   : undefined,
       });
       localStorage.setItem(itemKey, JSON.stringify(items));
     }
