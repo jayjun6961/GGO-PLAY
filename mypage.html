@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마이페이지 — GGO PLAY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:#0a0612; --bg-card:#130d24; --bg-card2:#1a1035;
+    --purple-1:#7c3aed; --purple-2:#9d5ff5; --purple-3:#c084fc;
+    --accent-pink:#f472b6; --accent-cyan:#22d3ee; --accent-gold:#fbbf24;
+    --text-main:#f0e8ff; --text-sub:#9d8ec4; --text-dim:#5c4e7a;
+    --sidebar-w:72px; --bottombar-h:64px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg-deep);color:var(--text-main);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 15% 20%,rgba(124,58,237,0.18) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 85% 75%,rgba(157,95,245,0.12) 0%,transparent 70%);pointer-events:none;z-index:0;}
+
+  /* SIDEBAR */
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:rgba(19,13,36,0.95);border-right:1px solid rgba(124,58,237,0.2);display:flex;flex-direction:column;align-items:center;padding:20px 0;z-index:100;backdrop-filter:blur(20px);}
+  .sidebar-logo{width:42px;height:42px;background:linear-gradient(135deg,var(--purple-1),var(--purple-3));border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:white;margin-bottom:32px;box-shadow:0 0 20px rgba(124,58,237,0.5);}
+  .sidebar-nav{display:flex;flex-direction:column;gap:8px;flex:1;}
+  .nav-item{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;position:relative;color:var(--text-dim);border:none;background:transparent;}
+  .nav-item:hover,.nav-item.active{background:rgba(124,58,237,0.2);color:var(--purple-3);box-shadow:0 0 20px rgba(124,58,237,0.3);}
+  .nav-item.active::before{content:'';position:absolute;left:-12px;width:3px;height:24px;background:var(--purple-2);border-radius:0 3px 3px 0;}
+  .nav-item .tooltip{position:absolute;left:60px;background:rgba(19,13,36,0.95);color:var(--text-main);font-size:12px;padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.15s;z-index:200;border:1px solid rgba(124,58,237,0.2);}
+  .nav-item:hover .tooltip{opacity:1;}
+  .sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .avatar-sm{width:36px;height:36px;border-radius:50%;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);display:flex;align-items:center;justify-content:center;font-size:18px;}
+
+  /* BOTTOM NAV */
+  .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottombar-h);background:rgba(19,13,36,0.97);border-top:1px solid rgba(124,58,237,0.2);z-index:100;backdrop-filter:blur(20px);justify-content:space-around;align-items:center;padding:0 8px;}
+  .bottom-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-dim);font-size:10px;cursor:pointer;padding:6px 12px;border-radius:10px;transition:all 0.2s;flex:1;}
+  .bottom-nav-item .icon{font-size:20px;}
+  .bottom-nav-item.active{color:var(--purple-3);}
+
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+
+  @media(max-width:640px){
+    .sidebar{display:none}.bottom-nav{display:flex}
+    .main-wrap{margin-left:0!important;padding-bottom:calc(var(--bottombar-h)+20px)!important}
+    .stats-row{grid-template-columns:repeat(2,1fr)!important}
+    .deco-grid{grid-template-columns:repeat(2,1fr)!important}
+  }
+
+  /* MAIN */
+  .main-wrap{margin-left:var(--sidebar-w);padding:0 0 48px;position:relative;z-index:1;min-height:100vh;}
+
+  /* TOPBAR */
+  .topbar{display:flex;align-items:center;gap:12px;padding:18px 28px;position:sticky;top:0;z-index:50;background:rgba(10,6,18,0.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(124,58,237,0.1);}
+  .topbar-back{width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--purple-3);font-size:18px;transition:all 0.2s;}
+  .topbar-back:hover{background:rgba(124,58,237,0.3);}
+
+  /* ── 프로필 배너 ── */
+  .profile-banner{
+    width:100%;height:200px;position:relative;overflow:hidden;
+    background:linear-gradient(135deg,#1a0533 0%,#2d1060 40%,#1a0a3a 70%,#0f0620 100%);
+  }
+  .banner-pattern{position:absolute;inset:0;opacity:0.15;background-image:repeating-linear-gradient(45deg,rgba(124,58,237,0.3) 0px,rgba(124,58,237,0.3) 1px,transparent 1px,transparent 20px),repeating-linear-gradient(-45deg,rgba(34,211,238,0.15) 0px,rgba(34,211,238,0.15) 1px,transparent 1px,transparent 20px);}
+  .banner-glow{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 50%,rgba(124,58,237,0.25) 0%,transparent 70%);}
+  .banner-img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+
+  /* ── 프로필 영역 ── */
+  .profile-area{padding:0 28px 24px;position:relative;}
+  .profile-avatar-wrap{position:relative;display:inline-block;margin-top:-48px;margin-bottom:12px;}
+  .profile-avatar{
+    width:88px;height:88px;border-radius:50%;
+    background:linear-gradient(135deg,var(--purple-1),var(--purple-2));
+    border:3px solid var(--bg-deep);
+    display:flex;align-items:center;justify-content:center;
+    font-size:36px;overflow:hidden;position:relative;
+  }
+  .profile-avatar img{width:100%;height:100%;object-fit:cover;}
+  .profile-avatar-border{position:absolute;inset:-4px;border-radius:50%;border:2px solid rgba(124,58,237,0.4);pointer-events:none;}
+
+  .profile-info{animation:fadeUp 0.4s ease;}
+  .profile-title-text{font-size:10px;color:var(--text-dim);margin-bottom:3px;font-family:'Noto Sans KR',sans-serif;}
+  .profile-title-badge{display:inline-block;font-size:10px;color:var(--accent-gold);background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);border-radius:6px;padding:1px 8px;margin-bottom:5px;}
+  .profile-name{font-size:22px;font-weight:700;color:var(--text-main);margin-bottom:4px;}
+  .profile-server{font-size:11px;color:var(--accent-cyan);font-family:'Orbitron',sans-serif;}
+
+  /* ── 스탯 카드 ── */
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px;}
+  .stat-card{background:var(--bg-card);border:1px solid rgba(124,58,237,0.15);border-radius:14px;padding:14px 16px;text-align:center;}
+  .stat-icon{font-size:18px;margin-bottom:6px;}
+  .stat-value{font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;color:var(--purple-3);}
+  .stat-label{font-size:10px;color:var(--text-dim);margin-top:3px;}
+
+  /* ── 꾸미기 레벨 카드 ── */
+  .deco-level-card{
+    background:var(--bg-card);border:1px solid rgba(124,58,237,0.2);
+    border-radius:16px;padding:18px 20px;margin:20px 28px 0;
+    animation:fadeUp 0.4s ease 0.1s both;
+  }
+  .dlc-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .dlc-badge{
+    width:48px;height:48px;border-radius:12px;
+    background:linear-gradient(135deg,var(--purple-1),var(--accent-cyan));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Orbitron',sans-serif;font-size:11px;font-weight:900;color:white;
+    flex-shrink:0;box-shadow:0 0 16px rgba(124,58,237,0.4);
+    flex-direction:column;line-height:1.1;
+  }
+  .dlc-badge .lv-label{font-size:8px;opacity:0.8;}
+  .dlc-info{flex:1;}
+  .dlc-title{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--text-main);}
+  .dlc-exp{font-size:11px;color:var(--text-dim);margin-top:2px;}
+  .dlc-bar-wrap{background:rgba(124,58,237,0.1);border-radius:20px;height:8px;overflow:hidden;margin-top:2px;}
+  .dlc-bar{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--purple-1),var(--purple-3),var(--accent-cyan));transition:width 0.8s ease;box-shadow:0 0 8px rgba(124,58,237,0.4);}
+  .dlc-next{font-size:10px;color:var(--text-dim);margin-top:6px;text-align:right;}
+
+  /* ── 보유 아이템 섹션 ── */
+  .items-section{padding:24px 28px 0;animation:fadeUp 0.4s ease 0.2s both;}
+  .items-section-title{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--text-main);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .items-section-title::after{content:'';flex:1;height:1px;background:rgba(124,58,237,0.12);}
+
+  /* 카테고리 탭 */
+  .cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .cat-tab{padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;transition:all 0.18s;border:1px solid rgba(124,58,237,0.2);color:var(--text-dim);background:var(--bg-card2);}
+  .cat-tab:hover{border-color:rgba(124,58,237,0.4);color:var(--text-sub);}
+  .cat-tab.active{background:rgba(124,58,237,0.2);border-color:var(--purple-2);color:var(--purple-3);}
+
+  /* 아이템 그리드 */
+  .deco-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;}
+  .deco-card{background:var(--bg-card);border:1px solid rgba(124,58,237,0.12);border-radius:12px;padding:12px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;transition:all 0.18s;position:relative;}
+  .deco-card:hover{border-color:rgba(124,58,237,0.35);transform:translateY(-2px);}
+  .deco-card.equipped{border-color:var(--purple-2);background:rgba(124,58,237,0.1);}
+  .deco-card-img{width:56px;height:56px;border-radius:10px;background:var(--bg-card2);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;}
+  .deco-card-img img{width:100%;height:100%;object-fit:cover;border-radius:9px;}
+  .deco-card-name{font-size:10px;color:var(--text-sub);text-align:center;line-height:1.3;word-break:keep-all;}
+  .deco-grade-badge{font-size:8px;font-family:'Orbitron',sans-serif;padding:1px 6px;border-radius:10px;}
+  .grade-일반{background:rgba(148,163,184,0.12);color:#94a3b8;border:1px solid rgba(148,163,184,0.2);}
+  .grade-희귀{background:rgba(96,165,250,0.12);color:#60a5fa;border:1px solid rgba(96,165,250,0.2);}
+  .grade-에픽{background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.2);}
+  .grade-전설{background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.2);}
+  .equipped-tag{position:absolute;top:6px;right:6px;font-size:7px;font-family:'Orbitron',sans-serif;background:rgba(124,58,237,0.3);color:var(--purple-3);border:1px solid rgba(124,58,237,0.4);padding:1px 5px;border-radius:5px;}
+
+  /* 빈 상태 */
+  .empty-items{text-align:center;padding:40px 20px;color:var(--text-dim);}
+  .empty-icon{font-size:36px;margin-bottom:10px;opacity:0.5;}
+  .empty-title{font-size:13px;margin-bottom:6px;color:var(--text-sub);}
+  .empty-sub{font-size:11px;line-height:1.6;}
+  .btn-go-shop{display:inline-block;margin-top:14px;padding:8px 20px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);color:var(--purple-3);border-radius:10px;font-size:12px;cursor:pointer;transition:all 0.18s;}
+  .btn-go-shop:hover{background:rgba(124,58,237,0.25);}
+
+  /* 로딩 */
+  .loading-wrap{text-align:center;padding:60px;color:var(--text-dim);}
+  .spinner{width:32px;height:32px;border:3px solid rgba(124,58,237,0.15);border-top-color:var(--purple-2);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+
+  /* EXP 정보 */
+  .exp-info-wrap{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .exp-chip{font-size:10px;padding:3px 9px;border-radius:8px;font-family:'Orbitron',sans-serif;background:var(--bg-card2);border:1px solid rgba(124,58,237,0.15);color:var(--text-dim);}
+  .exp-chip span{color:var(--text-sub);}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">G</div>
+  <nav class="sidebar-nav">
+    <button class="nav-item" onclick="location.href='index.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg><span class="tooltip">홈</span></button>
+    <button class="nav-item" onclick="location.href='character.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="tooltip">캐릭터</span></button>
+    <button class="nav-item" onclick="location.href='equipment.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg><span class="tooltip">장비</span></button>
+    <button class="nav-item" onclick="location.href='battlepass.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="tooltip">배틀패스</span></button>
+    <button class="nav-item" onclick="location.href='tournament.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 19h20M2 19l3-10 5 5 2-8 2 8 5-5 3 10"/><circle cx="12" cy="6" r="1" fill="currentColor"/></svg><span class="tooltip">친선대회</span></button>
+    <button class="nav-item" onclick="location.href='activity.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tooltip">활동점수</span></button>
+    <button class="nav-item" onclick="location.href='shop.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><span class="tooltip">상점</span></button>
+    <button class="nav-item" onclick="location.href='event.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg><span class="tooltip">이벤트</span></button>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="nav-item" onclick="location.href='index.html'">⚙️<span class="tooltip">홈으로</span></button>
+    <div class="avatar-sm" style="cursor:pointer" onclick="location.href='mypage.html'">👤</div>
+  </div>
+</aside>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-item" onclick="location.href='index.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span><span>홈</span></div>
+  <div class="bottom-nav-item" onclick="location.href='character.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span><span>캐릭터</span></div>
+  <div class="bottom-nav-item" onclick="location.href='equipment.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg></span><span>장비</span></div>
+  <div class="bottom-nav-item active"><span class="icon">👤</span><span>마이페이지</span></div>
+  <div class="bottom-nav-item" onclick="location.href='event.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg></span><span>이벤트</span></div>
+</nav>
+
+<main class="main-wrap">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-back" onclick="location.href='index.html'">←</div>
+    <span style="font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900">마이페이지</span>
+  </div>
+
+  <div id="loading-state" class="loading-wrap"><div class="spinner"></div>불러오는 중...</div>
+
+  <div id="content-wrap" style="display:none">
+
+    <!-- 프로필 배너 -->
+    <div class="profile-banner" id="profile-banner">
+      <div class="banner-pattern"></div>
+      <div class="banner-glow"></div>
+    </div>
+
+    <!-- 프로필 정보 -->
+    <div class="profile-area">
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar" id="profile-avatar">👤</div>
+        <div class="profile-avatar-border" id="profile-border"></div>
+      </div>
+      <div class="profile-info">
+        <div class="profile-title-badge" id="profile-title" style="display:none"></div>
+        <div class="profile-name" id="profile-name">—</div>
+        <div class="profile-server" id="profile-server"></div>
+      </div>
+
+      <!-- 스탯 -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-value" id="stat-bp">—</div>
+          <div class="stat-label">배틀패스 점수</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-value" id="stat-ts">—</div>
+          <div class="stat-label">친선대회 점수</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✨</div>
+          <div class="stat-value" id="stat-deco-lv">Lv.1</div>
+          <div class="stat-label">꾸미기 레벨</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 꾸미기 레벨 카드 -->
+    <div class="deco-level-card">
+      <div class="dlc-header">
+        <div class="dlc-badge">
+          <div class="lv-label">LV</div>
+          <div id="dlc-lv-num">1</div>
+        </div>
+        <div class="dlc-info">
+          <div class="dlc-title">꾸미기 레벨</div>
+          <div class="dlc-exp" id="dlc-exp-text">0 / 1000 EXP</div>
+          <div class="dlc-bar-wrap" style="margin-top:8px">
+            <div class="dlc-bar" id="dlc-bar" style="width:0%"></div>
+          </div>
+          <div class="dlc-next" id="dlc-next-text">다음 레벨까지 1000 EXP</div>
+        </div>
+      </div>
+      <!-- EXP 획득 안내 -->
+      <div class="exp-info-wrap">
+        <div class="exp-chip">일반 <span>+100 EXP</span></div>
+        <div class="exp-chip">희귀 <span>+300 EXP</span></div>
+        <div class="exp-chip">에픽 <span>+500 EXP</span></div>
+        <div class="exp-chip">전설 <span>+1000 EXP</span></div>
+      </div>
+    </div>
+
+    <!-- 보유 아이템 섹션 -->
+    <div class="items-section">
+      <div class="items-section-title">🎨 보유 꾸미기 아이템</div>
+
+      <!-- 카테고리 탭 -->
+      <div class="cat-tabs">
+        <div class="cat-tab active" onclick="filterCat('전체',this)">전체</div>
+        <div class="cat-tab" onclick="filterCat('프로필배너',this)">🖼 배너</div>
+        <div class="cat-tab" onclick="filterCat('프로필아이콘',this)">👤 아이콘</div>
+        <div class="cat-tab" onclick="filterCat('테두리효과',this)">💫 테두리</div>
+        <div class="cat-tab" onclick="filterCat('칭호',this)">🏅 칭호</div>
+        <div class="cat-tab" onclick="filterCat('이름색상효과',this)">🎨 이름색상</div>
+      </div>
+
+      <div class="deco-grid" id="deco-grid">
+        <div class="empty-items" style="grid-column:1/-1">
+          <div class="empty-icon">🛍️</div>
+          <div class="empty-title">아직 보유한 아이템이 없어요</div>
+          <div class="empty-sub">상점에서 꾸미기 아이템을 구매하면<br>이곳에 표시됩니다</div>
+          <div class="btn-go-shop" onclick="location.href='shop.html'">🛒 상점 방문하기</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content-wrap -->
+</main>
+
+<script>
+  const CSV_MEMBER = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1765510409&single=true&output=csv';
+
+  const EXP_PER_GRADE = {일반:100, 희귀:300, 에픽:500, 전설:1000};
+  const EXP_PER_LEVEL = 1000;
+
+  let allItems = []; // 보유 아이템 전체 (상점 연동 후 채워짐)
+
+  function parseCSV(txt) {
+    return txt.trim().split('\n').slice(1).map(line => {
+      const cols=[]; let cur='',inQ=false;
+      for(let c of line){if(c==='"'){inQ=!inQ;continue;}if(c===','&&!inQ){cols.push(cur.trim());cur='';}else cur+=c;}
+      cols.push(cur.trim()); return cols;
+    }).filter(r=>r[0]);
+  }
+
+  function calcDecoLevel(items) {
+    const totalExp = items.reduce((sum,it) => sum + (EXP_PER_GRADE[it.grade]||0), 0);
+    const level = Math.floor(totalExp / EXP_PER_LEVEL) + 1;
+    const expInLevel = totalExp % EXP_PER_LEVEL;
+    return { level, totalExp, expInLevel };
+  }
+
+  function renderDecoLevel(items) {
+    const { level, totalExp, expInLevel } = calcDecoLevel(items);
+    const pct = (expInLevel / EXP_PER_LEVEL) * 100;
+
+    document.getElementById('dlc-lv-num').textContent = level;
+    document.getElementById('stat-deco-lv').textContent = 'Lv.' + level;
+    document.getElementById('dlc-exp-text').textContent = `${expInLevel} / ${EXP_PER_LEVEL} EXP  (총 ${totalExp} EXP)`;
+    document.getElementById('dlc-next-text').textContent = `다음 레벨까지 ${EXP_PER_LEVEL - expInLevel} EXP`;
+    setTimeout(() => {
+      document.getElementById('dlc-bar').style.width = pct + '%';
+    }, 100);
+  }
+
+  function renderItems(items) {
+    const grid = document.getElementById('deco-grid');
+    if(!items.length) {
+      grid.innerHTML = `
+        <div class="empty-items" style="grid-column:1/-1">
+          <div class="empty-icon">🛍️</div>
+          <div class="empty-title">아직 보유한 아이템이 없어요</div>
+          <div class="empty-sub">상점에서 꾸미기 아이템을 구매하면<br>이곳에 표시됩니다</div>
+          <div class="btn-go-shop" onclick="location.href='shop.html'">🛒 상점 방문하기</div>
+        </div>`;
+      return;
+    }
+
+    const CAT_ICONS = {프로필배너:'🖼',프로필아이콘:'👤',테두리효과:'💫',칭호:'🏅',이름색상효과:'🎨'};
+    grid.innerHTML = items.map(it => {
+      const imgHtml = it.img
+        ? `<img src="${it.img}" onerror="this.outerHTML='<span>${CAT_ICONS[it.type]||'✨'}</span>'">`
+        : `<span>${CAT_ICONS[it.type]||'✨'}</span>`;
+      const equippedTag = it.equipped ? '<div class="equipped-tag">장착중</div>' : '';
+      return `<div class="deco-card ${it.equipped?'equipped':''}">
+        ${equippedTag}
+        <div class="deco-card-img">${imgHtml}</div>
+        <div class="deco-card-name">${it.name}</div>
+        <span class="deco-grade-badge grade-${it.grade}">${it.grade}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function filterCat(cat, el) {
+    document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    const filtered = cat==='전체' ? allItems : allItems.filter(it=>it.type===cat);
+    renderItems(filtered);
+  }
+
+  async function loadMyPage() {
+    // 로그인 체크
+    const username = localStorage.getItem('ggo_username');
+    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    if(!isLoggedIn || !username) { location.href='login.html'; return; }
+
+    try {
+      // 회원 데이터 로드: A=ID, B=GGO NUMBER, C=배틀패스점수, D=친선대회점수
+      const res = await fetch(CSV_MEMBER+'&t='+Date.now(), {cache:'no-store'});
+      const rows = parseCSV(await res.text());
+      const user = rows.find(r=>r[0].trim()===username);
+
+      const bp   = user ? (parseFloat(user[2])||0) : 0;
+      const ts   = user ? (parseFloat(user[3])||0) : 0;
+
+      // 보유 아이템: localStorage에서 로드 (상점 연동 후 채워짐)
+      const storedItems = JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
+      allItems = storedItems;
+
+      // 프로필 렌더
+      document.getElementById('profile-name').textContent = username;
+      document.getElementById('stat-bp').textContent = bp.toLocaleString();
+      document.getElementById('stat-ts').textContent = ts.toLocaleString();
+
+      // 칭호 (보유 아이템 중 장착된 칭호)
+      const equippedTitle = allItems.find(it=>it.type==='칭호'&&it.equipped);
+      if(equippedTitle) {
+        const titleEl = document.getElementById('profile-title');
+        titleEl.textContent = '< ' + equippedTitle.name + ' >';
+        titleEl.style.display = 'inline-block';
+      }
+
+      // 꾸미기 레벨
+      renderDecoLevel(allItems);
+
+      // 아이템 렌더
+      renderItems(allItems);
+
+      document.getElementById('loading-state').style.display='none';
+      document.getElementById('content-wrap').style.display='block';
+
+    } catch(e) {
+      document.getElementById('loading-state').innerHTML=`<div style="color:var(--accent-pink);font-size:13px">⚠️ 불러오기 실패<br><small style="color:var(--text-dim)">${e.message}</small><br><br><button onclick="loadMyPage()" style="margin-top:8px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);color:var(--purple-3);padding:8px 20px;border-radius:8px;cursor:pointer;">↻ 다시 시도</button></div>`;
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', loadMyPage);
+</script>
+</body>
+</html>
