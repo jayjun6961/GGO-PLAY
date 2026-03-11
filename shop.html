@@ -285,6 +285,179 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* 로딩 */
 .loading-wrap{text-align:center;padding:60px;color:var(--text-dim);}
 .spinner{width:32px;height:32px;border:3px solid rgba(124,58,237,0.15);border-top-color:var(--purple-2);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+
+  /* 중복 아이템 → GP 전환 */
+  @keyframes itemFadeOut {
+    0%   { opacity:1; transform:scale(1); }
+    60%  { opacity:1; transform:scale(1.05); }
+    100% { opacity:0; transform:scale(0.7); }
+  }
+  @keyframes gpFadeIn {
+    0%   { opacity:0; transform:scale(0.7) translateY(10px); }
+    100% { opacity:1; transform:scale(1) translateY(0); }
+  }
+  @keyframes dupeBadgePop {
+    0%   { opacity:0; transform:translateY(-10px) scale(0.8); }
+    60%  { opacity:1; transform:translateY(4px) scale(1.05); }
+    100% { opacity:1; transform:translateY(0) scale(1); }
+  }
+  .dupe-badge {
+    position:absolute;top:-10px;left:50%;transform:translateX(-50%);
+    background:linear-gradient(135deg,#f97316,#fbbf24);
+    color:#000;font-size:9px;font-weight:700;font-family:'Orbitron',sans-serif;
+    padding:3px 8px;border-radius:10px;white-space:nowrap;
+    animation:dupeBadgePop 0.4s ease forwards;
+    z-index:10;
+  }
+
+
+  /* ── 재화 변경 섹션 ── */
+  .exchange-section {
+    margin-top: 40px;
+    padding: 0 0 40px;
+  }
+  .exchange-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .exchange-subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+  .exchange-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media(max-width:640px) {
+    .exchange-cards { grid-template-columns: 1fr; }
+  }
+  .exchange-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: border-color 0.2s;
+  }
+  .exchange-card:hover { border-color: rgba(124,58,237,0.4); }
+  .exchange-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .exchange-card-header .ex-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ex-icon.ruby-icon { background: rgba(239,68,68,0.15); }
+  .ex-icon.crystal-icon { background: rgba(96,165,250,0.12); }
+  .exchange-rate {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .exchange-rate-highlight {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+  .exchange-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .exchange-input-wrap {
+    flex: 1;
+    position: relative;
+  }
+  .exchange-input-wrap input {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 10px;
+    color: var(--text-main);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 40px 10px 14px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  .exchange-input-wrap input:focus { border-color: rgba(124,58,237,0.6); }
+  .exchange-input-wrap .input-suffix {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: 'Orbitron', sans-serif;
+    pointer-events: none;
+  }
+  .exchange-btn {
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .exchange-btn:hover  { opacity: 0.85; }
+  .exchange-btn:active { transform: scale(0.97); }
+  .exchange-btn.ruby-btn  { background: linear-gradient(135deg,#ef4444,#b91c1c); color: #fff; }
+  .exchange-btn.crystal-btn { background: linear-gradient(135deg,#3b82f6,#1d4ed8); color: #fff; }
+  .exchange-result {
+    font-size: 11px;
+    color: var(--accent-cyan);
+    font-family: 'Orbitron', sans-serif;
+    min-height: 16px;
+    text-align: center;
+  }
+  .exchange-result.error { color: var(--accent-pink); }
+  .exchange-result.success { color: #34d399; }
+  .exchange-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    min-height: 24px;
+  }
+  .exchange-preview .arrow { color: var(--text-dim); font-size: 14px; }
+  .exchange-preview .preview-amount {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .preview-ruby { color: #f87171; }
+  .preview-crystal { color: #60a5fa; }
+  .preview-gp { color: #fbbf24; }
+
 </style>
 </head>
 <body>
@@ -343,6 +516,74 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
 
     <div class="shop-grid" id="shop-grid"></div>
+
+    <!-- ── 재화 변경 ── -->
+    <div class="exchange-section">
+      <div class="exchange-title">
+        <span>💱</span> 재화 변경
+      </div>
+      <div class="exchange-subtitle">GP를 루비 또는 크리스탈로 변경할 수 있습니다 · 최소 100 GP부터 · 1:1 비율</div>
+      <div class="exchange-cards">
+
+        <!-- GP → 루비 -->
+        <div class="exchange-card">
+          <div class="exchange-card-header">
+            <div class="ex-icon ruby-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="3" width="16" height="16" rx="3" fill="url(#exRuby)" stroke="#f87171" stroke-width="0.5"/><polygon points="11,5 17,9 17,15 11,18 5,15 5,9" fill="url(#exRubyIn)" opacity="0.6"/><line x1="5" y1="9" x2="17" y2="9" stroke="white" stroke-width="0.5" opacity="0.35"/><defs><linearGradient id="exRuby" x1="3" y1="3" x2="19" y2="19" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#ff6b6b"/><stop offset="100%" stop-color="#991b1b"/></linearGradient><linearGradient id="exRubyIn" x1="5" y1="5" x2="17" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.6"/><stop offset="100%" stop-color="#7f1d1d" stop-opacity="0.3"/></linearGradient></defs></svg>
+            </div>
+            <div>
+              <div>GP → 루비</div>
+              <div style="font-size:10px;font-weight:400;color:var(--text-dim);font-family:'Noto Sans KR',sans-serif;">GP를 루비로 전환</div>
+            </div>
+          </div>
+          <div class="exchange-rate">
+            <span>교환 비율</span>
+            <span class="exchange-rate-highlight">100 GP = 100 루비</span>
+          </div>
+          <div class="exchange-input-row">
+            <div class="exchange-input-wrap">
+              <input type="number" id="ex-ruby-input" min="100" step="100" placeholder="100" oninput="updateExchangePreview('ruby')">
+              <span class="input-suffix">GP</span>
+            </div>
+            <button class="exchange-btn ruby-btn" onclick="doExchange('ruby')">변경</button>
+          </div>
+          <div class="exchange-preview" id="ex-ruby-preview">
+            <span style="color:var(--text-dim);font-size:11px;">금액을 입력하세요</span>
+          </div>
+          <div class="exchange-result" id="ex-ruby-result"></div>
+        </div>
+
+        <!-- GP → 크리스탈 -->
+        <div class="exchange-card">
+          <div class="exchange-card-header">
+            <div class="ex-icon crystal-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2L18 8L16 18H6L4 8Z" fill="url(#exCrystal)" stroke="#93c5fd" stroke-width="0.5"/><path d="M11 2L4 8L6 18" fill="url(#exCrystalIn)" opacity="0.4"/><line x1="4" y1="8" x2="18" y2="8" stroke="white" stroke-width="0.4" opacity="0.3"/><defs><linearGradient id="exCrystal" x1="4" y1="2" x2="18" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#93c5fd"/><stop offset="100%" stop-color="#1d4ed8"/></linearGradient><linearGradient id="exCrystalIn" x1="4" y1="2" x2="14" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.6"/><stop offset="100%" stop-color="#1e3a8a" stop-opacity="0.2"/></linearGradient></defs></svg>
+            </div>
+            <div>
+              <div>GP → 크리스탈</div>
+              <div style="font-size:10px;font-weight:400;color:var(--text-dim);font-family:'Noto Sans KR',sans-serif;">GP를 크리스탈로 전환</div>
+            </div>
+          </div>
+          <div class="exchange-rate">
+            <span>교환 비율</span>
+            <span class="exchange-rate-highlight">100 GP = 100 크리스탈</span>
+          </div>
+          <div class="exchange-input-row">
+            <div class="exchange-input-wrap">
+              <input type="number" id="ex-crystal-input" min="100" step="100" placeholder="100" oninput="updateExchangePreview('crystal')">
+              <span class="input-suffix">GP</span>
+            </div>
+            <button class="exchange-btn crystal-btn" onclick="doExchange('crystal')">변경</button>
+          </div>
+          <div class="exchange-preview" id="ex-crystal-preview">
+            <span style="color:var(--text-dim);font-size:11px;">금액을 입력하세요</span>
+          </div>
+          <div class="exchange-result" id="ex-crystal-result"></div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </main>
 
@@ -1037,38 +1278,171 @@ function showOpenModal(boxDef, grade, item, username) {
 
     // 아이템/재화 저장 (마이페이지 연동)
     const TYPE_MAP = {배너상자:'프로필배너',아이콘상자:'프로필아이콘',테두리상자:'테두리효과',이름효과상자:'이름색상효과'};
+    const GP_DUPE = {일반:10, 희귀:30, 에픽:50, 전설:100};
+
     if(item && item.isGP) {
-      // GP 지급
+      // 원래 GP 드롭
       const currKey = 'ggo_currency_'+username;
       const curr    = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
       curr['GP'] = (curr['GP']||0) + (item.gpAmount||0);
       localStorage.setItem(currKey, JSON.stringify(curr));
     } else {
-      const itemKey = 'ggo_items_'+username;
-      const items   = JSON.parse(localStorage.getItem(itemKey)||'[]');
-      items.push({
-        name: itemName,
-        type: TYPE_MAP[boxDef.key]||boxDef.key,
-        grade,
-        img: '',
-        equipped: false,
-        source: '상점',
-        visualKey: boxDef.key,
-        visualIdx: visIdx,
-        bannerIdx: item ? item._bannerIdx : undefined,
-        itemIdx:   item ? item._itemIdx   : undefined,
-      });
-      localStorage.setItem(itemKey, JSON.stringify(items));
+      const itemType = TYPE_MAP[boxDef.key]||boxDef.key;
+      const itemKey  = 'ggo_items_'+username;
+      const items    = JSON.parse(localStorage.getItem(itemKey)||'[]');
 
-      // 꾸미기 EXP 누적 (삭제해도 유지)
-      const EXP_MAP_SHOP = {일반:100, 희귀:300, 에픽:500, 전설:1000};
-      const expGain  = EXP_MAP_SHOP[grade] || 0;
-      const expKey   = 'ggo_deco_exp_' + username;
-      const prevExp  = parseInt(localStorage.getItem(expKey) || '0');
-      localStorage.setItem(expKey, prevExp + expGain);
+      // ── 중복 체크 ──
+      const isDupe = items.some(it => it.name === itemName && it.type === itemType);
+
+      if(isDupe) {
+        // 중복: 아이템 표시 후 GP로 전환
+        const dupeGP = GP_DUPE[grade] || 10;
+
+        // 중복 배지 표시
+        const dupeEl = document.createElement('div');
+        dupeEl.className = 'dupe-badge';
+        dupeEl.textContent = '이미 보유중!';
+        resultWrap.style.position = 'relative';
+        resultWrap.appendChild(dupeEl);
+
+        // 1.2초 후 아이템 → GP 전환
+        setTimeout(() => {
+          resultVisual.style.animation = 'itemFadeOut 0.5s ease forwards';
+          setTimeout(() => {
+            // GP 비주얼로 교체
+            const gpColors = {일반:'#94a3b8',희귀:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+            resultVisual.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;background:rgba(0,0,0,0.2);">
+              <svg width="32" height="32" viewBox="0 0 22 22" fill="none"><polygon points="11,2 20,18 2,18" fill="url(#dupeGP)" stroke="#fbbf24" stroke-width="0.5"/><defs><linearGradient id="dupeGP" x1="2" y1="2" x2="20" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#fde68a"/><stop offset="100%" stop-color="#b45309"/></linearGradient></defs></svg>
+              <span style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:${gpColors[grade]}">+${dupeGP} GP</span>
+            </div>`;
+            resultVisual.style.animation = 'gpFadeIn 0.5s ease forwards';
+            nameEl.textContent  = `+${dupeGP} GP (중복 보상)`;
+            descEl.textContent  = '이미 보유한 아이템입니다. GP로 보상이 지급되었습니다.';
+            if(dupeEl.parentElement) dupeEl.remove();
+          }, 500);
+        }, 1200);
+
+        // GP 지급
+        const currKey2 = 'ggo_currency_'+username;
+        const curr2    = JSON.parse(localStorage.getItem(currKey2)||'{"루비":0,"크리스탈":0,"GP":0}');
+        curr2['GP'] = (curr2['GP']||0) + dupeGP;
+        localStorage.setItem(currKey2, JSON.stringify(curr2));
+
+      } else {
+        // 신규 아이템 저장
+        items.push({
+          name: itemName,
+          type: itemType,
+          grade,
+          img: '',
+          equipped: false,
+          source: '상점',
+          visualKey: boxDef.key,
+          visualIdx: visIdx,
+          bannerIdx: item ? item._bannerIdx : undefined,
+          itemIdx:   item ? item._itemIdx   : undefined,
+        });
+        localStorage.setItem(itemKey, JSON.stringify(items));
+
+        // 꾸미기 EXP 누적 (삭제해도 유지)
+        const EXP_MAP_SHOP = {일반:100, 희귀:300, 에픽:500, 전설:1000};
+        const expGain  = EXP_MAP_SHOP[grade] || 0;
+        const expKey   = 'ggo_deco_exp_' + username;
+        const prevExp  = parseInt(localStorage.getItem(expKey) || '0');
+        localStorage.setItem(expKey, prevExp + expGain);
+      }
     }
 
   }, 900);
+}
+
+
+// ── 재화 변경 ──
+function updateExchangePreview(type) {
+  const input  = document.getElementById(`ex-${type}-input`);
+  const preview= document.getElementById(`ex-${type}-preview`);
+  const result = document.getElementById(`ex-${type}-result`);
+  result.textContent = '';
+  result.className   = 'exchange-result';
+
+  const val = parseInt(input.value) || 0;
+  if(!val || val < 100) {
+    preview.innerHTML = '<span style="color:var(--text-dim);font-size:11px;">최소 100 GP 이상 입력하세요</span>';
+    return;
+  }
+  if(val % 100 !== 0) {
+    preview.innerHTML = '<span style="color:var(--accent-pink);font-size:11px;">100 단위로만 변경 가능합니다</span>';
+    return;
+  }
+  const svgGP = `<svg width="14" height="14" viewBox="0 0 22 22" fill="none"><polygon points="11,2 20,18 2,18" fill="#fbbf24"/></svg>`;
+  const svgRuby = `<svg width="14" height="14" viewBox="0 0 22 22" fill="none"><rect x="3" y="3" width="16" height="16" rx="3" fill="#ef4444"/></svg>`;
+  const svgCrystal = `<svg width="14" height="14" viewBox="0 0 22 22" fill="none"><path d="M11 2L18 8L16 18H6L4 8Z" fill="#3b82f6"/></svg>`;
+  const targetIcon = type === 'ruby' ? svgRuby : svgCrystal;
+  const targetClass = type === 'ruby' ? 'preview-ruby' : 'preview-crystal';
+  const targetLabel = type === 'ruby' ? '루비' : '크리스탈';
+  preview.innerHTML = `
+    ${svgGP} <span class="preview-amount preview-gp">${val.toLocaleString()} GP</span>
+    <span class="arrow">→</span>
+    ${targetIcon} <span class="preview-amount ${targetClass}">${val.toLocaleString()} ${targetLabel}</span>
+  `;
+}
+
+function doExchange(type) {
+  const username = localStorage.getItem('ggo_username');
+  if(!username) { alert('로그인 후 이용하세요.'); return; }
+
+  const input   = document.getElementById(`ex-${type}-input`);
+  const resultEl= document.getElementById(`ex-${type}-result`);
+  const val     = parseInt(input.value) || 0;
+
+  resultEl.className   = 'exchange-result';
+  resultEl.textContent = '';
+
+  if(!val || val < 100) {
+    resultEl.className   = 'exchange-result error';
+    resultEl.textContent = '최소 100 GP 이상 입력하세요.';
+    return;
+  }
+  if(val % 100 !== 0) {
+    resultEl.className   = 'exchange-result error';
+    resultEl.textContent = '100 단위로만 변경 가능합니다.';
+    return;
+  }
+
+  const currKey = 'ggo_currency_' + username;
+  const curr    = JSON.parse(localStorage.getItem(currKey) || '{"루비":0,"크리스탈":0,"GP":0}');
+  const gpNow   = curr['GP'] || 0;
+
+  if(gpNow < val) {
+    resultEl.className   = 'exchange-result error';
+    resultEl.textContent = `GP가 부족합니다. (보유: ${gpNow.toLocaleString()} GP)`;
+    return;
+  }
+
+  // 변경 처리
+  curr['GP'] -= val;
+  const targetKey = type === 'ruby' ? '루비' : '크리스탈';
+  curr[targetKey] = (curr[targetKey] || 0) + val;
+  localStorage.setItem(currKey, JSON.stringify(curr));
+
+  // HUD 업데이트
+  const hudRuby    = document.getElementById('hud-ruby');
+  const hudCrystal = document.getElementById('hud-crystal');
+  const hudGP      = document.getElementById('hud-gp');
+  if(hudRuby)    hudRuby.textContent    = (curr['루비']||0).toLocaleString();
+  if(hudCrystal) hudCrystal.textContent = (curr['크리스탈']||0).toLocaleString();
+  if(hudGP)      hudGP.textContent      = (curr['GP']||0).toLocaleString();
+
+  const targetLabel = type === 'ruby' ? '루비' : '크리스탈';
+  resultEl.className   = 'exchange-result success';
+  resultEl.textContent = `✓ ${val.toLocaleString()} ${targetLabel} 획득! (잔여 GP: ${curr['GP'].toLocaleString()})`;
+
+  // 입력 초기화
+  input.value = '';
+  document.getElementById(`ex-${type}-preview`).innerHTML = '<span style="color:var(--text-dim);font-size:11px;">금액을 입력하세요</span>';
+
+  // 3초 후 결과 메시지 제거
+  setTimeout(() => { resultEl.textContent = ''; resultEl.className = 'exchange-result'; }, 3000);
 }
 
 function closeOpenModal() {
