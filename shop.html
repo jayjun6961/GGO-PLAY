@@ -367,7 +367,103 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 <script>
 const CSV_SHOP = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=780892307&single=true&output=csv';
 
-const BOX_DEFS = [
+
+  // ══════════════════════════════════════════════
+  //  배너상자 아이템 데이터 (하드코딩)
+  // ══════════════════════════════════════════════
+  const BANNER_ITEMS = {
+    일반: [
+      // 단색 20가지
+      { name:'미드나잇 블루',   css:'background:#1e3a5f;' },
+      { name:'딥 퍼플',        css:'background:#2d1b69;' },
+      { name:'포레스트 그린',   css:'background:#1a3d2b;' },
+      { name:'크림슨 레드',     css:'background:#6b1a1a;' },
+      { name:'다크 마젠타',     css:'background:#4a1040;' },
+      { name:'오션 딥',        css:'background:#0d2e4a;' },
+      { name:'아이언 그레이',   css:'background:#2c3140;' },
+      { name:'다크 슬레이트',   css:'background:#1c2b3a;' },
+      { name:'브론즈 틴트',     css:'background:#3d2b1a;' },
+      { name:'에메랄드 나이트', css:'background:#0d3b2e;' },
+      { name:'인디고 다크',     css:'background:#1a1f5e;' },
+      { name:'마룬 섀도우',     css:'background:#4a1525;' },
+      { name:'틸 어비스',       css:'background:#0d3535;' },
+      { name:'다크 올리브',     css:'background:#2a2e1a;' },
+      { name:'딥 코랄',        css:'background:#5c2a1a;' },
+      { name:'나이트 바이올렛', css:'background:#2e1545;' },
+      { name:'스틸 블루',       css:'background:#1e3050;' },
+      { name:'다크 사이안',     css:'background:#0d3040;' },
+      { name:'어쉬 블랙',       css:'background:#1a1a2e;' },
+      { name:'다크 앰버',       css:'background:#3d2800;' },
+    ],
+    희귀: [
+      // 그라데이션 10가지
+      { name:'오로라',         css:'background:linear-gradient(135deg,#0ea5e9,#7c3aed);' },
+      { name:'선셋 글로우',    css:'background:linear-gradient(135deg,#f97316,#db2777);' },
+      { name:'오션 드림',      css:'background:linear-gradient(135deg,#0891b2,#0d9488);' },
+      { name:'포레스트 미스트', css:'background:linear-gradient(135deg,#15803d,#0ea5e9);' },
+      { name:'갤럭시 더스트',  css:'background:linear-gradient(135deg,#4c1d95,#1e3a8a);' },
+      { name:'로즈 골드',      css:'background:linear-gradient(135deg,#9f1239,#c2410c);' },
+      { name:'민트 초콜릿',    css:'background:linear-gradient(135deg,#065f46,#1e3a5f);' },
+      { name:'노던 라이트',    css:'background:linear-gradient(135deg,#7c3aed,#0891b2);' },
+      { name:'피치 블러쉬',    css:'background:linear-gradient(135deg,#be185d,#9333ea);' },
+      { name:'아쿠아 마린',    css:'background:linear-gradient(135deg,#0369a1,#0f766e);' },
+    ],
+    에픽: [
+      // 패턴/무늬 5가지
+      {
+        name:'사이버 그리드',
+        css:'background:linear-gradient(135deg,#0f0230,#1e0755);',
+        overlay:`<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' style='position:absolute;inset:0;opacity:0.4'><defs><pattern id='g1' width='16' height='16' patternUnits='userSpaceOnUse'><path d='M 16 0 L 0 0 0 16' fill='none' stroke='#7c3aed' stroke-width='0.5'/></pattern></defs><rect width='100%' height='100%' fill='url(#g1)'/></svg>`
+      },
+      {
+        name:'디지털 레인',
+        css:'background:linear-gradient(180deg,#020d18,#0a2a1a);',
+        overlay:`<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' style='position:absolute;inset:0;opacity:0.35'><defs><pattern id='g2' width='8' height='32' patternUnits='userSpaceOnUse'><rect width='2' height='20' x='3' y='6' fill='#22d3ee' rx='1'/></pattern></defs><rect width='100%' height='100%' fill='url(#g2)'/></svg>`
+      },
+      {
+        name:'헥사곤 필드',
+        css:'background:linear-gradient(135deg,#1a0a3a,#0a1f3d);',
+        overlay:`<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' style='position:absolute;inset:0;opacity:0.3'><defs><pattern id='g3' width='28' height='24' patternUnits='userSpaceOnUse'><polygon points='14,2 25,8 25,18 14,22 3,18 3,8' fill='none' stroke='#a855f7' stroke-width='0.8'/></pattern></defs><rect width='100%' height='100%' fill='url(#g3)'/></svg>`
+      },
+      {
+        name:'스타 필드',
+        css:'background:radial-gradient(ellipse at 50% 50%,#1a0a3a 0%,#000 100%);',
+        overlay:`<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' style='position:absolute;inset:0'><circle cx='10%' cy='20%' r='1' fill='white' opacity='0.8'/><circle cx='25%' cy='60%' r='1.5' fill='white' opacity='0.6'/><circle cx='40%' cy='15%' r='1' fill='#a5f3fc' opacity='0.9'/><circle cx='55%' cy='75%' r='1' fill='white' opacity='0.7'/><circle cx='70%' cy='35%' r='1.5' fill='#c4b5fd' opacity='0.8'/><circle cx='80%' cy='55%' r='1' fill='white' opacity='0.6'/><circle cx='90%' cy='25%' r='1' fill='#fde68a' opacity='0.7'/><circle cx='15%' cy='85%' r='1' fill='white' opacity='0.5'/><circle cx='60%' cy='90%' r='1.5' fill='white' opacity='0.6'/><circle cx='35%' cy='45%' r='1' fill='#a5f3fc' opacity='0.4'/></svg>`
+      },
+      {
+        name:'크로스 웨이브',
+        css:'background:linear-gradient(135deg,#0f172a,#1e1b4b);',
+        overlay:`<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' style='position:absolute;inset:0;opacity:0.3'><defs><pattern id='g5' width='20' height='20' patternUnits='userSpaceOnUse'><line x1='0' y1='10' x2='20' y2='10' stroke='#818cf8' stroke-width='0.5'/><line x1='10' y1='0' x2='10' y2='20' stroke='#818cf8' stroke-width='0.5'/></pattern></defs><rect width='100%' height='100%' fill='url(#g5)'/></svg>`
+      },
+    ],
+    전설: [
+      // 그라데이션 + 패턴 + 흐름 애니메이션 3가지
+      {
+        name:'갤럭시 스톰',
+        css:'background:linear-gradient(-45deg,#7c3aed,#db2777,#f97316,#7c3aed);background-size:300% 300%;animation:legendaryFlow 3s ease infinite;',
+        overlay:`<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' style='position:absolute;inset:0;opacity:0.2'><defs><pattern id='l1' width='20' height='20' patternUnits='userSpaceOnUse'><polygon points='10,2 18,8 18,16 10,18 2,16 2,8' fill='none' stroke='white' stroke-width='0.5'/></pattern></defs><rect width='100%' height='100%' fill='url(#l1)'/></svg>`
+      },
+      {
+        name:'오로라 리플',
+        css:'background:linear-gradient(-45deg,#0ea5e9,#7c3aed,#10b981,#0ea5e9);background-size:300% 300%;animation:legendaryFlow 4s ease infinite;',
+        overlay:`<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' style='position:absolute;inset:0;opacity:0.15'><defs><pattern id='l2' width='24' height='24' patternUnits='userSpaceOnUse'><circle cx='12' cy='12' r='10' fill='none' stroke='white' stroke-width='0.5'/><circle cx='12' cy='12' r='5' fill='none' stroke='white' stroke-width='0.3'/></pattern></defs><rect width='100%' height='100%' fill='url(#l2)'/></svg>`
+      },
+      {
+        name:'코스믹 블레이즈',
+        css:'background:linear-gradient(-45deg,#fbbf24,#f472b6,#7c3aed,#22d3ee);background-size:300% 300%;animation:legendaryFlow 3.5s ease infinite;',
+        overlay:`<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' style='position:absolute;inset:0;opacity:0.18'><defs><pattern id='l3' width='16' height='16' patternUnits='userSpaceOnUse'><path d='M 8 0 L 16 8 L 8 16 L 0 8 Z' fill='none' stroke='white' stroke-width='0.5'/></pattern></defs><rect width='100%' height='100%' fill='url(#l3)'/></svg>`
+      },
+    ],
+    // GP 보상
+    GP: {
+      일반: { name:'GP 10', type:'GP', amount:10 },
+      희귀: { name:'GP 30', type:'GP', amount:30 },
+      에픽: { name:'GP 50', type:'GP', amount:50 },
+      전설: { name:'GP 100', type:'GP', amount:100 },
+    }
+  };
+
+  const BOX_DEFS = [
   {
     key:'배너상자', name:'배너 상자', icon:'🖼️',
     visualClass:'banner-box',
@@ -409,13 +505,23 @@ const EXP_MAP = {일반:100,희귀:300,에픽:500,전설:1000};
 // 아이템 타입별 시각적 렌더 함수
 const ITEM_VISUALS = {
   배너상자: (item, idx) => {
+    // GP 아이템
+    if(item.isGP) {
+      const gpColors={일반:'#94a3b8',희귀:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+      const gpBgs={일반:'rgba(148,163,184,0.1)',희귀:'rgba(96,165,250,0.1)',에픽:'rgba(168,85,247,0.1)',전설:'rgba(251,191,36,0.12)'};
+      return `<div style="width:100%;height:100%;background:${gpBgs[item.grade]};display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;">
+        <span style="font-size:22px">🪙</span>
+        <span style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:${gpColors[item.grade]}">${item.name}</span>
+      </div>`;
+    }
     const g = item.grade;
-    const ci = idx % 5;
-    if(g==='일반')  return `<div class="banner-normal-${ci}" style="width:100%;height:100%"></div>`;
-    if(g==='희귀')  return `<div class="banner-rare-${ci%5}" style="width:100%;height:100%"></div>`;
-    if(g==='에픽')  return `<div class="banner-epic-${ci%4}" style="width:100%;height:100%"></div>`;
-    if(g==='전설')  return `<div class="banner-legend-${ci%3}" style="width:100%;height:100%"></div>`;
-    return '';
+    const bannerList = BANNER_ITEMS[g];
+    if(!bannerList) return '';
+    const bi = item._bannerIdx !== undefined ? item._bannerIdx : (idx % bannerList.length);
+    const b  = bannerList[bi];
+    if(!b) return '';
+    const overlay = b.overlay || '';
+    return `<div style="width:100%;height:100%;position:relative;${b.css}">${overlay}</div>`;
   },
   아이콘상자: (item, idx) => {
     const icons = ['🐯','🦊','🐺','🦁','🐉','🦅','🐻','🦋','🌙','⚡'];
@@ -521,7 +627,22 @@ function pickItem(boxKey, grade, allItems) {
 // 상자 카드 HTML 생성
 function buildBoxCard(boxDef, allItems) {
   const isLoggedIn = localStorage.getItem('ggo_logged_in')==='true';
-  const boxItems = allItems.filter(it=>it.boxKey===boxDef.key);
+  // 배너상자는 하드코딩 BANNER_ITEMS 사용, 나머지는 구글시트 데이터
+  let boxItems;
+  if(boxDef.key === '배너상자') {
+    boxItems = [];
+    ['일반','희귀','에픽','전설'].forEach(g => {
+      // 배너 아이템들
+      (BANNER_ITEMS[g]||[]).forEach((b,bi) => {
+        boxItems.push({ boxKey:'배너상자', name:b.name, grade:g, _bannerIdx:bi, isGP:false });
+      });
+      // GP 보상
+      const gp = BANNER_ITEMS.GP[g];
+      if(gp) boxItems.push({ boxKey:'배너상자', name:gp.name, grade:g, isGP:true, gpAmount:gp.amount });
+    });
+  } else {
+    boxItems = allItems.filter(it=>it.boxKey===boxDef.key);
+  }
 
   // 등급별 그룹
   const gradeGroups = {일반:[],희귀:[],에픽:[],전설:[]};
@@ -615,8 +736,21 @@ function buyBox(boxKey) {
   // 등급 뽑기
   const grade = drawGrade();
 
-  // 아이템 풀에서 선택
-  const item = pickItem(boxKey, grade, window._shopItems||[]);
+  let item;
+  if(boxKey === '배너상자') {
+    // 배너상자: GP 30% / 배너 70% 비율로 선택
+    const isGPDrop = Math.random() < 0.3;
+    if(isGPDrop) {
+      const gp = BANNER_ITEMS.GP[grade];
+      item = { boxKey:'배너상자', name:gp.name, grade, isGP:true, gpAmount:gp.amount };
+    } else {
+      const bannerList = BANNER_ITEMS[grade]||[];
+      const bi = Math.floor(Math.random()*bannerList.length);
+      item = { boxKey:'배너상자', name:bannerList[bi].name, grade, isGP:false, _bannerIdx:bi };
+    }
+  } else {
+    item = pickItem(boxKey, grade, window._shopItems||[]);
+  }
 
   // 모달 오픈 애니메이션
   showOpenModal(boxDef, grade, item, username);
@@ -654,10 +788,11 @@ function showOpenModal(boxDef, grade, item, username) {
 
     // 결과 아이템 이름 / 타입
     const itemName = item ? item.name : `${grade} ${boxDef.name.replace('상자','')}`;
-    const itemType = boxDef.key.replace('상자','');
 
-    // 결과 비주얼
-    const visIdx = item ? (window._shopItems||[]).filter(i=>i.boxKey===boxDef.key&&i.grade===grade).indexOf(item) : 0;
+    // visIdx: 배너는 _bannerIdx, 나머지는 풀 내 인덱스
+    let visIdx = 0;
+    if(item && item._bannerIdx !== undefined) visIdx = item._bannerIdx;
+    else if(item) visIdx = (window._shopItems||[]).filter(i=>i.boxKey===boxDef.key&&i.grade===grade).indexOf(item);
     const visual = (ITEM_VISUALS[boxDef.key]||(() => ''))(item||{grade,name:itemName}, visIdx);
     resultVisual.innerHTML = visual;
     resultVisual.style.width  = '80px';
@@ -689,21 +824,30 @@ function showOpenModal(boxDef, grade, item, username) {
       }
     }
 
-    // 아이템 저장 (마이페이지 연동)
+    // 아이템/재화 저장 (마이페이지 연동)
     const TYPE_MAP = {배너상자:'프로필배너',아이콘상자:'프로필아이콘',테두리상자:'테두리효과',이름효과상자:'이름색상효과'};
-    const itemKey = 'ggo_items_'+username;
-    const items = JSON.parse(localStorage.getItem(itemKey)||'[]');
-    items.push({
-      name: itemName,
-      type: TYPE_MAP[boxDef.key]||boxDef.key,
-      grade,
-      img: '',
-      equipped: false,
-      source: '상점',
-      visualKey: boxDef.key,
-      visualIdx: visIdx
-    });
-    localStorage.setItem(itemKey, JSON.stringify(items));
+    if(item && item.isGP) {
+      // GP 지급
+      const currKey = 'ggo_currency_'+username;
+      const curr    = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
+      curr['GP'] = (curr['GP']||0) + (item.gpAmount||0);
+      localStorage.setItem(currKey, JSON.stringify(curr));
+    } else {
+      const itemKey = 'ggo_items_'+username;
+      const items   = JSON.parse(localStorage.getItem(itemKey)||'[]');
+      items.push({
+        name: itemName,
+        type: TYPE_MAP[boxDef.key]||boxDef.key,
+        grade,
+        img: '',
+        equipped: false,
+        source: '상점',
+        visualKey: boxDef.key,
+        visualIdx: visIdx,
+        bannerIdx: item ? item._bannerIdx : undefined,
+      });
+      localStorage.setItem(itemKey, JSON.stringify(items));
+    }
 
   }, 900);
 }
