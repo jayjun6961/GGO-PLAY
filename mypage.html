@@ -175,6 +175,18 @@
   .currency-card.crystal .currency-value { color: #60a5fa; }
   .currency-card.gp     .currency-value { color: #fbbf24; }
 
+
+  /* 아이템 선택/액션 */
+  .deco-card { cursor: pointer; }
+  .deco-card.selected { border-color: var(--purple-2) !important; background: rgba(124,58,237,0.15) !important; }
+  .item-action-btns { display: flex; gap: 5px; margin-top: 5px; width: 100%; }
+  .btn-equip   { flex:1; padding:4px 0; border-radius:7px; border:none; background:linear-gradient(135deg,var(--purple-1),var(--purple-2)); color:white; font-size:9px; font-weight:700; cursor:pointer; font-family:'Noto Sans KR',sans-serif; }
+  .btn-unequip { flex:1; padding:4px 0; border-radius:7px; border:1px solid rgba(34,211,238,0.35); background:rgba(34,211,238,0.08); color:var(--accent-cyan); font-size:9px; font-weight:700; cursor:pointer; }
+  .btn-delete  { padding:4px 8px; border-radius:7px; border:1px solid rgba(244,114,182,0.3); background:rgba(244,114,182,0.07); color:var(--accent-pink); font-size:9px; cursor:pointer; }
+  .btn-equip:hover   { opacity:0.85; }
+  .btn-unequip:hover { background:rgba(34,211,238,0.15); }
+  .btn-delete:hover  { background:rgba(244,114,182,0.15); }
+
 </style>
 </head>
 <body>
@@ -250,8 +262,7 @@
             <div class="currency-label">크리스탈</div>
           </div>
           <div class="currency-card gp">
-            <div class="currency-icon">🪙</div>
-            <div class="currency-value" id="cur-gp">0 GP</div>
+            <div class="currency-value" id="cur-gp" style="font-size:13px;font-family:'Orbitron',sans-serif;">0 GP</div>
             <div class="currency-label">GP</div>
           </div>
         </div>
@@ -353,7 +364,16 @@
   }
 
   function renderDecoLevel(items) {
-    const { level, totalExp, expInLevel } = calcDecoLevel(items);
+    // 누적 EXP 우선 (삭제해도 EXP 보존)
+    const username = localStorage.getItem('ggo_username')||'';
+    const savedExp = parseInt(localStorage.getItem('ggo_deco_exp_'+username)||'0');
+    const EXP_MAP2 = {일반:100,희귀:300,에픽:500,전설:1000};
+    const curExp   = items.reduce((s,it)=>s+(EXP_MAP2[it.grade]||0),0);
+    const useExp   = Math.max(savedExp, curExp);
+    const level    = Math.floor(useExp/1000)+1;
+    const expInLevel = useExp%1000;
+    const totalExp = useExp;
+    const { } = {}; // dummy
     const pct = (expInLevel / EXP_PER_LEVEL) * 100;
 
     document.getElementById('dlc-lv-num').textContent = level;
@@ -379,25 +399,144 @@
     }
 
     const CAT_ICONS = {프로필배너:'🖼',프로필아이콘:'👤',테두리효과:'💫',칭호:'🏅',이름색상효과:'🎨'};
-    grid.innerHTML = items.map(it => {
+    grid.innerHTML = items.map((it,i) => {
+      const globalIdx = allItems.indexOf(it);
       const imgHtml = it.img
         ? `<img src="${it.img}" onerror="this.outerHTML='<span>${CAT_ICONS[it.type]||'✨'}</span>'">`
         : `<span>${CAT_ICONS[it.type]||'✨'}</span>`;
       const equippedTag = it.equipped ? '<div class="equipped-tag">장착중</div>' : '';
-      return `<div class="deco-card ${it.equipped?'equipped':''}">
+      return `<div class="deco-card ${it.equipped?'equipped':''}" id="deco-card-${globalIdx}" onclick="selectItem(${globalIdx}, event)">
         ${equippedTag}
         <div class="deco-card-img">${imgHtml}</div>
         <div class="deco-card-name">${it.name}</div>
         <span class="deco-grade-badge grade-${it.grade}">${it.grade}</span>
+        <div class="item-action-btns" id="item-btns-${globalIdx}" style="display:none">
+          ${it.equipped
+            ? `<button class="btn-unequip" onclick="unequipItem(${globalIdx},event)">해제</button>`
+            : `<button class="btn-equip"   onclick="equipItem(${globalIdx},event)">장착</button>`}
+          <button class="btn-delete" onclick="deleteItem(${globalIdx},event)">삭제</button>
+        </div>
       </div>`;
     }).join('');
   }
+
+
+  let selectedItemIdx = -1;
+
+  function selectItem(idx, e) {
+    e.stopPropagation();
+    // 이전 선택 해제
+    if(selectedItemIdx !== -1) {
+      const prev = document.getElementById('deco-card-'+selectedItemIdx);
+      const prevBtns = document.getElementById('item-btns-'+selectedItemIdx);
+      if(prev) prev.classList.remove('selected');
+      if(prevBtns) prevBtns.style.display='none';
+    }
+    // 같은 카드 재클릭 시 선택 해제
+    if(selectedItemIdx === idx) { selectedItemIdx = -1; return; }
+    selectedItemIdx = idx;
+    const card = document.getElementById('deco-card-'+idx);
+    const btns = document.getElementById('item-btns-'+idx);
+    if(card) card.classList.add('selected');
+    if(btns) btns.style.display='flex';
+  }
+
+  // 외부 클릭 시 선택 해제
+  document.addEventListener('click', () => {
+    if(selectedItemIdx !== -1) {
+      const card = document.getElementById('deco-card-'+selectedItemIdx);
+      const btns = document.getElementById('item-btns-'+selectedItemIdx);
+      if(card) card.classList.remove('selected');
+      if(btns) btns.style.display='none';
+      selectedItemIdx = -1;
+    }
+  });
+
+  function saveItems(items) {
+    const username = localStorage.getItem('ggo_username')||'';
+    // EXP는 보존 — 별도 누적 저장
+    const expKey = 'ggo_deco_exp_'+username;
+    const EXP_MAP = {일반:100,희귀:300,에픽:500,전설:1000};
+    const prevExp = parseInt(localStorage.getItem(expKey)||'0');
+    const curExp  = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
+    // 누적 EXP = max(기존, 현재) — 삭제해도 줄지 않음
+    const keepExp = Math.max(prevExp, curExp);
+    localStorage.setItem(expKey, keepExp);
+    localStorage.setItem('ggo_items_'+username, JSON.stringify(items));
+  }
+
+  function equipItem(idx, e) {
+    e.stopPropagation();
+    const username = localStorage.getItem('ggo_username')||'';
+    const items = JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
+    if(!items[idx]) return;
+    const type = items[idx].type;
+    // 같은 타입 기존 장착 해제
+    items.forEach((it,i) => { if(it.type===type) items[i].equipped=false; });
+    items[idx].equipped = true;
+    saveItems(items);
+    allItems = items;
+    // 프로필에 즉시 반영
+    applyEquipped(items);
+    selectedItemIdx = -1;
+    const activeCat = document.querySelector('.cat-tab.active');
+    const cat = activeCat ? activeCat.textContent.trim() : '전체';
+    filterCatByLabel(cat);
+  }
+
+  function unequipItem(idx, e) {
+    e.stopPropagation();
+    const username = localStorage.getItem('ggo_username')||'';
+    const items = JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
+    if(!items[idx]) return;
+    items[idx].equipped = false;
+    saveItems(items);
+    allItems = items;
+    applyEquipped(items);
+    selectedItemIdx = -1;
+    const activeCat = document.querySelector('.cat-tab.active');
+    filterCatByLabel(activeCat ? activeCat.textContent.trim() : '전체');
+  }
+
+  function deleteItem(idx, e) {
+    e.stopPropagation();
+    if(!confirm('아이템을 삭제하시겠습니까?\n획득한 꾸미기 EXP는 유지됩니다.')) return;
+    const username = localStorage.getItem('ggo_username')||'';
+    const items = JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
+    items.splice(idx,1);
+    saveItems(items);
+    allItems = items;
+    applyEquipped(items);
+    selectedItemIdx = -1;
+    const activeCat = document.querySelector('.cat-tab.active');
+    filterCatByLabel(activeCat ? activeCat.textContent.trim() : '전체');
+  }
+
+  // 장착 아이템 프로필 반영
+  function applyEquipped(items) {
+    // 칭호
+    const title = items.find(it=>it.type==='칭호'&&it.equipped);
+    const titleEl = document.getElementById('profile-title');
+    if(titleEl) {
+      if(title) { titleEl.textContent='< '+title.name+' >'; titleEl.style.display='inline-block'; }
+      else       { titleEl.style.display='none'; }
+    }
+  }
+
+  function filterCatByLabel(label) {
+    const MAP = {'전체':'전체','🖼 배너':'프로필배너','👤 아이콘':'프로필아이콘','💫 테두리':'테두리효과','🏅 칭호':'칭호','🎨 이름색상':'이름색상효과'};
+    const cat = MAP[label] || (label==='전체'?'전체':label);
+    const filtered = cat==='전체' ? allItems : allItems.filter(it=>it.type===cat);
+    renderItems(filtered);
+  }
+
 
   function filterCat(cat, el) {
     document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
     el.classList.add('active');
     const filtered = cat==='전체' ? allItems : allItems.filter(it=>it.type===cat);
     renderItems(filtered);
+    selectedItemIdx = -1;
   }
 
   async function loadMyPage() {
