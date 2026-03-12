@@ -236,6 +236,8 @@
 
 <script>
   const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1765510409&single=true&output=csv';
+  // 배틀패스 시트 (A=닉네임, B=배틀패스점수, C=서버)
+  const CSV_BP_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=0&single=true&output=csv';
 
   function parseCSV(txt) {
     return txt.trim().split('\n').slice(1).map(line => {
@@ -262,9 +264,21 @@
     document.getElementById('loading-state').style.display='block';
     document.getElementById('content-wrap').style.display='none';
     try {
-      const res = await fetch(CSV_ACT+'&t='+Date.now(), {cache:'no-store'});
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const rows = parseCSV(await res.text());
+      // 회원 시트 + 배틀패스 시트 병렬 로드
+      const [resAct, resBP] = await Promise.all([
+        fetch(CSV_ACT+'&t='+Date.now(), {cache:'no-store'}),
+        fetch(CSV_BP_ACT+'&t='+Date.now(), {cache:'no-store'}),
+      ]);
+      if(!resAct.ok) throw new Error('HTTP '+resAct.status);
+      const rows   = parseCSV(await resAct.text());
+      // 배틀패스 시트: A=닉네임, B=배틀패스점수, C=서버
+      const bpRows = resBP.ok ? parseCSV(await resBP.text()) : [];
+      // 닉네임 → 서버 맵 생성
+      const serverMap = {};
+      bpRows.forEach(r => {
+        const n = (r[0]||'').trim();
+        if(n) serverMap[n] = (r[2]||'').trim();
+      });
 
       // 데이터 파싱 + 점수 계산
       const players = rows.map(r => {
@@ -276,7 +290,9 @@
         const items=JSON.parse(localStorage.getItem('ggo_items_'+name)||'[]');
         const totalExp=items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
         const deco=Math.floor(totalExp/1000)+1;
-        return{name,server:r[1]||'',img:'',bp,ts,deco,score:calcScore(bp,ts,deco)};
+        // 서버는 배틀패스 시트에서 닉네임으로 조회
+        const server = serverMap[name] || '';
+        return{name,server,img:'',bp,ts,deco,score:calcScore(bp,ts,deco)};
       }).filter(p=>p&&p.name);
 
       // 점수 내림차순 정렬
