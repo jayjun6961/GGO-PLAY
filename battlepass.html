@@ -2194,10 +2194,24 @@
   // 등급 색상
   const GRADE_STYLE = {
     '일반': 'background:rgba(148,163,184,0.12);color:#94a3b8;border:1px solid rgba(148,163,184,0.25)',
-    '희귀': 'background:rgba(96,165,250,0.12);color:#60a5fa;border:1px solid rgba(96,165,250,0.25)',
+    '희귀': 'background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.25)',
+    '레어': 'background:rgba(96,165,250,0.12);color:#60a5fa;border:1px solid rgba(96,165,250,0.25)',
     '에픽': 'background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.25)',
     '전설': 'background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.25)',
   };
+
+  // 칭호 등급별 텍스트 스타일
+  function getTitleStyle(grade) {
+    const styles = {
+      '일반': 'color:#e2e8f0;',
+      '희귀': 'color:#34d399;',
+      '레어': 'color:#60a5fa;',
+      '에픽': 'color:#a855f7;',
+      '전설': 'background:linear-gradient(90deg,#fbbf24,#f97316,#fbbf24);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:legendaryFlow 3s ease infinite;',
+    };
+    return styles[grade] || styles['일반'];
+  }
+
 
   // 재화 아이콘
   const CURRENCY_ICON = { '루비':'🔴', '크리스탈':'💎', 'GP':'🪙' };
@@ -2305,11 +2319,33 @@
       const iconSize = BOX_SIZES[iconIdx];
       const boxGlow = isUnlocked && !isClaimed ? 'filter:drop-shadow(0 0 10px rgba(251,191,36,0.7))' : '';
 
+      // 보상 미리보기 (칭호는 텍스트, 재화/꾸미기는 아이콘)
+      let rewardPreview = '';
+      if(reward.type === '칭호') {
+        const TITLE_COLORS = { '일반':'#e2e8f0','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7' };
+        const titleColor = TITLE_COLORS[reward.grade] || '#e2e8f0';
+        const titleStyle = reward.grade === '전설'
+          ? 'background:linear-gradient(90deg,#fbbf24,#f97316,#fbbf24);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:legendaryFlow 3s ease infinite;font-weight:700;'
+          : `color:${titleColor};font-weight:600;`;
+        const gs = GRADE_STYLE[reward.grade] || GRADE_STYLE['일반'];
+        rewardPreview = `<div style="margin-top:4px;padding:2px 6px;border-radius:6px;${gs};font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">
+          <span style="${titleStyle}font-size:10px;">< ${reward.name} ></span>
+        </div>`;
+      } else if(reward.type === '재화') {
+        const ci = CURRENCY_ICON[reward.name] || '💰';
+        const cc = CURRENCY_COLOR[reward.name] || '#fbbf24';
+        rewardPreview = `<div style="font-size:11px;color:${cc};margin-top:4px;">${ci} ${reward.name} ×${reward.qty}</div>`;
+      } else if(reward.name) {
+        const gs = GRADE_STYLE[reward.grade] || GRADE_STYLE['일반'];
+        rewardPreview = `<div style="margin-top:4px;padding:1px 6px;border-radius:6px;font-size:10px;${gs};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">${reward.name}</div>`;
+      }
+
       html += `
         <div class="bp-step ${stepClass}" id="bp-step-${reward.step}">
           <div class="bp-box">
-            <span class="bp-box-icon" style="font-size:${iconSize}px;${boxGlow}">${BOX_ICONS[iconIdx]}</span>
+            <span class="bp-box-icon" style="font-size:${iconSize}px;${boxGlow}">${reward.type==='칭호' ? '🏅' : BOX_ICONS[iconIdx]}</span>
           </div>
+          ${rewardPreview}
           ${badgeHtml}
           <div class="bp-step-score">${(reward.required/1000).toFixed(0)}K pts</div>
           ${btnHtml}
@@ -2357,6 +2393,16 @@
       items.push({ name:reward.name, type:'기타', grade:reward.grade||'일반', img:reward.img, equipped:false, source:'배틀패스' });
       localStorage.setItem(itemKey, JSON.stringify(items));
     }
+    // 칭호 지급
+    if(reward.type === '칭호') {
+      const itemKey  = 'ggo_items_' + username;
+      const items    = JSON.parse(localStorage.getItem(itemKey)||'[]');
+      const alreadyHas = items.some(it => it.type==='칭호' && it.name===reward.name);
+      if(!alreadyHas) {
+        items.push({ name:reward.name, type:'칭호', grade:reward.grade||'일반', img:'', equipped:false, source:'배틀패스' });
+        localStorage.setItem(itemKey, JSON.stringify(items));
+      }
+    }
 
     // 모달 표시
     showRewardModal(reward);
@@ -2381,6 +2427,12 @@
       const gs = GRADE_STYLE[reward.grade] || GRADE_STYLE['일반'];
       gradeHtml = `<span class="reward-modal-grade" style="${gs}">${reward.grade}</span>`;
       descHtml  = `꾸미기 아이템이 마이페이지에 추가되었습니다.`;
+    } else if(reward.type === '칭호') {
+      const gs = GRADE_STYLE[reward.grade] || GRADE_STYLE['일반'];
+      gradeHtml = `<span class="reward-modal-grade" style="${gs}">${reward.grade}</span>`;
+      const titleStyle = getTitleStyle(reward.grade);
+      nameHtml  = `<span style="${titleStyle}font-weight:700;">< ${reward.name} ></span>`;
+      descHtml  = `칭호가 마이페이지에 추가되었습니다. 장착해서 사용하세요!`;
     }
 
     document.getElementById('modal-icon').textContent = icon;
