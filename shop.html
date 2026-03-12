@@ -1748,7 +1748,9 @@ function saveCurrency(curr) {
   localStorage.setItem('ggo_currency_'+u, JSON.stringify(curr));
 }
 
-function renderCurrencyBar() {
+function updateCurrencyHUD() { renderCurrencyBar(); }
+
+  function renderCurrencyBar() {
   const isLoggedIn = localStorage.getItem('ggo_logged_in')==='true';
   const username   = localStorage.getItem('ggo_username')||'';
   const el = document.getElementById('currency-bar-content');
@@ -2515,6 +2517,7 @@ function loadShop() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+    initSidebarProfile();
   renderCurrencyBar();
   loadShop();
 });
