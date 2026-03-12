@@ -2055,6 +2055,7 @@ function showOpenModal(boxDef, grade, item, username) {
       const curr    = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
       curr['GP'] = (curr['GP']||0) + (item.gpAmount||0);
       localStorage.setItem(currKey, JSON.stringify(curr));
+      addShopNotif('', item.grade, boxDef.name, true, item.gpAmount||0);
     } else {
       const itemType = TYPE_MAP[boxDef.key]||boxDef.key;
       const itemKey  = 'ggo_items_'+username;
@@ -2112,6 +2113,8 @@ function showOpenModal(boxDef, grade, item, username) {
           itemIdx:   item ? item._itemIdx   : undefined,
         });
         localStorage.setItem(itemKey, JSON.stringify(items));
+        // 상점 구매 알림 기록
+        addShopNotif(itemName, grade, boxDef.name, false, 0);
 
         // 꾸미기 EXP 누적 (삭제해도 유지)
         const EXP_MAP_SHOP = {일반:100, 희귀:300, 에픽:500, 전설:1000};
@@ -2471,6 +2474,7 @@ function showS7Modal(fakeDef, picked, isDupe, username, typeMap, allItems, itemK
       const curr2=JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
       curr2['GP']=(curr2['GP']||0)+GP_DUPE;
       localStorage.setItem(currKey, JSON.stringify(curr2));
+      addShopNotif('', '전설', '시즌7 번들 상자', true, GP_DUPE);
     } else {
       descEl.textContent='[시즌7 한정] 마이페이지에서 장착하세요!';
       allItems.push({
@@ -2485,6 +2489,7 @@ function showS7Modal(fakeDef, picked, isDupe, username, typeMap, allItems, itemK
         _s7Idx: picked.idx,
       });
       localStorage.setItem(itemKey, JSON.stringify(allItems));
+      addShopNotif(picked.name, '전설', '시즌7 번들 상자', false, 0);
       // EXP
       const expKey='ggo_deco_exp_'+username;
       localStorage.setItem(expKey, (parseInt(localStorage.getItem(expKey)||'0'))+1000);
@@ -2521,6 +2526,27 @@ window.addEventListener('DOMContentLoaded', () => {
   renderCurrencyBar();
   loadShop();
 });
+
+// ── 상점 구매 알림 저장 유틸 ──
+  function addShopNotif(itemName, grade, boxName, isGP, gpAmt) {
+    const username = localStorage.getItem('ggo_username') || '';
+    if(!username) return;
+    const key = 'ggo_notifs_' + username;
+    try {
+      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+      let msg;
+      if(isGP) {
+        msg = `🪙 <strong>${boxName}</strong>에서 <span style="color:#fbbf24">+${gpAmt} GP</span> 획득`;
+      } else {
+        const gradeColors = { '일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24' };
+        const gc = gradeColors[grade] || '#e2e8f0';
+        msg = `🛒 <strong>${boxName}</strong>에서 <span style="color:${gc}">[${grade}] ${itemName}</span> 획득`;
+      }
+      arr.unshift({ id: Date.now()+Math.random(), type:'shop', msg, extra:boxName, time: new Date().toISOString(), read:false });
+      if(arr.length > 50) arr.splice(50);
+      localStorage.setItem(key, arr.length ? JSON.stringify(arr) : '[]');
+    } catch(e) {}
+  }
 
 // ════════════════════════════════════════
 //  공통 사이드바 JS
