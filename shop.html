@@ -458,6 +458,259 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   .preview-crystal { color: #60a5fa; }
   .preview-gp { color: #fbbf24; }
 
+
+  /* ── 시즌7 번들 섹션 ── */
+  @keyframes s7NeonPulse {
+    0%,100% { filter: brightness(1) drop-shadow(0 0 4px #ff2020); }
+    50%      { filter: brightness(1.3) drop-shadow(0 0 10px #ff4444); }
+  }
+  @keyframes s7IconGlow {
+    0%,100% { filter: drop-shadow(0 0 4px #ff1a1a); }
+    50%      { filter: drop-shadow(0 0 10px #ff4444) brightness(1.2); }
+  }
+  @keyframes s7BorderSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes s7NameFlow {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  /* s7NameFlow 중복 제거 */
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .season7-section {
+    margin: 40px 0;
+  }
+  .season7-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .season7-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    background: linear-gradient(90deg, #ff2020, #ff6600, #ffaa00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 1px;
+  }
+  .season7-badge {
+    background: linear-gradient(135deg, #ff1a1a, #cc0000);
+    color: #fff;
+    font-size: 9px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 1px;
+    box-shadow: 0 0 10px rgba(255,30,30,0.4);
+  }
+  .season7-subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+  .season7-card {
+    background: linear-gradient(135deg, rgba(30,0,0,0.8), rgba(15,0,0,0.9));
+    border: 1px solid rgba(255,30,30,0.3);
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 0 30px rgba(255,20,20,0.08), inset 0 1px 0 rgba(255,80,80,0.1);
+  }
+  .season7-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,20,20,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .season7-card-inner {
+    padding: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .s7-top {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .s7-visual-wrap {
+    flex-shrink: 0;
+    width: 120px;
+    height: 80px;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255,30,30,0.3);
+    box-shadow: 0 0 20px rgba(255,20,20,0.2);
+    cursor: pointer;
+    transition: box-shadow 0.3s;
+  }
+  .s7-visual-wrap:hover {
+    box-shadow: 0 0 30px rgba(255,30,30,0.4);
+  }
+  .s7-info {
+    flex: 1;
+    min-width: 200px;
+  }
+  .s7-box-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .s7-box-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+  .s7-price-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .s7-price-tag {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,30,30,0.25);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+  .s7-btn {
+    padding: 9px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+  }
+  .s7-btn:hover  { opacity:0.88; box-shadow: 0 0 16px rgba(255,30,30,0.4); }
+  .s7-btn:active { transform: scale(0.97); }
+  .s7-btn.ruby   { background: linear-gradient(135deg,#ff1a1a,#991100); color:#fff; }
+  .s7-btn.crystal{ background: linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; }
+  .s7-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,30,30,0.3), transparent);
+    margin: 20px 0;
+  }
+  .s7-contents-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid rgba(255,30,30,0.25);
+    color: var(--text-dim);
+    font-size: 12px;
+    font-family: 'Noto Sans KR', sans-serif;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .s7-contents-toggle:hover { border-color: rgba(255,30,30,0.5); color: #ff6666; }
+  .s7-contents-toggle .arrow { transition: transform 0.2s; display:inline-block; }
+  .s7-contents-toggle.open .arrow { transform: rotate(180deg); }
+  .s7-contents-wrap {
+    display: none;
+    margin-top: 16px;
+  }
+  .s7-contents-wrap.open { display: block; }
+  .s7-grade-section {
+    margin-bottom: 16px;
+  }
+  .s7-grade-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fbbf24;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .s7-grade-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(251,191,36,0.2);
+  }
+  .s7-items-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .s7-item-card {
+    background: rgba(255,20,20,0.05);
+    border: 1px solid rgba(255,30,30,0.2);
+    border-radius: 10px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    min-width: 72px;
+    transition: border-color 0.2s;
+  }
+  .s7-item-card:hover { border-color: rgba(255,30,30,0.45); }
+  .s7-item-visual {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .s7-item-name {
+    font-size: 9px;
+    color: var(--text-dim);
+    text-align: center;
+    max-width: 72px;
+    line-height: 1.3;
+  }
+  .s7-item-type {
+    font-size: 8px;
+    color: rgba(255,80,80,0.7);
+    font-family: 'Orbitron', sans-serif;
+  }
+  /* 시즌7 번들 - 배너 프리뷰 cycling */
+  .s7-banner-cycle {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+
+  @keyframes s7FlameAnim {
+    0%,100% { filter:drop-shadow(0 0 6px #ff2020) drop-shadow(0 0 12px rgba(255,60,0,0.4)); }
+    50%      { filter:drop-shadow(0 0 12px #ff4400) drop-shadow(0 0 24px rgba(255,120,0,0.6)) brightness(1.15); }
+  }
+  @keyframes s7GemPulse {
+    0%,100% { filter:drop-shadow(0 0 4px #cc0022) drop-shadow(0 0 8px rgba(180,0,30,0.4)); }
+    50%      { filter:drop-shadow(0 0 8px #ff1133) drop-shadow(0 0 18px rgba(220,0,40,0.6)) brightness(1.1); }
+  }
+
 </style>
 </head>
 <body>
@@ -516,6 +769,74 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     </div>
 
     <div class="shop-grid" id="shop-grid"></div>
+
+
+    <!-- ── 시즌7 번들 상자 ── -->
+    <div class="season7-section">
+      <div class="season7-header">
+        <div class="season7-title">SEASON 7 BUNDLE</div>
+        <div class="season7-badge">LIMITED</div>
+      </div>
+      <div class="season7-subtitle">시즌7 한정 전설 등급 꾸미기 세트 · 모든 구성품 전설 등급 · 1000 루비 또는 1000 크리스탈</div>
+      <div class="season7-card">
+        <div class="season7-card-inner">
+          <div class="s7-top">
+            <!-- 배너 미리보기 (사이클링) -->
+            <div class="s7-visual-wrap" id="s7-banner-preview" title="클릭하여 미리보기 전환">
+              <div id="s7-preview-inner" style="width:100%;height:100%;position:relative;"></div>
+            </div>
+            <div class="s7-info">
+              <div class="s7-box-name">🔥 시즌7 번들 상자</div>
+              <div class="s7-box-desc">붉은 네온 인페르노 컨셉의 전설 등급 꾸미기 세트입니다.<br>전설 배너 3종 · 전설 아이콘 3종 · 전설 테두리 2종 · 전설 이름효과 1종 중 랜덤 획득.</div>
+              <div class="s7-price-row">
+                <div class="s7-price-tag">
+                  <svg width="14" height="14" viewBox="0 0 22 22" fill="none"><rect x="3" y="3" width="16" height="16" rx="3" fill="url(#s7Ruby)" stroke="#f87171" stroke-width="0.5"/><defs><linearGradient id="s7Ruby" x1="3" y1="3" x2="19" y2="19" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#ff6b6b"/><stop offset="100%" stop-color="#991b1b"/></linearGradient></defs></svg>
+                  1,000
+                </div>
+                <button class="s7-btn ruby" onclick="buySeason7('루비')">루비로 구매</button>
+                <div class="s7-price-tag">
+                  <svg width="14" height="14" viewBox="0 0 22 22" fill="none"><path d="M11 2L18 8L16 18H6L4 8Z" fill="url(#s7Crystal)" stroke="#93c5fd" stroke-width="0.5"/><defs><linearGradient id="s7Crystal" x1="4" y1="2" x2="18" y2="18" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#93c5fd"/><stop offset="100%" stop-color="#1d4ed8"/></linearGradient></defs></svg>
+                  1,000
+                </div>
+                <button class="s7-btn crystal" onclick="buySeason7('크리스탈')">크리스탈로 구매</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="s7-divider"></div>
+
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <button class="s7-contents-toggle" id="s7-toggle-btn" onclick="toggleS7Contents()">
+              📋 구성품 보기 <span class="arrow">▼</span>
+            </button>
+            <span style="font-size:11px;color:rgba(255,80,80,0.6);font-family:'Orbitron',sans-serif;">ALL LEGENDARY</span>
+          </div>
+
+          <div class="s7-contents-wrap" id="s7-contents">
+            <!-- 전설 배너 -->
+            <div class="s7-grade-section">
+              <div class="s7-grade-label">전설 배너 (3종)</div>
+              <div class="s7-items-grid" id="s7-banner-grid"></div>
+            </div>
+            <!-- 전설 아이콘 -->
+            <div class="s7-grade-section">
+              <div class="s7-grade-label">전설 아이콘 (3종)</div>
+              <div class="s7-items-grid" id="s7-icon-grid"></div>
+            </div>
+            <!-- 전설 테두리 -->
+            <div class="s7-grade-section">
+              <div class="s7-grade-label">전설 테두리 효과 (2종)</div>
+              <div class="s7-items-grid" id="s7-border-grid"></div>
+            </div>
+            <!-- 전설 이름효과 -->
+            <div class="s7-grade-section">
+              <div class="s7-grade-label">전설 이름 색상 효과 (1종)</div>
+              <div class="s7-items-grid" id="s7-name-grid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ── 재화 변경 ── -->
     <div class="exchange-section">
@@ -852,6 +1173,445 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       {name:'갤럭시 플로우', grad:'linear-gradient(90deg,#fbbf24,#f472b6,#7c3aed,#22d3ee)', anim:true},
       {name:'오로라 플로우', grad:'linear-gradient(90deg,#10b981,#0ea5e9,#7c3aed,#f472b6)', anim:true},
       {name:'코스믹 플로우', grad:'linear-gradient(90deg,#fbbf24,#f97316,#ef4444,#a855f7)', anim:true},
+    ],
+  };
+
+  // ══════════════════════════════════════════════
+  //  시즌7 번들 상자 아이템 (전설 등급 전용)
+  // ══════════════════════════════════════════════
+  const SEASON7_ITEMS = {
+    전설배너: [
+      {
+        name:'레드 네온 터널',
+        svgBanner: (w, h) => {
+          const W=w, H=h;
+          // 소실점: 중앙 약간 위
+          const VX = W*0.5, VY = H*0.38;
+          // 왼쪽 기둥 패널 4개 (바닥→천장 사다리꼴, 빨간 빛 사이)
+          // 각 기둥: 두 개의 선이 소실점으로 수렴
+          // 기둥 위치: 왼쪽 바닥 x 좌표들
+          const LP = [W*0.0, W*0.08, W*0.17, W*0.26, W*0.35]; // 5개 기둥 바닥 X
+          const LPT = [W*0.0, W*0.04, W*0.10, W*0.17, W*0.24]; // 기둥 상단 X (더 좁게)
+          // 오른쪽 대칭
+          const RP = LP.map(x => W - x).reverse();
+          const RPT = LPT.map(x => W - x).reverse();
+
+          let pillarsL = '';
+          let glowL = '';
+          for(let i=0;i<LP.length-1;i++){
+            const x0b=LP[i], x1b=LP[i+1];
+            const x0t=LPT[i], x1t=LPT[i+1];
+            const opacity = 0.75 - i*0.1;
+            const darkR = 0x18 + i*0x06;
+            // 패널 면 (어두운 적갈색)
+            pillarsL += `<polygon points='${x0b},${H} ${x1b},${H} ${x1t},${H*0.02} ${x0t},${H*0.02}' fill='rgb(${darkR},${Math.floor(darkR*0.3)},${Math.floor(darkR*0.3)})' opacity='${opacity}'/>`;
+            // 패널 사이 네온 빛 (왼쪽 엣지가 빛남)
+            if(i>0){
+              glowL += `<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#ff1a1a' stroke-width='${2.5-i*0.4}' opacity='${0.9-i*0.12}' filter='url(#gNeon)'/>`;
+              glowL += `<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#fff' stroke-width='${0.6-i*0.1}' opacity='${0.5-i*0.08}'/>`;
+            }
+          }
+          let pillarsR = '';
+          let glowR = '';
+          const RP2 = [W*1.0, W*0.92, W*0.83, W*0.74, W*0.65];
+          const RPT2 = [W*1.0, W*0.96, W*0.90, W*0.83, W*0.76];
+          for(let i=0;i<RP2.length-1;i++){
+            const x0b=RP2[i], x1b=RP2[i+1];
+            const x0t=RPT2[i], x1t=RPT2[i+1];
+            const opacity = 0.75 - i*0.1;
+            const darkR = 0x18 + i*0x06;
+            pillarsR += `<polygon points='${x0b},${H} ${x1b},${H} ${x1t},${H*0.02} ${x0t},${H*0.02}' fill='rgb(${darkR},${Math.floor(darkR*0.3)},${Math.floor(darkR*0.3)})' opacity='${opacity}'/>`;
+            if(i>0){
+              glowR += `<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#ff1a1a' stroke-width='${2.5-i*0.4}' opacity='${0.9-i*0.12}' filter='url(#gNeon)'/>`;
+              glowR += `<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#fff' stroke-width='${0.6-i*0.1}' opacity='${0.5-i*0.08}'/>`;
+            }
+          }
+
+          return `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}' viewBox='0 0 ${W} ${H}'>
+            <defs>
+              <filter id='gNeon'><feGaussianBlur stdDeviation='2.5' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <filter id='gSoft'><feGaussianBlur stdDeviation='1.2' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <linearGradient id='bgT1' x1='0%' y1='0%' x2='0%' y2='100%'>
+                <stop offset='0%' stop-color='#080808'/>
+                <stop offset='55%' stop-color='#0f0505'/>
+                <stop offset='100%' stop-color='#1c0808'/>
+              </linearGradient>
+              <linearGradient id='floorG' x1='0%' y1='0%' x2='0%' y2='100%'>
+                <stop offset='0%' stop-color='#1a0404' stop-opacity='0.3'/>
+                <stop offset='100%' stop-color='#2d0a0a' stop-opacity='0.9'/>
+              </linearGradient>
+            </defs>
+            <!-- 배경 -->
+            <rect width='${W}' height='${H}' fill='url(#bgT1)'/>
+            <!-- 천장 삼각 (어두운) -->
+            <polygon points='0,0 ${W},0 ${W},${H*0.25} ${W*0.5},${H*0.38} 0,${H*0.25}' fill='#060606'/>
+            <!-- 바닥 반사층 -->
+            <rect y='${H*0.62}' width='${W}' height='${H*0.38}' fill='url(#floorG)'/>
+            <!-- 왼쪽 기둥 패널들 -->
+            ${pillarsL}
+            <!-- 왼쪽 네온 -->
+            ${glowL}
+            <!-- 오른쪽 기둥 패널들 -->
+            ${pillarsR}
+            <!-- 오른쪽 네온 -->
+            ${glowR}
+            <!-- 바닥 네온 반사 -->
+            <line x1='${W*0.08}' y1='${H}' x2='${W*0.26}' y2='${H*0.62}' stroke='#ff0808' stroke-width='1' opacity='0.18' filter='url(#gSoft)'/>
+            <line x1='${W*0.17}' y1='${H}' x2='${W*0.31}' y2='${H*0.62}' stroke='#ff0808' stroke-width='0.7' opacity='0.12'/>
+            <line x1='${W*0.92}' y1='${H}' x2='${W*0.74}' y2='${H*0.62}' stroke='#ff0808' stroke-width='1' opacity='0.18' filter='url(#gSoft)'/>
+            <line x1='${W*0.83}' y1='${H}' x2='${W*0.69}' y2='${H*0.62}' stroke='#ff0808' stroke-width='0.7' opacity='0.12'/>
+            <!-- 중앙 소실점 미광 -->
+            <ellipse cx='${W*0.5}' cy='${H*0.38}' rx='${W*0.06}' ry='${H*0.04}' fill='#3a0808' opacity='0.5' filter='url(#gNeon)'/>
+          </svg>`;
+        }
+      },
+      {
+        name:'크림슨 V-코리더',
+        // 사진2: 날카로운 V패널 반복수렴 + 바닥 두 줄기 밝은 반사선
+        svgBanner: (w, h) => {
+          const W=w, H=h;
+          // 소실점: 정중앙 약간 위
+          const VX=W*0.5, VY=H*0.5;
+          // V패널들: 원근감 있게 크기 줄어드는 수렴 라인들
+          // 왼쪽 패널 엣지 (V의 왼쪽 날개): 바닥 좌측→소실점
+          // 오른쪽 패널 엣지: 바닥 우측→소실점
+          // 패널 두께는 원근에 따라 줄어듦
+          const levels = 9; // 반복 수
+          let panelLines = '';
+          for(let i=0;i<levels;i++){
+            const t = i/(levels-1); // 0(가장 바깥)→1(소실점)
+            const lx = W*(0.0 + t*0.46); // 왼쪽 x: 0→VX-여유
+            const rx = W*(1.0 - t*0.46); // 오른쪽 x: W→VX+여유
+            const y  = H*(0.98 - t*0.48); // y: 바닥→소실점
+            const wStroke = 3.5*(1-t)+0.5;
+            const op = 0.85 - t*0.4;
+            const fillOp = (0.45-t*0.4);
+            // 왼쪽 엣지 라인
+            if(i>0){
+              const pt = (i-1)/(levels-1);
+              const plx = W*(0.0 + pt*0.46);
+              const prx = W*(1.0 - pt*0.46);
+              const py  = H*(0.98 - pt*0.48);
+              // 왼쪽 패널 면
+              panelLines += `<polygon points='${plx},${py} ${lx},${y} ${VX},${VY} ${VX},${VY}' fill='#1a0000' opacity='${fillOp<0?0:fillOp}'/>`;
+              // 오른쪽 패널 면
+              panelLines += `<polygon points='${prx},${py} ${rx},${y} ${VX},${VY} ${VX},${VY}' fill='#1a0000' opacity='${fillOp<0?0:fillOp}'/>`;
+            }
+            // 왼쪽 라인
+            panelLines += `<line x1='${lx}' y1='${y}' x2='${VX}' y2='${VY}' stroke='#aa0000' stroke-width='${wStroke}' opacity='${op}'/>`;
+            // 오른쪽 라인
+            panelLines += `<line x1='${rx}' y1='${y}' x2='${VX}' y2='${VY}' stroke='#aa0000' stroke-width='${wStroke}' opacity='${op}'/>`;
+          }
+
+          return `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}' viewBox='0 0 ${W} ${H}'>
+            <defs>
+              <filter id='gNeon2'><feGaussianBlur stdDeviation='3' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <filter id='gSoft2'><feGaussianBlur stdDeviation='1.5' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <radialGradient id='bgT2' cx='50%' cy='50%' r='65%'>
+                <stop offset='0%' stop-color='#3a0000'/>
+                <stop offset='45%' stop-color='#1f0000'/>
+                <stop offset='100%' stop-color='#080000'/>
+              </radialGradient>
+              <radialGradient id='vpGlow' cx='50%' cy='50%' r='18%'>
+                <stop offset='0%' stop-color='#ff2222' stop-opacity='0.55'/>
+                <stop offset='100%' stop-color='#ff0000' stop-opacity='0'/>
+              </radialGradient>
+              <linearGradient id='floorDark' x1='0%' y1='0%' x2='0%' y2='100%'>
+                <stop offset='0%' stop-color='#0a0000' stop-opacity='0'/>
+                <stop offset='100%' stop-color='#000000' stop-opacity='0.6'/>
+              </linearGradient>
+            </defs>
+            <!-- 배경 -->
+            <rect width='${W}' height='${H}' fill='url(#bgT2)'/>
+            <!-- 패널들 -->
+            ${panelLines}
+            <!-- 소실점 글로우 -->
+            <ellipse cx='${VX}' cy='${VY}' rx='${W*0.1}' ry='${H*0.08}' fill='url(#vpGlow)'/>
+            <ellipse cx='${VX}' cy='${VY}' rx='${W*0.03}' ry='${H*0.025}' fill='#ff4444' opacity='0.5' filter='url(#gNeon2)'/>
+            <!-- 바닥 어둡게 -->
+            <rect y='${H*0.5}' width='${W}' height='${H*0.5}' fill='url(#floorDark)'/>
+            <!-- 핵심: 바닥 두 줄기 밝은 반사선 -->
+            <!-- 왼쪽 줄기 -->
+            <line x1='${W*0.08}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#ff3333' stroke-width='2.5' opacity='0.95' filter='url(#gNeon2)'/>
+            <line x1='${W*0.08}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#ffffff' stroke-width='0.8' opacity='0.65'/>
+            <!-- 오른쪽 줄기 -->
+            <line x1='${W*0.92}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#ff3333' stroke-width='2.5' opacity='0.95' filter='url(#gNeon2)'/>
+            <line x1='${W*0.92}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#ffffff' stroke-width='0.8' opacity='0.65'/>
+            <!-- 보조 반사선 (바깥) -->
+            <line x1='0' y1='${H}' x2='${VX}' y2='${VY}' stroke='#cc0000' stroke-width='1.2' opacity='0.4'/>
+            <line x1='${W}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#cc0000' stroke-width='1.2' opacity='0.4'/>
+            <!-- 바닥 수평 반사광 (바닥면) -->
+            <ellipse cx='${VX}' cy='${H*0.88}' rx='${W*0.3}' ry='${H*0.06}' fill='#ff1111' opacity='0.08' filter='url(#gSoft2)'/>
+          </svg>`;
+        }
+      },
+      {
+        name:'인페르노 게이트',
+        // 사진3: 좌우 화살표(>/<) 형 조각들 + 중앙 하단 오렌지 폭발 글로우
+        svgBanner: (w, h) => {
+          const W=w, H=h;
+          // 중앙 소실점 (하단 중앙)
+          const VX=W*0.5, VY=H*0.72;
+
+          // 왼쪽 조각들: 오른쪽을 향하는 화살표 꺾임 (> 모양)
+          // 큰 조각부터 작게: 바깥→안쪽
+          // 각 조각: 왼쪽 벽에서 나와 날카로운 꼭짓점이 중앙을 향함
+          let shapesL = '';
+          let shapesR = '';
+          // 조각 레벨: [y위치, 돌출길이, 높이]
+          const shapeData = [
+            // [yCenter, xTip, halfH, fillColor]
+            [H*0.18, W*0.28, H*0.13, '#8a0a00'],
+            [H*0.35, W*0.24, H*0.09, '#6a0800'],
+            [H*0.50, W*0.20, H*0.07, '#550600'],
+            [H*0.63, W*0.16, H*0.05, '#440500'],
+            [H*0.74, W*0.13, H*0.035,'#330400'],
+          ];
+          shapeData.forEach((s,i)=>{
+            const [yc, xt, hh, fill] = s;
+            const xl = 0; // 왼쪽 끝
+            const edgeColor = i===0 ? '#ff3300' : i===1 ? '#ee2200' : '#cc1500';
+            const edgeW = 1.5 - i*0.2;
+            const edgeOp = 0.95 - i*0.1;
+            // 왼쪽 화살표 조각: 왼쪽변-상단, 왼쪽변-하단, 뾰족 끝
+            // > 모양: (0, yc-hh) → (xt, yc) → (0, yc+hh)
+            shapesL += `<polygon points='${xl},${yc-hh} ${xt},${yc} ${xl},${yc+hh}' fill='${fill}' opacity='0.88'/>`;
+            // 앞면 (밝은 엣지)
+            shapesL += `<line x1='${xl}' y1='${yc-hh}' x2='${xt}' y2='${yc}' stroke='${edgeColor}' stroke-width='${edgeW}' opacity='${edgeOp}' filter='url(#gNeon3)'/>`;
+            shapesL += `<line x1='${xl}' y1='${yc+hh}' x2='${xt}' y2='${yc}' stroke='${edgeColor}' stroke-width='${edgeW*0.7}' opacity='${edgeOp*0.75}' filter='url(#gSoft3)'/>`;
+            // 측면 하이라이트 (상단 밝게)
+            shapesL += `<line x1='${xl}' y1='${yc-hh}' x2='${xl}' y2='${yc-hh*0.3}' stroke='#ff4400' stroke-width='0.8' opacity='${0.6-i*0.08}'/>`;
+
+            // 오른쪽 대칭 < 모양
+            const xr = W;
+            const xtr = W - (xt - xl); // 오른쪽 꼭짓점
+            shapesR += `<polygon points='${xr},${yc-hh} ${xtr},${yc} ${xr},${yc+hh}' fill='${fill}' opacity='0.88'/>`;
+            shapesR += `<line x1='${xr}' y1='${yc-hh}' x2='${xtr}' y2='${yc}' stroke='${edgeColor}' stroke-width='${edgeW}' opacity='${edgeOp}' filter='url(#gNeon3)'/>`;
+            shapesR += `<line x1='${xr}' y1='${yc+hh}' x2='${xtr}' y2='${yc}' stroke='${edgeColor}' stroke-width='${edgeW*0.7}' opacity='${edgeOp*0.75}' filter='url(#gSoft3)'/>`;
+            shapesR += `<line x1='${xr}' y1='${yc-hh}' x2='${xr}' y2='${yc-hh*0.3}' stroke='#ff4400' stroke-width='0.8' opacity='${0.6-i*0.08}'/>`;
+          });
+
+          // 뒷 배경 조각들 (더 얇고 멀리)
+          const bgShapes = [
+            [H*0.12, W*0.18, H*0.06, '#440400'],
+            [H*0.28, W*0.14, H*0.04, '#330300'],
+            [H*0.44, W*0.10, H*0.03, '#220200'],
+          ];
+          let bgL='', bgR='';
+          bgShapes.forEach((s,i)=>{
+            const [yc,xt,hh,fill]=s;
+            bgL+=`<polygon points='0,${yc-hh} ${xt},${yc} 0,${yc+hh}' fill='${fill}' opacity='0.7'/>`;
+            bgL+=`<line x1='0' y1='${yc-hh}' x2='${xt}' y2='${yc}' stroke='#aa1100' stroke-width='0.8' opacity='0.6'/>`;
+            const xtr=W-xt;
+            bgR+=`<polygon points='${W},${yc-hh} ${xtr},${yc} ${W},${yc+hh}' fill='${fill}' opacity='0.7'/>`;
+            bgR+=`<line x1='${W}' y1='${yc-hh}' x2='${xtr}' y2='${yc}' stroke='#aa1100' stroke-width='0.8' opacity='0.6'/>`;
+          });
+
+          return `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}' viewBox='0 0 ${W} ${H}'>
+            <defs>
+              <filter id='gNeon3'><feGaussianBlur stdDeviation='2' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <filter id='gSoft3'><feGaussianBlur stdDeviation='1' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <filter id='gBlast'><feGaussianBlur stdDeviation='8' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <radialGradient id='bgT3' cx='50%' cy='65%' r='75%'>
+                <stop offset='0%' stop-color='#2a0800'/>
+                <stop offset='40%' stop-color='#160300'/>
+                <stop offset='100%' stop-color='#040000'/>
+              </radialGradient>
+              <radialGradient id='blastGlow' cx='50%' cy='100%' r='55%'>
+                <stop offset='0%' stop-color='#ff7700' stop-opacity='0.9'/>
+                <stop offset='25%' stop-color='#ff3300' stop-opacity='0.6'/>
+                <stop offset='60%' stop-color='#cc1100' stop-opacity='0.2'/>
+                <stop offset='100%' stop-color='#ff0000' stop-opacity='0'/>
+              </radialGradient>
+            </defs>
+            <!-- 배경 -->
+            <rect width='${W}' height='${H}' fill='url(#bgT3)'/>
+            <!-- 중앙 하단 오렌지 폭발 글로우 (핵심) -->
+            <ellipse cx='${VX}' cy='${H}' rx='${W*0.55}' ry='${H*0.65}' fill='url(#blastGlow)'/>
+            <ellipse cx='${VX}' cy='${H}' rx='${W*0.18}' ry='${H*0.25}' fill='#ff5500' opacity='0.35' filter='url(#gBlast)'/>
+            <ellipse cx='${VX}' cy='${H}' rx='${W*0.06}' ry='${H*0.08}' fill='#ff8800' opacity='0.55' filter='url(#gNeon3)'/>
+            <!-- 바닥 중앙 라인 (삼각형 반사) -->
+            <line x1='${VX}' y1='${H}' x2='${VX}' y2='${H*0.7}' stroke='#ff6600' stroke-width='1.5' opacity='0.7' filter='url(#gNeon3)'/>
+            <!-- 뒷 배경 조각 -->
+            ${bgL}${bgR}
+            <!-- 앞 주요 조각들 -->
+            ${shapesL}${shapesR}
+            <!-- 바닥 반사 -->
+            <polygon points='0,${H} ${W*0.28},${H*0.85} ${W*0.5},${H} ' fill='#cc1100' opacity='0.08'/>
+            <polygon points='${W},${H} ${W*0.72},${H*0.85} ${W*0.5},${H}' fill='#cc1100' opacity='0.08'/>
+          </svg>`;
+        }
+      },
+    ],
+    전설아이콘: [
+      {
+        name:'레드 다이아몬드',
+        render: (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:#0a0000;border-radius:50%;position:relative;">
+          <svg width="${sz*0.7}" height="${sz*0.7}" viewBox="0 0 40 40">
+            <defs><filter id='ri1'><feGaussianBlur stdDeviation='1.5' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter></defs>
+            <polygon points='20,2 36,14 36,28 20,38 4,28 4,14' fill='none' stroke='#ff2020' stroke-width='1.5' filter='url(#ri1)'/>
+            <polygon points='20,7 31,16 31,26 20,33 9,26 9,16' fill='rgba(255,30,30,0.1)' stroke='#ff4444' stroke-width='0.8'/>
+            <line x1='4' y1='14' x2='36' y2='14' stroke='#ff2020' stroke-width='0.8' opacity='0.6'/>
+            <line x1='4' y1='28' x2='36' y2='28' stroke='#ff2020' stroke-width='0.8' opacity='0.6'/>
+            <line x1='20' y1='2' x2='20' y2='38' stroke='#ff4444' stroke-width='0.5' opacity='0.4'/>
+          </svg>
+        </div>`
+      },
+      {
+        name:'네온 크로스',
+        render: (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:#080000;border-radius:50%;position:relative;">
+          <svg width="${sz*0.72}" height="${sz*0.72}" viewBox="0 0 40 40">
+            <defs><filter id='ri2'><feGaussianBlur stdDeviation='2' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter></defs>
+            <rect x='17' y='2' width='6' height='36' rx='2' fill='#ff1a1a' filter='url(#ri2)'/>
+            <rect x='2' y='17' width='36' height='6' rx='2' fill='#ff1a1a' filter='url(#ri2)'/>
+            <rect x='18' y='4' width='4' height='32' rx='1' fill='#ff6666' opacity='0.5'/>
+            <rect x='4' y='18' width='32' height='4' rx='1' fill='#ff6666' opacity='0.5'/>
+            <circle cx='20' cy='20' r='4' fill='#ff2020' filter='url(#ri2)'/>
+          </svg>
+        </div>`
+      },
+      {
+        name:'인페르노 스피어',
+        render: (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#1a0000,#000);border-radius:50%;position:relative;">
+          <svg width="${sz*0.75}" height="${sz*0.75}" viewBox="0 0 40 40">
+            <defs>
+              <radialGradient id='ri3g' cx='40%' cy='35%'><stop offset='0%' stop-color='#ff4444'/><stop offset='100%' stop-color='#660000'/></radialGradient>
+              <filter id='ri3'><feGaussianBlur stdDeviation='1.5' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+            </defs>
+            <circle cx='20' cy='20' r='16' fill='url(#ri3g)' filter='url(#ri3)'/>
+            <circle cx='20' cy='20' r='16' fill='none' stroke='#ff2020' stroke-width='1.5' filter='url(#ri3)'/>
+            <ellipse cx='20' cy='20' rx='8' ry='16' fill='none' stroke='rgba(255,100,100,0.4)' stroke-width='0.8'/>
+            <line x1='4' y1='20' x2='36' y2='20' stroke='rgba(255,100,100,0.4)' stroke-width='0.8'/>
+            <circle cx='14' cy='14' r='3' fill='rgba(255,200,200,0.6)' filter='url(#ri3)'/>
+          </svg>
+        </div>`
+      },
+    ],
+    전설테두리: [
+      {
+        name:'인페르노 플레임',
+        // SVG 불꽃 링 테두리
+        svgBorder: (sz, innerSz) => {
+          const cx = sz/2, cy = sz/2, R = sz/2 - 4, r = innerSz/2;
+          return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;">
+            <defs>
+              <filter id="fFlame${sz}">
+                <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="fGlow${sz}">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <!-- 기본 링 -->
+            <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#cc2200" stroke-width="6" opacity="0.6"/>
+            <!-- 외곽 글로우 -->
+            <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#ff4400" stroke-width="3" filter="url(#fGlow${sz})" opacity="0.8"/>
+            <!-- 불꽃 덩어리들 (경로 기반, 링 주변) -->
+            <!-- 12시 -->
+            <path d="M${cx-6},${cy-R+2} C${cx-14},${cy-R-8} ${cx+4},${cy-R-14} ${cx+8},${cy-R-2} C${cx+16},${cy-R-10} ${cx+6},${cy-R+4} ${cx+2},${cy-R+2} Z"
+              fill="#ff4400" filter="url(#fFlame${sz})"/>
+            <path d="M${cx-3},${cy-R} C${cx-8},${cy-R-5} ${cx+2},${cy-R-10} ${cx+4},${cy-R-1} Z"
+              fill="#ffaa00" opacity="0.8"/>
+            <!-- 3시 -->
+            <path d="M${cx+R-2},${cy-6} C${cx+R+8},${cy-14} ${cx+R+14},${cy+4} ${cx+R+2},${cy+8} C${cx+R+10},${cy+16} ${cx+R-4},${cy+6} ${cx+R-2},${cy+2} Z"
+              fill="#ff4400" filter="url(#fFlame${sz})"/>
+            <path d="M${cx+R},${cy-3} C${cx+R+5},${cy-8} ${cx+R+10},${cy+2} ${cx+R+1},${cy+4} Z"
+              fill="#ffaa00" opacity="0.8"/>
+            <!-- 6시 -->
+            <path d="M${cx+6},${cy+R-2} C${cx+14},${cy+R+8} ${cx-4},${cy+R+14} ${cx-8},${cy+R+2} C${cx-16},${cy+R+10} ${cx-6},${cy+R-4} ${cx-2},${cy+R-2} Z"
+              fill="#ff4400" filter="url(#fFlame${sz})"/>
+            <path d="M${cx+3},${cy+R} C${cx+8},${cy+R+5} ${cx-2},${cy+R+10} ${cx-4},${cy+R+1} Z"
+              fill="#ffaa00" opacity="0.8"/>
+            <!-- 9시 -->
+            <path d="M${cx-R+2},${cy+6} C${cx-R-8},${cy+14} ${cx-R-14},${cy-4} ${cx-R-2},${cy-8} C${cx-R-10},${cy-16} ${cx-R+4},${cy-6} ${cx-R+2},${cy-2} Z"
+              fill="#ff4400" filter="url(#fFlame${sz})"/>
+            <path d="M${cx-R},${cy+3} C${cx-R-5},${cy+8} ${cx-R-10},${cy-2} ${cx-R-1},${cy-4} Z"
+              fill="#ffaa00" opacity="0.8"/>
+            <!-- 대각선 불꽃들 -->
+            <path d="M${cx+R*0.68},${cy-R*0.68} C${cx+R*0.78},${cy-R*0.9} ${cx+R*0.95},${cy-R*0.72} ${cx+R*0.72},${cy-R*0.6} Z"
+              fill="#ff6600" filter="url(#fFlame${sz})" opacity="0.9"/>
+            <path d="M${cx-R*0.68},${cy+R*0.68} C${cx-R*0.78},${cy+R*0.9} ${cx-R*0.95},${cy+R*0.72} ${cx-R*0.72},${cy+R*0.6} Z"
+              fill="#ff6600" filter="url(#fFlame${sz})" opacity="0.9"/>
+            <path d="M${cx+R*0.68},${cy+R*0.68} C${cx+R*0.9},${cy+R*0.78} ${cx+R*0.72},${cy+R*0.95} ${cx+R*0.6},${cy+R*0.72} Z"
+              fill="#ff8800" filter="url(#fFlame${sz})" opacity="0.85"/>
+            <path d="M${cx-R*0.68},${cy-R*0.68} C${cx-R*0.9},${cy-R*0.78} ${cx-R*0.72},${cy-R*0.95} ${cx-R*0.6},${cy-R*0.72} Z"
+              fill="#ff8800" filter="url(#fFlame${sz})" opacity="0.85"/>
+            <!-- 내부 글로우 링 -->
+            <circle cx="${cx}" cy="${cy}" r="${r+2}" fill="none" stroke="#ff2200" stroke-width="1.5" opacity="0.4"/>
+          </svg>`;
+        },
+        glowCss: 'filter:drop-shadow(0 0 8px #ff2020) drop-shadow(0 0 16px rgba(255,80,0,0.5));',
+        animCss: 'animation:s7FlameAnim 1.8s ease-in-out infinite;'
+      },
+      {
+        name:'크림슨 블레이즈',
+        // SVG 보석+별 장식 링 테두리
+        svgBorder: (sz, innerSz) => {
+          const cx = sz/2, cy = sz/2, R = sz/2 - 5;
+          return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;">
+            <defs>
+              <filter id="fJem${sz}"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <linearGradient id="ringGrad${sz}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#cc0022"/><stop offset="50%" stop-color="#ff1133"/><stop offset="100%" stop-color="#991122"/>
+              </linearGradient>
+            </defs>
+            <!-- 메인 링 -->
+            <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="url(#ringGrad${sz})" stroke-width="8"/>
+            <!-- 골드 하이라이트 선 -->
+            <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#ffd700" stroke-width="1" stroke-dasharray="4 8" opacity="0.6"/>
+            <!-- 12시: 화살촉 장식 (오른쪽 위) -->
+            <g transform="translate(${cx+R*0.65},${cy-R*0.65}) rotate(45)">
+              <polygon points="0,-10 5,-2 2,-2 2,10 -2,10 -2,-2 -5,-2" fill="#cc0022" stroke="#ffd700" stroke-width="0.8" filter="url(#fJem${sz})"/>
+              <circle cx="0" cy="-6" r="3" fill="#ffd700" opacity="0.9"/>
+            </g>
+            <!-- 7시: 큰 별+보석 장식 -->
+            <g transform="translate(${cx-R*0.65},${cy+R*0.65})">
+              <!-- 별 -->
+              <polygon points="0,-12 3,-4 11,-4 5,2 7,10 0,6 -7,10 -5,2 -11,-4 -3,-4"
+                fill="#cc0022" stroke="#ffd700" stroke-width="0.8" filter="url(#fJem${sz})"/>
+              <!-- 중심 보석 -->
+              <circle cx="0" cy="0" r="4" fill="#880011" stroke="#ffd700" stroke-width="0.8"/>
+              <polygon points="0,-3 2,-0.5 0,2 -2,-0.5" fill="#ffd700" opacity="0.9"/>
+            </g>
+            <!-- 2시: 작은 4포인트 별 -->
+            <g transform="translate(${cx+R*0.85},${cy-R*0.3})">
+              <polygon points="0,-8 2,-2 8,0 2,2 0,8 -2,2 -8,0 -2,-2" fill="#cc0022" stroke="#ffd700" stroke-width="0.6" filter="url(#fJem${sz})"/>
+              <circle cx="0" cy="0" r="2.5" fill="#ffd700" opacity="0.9"/>
+            </g>
+            <!-- 4시: 육각 보석 -->
+            <g transform="translate(${cx+R*0.75},${cy+R*0.55})">
+              <polygon points="0,-7 6,-3.5 6,3.5 0,7 -6,3.5 -6,-3.5" fill="#aa0022" stroke="#ffd700" stroke-width="0.8"/>
+              <polygon points="0,-4 3.5,-2 3.5,2 0,4 -3.5,2 -3.5,-2" fill="#ffd700" opacity="0.4"/>
+            </g>
+            <!-- 10시: 삼각 장식 -->
+            <g transform="translate(${cx-R*0.75},${cy-R*0.5})">
+              <polygon points="0,-7 6,5 -6,5" fill="#ffd700" opacity="0.8" filter="url(#fJem${sz})"/>
+              <polygon points="0,-4 3.5,3 -3.5,3" fill="#ff2020" opacity="0.6"/>
+            </g>
+            <!-- 5시: 4포인트 별 (작은) -->
+            <g transform="translate(${cx+R*0.3},${cy+R*0.88})">
+              <polygon points="0,-6 1.5,-1.5 6,0 1.5,1.5 0,6 -1.5,1.5 -6,0 -1.5,-1.5" fill="#cc0022" stroke="#ffd700" stroke-width="0.5" filter="url(#fJem${sz})"/>
+            </g>
+            <!-- 스파클 점들 -->
+            <circle cx="${cx+R*0.95}" cy="${cy+R*0.1}" r="2" fill="#ffd700" opacity="0.7" filter="url(#fJem${sz})"/>
+            <circle cx="${cx-R*0.2}" cy="${cy-R*0.97}" r="1.5" fill="#ffd700" opacity="0.6"/>
+            <circle cx="${cx-R*0.95}" cy="${cy+R*0.2}" r="1.5" fill="#ffd700" opacity="0.5"/>
+            <circle cx="${cx+R*0.1}" cy="${cy+R*0.97}" r="2" fill="#ffd700" opacity="0.65" filter="url(#fJem${sz})"/>
+          </svg>`;
+        },
+        glowCss: 'filter:drop-shadow(0 0 6px #cc0022) drop-shadow(0 0 12px rgba(180,0,30,0.5));',
+        animCss: 'animation:s7GemPulse 2s ease-in-out infinite;'
+      },
+    ],
+    전설이름효과: [
+      {
+        name:'인페르노 블레이즈',
+        grad:'linear-gradient(90deg,#ff1a1a,#ff6600,#ffaa00,#ff4400,#ff1a1a)',
+        anim:true,
+        glow:'0 0 8px #ff2020, 0 0 16px rgba(255,80,0,0.6)'
+      },
     ],
   };
 
@@ -1445,6 +2205,287 @@ function doExchange(type) {
   setTimeout(() => { resultEl.textContent = ''; resultEl.className = 'exchange-result'; }, 3000);
 }
 
+
+// ══════════════════════════════════════════════
+//  시즌7 번들 상자 JS
+// ══════════════════════════════════════════════
+
+// 시즌7 배너 비주얼 빌더
+function buildS7BannerVisual(b, w, h) {
+  if(b.svgBanner) {
+    const svgMarkup = b.svgBanner(w, h);
+    return `<div style="width:${w}px;height:${h}px;position:relative;overflow:hidden;">${svgMarkup}</div>`;
+  }
+  // 폴백 (구버전)
+  const overlay = b.overlay || '';
+  const ac = b.animCss || '';
+  return `<div style="width:${w}px;height:${h}px;position:relative;overflow:hidden;${b.css}${ac}">${overlay}</div>`;
+}
+
+// 시즌7 아이콘 비주얼
+function buildS7IconVisual(it, sz) {
+  return it.render(sz);
+}
+
+// 시즌7 테두리 비주얼
+function buildS7BorderVisual(it, sz) {
+  const innerSz = sz - 14;
+  const svgMarkup = it.svgBorder ? it.svgBorder(sz, innerSz) : '';
+  const animStyle = it.animCss || '';
+  const glowStyle = it.glowCss || '';
+  return `<div style="width:${sz}px;height:${sz}px;position:relative;${animStyle}${glowStyle}">
+    ${svgMarkup}
+    <div style="position:absolute;inset:7px;border-radius:50%;background:var(--bg-card);"></div>
+  </div>`;
+}
+
+// 시즌7 이름효과 비주얼
+function buildS7NameVisual(it, sz) {
+  const label = it.name.slice(0,5);
+  const animStyle = it.anim ? `background:${it.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:s7NameFlow 2s linear infinite;text-shadow:none;` : `color:${it.color};`;
+  const glowStyle = it.glow ? `filter:drop-shadow(0 0 4px #ff2020);` : '';
+  return `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:rgba(30,0,0,0.3);">
+    <span style="font-family:'Orbitron',sans-serif;font-size:${Math.floor(sz/5)}px;font-weight:700;${animStyle}${glowStyle}">${label}</span>
+  </div>`;
+}
+
+// 시즌7 구성품 렌더
+function renderS7Contents() {
+  // 배너
+  const bannerGrid = document.getElementById('s7-banner-grid');
+  if(bannerGrid) {
+    bannerGrid.innerHTML = SEASON7_ITEMS.전설배너.map(b =>
+      `<div class="s7-item-card">
+        <div class="s7-item-visual">${buildS7BannerVisual(b, 56, 56)}</div>
+        <div class="s7-item-name">${b.name}</div>
+        <div class="s7-item-type">배너</div>
+      </div>`
+    ).join('');
+  }
+  // 아이콘
+  const iconGrid = document.getElementById('s7-icon-grid');
+  if(iconGrid) {
+    iconGrid.innerHTML = SEASON7_ITEMS.전설아이콘.map(it =>
+      `<div class="s7-item-card">
+        <div class="s7-item-visual">${buildS7IconVisual(it, 56)}</div>
+        <div class="s7-item-name">${it.name}</div>
+        <div class="s7-item-type">아이콘</div>
+      </div>`
+    ).join('');
+  }
+  // 테두리
+  const borderGrid = document.getElementById('s7-border-grid');
+  if(borderGrid) {
+    borderGrid.innerHTML = SEASON7_ITEMS.전설테두리.map(it =>
+      `<div class="s7-item-card">
+        <div class="s7-item-visual">${buildS7BorderVisual(it, 56)}</div>
+        <div class="s7-item-name">${it.name}</div>
+        <div class="s7-item-type">테두리</div>
+      </div>`
+    ).join('');
+  }
+  // 이름효과
+  const nameGrid = document.getElementById('s7-name-grid');
+  if(nameGrid) {
+    nameGrid.innerHTML = SEASON7_ITEMS.전설이름효과.map(it =>
+      `<div class="s7-item-card">
+        <div class="s7-item-visual">${buildS7NameVisual(it, 56)}</div>
+        <div class="s7-item-name">${it.name}</div>
+        <div class="s7-item-type">이름효과</div>
+      </div>`
+    ).join('');
+  }
+}
+
+// 미리보기 배너 순환
+let _s7PreviewIdx = 0;
+function cycleS7Preview() {
+  const el = document.getElementById('s7-preview-inner');
+  if(!el) return;
+  const banners = SEASON7_ITEMS.전설배너;
+  const b = banners[_s7PreviewIdx % banners.length];
+  el.style.opacity = '0';
+  setTimeout(() => {
+    el.innerHTML = buildS7BannerVisual(b, 120, 80);
+    el.style.transition = 'opacity 0.5s ease';
+    el.style.opacity = '1';
+    _s7PreviewIdx = (_s7PreviewIdx + 1) % banners.length;
+  }, 400);
+}
+
+// 구성품 토글
+function toggleS7Contents() {
+  const wrap = document.getElementById('s7-contents');
+  const btn  = document.getElementById('s7-toggle-btn');
+  const isOpen = wrap.classList.contains('open');
+  wrap.classList.toggle('open');
+  btn.classList.toggle('open');
+  if(!isOpen) renderS7Contents();
+}
+
+// 시즌7 구매
+function buySeason7(currency) {
+  const username = localStorage.getItem('ggo_username');
+  if(!username) { location.href='login.html'; return; }
+
+  const COST = 1000;
+  const curr = getCurrency();
+  if((curr[currency]||0) < COST) {
+    alert(`${currency}가 부족합니다!\n현재: ${(curr[currency]||0).toLocaleString()} / 필요: ${COST.toLocaleString()}`);
+    return;
+  }
+
+  // 재화 차감
+  curr[currency] -= COST;
+  saveCurrency(curr);
+  updateCurrencyHUD();
+
+  // 풀 전체 (가중치: 배너3, 아이콘3, 테두리2, 이름1 → 총9)
+  const pool = [
+    ...SEASON7_ITEMS.전설배너.map((b,i)    => ({category:'배너',    idx:i, name:b.name})),
+    ...SEASON7_ITEMS.전설아이콘.map((b,i)   => ({category:'아이콘',  idx:i, name:b.name})),
+    ...SEASON7_ITEMS.전설테두리.map((b,i)   => ({category:'테두리',  idx:i, name:b.name})),
+    ...SEASON7_ITEMS.전설이름효과.map((b,i) => ({category:'이름효과',idx:i, name:b.name})),
+  ];
+  const picked = pool[Math.floor(Math.random() * pool.length)];
+
+  // 타입 매핑
+  const typeMap = {배너:'프로필배너', 아이콘:'프로필아이콘', 테두리:'테두리효과', 이름효과:'이름색상효과'};
+
+  // 중복 체크
+  const itemKey  = 'ggo_items_' + username;
+  const allItems = JSON.parse(localStorage.getItem(itemKey)||'[]');
+  const isDupe   = allItems.some(it => it.name === picked.name && it.type === typeMap[picked.category]);
+
+  // 가짜 boxDef / item 생성 후 showOpenModal 활용
+  const fakeDef = {
+    key:'시즌7번들상자', name:'시즌7 번들 상자', icon:'🔥',
+    currency, cost:COST, animDelay:'0s',
+    btnClass:'s7-btn ruby', priceClass:'', priceIcon:''
+  };
+  const fakeItem = {
+    boxKey: '시즌7번들상자',
+    name: picked.name,
+    grade: '전설',
+    isGP: false,
+    _s7Category: picked.category,
+    _s7Idx: picked.idx,
+  };
+
+  // 모달 오픈 (기존 showOpenModal 재사용)
+  showS7Modal(fakeDef, picked, isDupe, username, typeMap, allItems, itemKey);
+}
+
+function showS7Modal(fakeDef, picked, isDupe, username, typeMap, allItems, itemKey) {
+  const bg        = document.getElementById('open-modal-bg');
+  const iconEl    = document.getElementById('open-box-icon');
+  const titleEl   = document.getElementById('modal-title');
+  const nameEl    = document.getElementById('modal-item-name');
+  const descEl    = document.getElementById('modal-desc');
+  const closeBtn  = document.getElementById('modal-close-btn');
+  const resultWrap= document.getElementById('result-visual-wrap');
+  const resultVisual=document.getElementById('result-item-visual');
+  const resultBadge =document.getElementById('result-grade-badge');
+  const sparksEl   =document.getElementById('modal-sparks');
+
+  iconEl.textContent='🔥'; iconEl.className='open-box-icon';
+  titleEl.textContent='시즌7 번들 개봉 중...';
+  nameEl.textContent=''; descEl.textContent='';
+  closeBtn.style.display='none';
+  resultWrap.classList.remove('show');
+  sparksEl.innerHTML='';
+  bg.classList.add('show');
+
+  setTimeout(()=>{ iconEl.classList.add('opening'); }, 200);
+
+  setTimeout(()=>{
+    iconEl.style.display='none';
+
+    // 비주얼 빌드
+    let visual = '';
+    if(picked.category==='배너') {
+      const b = SEASON7_ITEMS.전설배너[picked.idx];
+      visual = buildS7BannerVisual(b, 80, 80);
+    } else if(picked.category==='아이콘') {
+      const it = SEASON7_ITEMS.전설아이콘[picked.idx];
+      visual = buildS7IconVisual(it, 80);
+    } else if(picked.category==='테두리') {
+      const it = SEASON7_ITEMS.전설테두리[picked.idx];
+      visual = buildS7BorderVisual(it, 80);
+    } else {
+      const it = SEASON7_ITEMS.전설이름효과[picked.idx];
+      visual = buildS7NameVisual(it, 80);
+    }
+
+    resultVisual.innerHTML = visual;
+    resultVisual.style.cssText = 'width:80px;height:80px;border-radius:14px;overflow:hidden;';
+    resultBadge.textContent='전설';
+    resultBadge.className='result-grade-badge g-전설';
+    resultWrap.classList.add('show');
+    titleEl.textContent='획득!';
+    nameEl.textContent = picked.name;
+
+    // 스파크 항상 (전설)
+    const sparkColors=['#ff2020','#ff6600','#ffaa00','#ff4444','#ff0000'];
+    for(let i=0;i<16;i++){
+      const s=document.createElement('div');
+      s.className='spark';
+      s.style.left=Math.random()*100+'%';
+      s.style.top=Math.random()*100+'%';
+      s.style.background=sparkColors[i%sparkColors.length];
+      s.style.animationDelay=Math.random()*1+'s';
+      s.style.animationDuration=(1+Math.random())*1.5+'s';
+      sparksEl.appendChild(s);
+    }
+
+    if(isDupe) {
+      const GP_DUPE = 100; // 전설 중복 GP
+      descEl.textContent='이미 보유한 아이템입니다. 100 GP로 보상이 지급되었습니다.';
+      const dupeEl=document.createElement('div');
+      dupeEl.className='dupe-badge';
+      dupeEl.textContent='이미 보유중!';
+      resultWrap.style.position='relative';
+      resultWrap.appendChild(dupeEl);
+      setTimeout(()=>{
+        resultVisual.style.animation='itemFadeOut 0.5s ease forwards';
+        setTimeout(()=>{
+          resultVisual.innerHTML=`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;background:rgba(20,0,0,0.4);">
+            <svg width="32" height="32" viewBox="0 0 22 22" fill="none"><polygon points="11,2 20,18 2,18" fill="#fbbf24"/></svg>
+            <span style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:#fbbf24">+100 GP</span>
+          </div>`;
+          resultVisual.style.animation='gpFadeIn 0.5s ease forwards';
+          nameEl.textContent='+100 GP (중복 보상)';
+          if(dupeEl.parentElement) dupeEl.remove();
+        }, 500);
+      }, 1200);
+      const currKey='ggo_currency_'+username;
+      const curr2=JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
+      curr2['GP']=(curr2['GP']||0)+GP_DUPE;
+      localStorage.setItem(currKey, JSON.stringify(curr2));
+    } else {
+      descEl.textContent='[시즌7 한정] 마이페이지에서 장착하세요!';
+      allItems.push({
+        name: picked.name,
+        type: typeMap[picked.category],
+        grade: '전설',
+        img: '',
+        equipped: false,
+        source: '시즌7번들',
+        visualKey: '시즌7번들상자',
+        _s7Category: picked.category,
+        _s7Idx: picked.idx,
+      });
+      localStorage.setItem(itemKey, JSON.stringify(allItems));
+      // EXP
+      const expKey='ggo_deco_exp_'+username;
+      localStorage.setItem(expKey, (parseInt(localStorage.getItem(expKey)||'0'))+1000);
+    }
+    closeBtn.style.display='block';
+  }, 900);
+}
+
+// s7NameFlow 키프레임 (CSS에 추가)
+
 function closeOpenModal() {
   document.getElementById('open-modal-bg').classList.remove('show');
   document.getElementById('open-box-icon').style.display = 'block';
@@ -1460,6 +2501,10 @@ function loadShop() {
 
   document.getElementById('loading-state').style.display='none';
   document.getElementById('shop-content').style.display='block';
+
+  // 시즌7 배너 미리보기 초기 설정 + 순환
+  cycleS7Preview();
+  setInterval(cycleS7Preview, 3000);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
