@@ -160,8 +160,15 @@
     <button class="nav-item" onclick="location.href='event.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg><span class="tooltip">이벤트</span></button>
   </nav>
   <div class="sidebar-bottom">
-    <button class="nav-item">⚙️<span class="tooltip">설정</span></button>
-    <div class="avatar-sm">👤</div>
+    <div style="position:relative">
+      <button class="nav-item" id="settings-btn" onclick="toggleSidebarBox(event)">⚙️<span class="tooltip">설정</span></button>
+      <div id="logout-box" style="display:none;position:absolute;left:58px;bottom:0;background:rgba(19,13,36,0.97);border:1px solid rgba(124,58,237,0.25);border-radius:12px;padding:8px;white-space:nowrap;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,0.4);backdrop-filter:blur(20px);">
+        <div id="logout-user-name" style="font-size:11px;color:var(--text-dim);padding:4px 10px 8px;border-bottom:1px solid rgba(124,58,237,0.12);margin-bottom:6px;font-family:'Orbitron',sans-serif;"></div>
+        <button onclick="openSidebarCoupon()" style="width:100%;background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.2);color:var(--accent-cyan);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;gap:6px;margin-bottom:6px;">🎟️ 쿠폰 등록하기</button>
+        <button onclick="doSidebarLogout()" style="width:100%;background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.2);color:var(--accent-pink);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;gap:6px;">🚪 로그아웃</button>
+      </div>
+    </div>
+    <div class="avatar-sm" id="sidebar-avatar" onclick="goSidebarMyPage()" style="cursor:pointer;position:relative;overflow:hidden;" title="마이페이지">👤</div>
   </div>
 </aside>
 
@@ -330,6 +337,567 @@
   }
 
   window.addEventListener('DOMContentLoaded', loadActivity);
+
+// ════════════════════════════════════════
+//  공통 사이드바 JS
+// ════════════════════════════════════════
+
+// ── 데이터 (마이페이지 공유) ──
+const MP_BANNER_ITEMS = {
+    일반: [
+      {name:'미드나잇 블루',css:'background:#1e3a5f;'},
+      {name:'딥 퍼플',css:'background:#2d1b69;'},
+      {name:'포레스트 그린',css:'background:#1a3d2b;'},
+      {name:'크림슨 레드',css:'background:#6b1a1a;'},
+      {name:'다크 마젠타',css:'background:#4a1040;'},
+      {name:'오션 딥',css:'background:#0d2e4a;'},
+      {name:'아이언 그레이',css:'background:#2c3140;'},
+      {name:'다크 슬레이트',css:'background:#1c2b3a;'},
+      {name:'브론즈 틴트',css:'background:#3d2b1a;'},
+      {name:'에메랄드 나이트',css:'background:#0d3b2e;'},
+      {name:'인디고 다크',css:'background:#1a1f5e;'},
+      {name:'마룬 섀도우',css:'background:#4a1525;'},
+      {name:'틸 어비스',css:'background:#0d3535;'},
+      {name:'다크 올리브',css:'background:#2a2e1a;'},
+      {name:'딥 코랄',css:'background:#5c2a1a;'},
+      {name:'나이트 바이올렛',css:'background:#2e1545;'},
+      {name:'스틸 블루',css:'background:#1e3050;'},
+      {name:'다크 사이안',css:'background:#0d3040;'},
+      {name:'어쉬 블랙',css:'background:#1a1a2e;'},
+      {name:'다크 앰버',css:'background:#3d2800;'},
+    ],
+    희귀: [
+      {name:'오로라',css:'background:linear-gradient(135deg,#0ea5e9,#7c3aed);'},
+      {name:'선셋 글로우',css:'background:linear-gradient(135deg,#f97316,#db2777);'},
+      {name:'오션 드림',css:'background:linear-gradient(135deg,#0891b2,#0d9488);'},
+      {name:'포레스트 미스트',css:'background:linear-gradient(135deg,#15803d,#0ea5e9);'},
+      {name:'갤럭시 더스트',css:'background:linear-gradient(135deg,#4c1d95,#1e3a8a);'},
+      {name:'로즈 골드',css:'background:linear-gradient(135deg,#9f1239,#c2410c);'},
+      {name:'민트 초콜릿',css:'background:linear-gradient(135deg,#065f46,#1e3a5f);'},
+      {name:'노던 라이트',css:'background:linear-gradient(135deg,#7c3aed,#0891b2);'},
+      {name:'피치 블러쉬',css:'background:linear-gradient(135deg,#be185d,#9333ea);'},
+      {name:'아쿠아 마린',css:'background:linear-gradient(135deg,#0369a1,#0f766e);'},
+    ],
+    에픽: [
+      {name:'사이버 그리드',css:'background:linear-gradient(135deg,#0f0230,#1e0755);',patternClass:'banner-epic-grid'},
+      {name:'디지털 레인',css:'background:linear-gradient(180deg,#020d18,#0a2a1a);',patternClass:'banner-epic-lines'},
+      {name:'헥사곤 필드',css:'background:linear-gradient(135deg,#1a0a3a,#0a1f3d);',patternClass:'banner-epic-hex'},
+      {name:'스타 필드',css:'background:radial-gradient(ellipse at 50% 50%,#1a0a3a 0%,#000 100%);',patternClass:'banner-epic-stars'},
+      {name:'크로스 웨이브',css:'background:linear-gradient(135deg,#0f172a,#1e1b4b);',patternClass:'banner-epic-cross'},
+    ],
+    전설: [
+      {name:'갤럭시 스톰',css:'background:linear-gradient(-45deg,#7c3aed,#db2777,#f97316,#7c3aed);background-size:300% 300%;',animated:true,patternClass:'banner-legend-hex'},
+      {name:'오로라 리플',css:'background:linear-gradient(-45deg,#0ea5e9,#7c3aed,#10b981,#0ea5e9);background-size:300% 300%;',animated:true,patternClass:'banner-legend-circle'},
+      {name:'코스믹 블레이즈',css:'background:linear-gradient(-45deg,#fbbf24,#f472b6,#7c3aed,#22d3ee);background-size:300% 300%;',animated:true,patternClass:'banner-legend-diamond'},
+    ],
+  };
+
+  // ── 아이콘/테두리/이름효과 데이터 (shop.html과 동일) ──
+  const MP_ICON_ITEMS = {
+    일반: [
+      {name:'레드 서클',svg:'<circle cx="26" cy="26" r="20" fill="#ef4444"/>'},
+      {name:'블루 스퀘어',svg:'<rect x="6" y="6" width="40" height="40" rx="4" fill="#3b82f6"/>'},
+      {name:'그린 트라이',svg:'<polygon points="26,4 48,46 4,46" fill="#22c55e"/>'},
+      {name:'퍼플 다이아',svg:'<polygon points="26,4 48,26 26,48 4,26" fill="#a855f7"/>'},
+      {name:'옐로우 스타',svg:'<polygon points="26,4 31,18 46,18 34,28 38,44 26,35 14,44 18,28 6,18 21,18" fill="#fbbf24"/>'},
+      {name:'핑크 하트',svg:'<path d="M26,42 C26,42 6,28 6,17 C6,11 11,6 17,8 C21,9 24,13 26,17 C28,13 31,9 35,8 C41,6 46,11 46,17 C46,28 26,42 26,42Z" fill="#ec4899"/>'},
+      {name:'시안 헥사',svg:'<polygon points="26,4 44,14 44,34 26,44 8,34 8,14" fill="#22d3ee"/>'},
+      {name:'오렌지 펜타',svg:'<polygon points="26,4 47,19 39,43 13,43 5,19" fill="#f97316"/>'},
+      {name:'인디고 크로스',svg:'<rect x="16" y="4" width="20" height="44" rx="4" fill="#6366f1"/><rect x="4" y="16" width="44" height="20" rx="4" fill="#6366f1"/>'},
+      {name:'틸 링',svg:'<circle cx="26" cy="26" r="20" fill="none" stroke="#0d9488" stroke-width="8"/>'},
+      {name:'로즈 화살',svg:'<polygon points="26,4 38,22 34,22 34,46 18,46 18,22 14,22" fill="#f43f5e"/>'},
+      {name:'라임 클로버',svg:'<circle cx="18" cy="18" r="12" fill="#84cc16"/><circle cx="34" cy="18" r="12" fill="#84cc16"/><circle cx="18" cy="34" r="12" fill="#84cc16"/><circle cx="34" cy="34" r="12" fill="#84cc16"/>'},
+      {name:'앰버 볼트',svg:'<polygon points="30,4 46,26 36,26 24,48 16,26 6,26" fill="#f59e0b"/>'},
+      {name:'스카이 실드',svg:'<path d="M26,4 L44,12 L44,26 C44,35 36,43 26,47 C16,43 8,35 8,26 L8,12 Z" fill="#0ea5e9"/>'},
+      {name:'바이올렛 리프',svg:'<ellipse cx="26" cy="26" rx="20" ry="10" fill="#8b5cf6" transform="rotate(30 26 26)"/>'},
+      {name:'에메랄드 큐브',svg:'<rect x="8" y="12" width="36" height="28" rx="3" fill="#10b981"/>'},
+      {name:'슬레이트 옥타',svg:'<polygon points="17,5 35,5 45,15 45,35 35,45 17,45 7,35 7,15" fill="#475569"/>'},
+      {name:'코랄 플러스',svg:'<rect x="18" y="4" width="16" height="44" rx="5" fill="#fb923c"/><rect x="4" y="18" width="44" height="16" rx="5" fill="#fb923c"/>'},
+      {name:'네이비 다트',svg:'<polygon points="26,4 46,46 26,36 6,46" fill="#1e3a8a"/>'},
+      {name:'화이트 링2',svg:'<circle cx="26" cy="26" r="18" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="6"/><circle cx="26" cy="26" r="8" fill="rgba(255,255,255,0.3)"/>'},
+    ],
+    희귀: [
+      {name:'호랑이',emoji:'🐯'},{name:'여우',emoji:'🦊'},{name:'늑대',emoji:'🐺'},
+      {name:'사자',emoji:'🦁'},{name:'드래곤',emoji:'🐉'},{name:'독수리',emoji:'🦅'},
+      {name:'곰',emoji:'🐻'},{name:'나비',emoji:'🦋'},{name:'표범',emoji:'🐆'},{name:'매',emoji:'🦆'},
+    ],
+    에픽: [
+      {name:'홀로 레인보우',holo:'linear-gradient(135deg,#ff0080,#ff8c00,#40e0d0,#8000ff,#ff0080)',anim:true},
+      {name:'홀로 오로라',holo:'linear-gradient(135deg,#00c6ff,#0072ff,#00c6ff,#7b2ff7)',anim:true},
+      {name:'홀로 선셋',holo:'linear-gradient(135deg,#f7971e,#ffd200,#f7971e,#ff416c)',anim:true},
+      {name:'홀로 사이버',holo:'linear-gradient(135deg,#00f5ff,#7b2ff7,#ff006e,#00f5ff)',anim:true},
+      {name:'홀로 포레스트',holo:'linear-gradient(135deg,#00b09b,#96c93d,#00b09b,#00c6ff)',anim:true},
+    ],
+    전설: [
+      {name:'크리스탈 아이스',glass:'rgba(200,240,255,0.15)',border:'rgba(150,220,255,0.5)'},
+      {name:'다크 오브시디안',glass:'rgba(20,10,40,0.4)',border:'rgba(168,85,247,0.6)'},
+      {name:'골든 미스트',glass:'rgba(251,191,36,0.12)',border:'rgba(251,191,36,0.5)'},
+    ],
+  };
+
+  const MP_BORDER_ITEMS = {
+    일반:[
+      {color:'#ef4444'},{color:'#8b5cf6'},{color:'#22d3ee'},{color:'#10b981'},{color:'#fbbf24'},
+      {color:'#ec4899'},{color:'#3b82f6'},{color:'#6366f1'},{color:'#f97316'},{color:'#0d9488'},
+      {color:'#84cc16'},{color:'#f43f5e'},{color:'#0ea5e9'},{color:'#f59e0b'},{color:'#a855f7'},
+      {color:'#34d399'},{color:'#fb923c'},{color:'#c4b5fd'},{color:'#94a3b8'},{color:'rgba(255,255,255,0.85)'},
+    ],
+    희귀:[
+      {grad:'linear-gradient(135deg,#7c3aed,#22d3ee)'},{grad:'linear-gradient(135deg,#f97316,#db2777)'},
+      {grad:'linear-gradient(135deg,#0891b2,#0d9488)'},{grad:'linear-gradient(135deg,#4c1d95,#1e3a8a)'},
+      {grad:'linear-gradient(135deg,#9f1239,#f97316)'},{grad:'linear-gradient(135deg,#7c3aed,#0891b2)'},
+      {grad:'linear-gradient(135deg,#be185d,#9333ea)'},{grad:'linear-gradient(135deg,#15803d,#0ea5e9)'},
+      {grad:'linear-gradient(135deg,#ef4444,#3b82f6)'},{grad:'linear-gradient(135deg,#fbbf24,#a855f7)'},
+    ],
+    에픽:[
+      {color:'#a855f7',glow:'0 0 12px #a855f7,0 0 24px rgba(168,85,247,0.5)'},
+      {color:'#22d3ee',glow:'0 0 12px #22d3ee,0 0 24px rgba(34,211,238,0.5)'},
+      {color:'#f472b6',glow:'0 0 12px #f472b6,0 0 24px rgba(244,114,182,0.5)'},
+      {color:'#fbbf24',glow:'0 0 12px #fbbf24,0 0 24px rgba(251,191,36,0.5)'},
+      {color:'#34d399',glow:'0 0 12px #34d399,0 0 24px rgba(52,211,153,0.5)'},
+    ],
+    전설:[
+      {grad:'linear-gradient(to right,#fbbf24,#f472b6,#7c3aed,#22d3ee)',rotating:true},
+      {grad:'linear-gradient(to right,#10b981,#0ea5e9,#7c3aed,#f472b6)',rotating:true},
+      {grad:'linear-gradient(to right,#fbbf24,#f97316,#ef4444,#7c3aed)',rotating:true},
+    ],
+  };
+
+  const MP_NAME_EFF_ITEMS = {
+    일반:[
+      {color:'#ef4444'},{color:'#8b5cf6'},{color:'#22d3ee'},{color:'#10b981'},{color:'#fbbf24'},
+      {color:'#ec4899'},{color:'#3b82f6'},{color:'#6366f1'},{color:'#f97316'},{color:'#0d9488'},
+      {color:'#84cc16'},{color:'#f43f5e'},{color:'#0ea5e9'},{color:'#f59e0b'},{color:'#a855f7'},
+      {color:'#34d399'},{color:'#fb923c'},{color:'#c4b5fd'},{color:'#94a3b8'},{color:'rgba(255,255,255,0.9)'},
+    ],
+    희귀:[
+      {grad:'linear-gradient(90deg,#7c3aed,#22d3ee)'},{grad:'linear-gradient(90deg,#f97316,#db2777)'},
+      {grad:'linear-gradient(90deg,#0891b2,#10b981)'},{grad:'linear-gradient(90deg,#4c1d95,#7c3aed)'},
+      {grad:'linear-gradient(90deg,#f43f5e,#f97316)'},{grad:'linear-gradient(90deg,#a855f7,#0891b2)'},
+      {grad:'linear-gradient(90deg,#ec4899,#9333ea)'},{grad:'linear-gradient(90deg,#15803d,#0ea5e9)'},
+      {grad:'linear-gradient(90deg,#ef4444,#3b82f6)'},{grad:'linear-gradient(90deg,#fbbf24,#a855f7)'},
+    ],
+    에픽:[
+      {color:'#a855f7',glow:'0 0 10px #a855f7,0 0 20px rgba(168,85,247,0.6)'},
+      {color:'#22d3ee',glow:'0 0 10px #22d3ee,0 0 20px rgba(34,211,238,0.6)'},
+      {color:'#f472b6',glow:'0 0 10px #f472b6,0 0 20px rgba(244,114,182,0.6)'},
+      {color:'#fbbf24',glow:'0 0 10px #fbbf24,0 0 20px rgba(251,191,36,0.6)'},
+      {color:'#34d399',glow:'0 0 10px #34d399,0 0 20px rgba(52,211,153,0.6)'},
+    ],
+    전설:[
+      {grad:'linear-gradient(90deg,#fbbf24,#f472b6,#7c3aed,#22d3ee)',anim:true},
+      {grad:'linear-gradient(90deg,#10b981,#0ea5e9,#7c3aed,#f472b6)',anim:true},
+      {grad:'linear-gradient(90deg,#fbbf24,#f97316,#ef4444,#a855f7)',anim:true},
+    ],
+  };
+
+  // ── 시즌7 아이템 데이터 (shop.html과 동일) ──
+  const MP_S7 = {
+    배너: [
+      {
+        name:'레드 네온 터널',
+        isSvgBanner: true, idx: 0,
+        fallbackBg: 'linear-gradient(180deg,#0a0a0a,#1a0808)'
+      },
+      {
+        name:'크림슨 V-코리더',
+        isSvgBanner: true, idx: 1,
+        fallbackBg: 'radial-gradient(ellipse at 50% 55%,#3d0000,#0a0000)'
+      },
+      {
+        name:'인페르노 게이트',
+        isSvgBanner: true, idx: 2,
+        fallbackBg: 'radial-gradient(ellipse at 50% 100%,#2a0800,#050000)'
+      },
+    ],
+    아이콘렌더: [
+      (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:#0a0000;border-radius:50%;"><svg width="${sz*.7}" height="${sz*.7}" viewBox="0 0 40 40"><polygon points='20,2 36,14 36,28 20,38 4,28 4,14' fill='none' stroke='#ff2020' stroke-width='1.5'/><line x1='4' y1='14' x2='36' y2='14' stroke='#ff2020' stroke-width='0.8' opacity='0.6'/></svg></div>`,
+      (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:#080000;border-radius:50%;"><svg width="${sz*.7}" height="${sz*.7}" viewBox="0 0 40 40"><rect x='17' y='2' width='6' height='36' rx='2' fill='#ff1a1a'/><rect x='2' y='17' width='36' height='6' rx='2' fill='#ff1a1a'/><circle cx='20' cy='20' r='4' fill='#ff4444'/></svg></div>`,
+      (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#1a0000,#000);border-radius:50%;"><svg width="${sz*.72}" height="${sz*.72}" viewBox="0 0 40 40"><circle cx='20' cy='20' r='16' fill='url(#mpS7g)'/><circle cx='20' cy='20' r='16' fill='none' stroke='#ff2020' stroke-width='1.5'/><defs><radialGradient id='mpS7g' cx='40%' cy='35%'><stop offset='0%' stop-color='#ff4444'/><stop offset='100%' stop-color='#660000'/></radialGradient></defs></svg></div>`,
+    ],
+    테두리: [
+      {
+        name:'인페르노 플레임', isSvgBorder: true,
+        animCss:'animation:s7FlameAnim 1.8s ease-in-out infinite;',
+        glowCss:'filter:drop-shadow(0 0 8px #ff2020) drop-shadow(0 0 16px rgba(255,80,0,0.5));'
+      },
+      {
+        name:'크림슨 블레이즈', isSvgBorder: true,
+        animCss:'animation:s7GemPulse 2s ease-in-out infinite;',
+        glowCss:'filter:drop-shadow(0 0 6px #cc0022) drop-shadow(0 0 12px rgba(180,0,30,0.5));'
+      },
+    ],
+    이름효과: [
+      {grad:'linear-gradient(90deg,#ff1a1a,#ff6600,#ffaa00,#ff4400,#ff1a1a)', anim:true, glow:'0 0 8px #ff2020,0 0 16px rgba(255,80,0,0.6)'},
+    ],
+  }
+
+// ── 시즌7 SVG 빌더 ──
+  // 시즌7 배너 SVG 빌더 (마이페이지용)
+  function buildMpS7BannerSvg(bidx, W, H) {
+    if(bidx === 0) {
+      // 레드 네온 터널: 기둥 패널 + 네온
+      const LP=[W*0.0,W*0.08,W*0.17,W*0.26,W*0.35];
+      const LPT=[W*0.0,W*0.04,W*0.10,W*0.17,W*0.24];
+      const RP2=[W*1.0,W*0.92,W*0.83,W*0.74,W*0.65];
+      const RPT2=[W*1.0,W*0.96,W*0.90,W*0.83,W*0.76];
+      let pL='',gL='',pR='',gR='';
+      for(let i=0;i<LP.length-1;i++){
+        const x0b=LP[i],x1b=LP[i+1],x0t=LPT[i],x1t=LPT[i+1];
+        const op=0.75-i*0.1, dr=0x18+i*0x06;
+        pL+=`<polygon points='${x0b},${H} ${x1b},${H} ${x1t},${H*0.02} ${x0t},${H*0.02}' fill='rgb(${dr},${Math.floor(dr*0.3)},${Math.floor(dr*0.3)})' opacity='${op}'/>`;
+        if(i>0){
+          gL+=`<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#ff1a1a' stroke-width='${2.5-i*0.4}' opacity='${0.9-i*0.12}' filter='url(#mpgN)'/>`;
+          gL+=`<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#fff' stroke-width='${0.6-i*0.1}' opacity='${0.5-i*0.08}'/>`;
+        }
+      }
+      for(let i=0;i<RP2.length-1;i++){
+        const x0b=RP2[i],x1b=RP2[i+1],x0t=RPT2[i],x1t=RPT2[i+1];
+        const op=0.75-i*0.1, dr=0x18+i*0x06;
+        pR+=`<polygon points='${x0b},${H} ${x1b},${H} ${x1t},${H*0.02} ${x0t},${H*0.02}' fill='rgb(${dr},${Math.floor(dr*0.3)},${Math.floor(dr*0.3)})' opacity='${op}'/>`;
+        if(i>0){
+          gR+=`<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#ff1a1a' stroke-width='${2.5-i*0.4}' opacity='${0.9-i*0.12}' filter='url(#mpgN)'/>`;
+          gR+=`<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#fff' stroke-width='${0.6-i*0.1}' opacity='${0.5-i*0.08}'/>`;
+        }
+      }
+      return `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}' viewBox='0 0 ${W} ${H}'>
+        <defs>
+          <filter id='mpgN'><feGaussianBlur stdDeviation='2.5' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+          <linearGradient id='mpBG1' x1='0%' y1='0%' x2='0%' y2='100%'>
+            <stop offset='0%' stop-color='#080808'/><stop offset='55%' stop-color='#0f0505'/><stop offset='100%' stop-color='#1c0808'/>
+          </linearGradient>
+          <linearGradient id='mpFL1' x1='0%' y1='0%' x2='0%' y2='100%'>
+            <stop offset='0%' stop-color='#1a0404' stop-opacity='0.3'/><stop offset='100%' stop-color='#2d0a0a' stop-opacity='0.9'/>
+          </linearGradient>
+        </defs>
+        <rect width='${W}' height='${H}' fill='url(#mpBG1)'/>
+        <polygon points='0,0 ${W},0 ${W},${H*0.25} ${W*0.5},${H*0.38} 0,${H*0.25}' fill='#060606'/>
+        <rect y='${H*0.62}' width='${W}' height='${H*0.38}' fill='url(#mpFL1)'/>
+        ${pL}${gL}${pR}${gR}
+        <line x1='${W*0.08}' y1='${H}' x2='${W*0.26}' y2='${H*0.62}' stroke='#ff0808' stroke-width='1.2' opacity='0.18' filter='url(#mpgN)'/>
+        <line x1='${W*0.92}' y1='${H}' x2='${W*0.74}' y2='${H*0.62}' stroke='#ff0808' stroke-width='1.2' opacity='0.18' filter='url(#mpgN)'/>
+        <ellipse cx='${W*0.5}' cy='${H*0.38}' rx='${W*0.06}' ry='${H*0.04}' fill='#3a0808' opacity='0.5' filter='url(#mpgN)'/>
+      </svg>`;
+    } else if(bidx === 1) {
+      // V-코리더: 수렴 패널 + 바닥 두 줄기 반사
+      const VX=W*0.5, VY=H*0.5, levels=9;
+      let pl='';
+      for(let i=0;i<levels;i++){
+        const t=i/(levels-1);
+        const lx=W*(0.0+t*0.46), rx=W*(1.0-t*0.46), y=H*(0.98-t*0.48);
+        const wS=3.5*(1-t)+0.5, op=0.85-t*0.4;
+        if(i>0){
+          const pt=(i-1)/(levels-1);
+          const plx=W*(0.0+pt*0.46),prx=W*(1.0-pt*0.46),py=H*(0.98-pt*0.48);
+          const fo=0.45-t*0.4;
+          pl+=`<polygon points='${plx},${py} ${lx},${y} ${VX},${VY} ${VX},${VY}' fill='#1a0000' opacity='${fo<0?0:fo}'/>`;
+          pl+=`<polygon points='${prx},${py} ${rx},${y} ${VX},${VY} ${VX},${VY}' fill='#1a0000' opacity='${fo<0?0:fo}'/>`;
+        }
+        pl+=`<line x1='${lx}' y1='${y}' x2='${VX}' y2='${VY}' stroke='#aa0000' stroke-width='${wS}' opacity='${op}'/>`;
+        pl+=`<line x1='${rx}' y1='${y}' x2='${VX}' y2='${VY}' stroke='#aa0000' stroke-width='${wS}' opacity='${op}'/>`;
+      }
+      return `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}' viewBox='0 0 ${W} ${H}'>
+        <defs>
+          <filter id='mpgN2'><feGaussianBlur stdDeviation='3' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+          <radialGradient id='mpBG2' cx='50%' cy='50%' r='65%'>
+            <stop offset='0%' stop-color='#3a0000'/><stop offset='45%' stop-color='#1f0000'/><stop offset='100%' stop-color='#080000'/>
+          </radialGradient>
+          <radialGradient id='mpVP2' cx='50%' cy='50%' r='18%'>
+            <stop offset='0%' stop-color='#ff2222' stop-opacity='0.55'/><stop offset='100%' stop-color='#ff0000' stop-opacity='0'/>
+          </radialGradient>
+        </defs>
+        <rect width='${W}' height='${H}' fill='url(#mpBG2)'/>
+        ${pl}
+        <ellipse cx='${VX}' cy='${VY}' rx='${W*0.1}' ry='${H*0.08}' fill='url(#mpVP2)'/>
+        <ellipse cx='${VX}' cy='${VY}' rx='${W*0.03}' ry='${H*0.025}' fill='#ff4444' opacity='0.5' filter='url(#mpgN2)'/>
+        <line x1='${W*0.08}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#ff3333' stroke-width='2.5' opacity='0.95' filter='url(#mpgN2)'/>
+        <line x1='${W*0.08}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#fff' stroke-width='0.8' opacity='0.65'/>
+        <line x1='${W*0.92}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#ff3333' stroke-width='2.5' opacity='0.95' filter='url(#mpgN2)'/>
+        <line x1='${W*0.92}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#fff' stroke-width='0.8' opacity='0.65'/>
+        <line x1='0' y1='${H}' x2='${VX}' y2='${VY}' stroke='#cc0000' stroke-width='1.2' opacity='0.4'/>
+        <line x1='${W}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#cc0000' stroke-width='1.2' opacity='0.4'/>
+      </svg>`;
+    } else {
+      // 인페르노 게이트: 화살표 조각 + 오렌지 글로우
+      const VX=W*0.5, VY=H*0.72;
+      const shapeData=[
+        [H*0.18,W*0.28,H*0.13,'#8a0a00'],
+        [H*0.35,W*0.24,H*0.09,'#6a0800'],
+        [H*0.50,W*0.20,H*0.07,'#550600'],
+        [H*0.63,W*0.16,H*0.05,'#440500'],
+        [H*0.74,W*0.13,H*0.035,'#330400'],
+      ];
+      let sL='',sR='';
+      shapeData.forEach((s,i)=>{
+        const [yc,xt,hh,fill]=s;
+        const ec=i===0?'#ff3300':i===1?'#ee2200':'#cc1500';
+        const ew=1.5-i*0.2,eo=0.95-i*0.1;
+        sL+=`<polygon points='0,${yc-hh} ${xt},${yc} 0,${yc+hh}' fill='${fill}' opacity='0.88'/>`;
+        sL+=`<line x1='0' y1='${yc-hh}' x2='${xt}' y2='${yc}' stroke='${ec}' stroke-width='${ew}' opacity='${eo}' filter='url(#mpgN3)'/>`;
+        sL+=`<line x1='0' y1='${yc+hh}' x2='${xt}' y2='${yc}' stroke='${ec}' stroke-width='${ew*0.7}' opacity='${eo*0.75}'/>`;
+        const xtr=W-xt;
+        sR+=`<polygon points='${W},${yc-hh} ${xtr},${yc} ${W},${yc+hh}' fill='${fill}' opacity='0.88'/>`;
+        sR+=`<line x1='${W}' y1='${yc-hh}' x2='${xtr}' y2='${yc}' stroke='${ec}' stroke-width='${ew}' opacity='${eo}' filter='url(#mpgN3)'/>`;
+        sR+=`<line x1='${W}' y1='${yc+hh}' x2='${xtr}' y2='${yc}' stroke='${ec}' stroke-width='${ew*0.7}' opacity='${eo*0.75}'/>`;
+      });
+      return `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}' viewBox='0 0 ${W} ${H}'>
+        <defs>
+          <filter id='mpgN3'><feGaussianBlur stdDeviation='2' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+          <filter id='mpgB3'><feGaussianBlur stdDeviation='8' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+          <radialGradient id='mpBG3' cx='50%' cy='65%' r='75%'>
+            <stop offset='0%' stop-color='#2a0800'/><stop offset='40%' stop-color='#160300'/><stop offset='100%' stop-color='#040000'/>
+          </radialGradient>
+          <radialGradient id='mpBL3' cx='50%' cy='100%' r='55%'>
+            <stop offset='0%' stop-color='#ff7700' stop-opacity='0.9'/>
+            <stop offset='25%' stop-color='#ff3300' stop-opacity='0.6'/>
+            <stop offset='60%' stop-color='#cc1100' stop-opacity='0.2'/>
+            <stop offset='100%' stop-color='#ff0000' stop-opacity='0'/>
+          </radialGradient>
+        </defs>
+        <rect width='${W}' height='${H}' fill='url(#mpBG3)'/>
+        <ellipse cx='${VX}' cy='${H}' rx='${W*0.55}' ry='${H*0.65}' fill='url(#mpBL3)'/>
+        <ellipse cx='${VX}' cy='${H}' rx='${W*0.18}' ry='${H*0.25}' fill='#ff5500' opacity='0.35' filter='url(#mpgB3)'/>
+        <ellipse cx='${VX}' cy='${H}' rx='${W*0.06}' ry='${H*0.08}' fill='#ff8800' opacity='0.55' filter='url(#mpgN3)'/>
+        <line x1='${VX}' y1='${H}' x2='${VX}' y2='${H*0.7}' stroke='#ff6600' stroke-width='1.5' opacity='0.7' filter='url(#mpgN3)'/>
+        ${sL}${sR}
+      </svg>`;
+    }
+  }
+
+
+
+// ── 사이드바 아바타 초기화 (아이콘 + 이름효과) ──
+function initSidebarProfile() {
+  const username   = localStorage.getItem('ggo_username') || '';
+  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const av = document.getElementById('sidebar-avatar');
+  if(!av) return;
+
+  if(!isLoggedIn || !username) {
+    // 비로그인: 기본 표시
+    av.innerHTML  = '👤';
+    av.style.background = 'linear-gradient(135deg,var(--purple-1),var(--accent-pink))';
+    av.style.overflow = '';
+    av.title = '로그인';
+    return;
+  }
+
+  av.title = username + ' · 마이페이지';
+
+  const itemKey  = 'ggo_items_' + username;
+  const allItems = JSON.parse(localStorage.getItem(itemKey) || '[]');
+  const iconItem = allItems.find(it => it.type==='프로필아이콘' && it.equipped);
+
+  // ── 아이콘 적용 ──
+  av.style.overflow = 'hidden';
+  av.style.position = 'relative';
+
+  if(iconItem && iconItem.visualKey === '시즌7번들상자') {
+    av.style.background = '#0a0000';
+    const s7r = MP_S7.아이콘렌더[iconItem._s7Idx || 0];
+    if(s7r) av.innerHTML = s7r(38);
+    else av.innerHTML = '<span style="font-size:18px">🔥</span>';
+  } else if(iconItem) {
+    const g  = iconItem.grade;
+    const bi = iconItem.itemIdx !== undefined ? iconItem.itemIdx : (iconItem.visualIdx||0);
+    const it2 = (MP_ICON_ITEMS[g]||[])[bi % (MP_ICON_ITEMS[g]?.length||1)];
+    if(it2) {
+      av.style.background = 'var(--bg-card, #1a1035)';
+      if(it2.emoji) {
+        av.innerHTML = `<span style="font-size:20px;line-height:1">${it2.emoji}</span>`;
+      } else if(it2.svg) {
+        av.innerHTML = `<svg width="28" height="28" viewBox="0 0 52 52" fill="none">${it2.svg}</svg>`;
+      } else if(it2.holo) {
+        av.innerHTML = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.holo};background-size:200%;${it2.anim?'animation:legendaryFlow 3s ease infinite':''}"></div><div style="position:relative;font-size:16px">✦</div>`;
+      } else if(it2.glass) {
+        av.innerHTML = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.glass};border:2px solid ${it2.border}"></div><div style="position:relative;font-size:16px">💠</div>`;
+      } else {
+        av.innerHTML = username.charAt(0).toUpperCase() || '?';
+        av.style.background = 'linear-gradient(135deg,var(--purple-1),var(--purple-2))';
+      }
+    } else {
+      av.innerHTML = username.charAt(0).toUpperCase() || '?';
+      av.style.background = 'linear-gradient(135deg,var(--purple-1),var(--purple-2))';
+    }
+  } else {
+    av.innerHTML = username.charAt(0).toUpperCase() || '?';
+    av.style.background = 'linear-gradient(135deg,var(--purple-1),var(--accent-cyan))';
+    av.style.fontSize = '16px';
+  }
+
+  // ── 사이드바 이름 표시 (topbar greeting 있으면 적용) ──
+  const greetEl = document.getElementById('greet-name') || document.getElementById('sidebar-username');
+  if(greetEl) greetEl.textContent = username;
+
+  // ── 이름효과 (topbar 닉네임 텍스트 있는 경우) ──
+  const nameEffItem = allItems.find(it => it.type==='이름색상효과' && it.equipped);
+  applyNameEffectToElements(nameEffItem, [
+    document.getElementById('greet-name'),
+    document.getElementById('sidebar-username'),
+    document.getElementById('topbar-username'),
+  ]);
+}
+
+function applyNameEffectToElements(nameEffItem, elements) {
+  elements.forEach(el => {
+    if(!el) return;
+    el.style.cssText = '';
+    if(!nameEffItem) return;
+    if(nameEffItem.visualKey === '시즌7번들상자') {
+      const s7n = MP_S7.이름효과[nameEffItem._s7Idx || 0];
+      if(s7n) {
+        el.style.background = s7n.grad;
+        el.style.backgroundSize = '200%';
+        el.style.webkitBackgroundClip = 'text';
+        el.style.webkitTextFillColor = 'transparent';
+        el.style.backgroundClip = 'text';
+        el.style.animation = 's7NameFlow 2s linear infinite';
+      }
+    } else {
+      const g2  = nameEffItem.grade;
+      const bi2 = nameEffItem.itemIdx !== undefined ? nameEffItem.itemIdx : (nameEffItem.visualIdx||0);
+      const nst = (MP_NAME_EFF_ITEMS[g2]||[])[bi2 % (MP_NAME_EFF_ITEMS[g2]?.length||1)];
+      if(nst) {
+        if(nst.grad) {
+          el.style.background = nst.grad;
+          el.style.backgroundSize = '200%';
+          el.style.webkitBackgroundClip = 'text';
+          el.style.webkitTextFillColor = 'transparent';
+          el.style.backgroundClip = 'text';
+          if(nst.anim) el.style.animation = 'nameFlow 3s linear infinite';
+        } else if(nst.color) {
+          el.style.color = nst.color;
+          if(nst.glow) el.style.textShadow = nst.glow;
+        }
+      }
+    }
+  });
+}
+
+// ── 설정 박스 토글 ──
+function toggleSidebarBox(e) {
+  e.stopPropagation();
+  const box = document.getElementById('logout-box');
+  if(!box) return;
+  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  if(!isLoggedIn) { location.href='login.html'; return; }
+  box.style.display = box.style.display==='none' ? 'block' : 'none';
+  const username = localStorage.getItem('ggo_username') || '';
+  const nameEl = document.getElementById('logout-user-name');
+  if(nameEl) nameEl.textContent = username + ' 님';
+}
+
+function doSidebarLogout() {
+  localStorage.removeItem('ggo_logged_in');
+  localStorage.removeItem('ggo_username');
+  location.href = 'index.html';
+}
+
+function goSidebarMyPage() {
+  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  if(!isLoggedIn) { location.href='login.html'; return; }
+  location.href = 'mypage.html';
+}
+
+// ── 쿠폰 모달 ──
+const SC_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1596868022&single=true&output=csv';
+
+function openSidebarCoupon() {
+  const box = document.getElementById('logout-box');
+  if(box) box.style.display = 'none';
+  ['sc-coupon-a','sc-coupon-b','sc-coupon-c'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  setScMsg('', '');
+  const modal = document.getElementById('sidebar-coupon-modal-bg');
+  if(modal) { modal.style.display = 'flex'; setTimeout(()=>document.getElementById('sc-coupon-a')?.focus(),100); }
+}
+
+function closeSidebarCoupon() {
+  const modal = document.getElementById('sidebar-coupon-modal-bg');
+  if(modal) modal.style.display = 'none';
+}
+
+function setScMsg(txt, color) {
+  const el = document.getElementById('sc-coupon-msg');
+  if(el) { el.textContent = txt; el.style.color = color || '#5c4e7a'; }
+}
+
+function scAutoTab(el, nextId) {
+  el.value = el.value.toUpperCase();
+  if(el.value.length === 4 && nextId) document.getElementById(nextId)?.focus();
+}
+
+function scBackspace(e, el, prevId) {
+  if(e.key==='Backspace' && el.value==='' && prevId) document.getElementById(prevId)?.focus();
+}
+
+async function submitSidebarCoupon() {
+  const username = localStorage.getItem('ggo_username') || '';
+  if(!username) { location.href='login.html'; return; }
+  const a = (document.getElementById('sc-coupon-a')?.value||'').trim().toUpperCase();
+  const b = (document.getElementById('sc-coupon-b')?.value||'').trim().toUpperCase();
+  const cc = (document.getElementById('sc-coupon-c')?.value||'').trim().toUpperCase();
+  if(a.length!==4||b.length!==4||cc.length!==4) { setScMsg('쿠폰 번호 12자리를 모두 입력하세요.','#f87171'); return; }
+  const code = a+b+cc;
+  const usedKey = 'ggo_used_coupons_' + username;
+  const used = JSON.parse(localStorage.getItem(usedKey)||'[]');
+  if(used.includes(code)) { setScMsg('이미 사용한 쿠폰입니다.','#f87171'); return; }
+  setScMsg('확인 중...','#a78bfa');
+  try {
+    const res = await fetch(SC_CSV + '&cachebust=' + Date.now(), {cache:'no-store'});
+    const text = await res.text();
+    const rows = text.split('\n').slice(1).map(r=>r.split(','));
+    const row = rows.find(r=>(r[0]||'').trim().toUpperCase()===code);
+    if(!row) { setScMsg('유효하지 않은 쿠폰입니다.','#f87171'); return; }
+    const type = (row[1]||'').trim();
+    const amt  = parseInt(row[2]||'0');
+    const name = (row[3]||'').trim();
+    const currKey = 'ggo_currency_' + username;
+    const curr = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
+    curr[type] = (curr[type]||0) + amt;
+    localStorage.setItem(currKey, JSON.stringify(curr));
+    used.push(code);
+    localStorage.setItem(usedKey, JSON.stringify(used));
+    setScMsg(`✅ ${name || code} 등록 완료! ${type} +${amt}`, '#34d399');
+    setTimeout(closeSidebarCoupon, 2000);
+  } catch(err) {
+    setScMsg('오류가 발생했습니다. 다시 시도해주세요.','#f87171');
+  }
+}
+
+// 외부 클릭 시 설정박스 닫기
+document.addEventListener('click', () => {
+  const box = document.getElementById('logout-box');
+  if(box) box.style.display = 'none';
+});
+
 </script>
+<!-- 공통 쿠폰 모달 -->
+<div id="sidebar-coupon-modal-bg" onclick="closeSidebarCoupon()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(6px);">
+  <div onclick="event.stopPropagation()" style="background:#130d24;border:1px solid rgba(124,58,237,0.3);border-radius:20px;padding:28px 24px;max-width:360px;width:92%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+    <div style="font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;margin-bottom:6px;">🎟️ 쿠폰 등록</div>
+    <div style="font-size:12px;color:#5c4e7a;margin-bottom:20px;">12자리 쿠폰 번호를 입력하세요</div>
+    <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:8px;">
+      <input id="sc-coupon-a" maxlength="4" placeholder="XXXX"
+        style="width:80px;background:#1a1035;border:1px solid rgba(124,58,237,0.25);border-radius:10px;padding:10px 0;text-align:center;color:#f0e8ff;font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;outline:none;"
+        oninput="scAutoTab(this,'sc-coupon-b')" onkeydown="scBackspace(event,this,null)">
+      <span style="color:#5c4e7a;font-size:18px;">—</span>
+      <input id="sc-coupon-b" maxlength="4" placeholder="XXXX"
+        style="width:80px;background:#1a1035;border:1px solid rgba(124,58,237,0.25);border-radius:10px;padding:10px 0;text-align:center;color:#f0e8ff;font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;outline:none;"
+        oninput="scAutoTab(this,'sc-coupon-c')" onkeydown="scBackspace(event,this,'sc-coupon-a')">
+      <span style="color:#5c4e7a;font-size:18px;">—</span>
+      <input id="sc-coupon-c" maxlength="4" placeholder="XXXX"
+        style="width:80px;background:#1a1035;border:1px solid rgba(124,58,237,0.25);border-radius:10px;padding:10px 0;text-align:center;color:#f0e8ff;font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;outline:none;"
+        oninput="this.value=this.value.toUpperCase()" onkeydown="scBackspace(event,this,'sc-coupon-b')">
+    </div>
+    <div id="sc-coupon-msg" style="font-size:12px;min-height:18px;margin-bottom:14px;color:#5c4e7a;"></div>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button onclick="closeSidebarCoupon()" style="padding:10px 22px;border-radius:10px;border:1px solid rgba(124,58,237,0.25);background:transparent;color:var(--text-dim);font-size:13px;cursor:pointer;">취소</button>
+      <button onclick="submitSidebarCoupon()" style="padding:10px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--purple-1),var(--purple-2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Orbitron',sans-serif;">등록</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
