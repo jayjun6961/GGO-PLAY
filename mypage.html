@@ -81,7 +81,13 @@
 
   .profile-info{animation:fadeUp 0.4s ease;}
   .profile-title-text{font-size:10px;color:var(--text-dim);margin-bottom:3px;font-family:'Noto Sans KR',sans-serif;}
-  .profile-title-badge{display:inline-block;font-size:10px;color:var(--accent-gold);background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);border-radius:6px;padding:1px 8px;margin-bottom:5px;}
+  .profile-title-badge{display:inline-block;font-size:10px;font-weight:600;border-radius:6px;padding:2px 10px;margin-bottom:5px;letter-spacing:0.5px;}
+  .profile-title-badge.t-일반{color:#e2e8f0;background:rgba(226,232,240,0.08);border:1px solid rgba(226,232,240,0.2);}
+  .profile-title-badge.t-희귀{color:#34d399;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);}
+  .profile-title-badge.t-레어{color:#60a5fa;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);}
+  .profile-title-badge.t-에픽{color:#a855f7;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);}
+  .profile-title-badge.t-전설{background:linear-gradient(90deg,rgba(251,191,36,0.15),rgba(249,115,22,0.12));border:1px solid rgba(251,191,36,0.4);-webkit-background-clip:unset;-webkit-text-fill-color:unset;}
+  .profile-title-badge.t-전설 span{background:linear-gradient(90deg,#fbbf24,#f97316,#fbbf24);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:legendaryFlow 3s ease infinite;}
   .profile-name{font-size:22px;font-weight:700;color:var(--text-main);margin-bottom:4px;}
   .profile-server{font-size:11px;color:var(--accent-cyan);font-family:'Orbitron',sans-serif;}
 
@@ -136,9 +142,12 @@
   .deco-card-name{font-size:10px;color:var(--text-sub);text-align:center;line-height:1.3;word-break:keep-all;}
   .deco-grade-badge{font-size:8px;font-family:'Orbitron',sans-serif;padding:1px 6px;border-radius:10px;}
   .grade-일반{background:rgba(148,163,184,0.12);color:#94a3b8;border:1px solid rgba(148,163,184,0.2);}
-  .grade-희귀{background:rgba(96,165,250,0.12);color:#60a5fa;border:1px solid rgba(96,165,250,0.2);}
+  .grade-희귀{background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.2);}
+  .grade-레어{background:rgba(96,165,250,0.12);color:#60a5fa;border:1px solid rgba(96,165,250,0.2);}
   .grade-에픽{background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.2);}
   .grade-전설{background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.2);}
+  /* 칭호 전설 그라데이션 배지 */
+  .grade-전설.title-badge{background:linear-gradient(90deg,rgba(251,191,36,0.15),rgba(249,115,22,0.15));border-color:rgba(251,191,36,0.4);}
   .equipped-tag{position:absolute;top:6px;right:6px;font-size:7px;font-family:'Orbitron',sans-serif;background:rgba(124,58,237,0.3);color:var(--purple-3);border:1px solid rgba(124,58,237,0.4);padding:1px 5px;border-radius:5px;}
 
   /* 빈 상태 */
@@ -501,11 +510,31 @@
     }
 
     const CAT_ICONS = {프로필배너:'🖼',프로필아이콘:'👤',테두리효과:'💫',칭호:'🏅',이름색상효과:'🎨'};
+
+    function buildTitlePreview(it) {
+      const TITLE_COLORS = {
+        '일반': 'color:#e2e8f0;',
+        '희귀': 'color:#34d399;',
+        '레어': 'color:#60a5fa;',
+        '에픽': 'color:#a855f7;',
+        '전설': 'background:linear-gradient(90deg,#fbbf24,#f97316,#fbbf24);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:legendaryFlow 3s ease infinite;font-weight:700;',
+      };
+      const style = TITLE_COLORS[it.grade] || TITLE_COLORS['일반'];
+      return `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:4px;">
+        <span style="font-size:11px;${style}font-weight:600;text-align:center;line-height:1.3;word-break:keep-all;">< ${it.name} ></span>
+      </div>`;
+    }
+
     grid.innerHTML = items.map((it,i) => {
       const globalIdx = allItems.indexOf(it);
-      const imgHtml = it.img
-        ? `<img src="${it.img}" onerror="this.outerHTML='<span>${CAT_ICONS[it.type]||'✨'}</span>'">`
-        : `<span>${CAT_ICONS[it.type]||'✨'}</span>`;
+      let imgHtml;
+      if(it.type === '칭호') {
+        imgHtml = buildTitlePreview(it);
+      } else {
+        imgHtml = it.img
+          ? `<img src="${it.img}" onerror="this.outerHTML='<span>${CAT_ICONS[it.type]||'✨'}</span>'">`
+          : `<span>${CAT_ICONS[it.type]||'✨'}</span>`;
+      }
       const equippedTag = it.equipped ? '<div class="equipped-tag">장착중</div>' : '';
       return `<div class="deco-card ${it.equipped?'equipped':''}" id="deco-card-${globalIdx}" onclick="selectItem(${globalIdx}, event)">
         ${equippedTag}
@@ -1295,10 +1324,18 @@
     const titleEl   = document.getElementById('profile-title');
     if(titleEl) {
       if(titleItem) {
-        titleEl.textContent  = '< '+titleItem.name+' >';
-        titleEl.style.display= 'inline-block';
+        const tg = titleItem.grade || '일반';
+        // 클래스 초기화
+        titleEl.className = 'profile-title-badge';
+        titleEl.classList.add('t-'+tg);
+        if(tg === '전설') {
+          titleEl.innerHTML = `<span>< ${titleItem.name} ></span>`;
+        } else {
+          titleEl.textContent = '< '+titleItem.name+' >';
+        }
+        titleEl.style.display = 'inline-block';
       } else {
-        titleEl.style.display='none';
+        titleEl.style.display = 'none';
       }
     }
   }
