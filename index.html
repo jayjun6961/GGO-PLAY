@@ -2263,6 +2263,7 @@
   }
 
   window.addEventListener('DOMContentLoaded', () => {
+    initSidebarProfile();
     // 로그인 상태 체크
     const username = localStorage.getItem('ggo_username');
     const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
