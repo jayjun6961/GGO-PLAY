@@ -916,7 +916,7 @@
     setTimeout(() => detail.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
   }
 
-  window.addEventListener('DOMContentLoaded', loadAll);
+  window.addEventListener('DOMContentLoaded', () => { initSidebarProfile(); loadAll(); });
 
 // ════════════════════════════════════════
 //  공통 사이드바 JS
