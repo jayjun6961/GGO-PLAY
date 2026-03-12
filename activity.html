@@ -336,7 +336,7 @@
     }
   }
 
-  window.addEventListener('DOMContentLoaded', loadActivity);
+  window.addEventListener('DOMContentLoaded', () => { initSidebarProfile(); loadActivity(); });
 
 // ════════════════════════════════════════
 //  공통 사이드바 JS
