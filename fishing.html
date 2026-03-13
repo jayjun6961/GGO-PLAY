@@ -149,6 +149,25 @@
   .fish-topbar-title{font-family:'Orbitron',sans-serif;font-size:15px;font-weight:700;color:var(--text-main);}
   .fish-topbar-spacer{flex:1;}
   .fish-fp-badge{display:flex;align-items:center;gap:6px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.35);border-radius:10px;padding:6px 14px;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#60a5fa;cursor:default;}
+  /* 낚시 상점 */
+  .fshop-section-label{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--accent-cyan);letter-spacing:1px;margin-bottom:10px;border-bottom:1px solid rgba(34,211,238,0.15);padding-bottom:6px;}
+  .fshop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;}
+  .fshop-card{background:rgba(19,13,36,0.85);border:1px solid rgba(124,58,237,0.15);border-radius:14px;padding:14px 12px;display:flex;flex-direction:column;gap:8px;position:relative;transition:border-color 0.2s;}
+  .fshop-card:hover{border-color:rgba(124,58,237,0.4);}
+  .fshop-card.equipped-card{border-color:rgba(34,211,238,0.5);background:rgba(34,211,238,0.05);}
+  .fshop-card-emoji{font-size:28px;text-align:center;}
+  .fshop-card-name{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:#e2e8f0;text-align:center;}
+  .fshop-card-grade{font-size:10px;font-weight:700;text-align:center;padding:2px 8px;border-radius:20px;width:fit-content;margin:0 auto;}
+  .fshop-card-desc{font-family:'Noto Sans KR',sans-serif;font-size:11px;color:var(--text-dim);line-height:1.5;text-align:center;}
+  .fshop-card-price{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:#60a5fa;text-align:center;}
+  .fshop-btn{width:100%;padding:7px 0;border-radius:8px;border:none;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:opacity 0.15s;}
+  .fshop-btn.buy{background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;}
+  .fshop-btn.equip{background:linear-gradient(135deg,#059669,#10b981);color:#fff;}
+  .fshop-btn.equipped{background:rgba(34,211,238,0.15);color:#22d3ee;border:1px solid rgba(34,211,238,0.3);cursor:default;}
+  .fshop-btn.unequip{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);}
+  .fshop-btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .fshop-durability{font-size:10px;color:#94a3b8;text-align:center;font-family:'Noto Sans KR',sans-serif;}
+  .fshop-owned-badge{position:absolute;top:7px;right:7px;background:rgba(16,185,129,0.2);color:#10b981;font-size:9px;padding:2px 6px;border-radius:10px;font-family:'Noto Sans KR',sans-serif;}
   .fish-gp-badge{display:flex;align-items:center;gap:6px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);border-radius:10px;padding:6px 14px;font-family:'Orbitron',sans-serif;font-size:12px;color:#fbbf24;font-weight:700;}
   .fish-tabs{display:flex;gap:4px;padding:16px 20px 0;border-bottom:1px solid rgba(124,58,237,0.1);}
   .fish-tab{background:none;border:none;color:var(--text-dim);padding:10px 18px;border-radius:10px 10px 0 0;font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;transition:all 0.2s;border-bottom:2px solid transparent;}
@@ -348,6 +367,7 @@
       <button class="fish-tab"        id="ftab-dex"     onclick="switchFishTab('dex')">📖 도감</button>
       <button class="fish-tab"        id="ftab-rank"    onclick="switchFishTab('rank')">🏆 순위</button>
       <button class="fish-tab"        id="ftab-map"     onclick="switchFishTab('map')">🗺️ 낚시 맵</button>
+      <button class="fish-tab"        id="ftab-fshop"   onclick="switchFishTab('fshop')">🏪 상점</button>
     </div>
 
     <!-- ── 낚시 탭 ── -->
@@ -494,6 +514,29 @@
       <div class="fish-map-grid" id="map-grid"></div>
     </div>
 
+    <!-- ── 낚시 상점 탭 ── -->
+    <div class="fish-tab-content" id="fcontent-fshop">
+      <div class="section-title">🏪 낚시 상점</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:12px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C12 2 5 9.5 5 14a7 7 0 0014 0C19 9.5 12 2 12 2Z" fill="#3b82f6" opacity="0.85"/><path d="M12 6C12 6 8 11 8 14a4 4 0 008 0C16 11 12 6 12 6Z" fill="#93c5fd" opacity="0.5"/></svg>
+        <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#60a5fa;">내 FP: <span id="fshop-fp-val">0</span></span>
+      </div>
+
+      <!-- 낚시대 섹션 -->
+      <div class="fshop-section-label">🎣 낚시대</div>
+      <div style="margin-bottom:6px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text-dim);">
+        현재 낚시대: <span id="fshop-rod-status" style="color:#e2e8f0;font-weight:600;">일반 낚시대 (내구도 무한)</span>
+      </div>
+      <div class="fshop-grid" id="fshop-rod-grid"></div>
+
+      <!-- 미끼 섹션 -->
+      <div class="fshop-section-label" style="margin-top:20px;">🪱 미끼</div>
+      <div style="margin-bottom:6px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text-dim);">
+        장착 미끼: <span id="fshop-bait-status" style="color:#e2e8f0;font-weight:600;">없음</span>
+      </div>
+      <div class="fshop-grid" id="fshop-bait-grid"></div>
+    </div>
+
   </div><!-- /fish-game-body -->
 
 </div><!-- /fish-main -->
@@ -616,9 +659,23 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
 
   // ── 랜덤 물고기 뽑기 ──
   function rollFish(mapId) {
-    const map = MAP_DATA.find(m=>m.id===mapId) || MAP_DATA[0];
-    // 맵별 고정 등급 확률표 사용
-    const probs = map.grades;
+    const map  = MAP_DATA.find(m=>m.id===mapId) || MAP_DATA[0];
+    const rod  = getEquippedRod();
+    const bait = getEquippedBait();
+
+    // 낚시대 등급 보너스: 고등급 물고기 확률 상향
+    const probs = { ...map.grades };
+    if(rod.gradeBonus > 0) {
+      const gradeOrder = ['일반','희귀','레어','에픽','전설','신화'];
+      const mapGrades  = Object.keys(probs);
+      const topGrades  = mapGrades.filter(g => gradeOrder.indexOf(g) >= 1); // 희귀 이상
+      const shift      = rod.gradeBonus * 100; // ex 0.05 → 5%p
+      if(topGrades.length > 0 && probs['일반'] > shift) {
+        probs['일반'] -= shift;
+        topGrades.forEach(g => { probs[g] = (probs[g] || 0) + shift / topGrades.length; });
+      }
+    }
+
     const total = Object.values(probs).reduce((a,b)=>a+b,0);
     let r = Math.random() * total;
     let grade = Object.keys(probs)[0];
@@ -629,9 +686,17 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     // 물고기 선택
     const pool = FISH_DB[grade];
     const fish = pool[Math.floor(Math.random()*pool.length)];
-    // 크기 선택 (가중치: 작은30 보통40 큰20 거대8 초대형2)
+    // 크기 선택 (가중치: 작은30 보통40 큰20 거대8 초대형2) + 미끼 보너스
     const sizeWeights = [30,40,20,8,2];
     let sr = Math.random()*100;
+    // 미끼 사이즈 보너스: 큰 쪽 가중치 상향
+    if(bait && bait.sizeBonus > 0) {
+      const bonus = bait.sizeBonus * 100;
+      const sub   = Math.min(sizeWeights[0], bonus); // 작은 쪽에서 차감
+      sizeWeights[0] -= sub;
+      sizeWeights[3] += sub * 0.5;
+      sizeWeights[4] += sub * 0.5;
+    }
     let sizeIdx = 0;
     for(let i=0;i<sizeWeights.length;i++){ sr-=sizeWeights[i]; if(sr<=0){sizeIdx=i;break;} }
     const sizeInfo = SIZE_INFO[sizeIdx];
@@ -742,6 +807,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     else if(!isGood) _currentFish.price = Math.floor(_currentFish.price * 0.7);
     _currentFish.perfect = isInPerfect;
     _currentFish.good    = isGood;
+    consumeGear(); // 낚시대/미끼 내구도 소모
     _gameState = 'result';
     renderFishScene();
     renderCatchResult(_currentFish, isInPerfect);
@@ -756,7 +822,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     document.getElementById('catch-grade-badge').style.cssText = `color:${gi.color};background:${gi.bg};border-color:${gi.border};`;
     document.getElementById('catch-size-badge').textContent = fish.sizeLabel;
     document.getElementById('catch-size-badge').style.cssText = 'color:var(--text-sub);background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12);';
-    document.getElementById('catch-price').textContent = fish.price.toLocaleString() + ' GP';
+    document.getElementById('catch-price').textContent = fish.price.toLocaleString() + ' FP';
     document.getElementById('catch-size-cm').textContent = fish.sizeCm + 'cm';
     if(perfect){
       document.getElementById('catch-perfect-badge').style.display='inline-flex';
@@ -862,15 +928,15 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     const storage = getFS('storage') || [];
     if(!storage[idx]) return;
     const fish = storage[idx];
-    addGP(fish.price);
-    updateGPBadge();
+    addFP(fish.price);
+    updateFPBadge();
     storage.splice(idx,1);
     setFS('storage', storage);
     const stats = getFS('stats') || {};
     stats.sold = (stats.sold||0) + 1;
     stats.totalGP = (stats.totalGP||0) + fish.price;
     setFS('stats', stats);
-    showFishToast('🪙 ' + fish.name + ' 판매! +' + fish.price.toLocaleString() + ' GP');
+    showFishToast('💧 ' + fish.name + ' 판매! +' + fish.price.toLocaleString() + ' FP');
     renderStorageTab();
     renderStats();
   }
@@ -878,15 +944,15 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   function sellAllStorage() {
     const storage = getFS('storage') || [];
     if(!storage.length){ showFishToast('보관함이 비어있습니다'); return; }
-    const totalGP = storage.reduce((s,f)=>s+f.price,0);
-    addGP(totalGP);
-    updateGPBadge();
+    const totalFP = storage.reduce((s,f)=>s+f.price,0);
+    addFP(totalFP);
+    updateFPBadge();
     const stats = getFS('stats') || {};
     stats.sold = (stats.sold||0) + storage.length;
-    stats.totalGP = (stats.totalGP||0) + totalGP;
+    stats.totalGP = (stats.totalGP||0) + totalFP;
     setFS('stats', stats);
     setFS('storage', []);
-    showFishToast('🪙 전체 판매! +' + totalGP.toLocaleString() + ' GP');
+    showFishToast('💧 전체 판매! +' + totalFP.toLocaleString() + ' FP');
     renderStorageTab();
     renderStats();
   }
@@ -1053,14 +1119,14 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     }
 
     const rank = myRank + 1;
-    const fp   = getRankGP(rank); // 보상량 (FP로 지급)
-    addFP(fp);
-    updateFPBadge();
+    const fp   = getRankGP(rank); // 보상량 (GP로 지급)
+    addGP(fp);
+    updateGPBadge();
     localStorage.setItem(autoClaimKey, '1');
 
     // 알림 토스트
     setTimeout(() => {
-      showFishToast(`🏆 지난 시즌 ${rank}위 보상! +${fp.toLocaleString()} FP 자동 지급`);
+      showFishToast(`🏆 지난 시즌 ${rank}위 보상! +${fp.toLocaleString()} GP 자동 지급`);
     }, 1500);
   }
 
@@ -1087,7 +1153,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
       notice.innerHTML = '✅ 지난 시즌 보상이 자동으로 지급되었습니다.';
     } else {
       notice.className = 'rank-reward-notice';
-      notice.innerHTML = '📌 순위 기록은 25일마다 초기화됩니다.<br>시즌 종료 시 순위에 따라 <b>FP</b>가 자동으로 지급됩니다.';
+      notice.innerHTML = '📌 순위 기록은 25일마다 초기화됩니다.<br>시즌 종료 시 순위에 따라 <b>GP</b>가 자동으로 지급됩니다.';
     }
 
     const rankList = getRankList();
@@ -1110,7 +1176,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
           <div class="rank-user">${r.user}${isMine?' (나)':''}</div>
           <div class="rank-fish-detail" style="color:${gi.color}">${r.grade} · ${r.name} · ${r.sizeCm}cm</div>
         </div>
-        <div class="rank-gp-reward" style="color:#60a5fa">+${fp.toLocaleString()} FP</div>
+        <div class="rank-gp-reward">+${fp.toLocaleString()} GP</div>
       </div>`;
     }).join('');
   }
@@ -1176,6 +1242,231 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     if(tabId==='dex')     renderDexTab();
     if(tabId==='rank')    renderRankTab();
     if(tabId==='map')     renderMapTab();
+    if(tabId==='fshop')   renderFishShop();
+  }
+
+  // ══════════════════════════════════════════
+  //  낚시 상점 데이터
+  // ══════════════════════════════════════════
+  const ROD_DEFS = [
+    { id:'rod_normal',  name:'일반 낚시대',  grade:'일반', emoji:'🎣', price:0,     durability:Infinity, gradeBonus:0,    desc:'기본 지급 낚시대\n내구도 무한' },
+    { id:'rod_rare',    name:'희귀 낚시대',  grade:'희귀', emoji:'🎣', price:1000,  durability:100,      gradeBonus:0.05, desc:'희귀+ 확률 +5%\n내구도 100' },
+    { id:'rod_rleg',    name:'레어 낚시대',  grade:'레어', emoji:'🎣', price:5000,  durability:90,       gradeBonus:0.10, desc:'레어+ 확률 +10%\n내구도 90' },
+    { id:'rod_epic',    name:'에픽 낚시대',  grade:'에픽', emoji:'🎣', price:10000, durability:80,       gradeBonus:0.15, desc:'에픽+ 확률 +15%\n내구도 80' },
+    { id:'rod_legend',  name:'전설 낚시대',  grade:'전설', emoji:'🎣', price:50000, durability:70,       gradeBonus:0.20, desc:'전설+ 확률 +20%\n내구도 70' },
+  ];
+  const BAIT_DEFS = [
+    { id:'bait_snail',  name:'달팽이', emoji:'🐌', price:1000,  uses:20, sizeBonus:0.05, desc:'크기 보너스 +5%\n20회 사용 가능' },
+    { id:'bait_worm',   name:'지렁이', emoji:'🪱', price:3000,  uses:30, sizeBonus:0.10, desc:'크기 보너스 +10%\n30회 사용 가능' },
+    { id:'bait_cheese', name:'치즈',   emoji:'🧀', price:5000,  uses:40, sizeBonus:0.20, desc:'크기 보너스 +20%\n40회 사용 가능' },
+    { id:'bait_cake',   name:'케이크', emoji:'🎂', price:10000, uses:50, sizeBonus:0.30, desc:'크기 보너스 +30%\n50회 사용 가능' },
+  ];
+  const GRADE_COLORS = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+
+  // ── 낚시 장비 저장 헬퍼 ──
+  const gearKey = () => 'ggo_fish_gear_' + un();
+  function getGear() {
+    try { return JSON.parse(localStorage.getItem(gearKey()) || 'null') || { rod:'rod_normal', rodDur:{}, bait:null, baitUses:{} }; }
+    catch(e) { return { rod:'rod_normal', rodDur:{}, bait:null, baitUses:{} }; }
+  }
+  function saveGear(g) { localStorage.setItem(gearKey(), JSON.stringify(g)); }
+
+  function getEquippedRod() {
+    const gear = getGear();
+    return ROD_DEFS.find(r=>r.id===gear.rod) || ROD_DEFS[0];
+  }
+  function getEquippedBait() {
+    const gear = getGear();
+    if(!gear.bait) return null;
+    return BAIT_DEFS.find(b=>b.id===gear.bait) || null;
+  }
+  function getRodDurability(rodId) {
+    const gear = getGear();
+    const rod  = ROD_DEFS.find(r=>r.id===rodId);
+    if(!rod) return 0;
+    if(rod.durability === Infinity) return Infinity;
+    return gear.rodDur[rodId] !== undefined ? gear.rodDur[rodId] : rod.durability;
+  }
+  function getBaitUsesLeft(baitId) {
+    const gear = getGear();
+    const bait = BAIT_DEFS.find(b=>b.id===baitId);
+    if(!bait) return 0;
+    return gear.baitUses[baitId] !== undefined ? gear.baitUses[baitId] : 0;
+  }
+
+  function ownedRods() {
+    try { return JSON.parse(localStorage.getItem('ggo_fish_owned_rods_'+un()) || '["rod_normal"]'); }
+    catch(e) { return ['rod_normal']; }
+  }
+  function saveOwnedRods(arr) { localStorage.setItem('ggo_fish_owned_rods_'+un(), JSON.stringify(arr)); }
+
+  // ── 낚시 1회마다 장비 소모 ──
+  function consumeGear() {
+    const gear = getGear();
+    const rod  = ROD_DEFS.find(r=>r.id===gear.rod) || ROD_DEFS[0];
+    if(rod.durability !== Infinity) {
+      const cur = getRodDurability(rod.id);
+      const next = Math.max(0, cur - 1);
+      gear.rodDur[rod.id] = next;
+      if(next === 0) {
+        // 내구도 소진 → 기본 낚시대로 교체
+        gear.rod = 'rod_normal';
+        saveGear(gear);
+        showFishToast('⚠️ ' + rod.name + ' 내구도 소진! 일반 낚시대로 교체됩니다.');
+        renderFishShopStatus();
+        return;
+      }
+    }
+    if(gear.bait) {
+      const cur2 = getBaitUsesLeft(gear.bait);
+      const next2 = Math.max(0, cur2 - 1);
+      gear.baitUses[gear.bait] = next2;
+      if(next2 === 0) {
+        gear.bait = null;
+        saveGear(gear);
+        showFishToast('🪱 미끼 소진! 장착이 해제됩니다.');
+        renderFishShopStatus();
+        return;
+      }
+    }
+    saveGear(gear);
+  }
+
+  // ── 상점 렌더 ──
+  function renderFishShop() {
+    const fp = getFP();
+    const el = document.getElementById('fshop-fp-val');
+    if(el) el.textContent = fp.toLocaleString();
+    renderFishShopRods();
+    renderFishShopBaits();
+    renderFishShopStatus();
+  }
+
+  function renderFishShopStatus() {
+    const rodEl  = document.getElementById('fshop-rod-status');
+    const baitEl = document.getElementById('fshop-bait-status');
+    const gear   = getGear();
+    const rod    = getEquippedRod();
+    const dur    = getRodDurability(rod.id);
+    if(rodEl) rodEl.textContent = rod.name + ' (' + (dur===Infinity?'내구도 무한':'내구도 '+dur) + ')';
+    if(baitEl) {
+      const bait = getEquippedBait();
+      if(bait) {
+        const left = getBaitUsesLeft(bait.id);
+        baitEl.textContent = bait.name + ' (' + left + '회 남음)';
+      } else {
+        baitEl.textContent = '없음';
+      }
+    }
+  }
+
+  function renderFishShopRods() {
+    const grid   = document.getElementById('fshop-rod-grid');
+    if(!grid) return;
+    const fp     = getFP();
+    const gear   = getGear();
+    const owned  = ownedRods();
+    grid.innerHTML = ROD_DEFS.map(rod => {
+      const isOwned    = owned.includes(rod.id);
+      const isEquipped = gear.rod === rod.id;
+      const dur        = getRodDurability(rod.id);
+      const durText    = rod.durability===Infinity ? '내구도 무한' : `내구도 ${dur} / ${rod.durability}`;
+      const gc         = GRADE_COLORS[rod.grade] || '#94a3b8';
+      const canBuy     = !isOwned && fp >= rod.price;
+      let btn = '';
+      if(isEquipped)      btn = `<button class="fshop-btn equipped" disabled>✅ 장착 중</button>`;
+      else if(isOwned)    btn = `<button class="fshop-btn equip" onclick="equipRod('${rod.id}')">장착</button>`;
+      else                btn = `<button class="fshop-btn buy" onclick="buyRod('${rod.id}')" ${!canBuy?'disabled':''}>💧 ${rod.price.toLocaleString()} FP</button>`;
+      return `<div class="fshop-card ${isEquipped?'equipped-card':''}">
+        ${isOwned?'<div class="fshop-owned-badge">보유</div>':''}
+        <div class="fshop-card-emoji">${rod.emoji}</div>
+        <div class="fshop-card-name">${rod.name}</div>
+        <div class="fshop-card-grade" style="background:${gc}22;color:${gc};border:1px solid ${gc}44">${rod.grade}</div>
+        <div class="fshop-card-desc">${rod.desc.replace(/\n/g,'<br>')}</div>
+        ${isOwned?`<div class="fshop-durability">${durText}</div>`:''}
+        ${btn}
+      </div>`;
+    }).join('');
+  }
+
+  function renderFishShopBaits() {
+    const grid   = document.getElementById('fshop-bait-grid');
+    if(!grid) return;
+    const fp     = getFP();
+    const gear   = getGear();
+    grid.innerHTML = BAIT_DEFS.map(bait => {
+      const usesLeft   = getBaitUsesLeft(bait.id);
+      const isOwned    = usesLeft > 0;
+      const isEquipped = gear.bait === bait.id;
+      const canBuy     = fp >= bait.price;
+      let btn = '';
+      if(isEquipped)      btn = `<button class="fshop-btn unequip" onclick="unequipBait()">장착 해제</button>`;
+      else if(isOwned)    btn = `<button class="fshop-btn equip" onclick="equipBait('${bait.id}')">장착 (${usesLeft}회)</button>`;
+      else                btn = `<button class="fshop-btn buy" onclick="buyBait('${bait.id}')" ${!canBuy?'disabled':''}>💧 ${bait.price.toLocaleString()} FP</button>`;
+      return `<div class="fshop-card ${isEquipped?'equipped-card':''}">
+        ${isOwned?'<div class="fshop-owned-badge">보유</div>':''}
+        <div class="fshop-card-emoji">${bait.emoji}</div>
+        <div class="fshop-card-name">${bait.name}</div>
+        <div class="fshop-card-desc">${bait.desc.replace(/\n/g,'<br>')}</div>
+        ${btn}
+      </div>`;
+    }).join('');
+  }
+
+  function buyRod(id) {
+    const rod = ROD_DEFS.find(r=>r.id===id);
+    if(!rod || rod.price===0) return;
+    const fp = getFP();
+    if(fp < rod.price){ showFishToast('💧 FP가 부족합니다!'); return; }
+    addFP(-rod.price);
+    const owned = ownedRods();
+    if(!owned.includes(id)) { owned.push(id); saveOwnedRods(owned); }
+    const gear = getGear();
+    gear.rodDur[id] = rod.durability === Infinity ? Infinity : rod.durability;
+    saveGear(gear);
+    showFishToast('🎣 ' + rod.name + ' 구매 완료!');
+    renderFishShop();
+  }
+
+  function equipRod(id) {
+    const gear = getGear();
+    gear.rod = id;
+    saveGear(gear);
+    const rod = ROD_DEFS.find(r=>r.id===id);
+    showFishToast('🎣 ' + (rod?.name||id) + ' 장착!');
+    renderFishShop();
+    renderFishScene();
+  }
+
+  function buyBait(id) {
+    const bait = BAIT_DEFS.find(b=>b.id===id);
+    if(!bait) return;
+    const fp = getFP();
+    if(fp < bait.price){ showFishToast('💧 FP가 부족합니다!'); return; }
+    addFP(-bait.price);
+    const gear = getGear();
+    gear.baitUses[id] = (gear.baitUses[id] || 0) + bait.uses;
+    saveGear(gear);
+    showFishToast('🪱 ' + bait.name + ' 구매! (' + bait.uses + '회 추가)');
+    renderFishShop();
+  }
+
+  function equipBait(id) {
+    const gear = getGear();
+    gear.bait = id;
+    saveGear(gear);
+    const bait = BAIT_DEFS.find(b=>b.id===id);
+    const left = getBaitUsesLeft(id);
+    showFishToast('🪱 ' + (bait?.name||id) + ' 장착! (' + left + '회 남음)');
+    renderFishShop();
+  }
+
+  function unequipBait() {
+    const gear = getGear();
+    gear.bait = null;
+    saveGear(gear);
+    showFishToast('미끼 해제됨');
+    renderFishShop();
   }
 
   // ── 토스트 ──
