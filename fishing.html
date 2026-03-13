@@ -447,7 +447,7 @@
         <div class="fish-stat-card"><div class="fish-stat-val" id="stat-total">0</div><div class="fish-stat-lbl">총 낚은 물고기</div></div>
         <div class="fish-stat-card"><div class="fish-stat-val" id="stat-sold">0</div><div class="fish-stat-lbl">판매한 물고기</div></div>
         <div class="fish-stat-card"><div class="fish-stat-val" id="stat-kept">0</div><div class="fish-stat-lbl">보관중인 물고기</div></div>
-        <div class="fish-stat-card"><div class="fish-stat-val" id="stat-gp" style="color:#fbbf24">0</div><div class="fish-stat-lbl">총 획득 GP</div></div>
+        <div class="fish-stat-card"><div class="fish-stat-val" id="stat-gp" style="color:#60a5fa">0</div><div class="fish-stat-lbl">총 획득 FP</div></div>
       </div>
 
     </div><!-- /fcontent-game -->
@@ -746,6 +746,12 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     document.getElementById('fish-scene-waiting').style.display = _gameState==='waiting'?'flex':'none';
     document.getElementById('fish-scene-gauge').style.display   = _gameState==='gauge'  ?'flex':'none';
     document.getElementById('fish-scene-result').style.display  = _gameState==='result' ?'flex':'none';
+    // 현재 맵 이름 항상 최신 상태로 업데이트
+    const idleMapEl = document.getElementById('idle-map-text');
+    if(idleMapEl) {
+      const mapName = MAP_DATA.find(m=>m.id===(_currentMap||'river'))?.name || '강가 낚시터';
+      idleMapEl.textContent = mapName;
+    }
   }
 
   function castRod() {
@@ -891,11 +897,12 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   }
 
   function renderStats() {
-    const stats = getFS('stats') || { total:0, sold:0, kept:0, totalGP:0 };
+    const stats   = getFS('stats') || { total:0, sold:0, kept:0, totalGP:0 };
+    const storage = getFS('storage') || [];
     document.getElementById('stat-total').textContent = stats.total || 0;
     document.getElementById('stat-sold').textContent  = stats.sold  || 0;
-    document.getElementById('stat-kept').textContent  = stats.kept  || 0;
-    document.getElementById('stat-gp').textContent    = (stats.totalGP||0).toLocaleString();
+    document.getElementById('stat-kept').textContent  = storage.length;
+    document.getElementById('stat-gp').textContent    = getFP().toLocaleString();
   }
 
   // ── 보관함 ──
@@ -1229,6 +1236,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     _currentMap = id;
     setFS('map', id);
     renderMapTab();
+    renderFishScene();
     showFishToast('🗺️ ' + map.name + ' 이동!');
   }
 
