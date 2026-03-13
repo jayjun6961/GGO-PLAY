@@ -2588,92 +2588,26 @@
       // 전체 리스트
       let hl = '';
       rows.forEach((row,i) => {
-        const score     = Number(row[1])||0;
-        const server    = row[2] || '—';
-        const pct       = Math.round(score/maxScore*100);
-        const nickname  = row[0] || '—';
+        const score    = Number(row[1])||0;
+        const server   = row[2] || '—';
+        const pct      = Math.round(score/maxScore*100);
+        const nickname = row[0] || '—';
 
-        // ── 꾸미기 요소 로드 ──
-        const userItems   = JSON.parse(localStorage.getItem('ggo_items_' + nickname) || '[]');
-        const iconItem    = userItems.find(it=>it.type==='프로필아이콘'&&it.equipped);
-        const borderItem  = userItems.find(it=>it.type==='테두리효과'&&it.equipped);
-        const nameEffItem = userItems.find(it=>it.type==='이름색상효과'&&it.equipped);
-        const titleItem   = userItems.find(it=>it.type==='칭호'&&it.equipped);
-
-        // ── 아이콘 HTML ──
-        let avatarInner = nickname.charAt(0).toUpperCase() || '?';
-        let avatarBg    = 'linear-gradient(135deg,var(--purple-1),var(--purple-3))';
-        let avatarExtra = '';
-        if(iconItem) {
-          if(iconItem.visualKey === '시즌7번들상자') {
-            const s7r = MP_S7.아이콘렌더[iconItem._s7Idx||0];
-            if(s7r) { avatarInner = s7r(32); avatarBg = '#0a0000'; }
-          } else {
-            const g  = iconItem.grade;
-            const bi = iconItem.itemIdx !== undefined ? iconItem.itemIdx : (iconItem.visualIdx||0);
-            const it2 = (MP_ICON_ITEMS[g]||[])[bi % (MP_ICON_ITEMS[g]?.length||1)];
-            if(it2) {
-              avatarBg = 'var(--bg-card)';
-              if(it2.emoji)      avatarInner = `<span style="font-size:18px;line-height:1">${it2.emoji}</span>`;
-              else if(it2.svg)   avatarInner = `<svg width="28" height="28" viewBox="0 0 52 52" fill="none">${it2.svg}</svg>`;
-              else if(it2.holo)  { avatarInner = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.holo};background-size:200%;${it2.anim?'animation:legendaryFlow 3s ease infinite':''}"></div><div style="position:relative;font-size:14px">✦</div>`; avatarExtra='position:relative;'; }
-              else if(it2.glass) { avatarInner = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.glass};border:2px solid ${it2.border}"></div><div style="position:relative;font-size:14px">💠</div>`; avatarExtra='position:relative;'; }
-            }
-          }
-        }
-
-        // ── 테두리 HTML ──
-        let borderStyle = '';
-        let borderOverlay = '';
-        if(borderItem) {
-          if(borderItem.visualKey === '시즌7번들상자') {
-            const s7b = MP_S7.테두리[borderItem._s7Idx||0];
-            if(s7b && !s7b.isSvgBorder) borderStyle = `border:2px solid transparent;box-shadow:${s7b.glow||''};background:${s7b.fallbackBg||'transparent'};`;
-            else if(s7b && s7b.isSvgBorder) borderStyle = `border:2px solid #ff4400;box-shadow:0 0 8px rgba(255,68,0,0.6);`;
-          } else {
-            const bg  = borderItem.grade;
-            const bbi = borderItem.itemIdx !== undefined ? borderItem.itemIdx : (borderItem.visualIdx||0);
-            const bList = MP_BORDER_ITEMS[bg]||[];
-            const br  = bList[bbi % (bList.length||1)];
-            if(br) {
-              if(br.color)    borderStyle = `border:2px solid ${br.color};`;
-              else if(br.grad) borderStyle = `border:2px solid transparent;background-image:${br.grad};background-origin:border-box;`;
-              else if(br.spin) borderStyle = `border:2px solid transparent;box-shadow:0 0 8px ${br.glow||'rgba(124,58,237,0.8)'};`;
-              if(br.glow)     borderStyle += `box-shadow:0 0 8px ${br.glow};`;
-            }
-          }
-        }
-
-        // ── 이름 HTML ──
-        let nameHtml = '';
-        if(nameEffItem) {
-          if(nameEffItem.visualKey === '시즌7번들상자') {
-            const s7n = MP_S7.이름효과[nameEffItem._s7Idx||0];
-            if(s7n) nameHtml = `<span style="background:${s7n.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:s7NameFlow 2s linear infinite">${nickname}</span>`;
-          } else {
-            const g2  = nameEffItem.grade;
-            const bi2 = nameEffItem.itemIdx !== undefined ? nameEffItem.itemIdx : (nameEffItem.visualIdx||0);
-            const nst = (MP_NAME_EFF_ITEMS[g2]||[])[bi2 % (MP_NAME_EFF_ITEMS[g2]?.length||1)];
-            if(nst && nst.grad)  nameHtml = `<span style="background:${nst.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;${nst.anim?'animation:nameFlow 3s linear infinite':''}">${nickname}</span>`;
-            else if(nst && nst.color) nameHtml = `<span style="color:${nst.color};${nst.glow?'text-shadow:'+nst.glow:''}">${nickname}</span>`;
-          }
-        }
-        if(!nameHtml) nameHtml = nickname;
-
-        // ── 칭호 HTML ──
-        let titleHtml = '';
-        if(titleItem) {
-          const tg = titleItem.grade || '일반';
-          const tName = titleItem.name || '';
-          titleHtml = `<span class="lb-rank-title t-${tg}">${tg==='전설'?`<span>< ${tName} ></span>`:'< '+tName+' >'}</span>`;
-        }
+        // ── 꾸미기 요소 (기존 getLbProfile 함수 활용) ──
+        const deco = getLbProfile(nickname);
+        const decoAvatarHtml = deco.borderStyle
+          ? deco.avatarHtml.replace('style="', 'style="' + deco.borderStyle)
+          : deco.avatarHtml;
 
         hl += `<div class="lb-row bp-row ${i<3?'top'+(i+1):''}">
           <div class="lb-rank-num ${i<3?'r'+(i+1):''}">${i+1}</div>
           <div class="lb-nick">
-            <div class="lb-nick-avatar" style="background:${avatarBg};${borderStyle}${avatarExtra}">${avatarInner}</div>
+            ${decoAvatarHtml}
             <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
-              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">${nameHtml}${titleHtml}</div>
+              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                <span class="${deco.nameClass}" style="${deco.nameStyle}">${nickname}</span>
+                ${deco.titleHtml}
+              </div>
             </div>
           </div>
           <div style="text-align:center;font-size:11px;color:var(--accent-cyan);font-family:'Orbitron',sans-serif;letter-spacing:0.3px;align-self:center">${server}</div>
