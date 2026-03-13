@@ -57,8 +57,9 @@
 
   /* ── 프로필 배너 ── */
   .profile-banner{
-    width:100%;height:200px;position:relative;overflow:hidden;
+    width:100%;height:200px;min-height:200px;position:relative;overflow:hidden;
     background:linear-gradient(135deg,#1a0533 0%,#2d1060 40%,#1a0a3a 70%,#0f0620 100%);
+    flex-shrink:0;
   }
   .banner-pattern{position:absolute;inset:0;opacity:0.15;background-image:repeating-linear-gradient(45deg,rgba(124,58,237,0.3) 0px,rgba(124,58,237,0.3) 1px,transparent 1px,transparent 20px),repeating-linear-gradient(-45deg,rgba(34,211,238,0.15) 0px,rgba(34,211,238,0.15) 1px,transparent 1px,transparent 20px);}
   .banner-glow{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 50%,rgba(124,58,237,0.25) 0%,transparent 70%);}
@@ -1462,15 +1463,19 @@
           // 기존 SVG 오버레이 제거 후 새로 추가
           const oldSvg = bannerEl.querySelector('.s7-banner-svg-overlay');
           if(oldSvg) oldSvg.remove();
-          // 배너 크기 가져와서 SVG 생성
-          const bW = bannerEl.offsetWidth || 680;
-          const bH = bannerEl.offsetHeight || 160;
-          const svgMarkup = s7b.svgBanner ? s7b.svgBanner(bW, bH) : '';
-          const svgWrap = document.createElement('div');
-          svgWrap.className = 's7-banner-svg-overlay';
-          svgWrap.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
-          svgWrap.innerHTML = svgMarkup;
-          bannerEl.appendChild(svgWrap);
+          // requestAnimationFrame으로 실제 렌더 크기 확보 후 SVG 생성
+          const _applyBannerSvg = () => {
+            const bW = bannerEl.offsetWidth  || 680;
+            const bH = bannerEl.offsetHeight || 200;
+            const svgMarkup = s7b.svgBanner ? s7b.svgBanner(bW, bH) : '';
+            const svgWrap = document.createElement('div');
+            svgWrap.className = 's7-banner-svg-overlay';
+            svgWrap.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:hidden;';
+            svgWrap.innerHTML = svgMarkup;
+            bannerEl.appendChild(svgWrap);
+          };
+          if(bannerEl.offsetWidth > 0) _applyBannerSvg();
+          else requestAnimationFrame(_applyBannerSvg);
         }
       } else if(bannerItem) {
         const g  = bannerItem.grade;
@@ -1550,16 +1555,14 @@
           if(oldWrap2) oldWrap2.remove();
           borderEl.style.border='none'; borderEl.style.boxShadow=''; borderEl.style.background='transparent';
 
-          if(s7b2.isSvgBorder) {
-            // SVG 테두리 직접 렌더 (shop의 svgBorder 함수 사용)
+          if(s7b2.svgBorder) {
+            // svgBorder 함수가 있으면 직접 SVG 렌더 (isSvgBorder 플래그 불필요)
             const avatarSz = 88 + 14;
             const sz = avatarSz;
             const svgWrap = document.createElement('div');
             svgWrap.id = 'border-rotating-wrap';
             svgWrap.style.cssText = `position:absolute;inset:-7px;border-radius:50%;z-index:1;pointer-events:none;width:${sz}px;height:${sz}px;${s7b2.animCss||''}${s7b2.glowCss||''}`;
-            if(s7b2.svgBorder) {
-              svgWrap.innerHTML = s7b2.svgBorder(sz, sz - 14);
-            }
+            svgWrap.innerHTML = s7b2.svgBorder(sz, sz - 14);
             (borderEl.parentElement || borderEl).appendChild(svgWrap);
           } else {
             // 기존 방식 폴백
@@ -1668,9 +1671,9 @@
         titleEl.className = 'profile-title-badge';
         titleEl.classList.add('t-'+tg);
         if(tg === '전설') {
-          titleEl.innerHTML = `<span>< ${titleItem.name} ></span>`;
+          titleEl.innerHTML = `<span>${titleItem.name}</span>`;
         } else {
-          titleEl.textContent = '< '+titleItem.name+' >';
+          titleEl.textContent = titleItem.name;
         }
         titleEl.style.display = 'inline-block';
       } else {
@@ -1740,6 +1743,8 @@
 
       document.getElementById('loading-state').style.display='none';
       document.getElementById('content-wrap').style.display='block';
+      // content-wrap이 보여진 후 배너 SVG 재렌더 (offsetWidth 확보)
+      requestAnimationFrame(() => applyEquipped(allItems));
 
     } catch(e) {
       document.getElementById('loading-state').innerHTML=`<div style="color:var(--accent-pink);font-size:13px">⚠️ 불러오기 실패<br><small style="color:var(--text-dim)">${e.message}</small><br><br><button onclick="loadMyPage()" style="margin-top:8px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);color:var(--purple-3);padding:8px 20px;border-radius:8px;cursor:pointer;">↻ 다시 시도</button></div>`;
