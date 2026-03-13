@@ -851,6 +851,10 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     _currentFish.perfect = isInPerfect;
     _currentFish.good    = isGood;
     consumeGear(); // 낚시대/미끼 내구도 소모
+    // 낚은 순간 퀘스트 catch 이벤트 발동
+    updateQuestProgress('catch', _currentFish, _currentMap);
+    const _questTab = document.getElementById('fcontent-quest');
+    if(_questTab && _questTab.classList.contains('active')) renderQuestTab();
     _gameState = 'result';
     renderFishScene();
     renderCatchResult(_currentFish, isInPerfect);
@@ -876,8 +880,12 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
 
   function sellCatch() {
     if(!_currentFish) return;
+    const mapAtSell = _currentMap; // resetToIdle 전에 맵 저장
     addFP(_currentFish.price);
     updateStats('sell', _currentFish);
+    updateQuestProgress('sell', _currentFish, mapAtSell);
+    const _qEl = document.getElementById('fcontent-quest');
+    if(_qEl && _qEl.classList.contains('active')) renderQuestTab();
     updateFPBadge();
     showFishToast('💧 ' + _currentFish.name + ' 판매! +' + _currentFish.price.toLocaleString() + ' FP');
     resetToIdle();
@@ -931,8 +939,6 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     setFS('stats', stats);
     // 순위 업데이트
     updateRankData(fish);
-    // 일일 퀘스트 진행도 업데이트
-    updateQuestProgress(action, fish, _currentMap);
   }
 
   function renderStats() {
