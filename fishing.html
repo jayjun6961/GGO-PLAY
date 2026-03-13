@@ -254,6 +254,10 @@
   .fish-map-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
   .fish-map-card{background:rgba(19,13,36,0.8);border:1px solid rgba(124,58,237,0.12);border-radius:16px;padding:18px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
   .fish-map-card.active-map{border-color:rgba(34,211,238,0.5);background:rgba(34,211,238,0.07);box-shadow:0 0 20px rgba(34,211,238,0.15);}
+  .fish-map-card.locked-map{opacity:0.5;cursor:not-allowed;filter:grayscale(0.6);}
+  .fish-map-card.locked-map:hover{border-color:rgba(124,58,237,0.12);}
+  .fish-map-lock-badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:#94a3b8;font-size:10px;padding:2px 7px;border-radius:20px;font-family:'Noto Sans KR',sans-serif;}
+  .fish-map-lock-msg{font-size:10px;color:#f87171;margin-top:6px;font-family:'Noto Sans KR',sans-serif;line-height:1.4;}
   .fish-map-card:hover{border-color:rgba(124,58,237,0.35);background:rgba(124,58,237,0.08);}
   .fish-map-emoji{font-size:32px;margin-bottom:8px;}
   .fish-map-name{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--text-main);margin-bottom:5px;}
@@ -521,12 +525,48 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   };
 
   const MAP_DATA = [
-    {id:'river', name:'강가 낚시터', emoji:'🏞️', desc:'초보자도 쉽게 즐기는 조용한 강', bonus:'모든 등급', priceMult:1.0},
-    {id:'lake',  name:'호수 낚시터', emoji:'🏔️', desc:'레어 이상 확률 소폭 증가', bonus:'레어+ ×1.1', priceMult:1.05, rareBoost:true},
-    {id:'sea',   name:'바다 낚시터', emoji:'🌊', desc:'에픽·전설 출현 확률 증가', bonus:'에픽+ ×1.15', priceMult:1.1, epicBoost:true},
-    {id:'deep',  name:'심해 낚시터', emoji:'🌑', desc:'신화 물고기가 출현하는 위험 지역', bonus:'신화+ ×1.3', priceMult:1.2, mythBoost:true},
-    {id:'volcano',name:'화산 용암 호수',emoji:'🌋', desc:'희귀 물고기 가격 대폭 상승', bonus:'가격 ×1.4', priceMult:1.4},
-    {id:'sky',   name:'하늘 낚시터', emoji:'☁️', desc:'전설 이상 확률이 대폭 증가하는 신비 지역', bonus:'전설+ ×1.5', priceMult:1.1, legendBoost:true},
+    {
+      id:'river', name:'강가 낚시터', emoji:'🏞️',
+      desc:'초보자도 쉽게 즐기는 조용한 강가',
+      bonus:'일반·희귀만 출현', priceMult:1.0,
+      unlockAt:0,
+      grades:{'일반':90,'희귀':10}
+    },
+    {
+      id:'lake', name:'호수 낚시터', emoji:'🏔️',
+      desc:'희귀 물고기 확률이 높아진 조용한 호수',
+      bonus:'희귀 확률 증가', priceMult:1.05,
+      unlockAt:100,
+      grades:{'일반':70,'희귀':30}
+    },
+    {
+      id:'sea', name:'바다 낚시터', emoji:'🌊',
+      desc:'레어 물고기가 처음 등장하는 드넓은 바다',
+      bonus:'레어 물고기 출현', priceMult:1.1,
+      unlockAt:500,
+      grades:{'일반':55,'희귀':30,'레어':15}
+    },
+    {
+      id:'deep', name:'심해 낚시터', emoji:'🌑',
+      desc:'에픽 물고기가 출현하는 어두운 심해',
+      bonus:'에픽 물고기 출현', priceMult:1.2,
+      unlockAt:1000,
+      grades:{'일반':45,'희귀':30,'레어':18,'에픽':7}
+    },
+    {
+      id:'volcano', name:'화산 낚시터', emoji:'🌋',
+      desc:'전설 물고기가 출현하는 마그마 호수',
+      bonus:'전설 물고기 출현', priceMult:1.4,
+      unlockAt:5000,
+      grades:{'일반':35,'희귀':28,'레어':20,'에픽':12,'전설':5}
+    },
+    {
+      id:'sky', name:'하늘 낚시터', emoji:'☁️',
+      desc:'신화 물고기가 출현하는 천공의 낚시터',
+      bonus:'신화 물고기 출현', priceMult:1.6,
+      unlockAt:10000,
+      grades:{'일반':28,'희귀':25,'레어':22,'에픽':14,'전설':8,'신화':3}
+    },
   ];
 
   const RANK_CYCLE_DAYS = 25;
@@ -556,19 +596,11 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   // ── 랜덤 물고기 뽑기 ──
   function rollFish(mapId) {
     const map = MAP_DATA.find(m=>m.id===mapId) || MAP_DATA[0];
-    // 확률 조정
-    const probs = {};
-    Object.entries(FISH_GRADE_INFO).forEach(([g,info]) => {
-      let p = info.prob;
-      if(map.rareBoost   && ['레어','에픽','전설','신화'].includes(g)) p *= 1.15;
-      if(map.epicBoost   && ['에픽','전설','신화'].includes(g))        p *= 1.2;
-      if(map.mythBoost   && ['신화'].includes(g))                      p *= 1.5;
-      if(map.legendBoost && ['전설','신화'].includes(g))               p *= 1.6;
-      probs[g] = p;
-    });
+    // 맵별 고정 등급 확률표 사용
+    const probs = map.grades;
     const total = Object.values(probs).reduce((a,b)=>a+b,0);
     let r = Math.random() * total;
-    let grade = '일반';
+    let grade = Object.keys(probs)[0];
     for(const [g,p] of Object.entries(probs)){
       r -= p;
       if(r <= 0){ grade = g; break; }
@@ -600,7 +632,12 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   let _currentMap  = 'river';
 
   function initFishGame() {
-    _currentMap = getFS('map') || 'river';
+    const savedMap = getFS('map') || 'river';
+    const stats = getFS('stats') || { total:0 };
+    const totalCatch = stats.total || 0;
+    const mapDef = MAP_DATA.find(m=>m.id===savedMap);
+    // 저장된 맵이 해금 조건 미달이면 강가로 초기화
+    _currentMap = (mapDef && totalCatch >= mapDef.unlockAt) ? savedMap : 'river';
     renderFishScene();
     renderStats();
     renderRankTab();
@@ -915,9 +952,14 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     return daysLeft <= 5; // 마지막 5일 = 순위 확정 후 보상 수령 기간
   }
 
+  // ── 순위: 유저명 없는 공유 키로 저장 (모든 사용자 기록 공유) ──
+  const rankKey = k => 'ggo_fish_' + k; // 공유용 (유저명 없음)
+  const getRankFS  = k => { try{ return JSON.parse(localStorage.getItem(rankKey(k))||'null'); }catch(e){return null;} };
+  const setRankFS  = (k,v) => localStorage.setItem(rankKey(k), JSON.stringify(v));
+
   function updateRankData(fish) {
     const cycleKey  = 'c' + getRankCycleStart();
-    const rankData  = getFS('rank_' + cycleKey) || {};
+    const rankData  = getRankFS('rank_' + cycleKey) || {};
     const username  = un();
     // 현재 유저 기록 갱신
     const gradeOrder = ['일반','희귀','레어','에픽','전설','신화'];
@@ -927,13 +969,13 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
        gradeOrder.indexOf(fish.grade) > gradeOrder.indexOf(prev.grade) ||
        (fish.grade===prev.grade && fish.sizeCm > prev.sizeCm)){
       rankData[username] = curr;
-      setFS('rank_' + cycleKey, rankData);
+      setRankFS('rank_' + cycleKey, rankData);
     }
   }
 
   function getRankList() {
     const cycleKey = 'c' + getRankCycleStart();
-    const rankData = getFS('rank_' + cycleKey) || {};
+    const rankData = getRankFS('rank_' + cycleKey) || {};
     const gradeOrder = ['일반','희귀','레어','에픽','전설','신화'];
     return Object.values(rankData).sort((a,b)=>{
       const gd = gradeOrder.indexOf(b.grade) - gradeOrder.indexOf(a.grade);
@@ -1012,24 +1054,41 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   // ── 낚시 맵 ──
   function renderMapTab() {
     const grid = document.getElementById('map-grid');
+    const stats = getFS('stats') || { total:0 };
+    const totalCatch = stats.total || 0;
     grid.innerHTML = MAP_DATA.map(m => {
-      const active = m.id === _currentMap;
-      return `<div class="fish-map-card ${active?'active-map':''}" onclick="selectMap('${m.id}')">
+      const active   = m.id === _currentMap;
+      const unlocked = totalCatch >= m.unlockAt;
+      const locked   = !unlocked;
+      const gradeStr = Object.keys(m.grades).join(' · ');
+      const probStr  = Object.entries(m.grades).map(([g,p])=>`${g} ${p}%`).join(', ');
+      const lockMsg  = locked ? `🔒 총 ${m.unlockAt.toLocaleString()}마리 이상 낚아야 해금 (현재 ${totalCatch.toLocaleString()}마리)` : '';
+      return `<div class="fish-map-card ${active?'active-map':''} ${locked?'locked-map':''}"
+        onclick="${locked?`showFishToast('🔒 총 ${m.unlockAt.toLocaleString()}마리 이상 낚으면 해금됩니다!')`:  `selectMap('${m.id}')`}">
         ${active ? '<div class="fish-map-active-badge">선택중</div>' : ''}
+        ${locked ? '<div class="fish-map-lock-badge">🔒 잠김</div>' : ''}
         <div class="fish-map-emoji">${m.emoji}</div>
         <div class="fish-map-name">${m.name}</div>
         <div class="fish-map-desc">${m.desc}</div>
-        <div class="fish-map-bonus">⚡ ${m.bonus}</div>
+        <div class="fish-map-bonus" style="font-size:11px;color:var(--text-dim);margin-top:4px;">${probStr}</div>
+        ${locked ? `<div class="fish-map-lock-msg">${lockMsg}</div>` : ''}
       </div>`;
     }).join('');
   }
 
   function selectMap(id) {
+    const stats = getFS('stats') || { total:0 };
+    const totalCatch = stats.total || 0;
+    const map = MAP_DATA.find(m=>m.id===id);
+    if(!map) return;
+    if(totalCatch < map.unlockAt){
+      showFishToast(`🔒 총 ${map.unlockAt.toLocaleString()}마리 이상 낚으면 해금됩니다! (현재 ${totalCatch.toLocaleString()}마리)`);
+      return;
+    }
     _currentMap = id;
     setFS('map', id);
     renderMapTab();
-    const mapName = MAP_DATA.find(m=>m.id===id)?.name || id;
-    showFishToast('🗺️ ' + mapName + ' 이동!');
+    showFishToast('🗺️ ' + map.name + ' 이동!');
   }
 
   // ── 탭 전환 ──
