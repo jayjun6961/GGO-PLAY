@@ -1080,39 +1080,435 @@ const MP_BANNER_ITEMS = {
     배너: [
       {
         name:'레드 네온 터널',
-        isSvgBanner: true, idx: 0,
-        fallbackBg: 'linear-gradient(180deg,#0a0a0a,#1a0808)'
+        svgBanner: (w, h) => {
+          const W=w, H=h;
+          // 소실점: 중앙 약간 위
+          const VX = W*0.5, VY = H*0.38;
+          // 왼쪽 기둥 패널 4개 (바닥→천장 사다리꼴, 빨간 빛 사이)
+          // 각 기둥: 두 개의 선이 소실점으로 수렴
+          // 기둥 위치: 왼쪽 바닥 x 좌표들
+          const LP = [W*0.0, W*0.08, W*0.17, W*0.26, W*0.35]; // 5개 기둥 바닥 X
+          const LPT = [W*0.0, W*0.04, W*0.10, W*0.17, W*0.24]; // 기둥 상단 X (더 좁게)
+          // 오른쪽 대칭
+          const RP = LP.map(x => W - x).reverse();
+          const RPT = LPT.map(x => W - x).reverse();
+
+          let pillarsL = '';
+          let glowL = '';
+          for(let i=0;i<LP.length-1;i++){
+            const x0b=LP[i], x1b=LP[i+1];
+            const x0t=LPT[i], x1t=LPT[i+1];
+            const opacity = 0.75 - i*0.1;
+            const darkR = 0x18 + i*0x06;
+            // 패널 면 (어두운 적갈색)
+            pillarsL += `<polygon points='${x0b},${H} ${x1b},${H} ${x1t},${H*0.02} ${x0t},${H*0.02}' fill='rgb(${darkR},${Math.floor(darkR*0.3)},${Math.floor(darkR*0.3)})' opacity='${opacity}'/>`;
+            // 패널 사이 네온 빛 (왼쪽 엣지가 빛남)
+            if(i>0){
+              glowL += `<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#ff1a1a' stroke-width='${2.5-i*0.4}' opacity='${0.9-i*0.12}' filter='url(#gNeon)'/>`;
+              glowL += `<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#fff' stroke-width='${0.6-i*0.1}' opacity='${0.5-i*0.08}'/>`;
+            }
+          }
+          let pillarsR = '';
+          let glowR = '';
+          const RP2 = [W*1.0, W*0.92, W*0.83, W*0.74, W*0.65];
+          const RPT2 = [W*1.0, W*0.96, W*0.90, W*0.83, W*0.76];
+          for(let i=0;i<RP2.length-1;i++){
+            const x0b=RP2[i], x1b=RP2[i+1];
+            const x0t=RPT2[i], x1t=RPT2[i+1];
+            const opacity = 0.75 - i*0.1;
+            const darkR = 0x18 + i*0x06;
+            pillarsR += `<polygon points='${x0b},${H} ${x1b},${H} ${x1t},${H*0.02} ${x0t},${H*0.02}' fill='rgb(${darkR},${Math.floor(darkR*0.3)},${Math.floor(darkR*0.3)})' opacity='${opacity}'/>`;
+            if(i>0){
+              glowR += `<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#ff1a1a' stroke-width='${2.5-i*0.4}' opacity='${0.9-i*0.12}' filter='url(#gNeon)'/>`;
+              glowR += `<line x1='${x0b}' y1='${H}' x2='${x0t}' y2='${H*0.02}' stroke='#fff' stroke-width='${0.6-i*0.1}' opacity='${0.5-i*0.08}'/>`;
+            }
+          }
+
+          return `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}' viewBox='0 0 ${W} ${H}'>
+            <defs>
+              <filter id='gNeon'><feGaussianBlur stdDeviation='2.5' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <filter id='gSoft'><feGaussianBlur stdDeviation='1.2' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <linearGradient id='bgT1' x1='0%' y1='0%' x2='0%' y2='100%'>
+                <stop offset='0%' stop-color='#080808'/>
+                <stop offset='55%' stop-color='#0f0505'/>
+                <stop offset='100%' stop-color='#1c0808'/>
+              </linearGradient>
+              <linearGradient id='floorG' x1='0%' y1='0%' x2='0%' y2='100%'>
+                <stop offset='0%' stop-color='#1a0404' stop-opacity='0.3'/>
+                <stop offset='100%' stop-color='#2d0a0a' stop-opacity='0.9'/>
+              </linearGradient>
+            </defs>
+            <!-- 배경 -->
+            <rect width='${W}' height='${H}' fill='url(#bgT1)'/>
+            <!-- 천장 삼각 (어두운) -->
+            <polygon points='0,0 ${W},0 ${W},${H*0.25} ${W*0.5},${H*0.38} 0,${H*0.25}' fill='#060606'/>
+            <!-- 바닥 반사층 -->
+            <rect y='${H*0.62}' width='${W}' height='${H*0.38}' fill='url(#floorG)'/>
+            <!-- 왼쪽 기둥 패널들 -->
+            ${pillarsL}
+            <!-- 왼쪽 네온 -->
+            ${glowL}
+            <!-- 오른쪽 기둥 패널들 -->
+            ${pillarsR}
+            <!-- 오른쪽 네온 -->
+            ${glowR}
+            <!-- 바닥 네온 반사 -->
+            <line x1='${W*0.08}' y1='${H}' x2='${W*0.26}' y2='${H*0.62}' stroke='#ff0808' stroke-width='1' opacity='0.18' filter='url(#gSoft)'/>
+            <line x1='${W*0.17}' y1='${H}' x2='${W*0.31}' y2='${H*0.62}' stroke='#ff0808' stroke-width='0.7' opacity='0.12'/>
+            <line x1='${W*0.92}' y1='${H}' x2='${W*0.74}' y2='${H*0.62}' stroke='#ff0808' stroke-width='1' opacity='0.18' filter='url(#gSoft)'/>
+            <line x1='${W*0.83}' y1='${H}' x2='${W*0.69}' y2='${H*0.62}' stroke='#ff0808' stroke-width='0.7' opacity='0.12'/>
+            <!-- 중앙 소실점 미광 -->
+            <ellipse cx='${W*0.5}' cy='${H*0.38}' rx='${W*0.06}' ry='${H*0.04}' fill='#3a0808' opacity='0.5' filter='url(#gNeon)'/>
+          </svg>`;
+        }
       },
       {
         name:'크림슨 V-코리더',
-        isSvgBanner: true, idx: 1,
-        fallbackBg: 'radial-gradient(ellipse at 50% 55%,#3d0000,#0a0000)'
+        // 사진2: 날카로운 V패널 반복수렴 + 바닥 두 줄기 밝은 반사선
+        svgBanner: (w, h) => {
+          const W=w, H=h;
+          // 소실점: 정중앙 약간 위
+          const VX=W*0.5, VY=H*0.5;
+          // V패널들: 원근감 있게 크기 줄어드는 수렴 라인들
+          // 왼쪽 패널 엣지 (V의 왼쪽 날개): 바닥 좌측→소실점
+          // 오른쪽 패널 엣지: 바닥 우측→소실점
+          // 패널 두께는 원근에 따라 줄어듦
+          const levels = 9; // 반복 수
+          let panelLines = '';
+          for(let i=0;i<levels;i++){
+            const t = i/(levels-1); // 0(가장 바깥)→1(소실점)
+            const lx = W*(0.0 + t*0.46); // 왼쪽 x: 0→VX-여유
+            const rx = W*(1.0 - t*0.46); // 오른쪽 x: W→VX+여유
+            const y  = H*(0.98 - t*0.48); // y: 바닥→소실점
+            const wStroke = 3.5*(1-t)+0.5;
+            const op = 0.85 - t*0.4;
+            const fillOp = (0.45-t*0.4);
+            // 왼쪽 엣지 라인
+            if(i>0){
+              const pt = (i-1)/(levels-1);
+              const plx = W*(0.0 + pt*0.46);
+              const prx = W*(1.0 - pt*0.46);
+              const py  = H*(0.98 - pt*0.48);
+              // 왼쪽 패널 면
+              panelLines += `<polygon points='${plx},${py} ${lx},${y} ${VX},${VY} ${VX},${VY}' fill='#1a0000' opacity='${fillOp<0?0:fillOp}'/>`;
+              // 오른쪽 패널 면
+              panelLines += `<polygon points='${prx},${py} ${rx},${y} ${VX},${VY} ${VX},${VY}' fill='#1a0000' opacity='${fillOp<0?0:fillOp}'/>`;
+            }
+            // 왼쪽 라인
+            panelLines += `<line x1='${lx}' y1='${y}' x2='${VX}' y2='${VY}' stroke='#aa0000' stroke-width='${wStroke}' opacity='${op}'/>`;
+            // 오른쪽 라인
+            panelLines += `<line x1='${rx}' y1='${y}' x2='${VX}' y2='${VY}' stroke='#aa0000' stroke-width='${wStroke}' opacity='${op}'/>`;
+          }
+
+          return `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}' viewBox='0 0 ${W} ${H}'>
+            <defs>
+              <filter id='gNeon2'><feGaussianBlur stdDeviation='3' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <filter id='gSoft2'><feGaussianBlur stdDeviation='1.5' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <radialGradient id='bgT2' cx='50%' cy='50%' r='65%'>
+                <stop offset='0%' stop-color='#3a0000'/>
+                <stop offset='45%' stop-color='#1f0000'/>
+                <stop offset='100%' stop-color='#080000'/>
+              </radialGradient>
+              <radialGradient id='vpGlow' cx='50%' cy='50%' r='18%'>
+                <stop offset='0%' stop-color='#ff2222' stop-opacity='0.55'/>
+                <stop offset='100%' stop-color='#ff0000' stop-opacity='0'/>
+              </radialGradient>
+              <linearGradient id='floorDark' x1='0%' y1='0%' x2='0%' y2='100%'>
+                <stop offset='0%' stop-color='#0a0000' stop-opacity='0'/>
+                <stop offset='100%' stop-color='#000000' stop-opacity='0.6'/>
+              </linearGradient>
+            </defs>
+            <!-- 배경 -->
+            <rect width='${W}' height='${H}' fill='url(#bgT2)'/>
+            <!-- 패널들 -->
+            ${panelLines}
+            <!-- 소실점 글로우 -->
+            <ellipse cx='${VX}' cy='${VY}' rx='${W*0.1}' ry='${H*0.08}' fill='url(#vpGlow)'/>
+            <ellipse cx='${VX}' cy='${VY}' rx='${W*0.03}' ry='${H*0.025}' fill='#ff4444' opacity='0.5' filter='url(#gNeon2)'/>
+            <!-- 바닥 어둡게 -->
+            <rect y='${H*0.5}' width='${W}' height='${H*0.5}' fill='url(#floorDark)'/>
+            <!-- 핵심: 바닥 두 줄기 밝은 반사선 -->
+            <!-- 왼쪽 줄기 -->
+            <line x1='${W*0.08}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#ff3333' stroke-width='2.5' opacity='0.95' filter='url(#gNeon2)'/>
+            <line x1='${W*0.08}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#ffffff' stroke-width='0.8' opacity='0.65'/>
+            <!-- 오른쪽 줄기 -->
+            <line x1='${W*0.92}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#ff3333' stroke-width='2.5' opacity='0.95' filter='url(#gNeon2)'/>
+            <line x1='${W*0.92}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#ffffff' stroke-width='0.8' opacity='0.65'/>
+            <!-- 보조 반사선 (바깥) -->
+            <line x1='0' y1='${H}' x2='${VX}' y2='${VY}' stroke='#cc0000' stroke-width='1.2' opacity='0.4'/>
+            <line x1='${W}' y1='${H}' x2='${VX}' y2='${VY}' stroke='#cc0000' stroke-width='1.2' opacity='0.4'/>
+            <!-- 바닥 수평 반사광 (바닥면) -->
+            <ellipse cx='${VX}' cy='${H*0.88}' rx='${W*0.3}' ry='${H*0.06}' fill='#ff1111' opacity='0.08' filter='url(#gSoft2)'/>
+          </svg>`;
+        }
       },
       {
         name:'인페르노 게이트',
-        isSvgBanner: true, idx: 2,
-        fallbackBg: 'radial-gradient(ellipse at 50% 100%,#2a0800,#050000)'
+        // 사진3: 좌우 화살표(>/<) 형 조각들 + 중앙 하단 오렌지 폭발 글로우
+        svgBanner: (w, h) => {
+          const W=w, H=h;
+          // 중앙 소실점 (하단 중앙)
+          const VX=W*0.5, VY=H*0.72;
+
+          // 왼쪽 조각들: 오른쪽을 향하는 화살표 꺾임 (> 모양)
+          // 큰 조각부터 작게: 바깥→안쪽
+          // 각 조각: 왼쪽 벽에서 나와 날카로운 꼭짓점이 중앙을 향함
+          let shapesL = '';
+          let shapesR = '';
+          // 조각 레벨: [y위치, 돌출길이, 높이]
+          const shapeData = [
+            // [yCenter, xTip, halfH, fillColor]
+            [H*0.18, W*0.28, H*0.13, '#8a0a00'],
+            [H*0.35, W*0.24, H*0.09, '#6a0800'],
+            [H*0.50, W*0.20, H*0.07, '#550600'],
+            [H*0.63, W*0.16, H*0.05, '#440500'],
+            [H*0.74, W*0.13, H*0.035,'#330400'],
+          ];
+          shapeData.forEach((s,i)=>{
+            const [yc, xt, hh, fill] = s;
+            const xl = 0; // 왼쪽 끝
+            const edgeColor = i===0 ? '#ff3300' : i===1 ? '#ee2200' : '#cc1500';
+            const edgeW = 1.5 - i*0.2;
+            const edgeOp = 0.95 - i*0.1;
+            // 왼쪽 화살표 조각: 왼쪽변-상단, 왼쪽변-하단, 뾰족 끝
+            // > 모양: (0, yc-hh) → (xt, yc) → (0, yc+hh)
+            shapesL += `<polygon points='${xl},${yc-hh} ${xt},${yc} ${xl},${yc+hh}' fill='${fill}' opacity='0.88'/>`;
+            // 앞면 (밝은 엣지)
+            shapesL += `<line x1='${xl}' y1='${yc-hh}' x2='${xt}' y2='${yc}' stroke='${edgeColor}' stroke-width='${edgeW}' opacity='${edgeOp}' filter='url(#gNeon3)'/>`;
+            shapesL += `<line x1='${xl}' y1='${yc+hh}' x2='${xt}' y2='${yc}' stroke='${edgeColor}' stroke-width='${edgeW*0.7}' opacity='${edgeOp*0.75}' filter='url(#gSoft3)'/>`;
+            // 측면 하이라이트 (상단 밝게)
+            shapesL += `<line x1='${xl}' y1='${yc-hh}' x2='${xl}' y2='${yc-hh*0.3}' stroke='#ff4400' stroke-width='0.8' opacity='${0.6-i*0.08}'/>`;
+
+            // 오른쪽 대칭 < 모양
+            const xr = W;
+            const xtr = W - (xt - xl); // 오른쪽 꼭짓점
+            shapesR += `<polygon points='${xr},${yc-hh} ${xtr},${yc} ${xr},${yc+hh}' fill='${fill}' opacity='0.88'/>`;
+            shapesR += `<line x1='${xr}' y1='${yc-hh}' x2='${xtr}' y2='${yc}' stroke='${edgeColor}' stroke-width='${edgeW}' opacity='${edgeOp}' filter='url(#gNeon3)'/>`;
+            shapesR += `<line x1='${xr}' y1='${yc+hh}' x2='${xtr}' y2='${yc}' stroke='${edgeColor}' stroke-width='${edgeW*0.7}' opacity='${edgeOp*0.75}' filter='url(#gSoft3)'/>`;
+            shapesR += `<line x1='${xr}' y1='${yc-hh}' x2='${xr}' y2='${yc-hh*0.3}' stroke='#ff4400' stroke-width='0.8' opacity='${0.6-i*0.08}'/>`;
+          });
+
+          // 뒷 배경 조각들 (더 얇고 멀리)
+          const bgShapes = [
+            [H*0.12, W*0.18, H*0.06, '#440400'],
+            [H*0.28, W*0.14, H*0.04, '#330300'],
+            [H*0.44, W*0.10, H*0.03, '#220200'],
+          ];
+          let bgL='', bgR='';
+          bgShapes.forEach((s,i)=>{
+            const [yc,xt,hh,fill]=s;
+            bgL+=`<polygon points='0,${yc-hh} ${xt},${yc} 0,${yc+hh}' fill='${fill}' opacity='0.7'/>`;
+            bgL+=`<line x1='0' y1='${yc-hh}' x2='${xt}' y2='${yc}' stroke='#aa1100' stroke-width='0.8' opacity='0.6'/>`;
+            const xtr=W-xt;
+            bgR+=`<polygon points='${W},${yc-hh} ${xtr},${yc} ${W},${yc+hh}' fill='${fill}' opacity='0.7'/>`;
+            bgR+=`<line x1='${W}' y1='${yc-hh}' x2='${xtr}' y2='${yc}' stroke='#aa1100' stroke-width='0.8' opacity='0.6'/>`;
+          });
+
+          return `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}' viewBox='0 0 ${W} ${H}'>
+            <defs>
+              <filter id='gNeon3'><feGaussianBlur stdDeviation='2' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <filter id='gSoft3'><feGaussianBlur stdDeviation='1' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <filter id='gBlast'><feGaussianBlur stdDeviation='8' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+              <radialGradient id='bgT3' cx='50%' cy='65%' r='75%'>
+                <stop offset='0%' stop-color='#2a0800'/>
+                <stop offset='40%' stop-color='#160300'/>
+                <stop offset='100%' stop-color='#040000'/>
+              </radialGradient>
+              <radialGradient id='blastGlow' cx='50%' cy='100%' r='55%'>
+                <stop offset='0%' stop-color='#ff7700' stop-opacity='0.9'/>
+                <stop offset='25%' stop-color='#ff3300' stop-opacity='0.6'/>
+                <stop offset='60%' stop-color='#cc1100' stop-opacity='0.2'/>
+                <stop offset='100%' stop-color='#ff0000' stop-opacity='0'/>
+              </radialGradient>
+            </defs>
+            <!-- 배경 -->
+            <rect width='${W}' height='${H}' fill='url(#bgT3)'/>
+            <!-- 중앙 하단 오렌지 폭발 글로우 (핵심) -->
+            <ellipse cx='${VX}' cy='${H}' rx='${W*0.55}' ry='${H*0.65}' fill='url(#blastGlow)'/>
+            <ellipse cx='${VX}' cy='${H}' rx='${W*0.18}' ry='${H*0.25}' fill='#ff5500' opacity='0.35' filter='url(#gBlast)'/>
+            <ellipse cx='${VX}' cy='${H}' rx='${W*0.06}' ry='${H*0.08}' fill='#ff8800' opacity='0.55' filter='url(#gNeon3)'/>
+            <!-- 바닥 중앙 라인 (삼각형 반사) -->
+            <line x1='${VX}' y1='${H}' x2='${VX}' y2='${H*0.7}' stroke='#ff6600' stroke-width='1.5' opacity='0.7' filter='url(#gNeon3)'/>
+            <!-- 뒷 배경 조각 -->
+            ${bgL}${bgR}
+            <!-- 앞 주요 조각들 -->
+            ${shapesL}${shapesR}
+            <!-- 바닥 반사 -->
+            <polygon points='0,${H} ${W*0.28},${H*0.85} ${W*0.5},${H} ' fill='#cc1100' opacity='0.08'/>
+            <polygon points='${W},${H} ${W*0.72},${H*0.85} ${W*0.5},${H}' fill='#cc1100' opacity='0.08'/>
+          </svg>`;
+        }
       },
     ],
-    아이콘렌더: [
-      (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:#0a0000;border-radius:50%;"><svg width="${sz*.7}" height="${sz*.7}" viewBox="0 0 40 40"><polygon points='20,2 36,14 36,28 20,38 4,28 4,14' fill='none' stroke='#ff2020' stroke-width='1.5'/><line x1='4' y1='14' x2='36' y2='14' stroke='#ff2020' stroke-width='0.8' opacity='0.6'/></svg></div>`,
-      (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:#080000;border-radius:50%;"><svg width="${sz*.7}" height="${sz*.7}" viewBox="0 0 40 40"><rect x='17' y='2' width='6' height='36' rx='2' fill='#ff1a1a'/><rect x='2' y='17' width='36' height='6' rx='2' fill='#ff1a1a'/><circle cx='20' cy='20' r='4' fill='#ff4444'/></svg></div>`,
-      (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#1a0000,#000);border-radius:50%;"><svg width="${sz*.72}" height="${sz*.72}" viewBox="0 0 40 40"><circle cx='20' cy='20' r='16' fill='url(#mpS7g)'/><circle cx='20' cy='20' r='16' fill='none' stroke='#ff2020' stroke-width='1.5'/><defs><radialGradient id='mpS7g' cx='40%' cy='35%'><stop offset='0%' stop-color='#ff4444'/><stop offset='100%' stop-color='#660000'/></radialGradient></defs></svg></div>`,
+    아이콘: [
+      {
+        name:'레드 다이아몬드',
+        render: (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:#0a0000;border-radius:50%;position:relative;">
+          <svg width="${sz*0.7}" height="${sz*0.7}" viewBox="0 0 40 40">
+            <defs><filter id='ri1'><feGaussianBlur stdDeviation='1.5' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter></defs>
+            <polygon points='20,2 36,14 36,28 20,38 4,28 4,14' fill='none' stroke='#ff2020' stroke-width='1.5' filter='url(#ri1)'/>
+            <polygon points='20,7 31,16 31,26 20,33 9,26 9,16' fill='rgba(255,30,30,0.1)' stroke='#ff4444' stroke-width='0.8'/>
+            <line x1='4' y1='14' x2='36' y2='14' stroke='#ff2020' stroke-width='0.8' opacity='0.6'/>
+            <line x1='4' y1='28' x2='36' y2='28' stroke='#ff2020' stroke-width='0.8' opacity='0.6'/>
+            <line x1='20' y1='2' x2='20' y2='38' stroke='#ff4444' stroke-width='0.5' opacity='0.4'/>
+          </svg>
+        </div>`
+      },
+      {
+        name:'네온 크로스',
+        render: (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:#080000;border-radius:50%;position:relative;">
+          <svg width="${sz*0.72}" height="${sz*0.72}" viewBox="0 0 40 40">
+            <defs><filter id='ri2'><feGaussianBlur stdDeviation='2' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter></defs>
+            <rect x='17' y='2' width='6' height='36' rx='2' fill='#ff1a1a' filter='url(#ri2)'/>
+            <rect x='2' y='17' width='36' height='6' rx='2' fill='#ff1a1a' filter='url(#ri2)'/>
+            <rect x='18' y='4' width='4' height='32' rx='1' fill='#ff6666' opacity='0.5'/>
+            <rect x='4' y='18' width='32' height='4' rx='1' fill='#ff6666' opacity='0.5'/>
+            <circle cx='20' cy='20' r='4' fill='#ff2020' filter='url(#ri2)'/>
+          </svg>
+        </div>`
+      },
+      {
+        name:'인페르노 스피어',
+        render: (sz) => `<div style="width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#1a0000,#000);border-radius:50%;position:relative;">
+          <svg width="${sz*0.75}" height="${sz*0.75}" viewBox="0 0 40 40">
+            <defs>
+              <radialGradient id='ri3g' cx='40%' cy='35%'><stop offset='0%' stop-color='#ff4444'/><stop offset='100%' stop-color='#660000'/></radialGradient>
+              <filter id='ri3'><feGaussianBlur stdDeviation='1.5' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter>
+            </defs>
+            <circle cx='20' cy='20' r='16' fill='url(#ri3g)' filter='url(#ri3)'/>
+            <circle cx='20' cy='20' r='16' fill='none' stroke='#ff2020' stroke-width='1.5' filter='url(#ri3)'/>
+            <ellipse cx='20' cy='20' rx='8' ry='16' fill='none' stroke='rgba(255,100,100,0.4)' stroke-width='0.8'/>
+            <line x1='4' y1='20' x2='36' y2='20' stroke='rgba(255,100,100,0.4)' stroke-width='0.8'/>
+            <circle cx='14' cy='14' r='3' fill='rgba(255,200,200,0.6)' filter='url(#ri3)'/>
+          </svg>
+        </div>`
+      },
     ],
     테두리: [
       {
-        name:'인페르노 플레임', isSvgBorder: true,
-        animCss:'animation:s7FlameAnim 1.8s ease-in-out infinite;',
-        glowCss:'filter:drop-shadow(0 0 8px #ff2020) drop-shadow(0 0 16px rgba(255,80,0,0.5));'
+        name:'인페르노 플레임',
+        // SVG 불꽃 링 테두리
+        svgBorder: (sz, innerSz) => {
+          const cx = sz/2, cy = sz/2, R = sz/2 - 4, r = innerSz/2;
+          return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;">
+            <defs>
+              <filter id="fFlame${sz}">
+                <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="fGlow${sz}">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <!-- 기본 링 -->
+            <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#cc2200" stroke-width="6" opacity="0.6"/>
+            <!-- 외곽 글로우 -->
+            <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#ff4400" stroke-width="3" filter="url(#fGlow${sz})" opacity="0.8"/>
+            <!-- 불꽃 덩어리들 (경로 기반, 링 주변) -->
+            <!-- 12시 -->
+            <path d="M${cx-6},${cy-R+2} C${cx-14},${cy-R-8} ${cx+4},${cy-R-14} ${cx+8},${cy-R-2} C${cx+16},${cy-R-10} ${cx+6},${cy-R+4} ${cx+2},${cy-R+2} Z"
+              fill="#ff4400" filter="url(#fFlame${sz})"/>
+            <path d="M${cx-3},${cy-R} C${cx-8},${cy-R-5} ${cx+2},${cy-R-10} ${cx+4},${cy-R-1} Z"
+              fill="#ffaa00" opacity="0.8"/>
+            <!-- 3시 -->
+            <path d="M${cx+R-2},${cy-6} C${cx+R+8},${cy-14} ${cx+R+14},${cy+4} ${cx+R+2},${cy+8} C${cx+R+10},${cy+16} ${cx+R-4},${cy+6} ${cx+R-2},${cy+2} Z"
+              fill="#ff4400" filter="url(#fFlame${sz})"/>
+            <path d="M${cx+R},${cy-3} C${cx+R+5},${cy-8} ${cx+R+10},${cy+2} ${cx+R+1},${cy+4} Z"
+              fill="#ffaa00" opacity="0.8"/>
+            <!-- 6시 -->
+            <path d="M${cx+6},${cy+R-2} C${cx+14},${cy+R+8} ${cx-4},${cy+R+14} ${cx-8},${cy+R+2} C${cx-16},${cy+R+10} ${cx-6},${cy+R-4} ${cx-2},${cy+R-2} Z"
+              fill="#ff4400" filter="url(#fFlame${sz})"/>
+            <path d="M${cx+3},${cy+R} C${cx+8},${cy+R+5} ${cx-2},${cy+R+10} ${cx-4},${cy+R+1} Z"
+              fill="#ffaa00" opacity="0.8"/>
+            <!-- 9시 -->
+            <path d="M${cx-R+2},${cy+6} C${cx-R-8},${cy+14} ${cx-R-14},${cy-4} ${cx-R-2},${cy-8} C${cx-R-10},${cy-16} ${cx-R+4},${cy-6} ${cx-R+2},${cy-2} Z"
+              fill="#ff4400" filter="url(#fFlame${sz})"/>
+            <path d="M${cx-R},${cy+3} C${cx-R-5},${cy+8} ${cx-R-10},${cy-2} ${cx-R-1},${cy-4} Z"
+              fill="#ffaa00" opacity="0.8"/>
+            <!-- 대각선 불꽃들 -->
+            <path d="M${cx+R*0.68},${cy-R*0.68} C${cx+R*0.78},${cy-R*0.9} ${cx+R*0.95},${cy-R*0.72} ${cx+R*0.72},${cy-R*0.6} Z"
+              fill="#ff6600" filter="url(#fFlame${sz})" opacity="0.9"/>
+            <path d="M${cx-R*0.68},${cy+R*0.68} C${cx-R*0.78},${cy+R*0.9} ${cx-R*0.95},${cy+R*0.72} ${cx-R*0.72},${cy+R*0.6} Z"
+              fill="#ff6600" filter="url(#fFlame${sz})" opacity="0.9"/>
+            <path d="M${cx+R*0.68},${cy+R*0.68} C${cx+R*0.9},${cy+R*0.78} ${cx+R*0.72},${cy+R*0.95} ${cx+R*0.6},${cy+R*0.72} Z"
+              fill="#ff8800" filter="url(#fFlame${sz})" opacity="0.85"/>
+            <path d="M${cx-R*0.68},${cy-R*0.68} C${cx-R*0.9},${cy-R*0.78} ${cx-R*0.72},${cy-R*0.95} ${cx-R*0.6},${cy-R*0.72} Z"
+              fill="#ff8800" filter="url(#fFlame${sz})" opacity="0.85"/>
+            <!-- 내부 글로우 링 -->
+            <circle cx="${cx}" cy="${cy}" r="${r+2}" fill="none" stroke="#ff2200" stroke-width="1.5" opacity="0.4"/>
+          </svg>`;
+        },
+        glowCss: 'filter:drop-shadow(0 0 8px #ff2020) drop-shadow(0 0 16px rgba(255,80,0,0.5));',
+        animCss: 'animation:s7FlameAnim 1.8s ease-in-out infinite;'
       },
       {
-        name:'크림슨 블레이즈', isSvgBorder: true,
-        animCss:'animation:s7GemPulse 2s ease-in-out infinite;',
-        glowCss:'filter:drop-shadow(0 0 6px #cc0022) drop-shadow(0 0 12px rgba(180,0,30,0.5));'
+        name:'크림슨 블레이즈',
+        // SVG 보석+별 장식 링 테두리
+        svgBorder: (sz, innerSz) => {
+          const cx = sz/2, cy = sz/2, R = sz/2 - 5;
+          return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;">
+            <defs>
+              <filter id="fJem${sz}"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <linearGradient id="ringGrad${sz}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#cc0022"/><stop offset="50%" stop-color="#ff1133"/><stop offset="100%" stop-color="#991122"/>
+              </linearGradient>
+            </defs>
+            <!-- 메인 링 -->
+            <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="url(#ringGrad${sz})" stroke-width="8"/>
+            <!-- 골드 하이라이트 선 -->
+            <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#ffd700" stroke-width="1" stroke-dasharray="4 8" opacity="0.6"/>
+            <!-- 12시: 화살촉 장식 (오른쪽 위) -->
+            <g transform="translate(${cx+R*0.65},${cy-R*0.65}) rotate(45)">
+              <polygon points="0,-10 5,-2 2,-2 2,10 -2,10 -2,-2 -5,-2" fill="#cc0022" stroke="#ffd700" stroke-width="0.8" filter="url(#fJem${sz})"/>
+              <circle cx="0" cy="-6" r="3" fill="#ffd700" opacity="0.9"/>
+            </g>
+            <!-- 7시: 큰 별+보석 장식 -->
+            <g transform="translate(${cx-R*0.65},${cy+R*0.65})">
+              <!-- 별 -->
+              <polygon points="0,-12 3,-4 11,-4 5,2 7,10 0,6 -7,10 -5,2 -11,-4 -3,-4"
+                fill="#cc0022" stroke="#ffd700" stroke-width="0.8" filter="url(#fJem${sz})"/>
+              <!-- 중심 보석 -->
+              <circle cx="0" cy="0" r="4" fill="#880011" stroke="#ffd700" stroke-width="0.8"/>
+              <polygon points="0,-3 2,-0.5 0,2 -2,-0.5" fill="#ffd700" opacity="0.9"/>
+            </g>
+            <!-- 2시: 작은 4포인트 별 -->
+            <g transform="translate(${cx+R*0.85},${cy-R*0.3})">
+              <polygon points="0,-8 2,-2 8,0 2,2 0,8 -2,2 -8,0 -2,-2" fill="#cc0022" stroke="#ffd700" stroke-width="0.6" filter="url(#fJem${sz})"/>
+              <circle cx="0" cy="0" r="2.5" fill="#ffd700" opacity="0.9"/>
+            </g>
+            <!-- 4시: 육각 보석 -->
+            <g transform="translate(${cx+R*0.75},${cy+R*0.55})">
+              <polygon points="0,-7 6,-3.5 6,3.5 0,7 -6,3.5 -6,-3.5" fill="#aa0022" stroke="#ffd700" stroke-width="0.8"/>
+              <polygon points="0,-4 3.5,-2 3.5,2 0,4 -3.5,2 -3.5,-2" fill="#ffd700" opacity="0.4"/>
+            </g>
+            <!-- 10시: 삼각 장식 -->
+            <g transform="translate(${cx-R*0.75},${cy-R*0.5})">
+              <polygon points="0,-7 6,5 -6,5" fill="#ffd700" opacity="0.8" filter="url(#fJem${sz})"/>
+              <polygon points="0,-4 3.5,3 -3.5,3" fill="#ff2020" opacity="0.6"/>
+            </g>
+            <!-- 5시: 4포인트 별 (작은) -->
+            <g transform="translate(${cx+R*0.3},${cy+R*0.88})">
+              <polygon points="0,-6 1.5,-1.5 6,0 1.5,1.5 0,6 -1.5,1.5 -6,0 -1.5,-1.5" fill="#cc0022" stroke="#ffd700" stroke-width="0.5" filter="url(#fJem${sz})"/>
+            </g>
+            <!-- 스파클 점들 -->
+            <circle cx="${cx+R*0.95}" cy="${cy+R*0.1}" r="2" fill="#ffd700" opacity="0.7" filter="url(#fJem${sz})"/>
+            <circle cx="${cx-R*0.2}" cy="${cy-R*0.97}" r="1.5" fill="#ffd700" opacity="0.6"/>
+            <circle cx="${cx-R*0.95}" cy="${cy+R*0.2}" r="1.5" fill="#ffd700" opacity="0.5"/>
+            <circle cx="${cx+R*0.1}" cy="${cy+R*0.97}" r="2" fill="#ffd700" opacity="0.65" filter="url(#fJem${sz})"/>
+          </svg>`;
+        },
+        glowCss: 'filter:drop-shadow(0 0 6px #cc0022) drop-shadow(0 0 12px rgba(180,0,30,0.5));',
+        animCss: 'animation:s7GemPulse 2s ease-in-out infinite;'
       },
     ],
     이름효과: [
-      {grad:'linear-gradient(90deg,#ff1a1a,#ff6600,#ffaa00,#ff4400,#ff1a1a)', anim:true, glow:'0 0 8px #ff2020,0 0 16px rgba(255,80,0,0.6)'},
+      {
+        name:'인페르노 블레이즈',
+        grad:'linear-gradient(90deg,#ff1a1a,#ff6600,#ffaa00,#ff4400,#ff1a1a)',
+        anim:true,
+        glow:'0 0 8px #ff2020, 0 0 16px rgba(255,80,0,0.6)'
+      },
     ],
   }
 
@@ -1278,8 +1674,8 @@ function initSidebarProfile() {
 
   if(iconItem && iconItem.visualKey === '시즌7번들상자') {
     av.style.background = '#0a0000';
-    const s7r = MP_S7.아이콘렌더[iconItem._s7Idx || 0];
-    if(s7r) av.innerHTML = s7r(38);
+    const s7r = MP_S7.아이콘[iconItem._s7Idx || 0];
+    if(s7r) av.innerHTML = s7r.render(38);
     else av.innerHTML = '<span style="font-size:18px">🔥</span>';
   } else if(iconItem) {
     const g  = iconItem.grade;
