@@ -2516,7 +2516,7 @@
     // ── 이름 효과 ──
     let nameStyle = '';
     let nameClass = '';
-    const nameEffItem = items.find(it=>it.type==='이름효과'&&it.equipped);
+    const nameEffItem = items.find(it=>it.type==='이름색상효과'&&it.equipped);
     if(nameEffItem) {
       if(nameEffItem.visualKey==='시즌7번들상자') {
         const s7n = MP_S7.이름효과[nameEffItem._s7Idx||0];
@@ -2593,16 +2593,13 @@
         const pct      = Math.round(score/maxScore*100);
         const nickname = row[0] || '—';
 
-        // ── 꾸미기 요소 (기존 getLbProfile 함수 활용) ──
+        // ── 꾸미기 요소 ──
         const deco = getLbProfile(nickname);
-        const decoAvatarHtml = deco.borderStyle
-          ? deco.avatarHtml.replace('style="', 'style="' + deco.borderStyle)
-          : deco.avatarHtml;
 
         hl += `<div class="lb-row bp-row ${i<3?'top'+(i+1):''}">
           <div class="lb-rank-num ${i<3?'r'+(i+1):''}">${i+1}</div>
           <div class="lb-nick">
-            ${decoAvatarHtml}
+            ${deco.avatarHtml}
             <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
               <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
                 <span class="${deco.nameClass}" style="${deco.nameStyle}">${nickname}</span>
