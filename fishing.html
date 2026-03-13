@@ -545,7 +545,7 @@
 <div class="fish-toast" id="fish-toast"></div>
 
 <script>
-  const FISH_DB = {"일반": [{"name": "붕어", "mult": 1.0}, {"name": "잉어", "mult": 1.1}, {"name": "피라미", "mult": 0.9}, {"name": "미꾸라지", "mult": 0.9}, {"name": "메기", "mult": 1.1}, {"name": "가물치", "mult": 1.2}, {"name": "쏘가리", "mult": 1.3}, {"name": "참붕어", "mult": 0.9}, {"name": "버들치", "mult": 0.8}, {"name": "모래무지", "mult": 0.9}, {"name": "돌고기", "mult": 0.9}, {"name": "갈겨니", "mult": 0.9}, {"name": "납자루", "mult": 1.0}, {"name": "줄납자루", "mult": 1.0}, {"name": "각시붕어", "mult": 0.9}, {"name": "떡납줄갱이", "mult": 0.9}, {"name": "참중고기", "mult": 1.0}, {"name": "몰개", "mult": 0.9}, {"name": "눈불개", "mult": 1.1}, {"name": "치리", "mult": 0.9}, {"name": "금강모치", "mult": 0.9}, {"name": "배가사리", "mult": 1.0}, {"name": "왜매치", "mult": 0.9}, {"name": "참마자", "mult": 1.0}, {"name": "어름치", "mult": 1.1}, {"name": "수수미꾸리", "mult": 0.9}, {"name": "새코미꾸리", "mult": 0.9}, {"name": "미호종개", "mult": 1.0}, {"name": "참종개", "mult": 0.9}, {"name": "점줄종개", "mult": 0.9}, {"name": "부안종개", "mult": 1.0}, {"name": "왕종개", "mult": 1.0}, {"name": "기름종개", "mult": 0.9}, {"name": "얼룩종개", "mult": 0.9}, {"name": "북방종개", "mult": 1.0}, {"name": "대륙송사리", "mult": 0.9}, {"name": "송사리", "mult": 0.8}, {"name": "왜몰개", "mult": 0.9}, {"name": "참갈겨니", "mult": 1.0}, {"name": "강준치", "mult": 1.1}, {"name": "블루길", "mult": 1.0}, {"name": "베스", "mult": 1.2}, {"name": "비단잉어", "mult": 1.3}, {"name": "홍정어", "mult": 1.0}, {"name": "가시고기", "mult": 0.9}, {"name": "쌀미꾸리", "mult": 0.9}, {"name": "동자개", "mult": 1.0}, {"name": "꺽지", "mult": 1.1}, {"name": "돌마자", "mult": 0.9}, {"name": "꼬치동자개", "mult": 1.0}], "희귀": [{"name": "민물장어", "mult": 1.5}, {"name": "황어", "mult": 1.3}, {"name": "은어", "mult": 1.4}, {"name": "산천어", "mult": 1.5}, {"name": "열목어", "mult": 1.6}, {"name": "연어", "mult": 1.7}, {"name": "송어", "mult": 1.5}, {"name": "무지개송어", "mult": 1.4}, {"name": "꺽정이", "mult": 1.4}, {"name": "살모사", "mult": 1.3}, {"name": "다묵장어", "mult": 1.5}, {"name": "칠성장어", "mult": 1.6}, {"name": "큰가시고기", "mult": 1.4}, {"name": "퉁가리", "mult": 1.3}, {"name": "쏘가리", "mult": 1.5}, {"name": "자가사리", "mult": 1.4}, {"name": "눈동자개", "mult": 1.3}, {"name": "대농갱이", "mult": 1.4}, {"name": "강경서", "mult": 1.5}, {"name": "강도다리", "mult": 1.4}, {"name": "두만강철갑상어", "mult": 1.8}, {"name": "밀어", "mult": 1.3}, {"name": "갈문망둑", "mult": 1.3}, {"name": "모샛망둑", "mult": 1.3}, {"name": "사백어", "mult": 1.4}, {"name": "실망둑", "mult": 1.3}, {"name": "꾹저구", "mult": 1.4}, {"name": "꾸구리", "mult": 1.4}, {"name": "돌상어", "mult": 1.5}, {"name": "금강쏠종개", "mult": 1.5}], "레어": [{"name": "임연수어", "mult": 1.8}, {"name": "도루묵", "mult": 1.7}, {"name": "명태", "mult": 1.9}, {"name": "대구", "mult": 2.0}, {"name": "청어", "mult": 1.7}, {"name": "가자미", "mult": 1.8}, {"name": "넙치", "mult": 2.1}, {"name": "조기", "mult": 1.9}, {"name": "삼치", "mult": 2.0}, {"name": "방어", "mult": 2.2}, {"name": "부시리", "mult": 2.1}, {"name": "갈치", "mult": 2.0}, {"name": "고등어", "mult": 1.8}, {"name": "쥐치", "mult": 1.7}, {"name": "볼락", "mult": 1.9}, {"name": "돌돔", "mult": 2.2}, {"name": "감성돔", "mult": 2.3}, {"name": "참돔", "mult": 2.4}, {"name": "농어", "mult": 2.2}, {"name": "숭어", "mult": 1.9}], "에픽": [{"name": "참다랑어", "mult": 3.0}, {"name": "황다랑어", "mult": 2.8}, {"name": "새치", "mult": 3.2}, {"name": "돛새치", "mult": 3.1}, {"name": "청새치", "mult": 3.3}, {"name": "황새치", "mult": 3.4}, {"name": "흰배도요", "mult": 2.7}, {"name": "개복치", "mult": 2.9}, {"name": "전기가오리", "mult": 2.8}, {"name": "귀상어", "mult": 3.5}], "전설": [{"name": "백상아리", "mult": 5.0}, {"name": "청상아리", "mult": 4.8}, {"name": "그루퍼", "mult": 4.5}, {"name": "철갑상어", "mult": 5.2}, {"name": "개물치", "mult": 4.7}], "신화": [{"name": "심해아귀", "mult": 8.0}, {"name": "용궁연어", "mult": 9.0}, {"name": "천년잉어", "mult": 10.0}]};
+  const FISH_DB = {"일반":[{"name":"붕어","mult":1.0},{"name":"잉어","mult":1.1},{"name":"피라미","mult":0.9},{"name":"미꾸라지","mult":0.9},{"name":"메기","mult":1.1},{"name":"가물치","mult":1.2},{"name":"쏘가리","mult":1.3},{"name":"참붕어","mult":0.9},{"name":"버들치","mult":0.8},{"name":"모래무지","mult":0.9},{"name":"돌고기","mult":0.9},{"name":"갈겨니","mult":0.9},{"name":"납자루","mult":1.0},{"name":"줄납자루","mult":1.0},{"name":"각시붕어","mult":0.9},{"name":"떡납줄갱이","mult":0.85},{"name":"참게","mult":0.9},{"name":"민물가재","mult":0.95},{"name":"다슬기","mult":0.7},{"name":"송사리","mult":0.8},{"name":"자라","mult":1.1},{"name":"뱀장어","mult":1.3},{"name":"은어","mult":1.0},{"name":"빙어","mult":0.85},{"name":"열목어","mult":1.15},{"name":"쉬리","mult":0.9},{"name":"꺽지","mult":1.1},{"name":"동사리","mult":1.0},{"name":"참종개","mult":0.85},{"name":"왕종개","mult":0.9},{"name":"점줄종개","mult":0.85},{"name":"미호종개","mult":1.0},{"name":"수수미꾸리","mult":0.9},{"name":"새코미꾸리","mult":0.9},{"name":"황어","mult":1.0},{"name":"눈불개","mult":1.0},{"name":"강준치","mult":1.05},{"name":"백련어","mult":1.0},{"name":"초어","mult":1.1},{"name":"대두어","mult":1.05},{"name":"향어","mult":1.1},{"name":"살치","mult":0.9},{"name":"배스","mult":1.15},{"name":"블루길","mult":0.95},{"name":"무지개송어","mult":1.2},{"name":"산천어","mult":1.15},{"name":"곤들매기","mult":1.1},{"name":"연어새끼","mult":1.0},{"name":"퉁가리","mult":0.9},{"name":"새우","mult":0.6},{"name":"다람쥐새우","mult":0.7},{"name":"물방개","mult":0.5},{"name":"가시고기","mult":0.8},{"name":"종개","mult":0.8},{"name":"참마자","mult":0.9},{"name":"긴몰개","mult":0.85},{"name":"몰개","mult":0.85},{"name":"중고기","mult":0.9},{"name":"밀자개","mult":0.9},{"name":"자가사리","mult":0.9},{"name":"퉁사리","mult":0.95},{"name":"얼룩새코미꾸리","mult":0.9},{"name":"금붕어","mult":0.9},{"name":"두우쟁이","mult":0.85},{"name":"좀구굴치","mult":0.85}],"희귀":[{"name":"농어","mult":1.5},{"name":"도미","mult":1.6},{"name":"광어","mult":1.7},{"name":"민어","mult":1.6},{"name":"조기","mult":1.5},{"name":"삼치","mult":1.6},{"name":"고등어","mult":1.4},{"name":"전어","mult":1.4},{"name":"갈치","mult":1.7},{"name":"방어","mult":1.8},{"name":"부시리","mult":1.7},{"name":"참다랑어새끼","mult":1.9},{"name":"숭어","mult":1.5},{"name":"망둥어","mult":1.3},{"name":"볼락","mult":1.5},{"name":"우럭","mult":1.6},{"name":"문어","mult":1.8},{"name":"낙지","mult":1.5},{"name":"꽃게","mult":1.6},{"name":"대게","mult":1.9},{"name":"참쏘가리","mult":1.8},{"name":"금강모치","mult":1.6},{"name":"어름치","mult":1.9},{"name":"묵납자루","mult":1.7},{"name":"임실납자루","mult":1.8},{"name":"칼납자루","mult":1.7},{"name":"꼬치동자개","mult":1.8},{"name":"대농갱이","mult":1.9},{"name":"한강납줄개","mult":1.7},{"name":"흰수마자","mult":2.0},{"name":"참연어","mult":1.8},{"name":"홍연어","mult":1.7},{"name":"곱사연어","mult":1.7},{"name":"능성어","mult":1.6},{"name":"쥐노래미","mult":1.5},{"name":"조피볼락","mult":1.6},{"name":"개볼락","mult":1.5},{"name":"강도다리","mult":1.7}],"레어":[{"name":"참치","mult":2.5},{"name":"황다랑어","mult":3.0},{"name":"날치","mult":2.5},{"name":"쥐치","mult":2.4},{"name":"청새치","mult":3.2},{"name":"황새치","mult":3.1},{"name":"달고기","mult":2.6},{"name":"독가시치","mult":2.7},{"name":"파랑비늘치","mult":2.9},{"name":"고등어왕","mult":2.8},{"name":"다랑어","mult":2.8},{"name":"코브라피시","mult":2.6},{"name":"돛새치","mult":3.0},{"name":"만새기","mult":2.7},{"name":"쥐가오리","mult":2.9},{"name":"홍어왕","mult":2.8},{"name":"물가오리","mult":2.7},{"name":"전기뱀장어","mult":2.6},{"name":"피라냐","mult":2.5},{"name":"아로와나","mult":3.1},{"name":"파쿠","mult":2.8},{"name":"가아피시","mult":2.9},{"name":"수장룡새끼","mult":3.0},{"name":"폴리프테루스","mult":2.7},{"name":"흉상어","mult":2.8},{"name":"악상어","mult":2.9},{"name":"귀상어","mult":2.8},{"name":"대구왕","mult":2.6},{"name":"개복치","mult":3.2},{"name":"리본피시","mult":2.7}],"에픽":[{"name":"백상아리","mult":4.0},{"name":"귀신고래","mult":4.5},{"name":"그루퍼","mult":4.5},{"name":"철갑상어","mult":5.2},{"name":"개물치","mult":4.7},{"name":"바다사자","mult":4.5},{"name":"전기가오리","mult":4.8},{"name":"대왕조개","mult":4.2},{"name":"곰치왕","mult":4.6},{"name":"독두꺼비고기","mult":4.3},{"name":"심해오징어","mult":4.9},{"name":"자이언트문피시","mult":4.7},{"name":"왕쌍가오리","mult":4.6},{"name":"괴수도룡뇽","mult":4.8},{"name":"가오리왕","mult":4.4},{"name":"대왕문어","mult":5.0},{"name":"심해해파리","mult":4.3},{"name":"용치놀래기","mult":4.2},{"name":"뿔상어","mult":4.5},{"name":"점박이상어","mult":4.6}],"전설":[{"name":"대왕오징어","mult":6.0},{"name":"청새리상어","mult":6.5},{"name":"범고래","mult":7.0},{"name":"밍크고래","mult":6.0},{"name":"나폴레옹피시","mult":7.0},{"name":"혹등고래새끼","mult":7.5},{"name":"바다거북왕","mult":6.8},{"name":"크라켄팔","mult":7.2},{"name":"인어왕자","mult":8.0},{"name":"대왕상어","mult":7.0},{"name":"황금잉어","mult":6.5},{"name":"불사조연어","mult":7.0},{"name":"빙하상어","mult":6.8},{"name":"용눈이붕어","mult":7.5},{"name":"신비한오색어","mult":6.5}],"신화":[{"name":"심해아귀","mult":8.0},{"name":"용궁연어","mult":9.0},{"name":"천년잉어","mult":10.0},{"name":"용왕","mult":11.0},{"name":"해신","mult":12.0},{"name":"불사조어","mult":10.5},{"name":"천계어","mult":11.5}],"레전더리":[{"name":"우주고래","mult":20.0},{"name":"성운잉어","mult":18.0},{"name":"블랙홀피쉬","mult":25.0},{"name":"은하넙치","mult":15.0},{"name":"빅뱅상어","mult":22.0},{"name":"별자리가오리","mult":17.0},{"name":"혜성상어","mult":19.0},{"name":"초신성연어","mult":21.0},{"name":"다크매터피쉬","mult":24.0},{"name":"중성자별붕어","mult":16.0},{"name":"퀘이사잉어","mult":23.0},{"name":"펄사문어","mult":18.5},{"name":"우주해파리","mult":15.5},{"name":"성간물고기","mult":17.5},{"name":"안드로메다잉어","mult":20.5},{"name":"오리온오징어","mult":19.5},{"name":"시리우스상어","mult":22.5},{"name":"천왕성피쉬","mult":16.5},{"name":"해왕성어","mult":18.0},{"name":"명왕성붕어","mult":14.0},{"name":"토성링피쉬","mult":21.5},{"name":"목성대기어","mult":20.0},{"name":"화성암붕어","mult":15.0},{"name":"태양계연어","mult":23.5},{"name":"우주먼지어","mult":13.0}]};
 const GRADE_DATA = [{"grade": "일반", "prob": 55, "base_price": 10, "color": "#94a3b8"}, {"grade": "희귀", "prob": 25, "base_price": 50, "color": "#34d399"}, {"grade": "레어", "prob": 12, "base_price": 150, "color": "#60a5fa"}, {"grade": "에픽", "prob": 8, "base_price": 750, "color": "#a855f7"}, {"grade": "전설", "prob": 3, "base_price": 1200, "color": "#fbbf24"}, {"grade": "신화", "prob": 1, "base_price": 2500, "color": "#ff6b6b"}];
 const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label": "보통", "mult": 1.0, "range": [16, 35]}, {"label": "큰", "mult": 1.3, "range": [36, 60]}, {"label": "거대", "mult": 1.7, "range": [61, 100]}, {"label": "초대형", "mult": 2.3, "range": [101, 200]}];
 
@@ -561,6 +561,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     '에픽': {prob:8,  basePrice:750,  color:'#a855f7', bg:'rgba(168,85,247,0.12)',  border:'rgba(168,85,247,0.4)'},
     '전설': {prob:3,  basePrice:1200, color:'#fbbf24', bg:'rgba(251,191,36,0.12)',  border:'rgba(251,191,36,0.4)'},
     '신화': {prob:1,  basePrice:2500, color:'#ff6b6b', bg:'rgba(255,107,107,0.12)', border:'rgba(255,107,107,0.4)'},
+    '레전더리': {prob:0.3, basePrice:8000, color:'#f0abfc', bg:'rgba(240,171,252,0.12)', border:'rgba(240,171,252,0.5)'},
   };
 
   const SIZE_INFO = [
@@ -572,7 +573,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   ];
 
   const FISH_EMOJIS_BY_GRADE = {
-    '일반':'🐟','희귀':'🐠','레어':'🐡','에픽':'🦈','전설':'🐋','신화':'🐉'
+    '일반':'🐟','희귀':'🐠','레어':'🐡','에픽':'🦈','전설':'🐋','신화':'🐉','레전더리':'🌌'
   };
 
   const MAP_DATA = [
@@ -617,6 +618,13 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
       bonus:'신화 물고기 출현', priceMult:1.6,
       unlockAt:10000,
       grades:{'일반':28,'희귀':25,'레어':22,'에픽':14,'전설':8,'신화':3}
+    },
+    {
+      id:'space', name:'우주 낚시터', emoji:'🌌',
+      desc:'레전더리 물고기가 출현하는 신비한 우주 낚시터',
+      bonus:'레전더리 물고기 출현', priceMult:2.5,
+      unlockAt:50000,
+      grades:{'일반':20,'희귀':18,'레어':15,'에픽':12,'전설':10,'신화':7,'레전더리':18}
     },
   ];
 
@@ -666,7 +674,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     // 낚시대 등급 보너스: 고등급 물고기 확률 상향
     const probs = { ...map.grades };
     if(rod.gradeBonus > 0) {
-      const gradeOrder = ['일반','희귀','레어','에픽','전설','신화'];
+      const gradeOrder = ['일반','희귀','레어','에픽','전설','신화','레전더리'];
       const mapGrades  = Object.keys(probs);
       const topGrades  = mapGrades.filter(g => gradeOrder.indexOf(g) >= 1); // 희귀 이상
       const shift      = rod.gradeBonus * 100; // ex 0.05 → 5%p
@@ -886,7 +894,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     if(!stats.caughtSpecies) stats.caughtSpecies = {};
     stats.caughtSpecies[fish.name] = (stats.caughtSpecies[fish.name]||0) + 1;
     // 최고 기록
-    const gradeOrder = ['일반','희귀','레어','에픽','전설','신화'];
+    const gradeOrder = ['일반','희귀','레어','에픽','전설','신화','레전더리'];
     if(!stats.bestFish || gradeOrder.indexOf(fish.grade) > gradeOrder.indexOf(stats.bestFish.grade) ||
        (fish.grade===stats.bestFish.grade && fish.sizeCm > stats.bestFish.sizeCm)){
       stats.bestFish = fish;
@@ -1058,7 +1066,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     const rankData  = getRankFS('rank_' + cycleKey) || {};
     const username  = un();
     // 현재 유저 기록 갱신
-    const gradeOrder = ['일반','희귀','레어','에픽','전설','신화'];
+    const gradeOrder = ['일반','희귀','레어','에픽','전설','신화','레전더리'];
     const prev = rankData[username];
     const curr = { name:fish.name, grade:fish.grade, sizeCm:fish.sizeCm, user:username };
     if(!prev ||
@@ -1072,7 +1080,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   function getRankList() {
     const cycleKey = 'c' + getRankCycleStart();
     const rankData = getRankFS('rank_' + cycleKey) || {};
-    const gradeOrder = ['일반','희귀','레어','에픽','전설','신화'];
+    const gradeOrder = ['일반','희귀','레어','에픽','전설','신화','레전더리'];
     return Object.values(rankData).sort((a,b)=>{
       const gd = gradeOrder.indexOf(b.grade) - gradeOrder.indexOf(a.grade);
       if(gd !== 0) return gd;
@@ -1112,7 +1120,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     // 직전 사이클 순위 데이터
     const prevRankData = getRankFS('rank_' + prevCycleKey) || {};
     const rankList     = Object.values(prevRankData).sort((a,b)=>{
-      const go = ['일반','희귀','레어','에픽','전설','신화'];
+      const go = ['일반','희귀','레어','에픽','전설','신화','레전더리'];
       const gd = go.indexOf(b.grade) - go.indexOf(a.grade);
       return gd !== 0 ? gd : b.sizeCm - a.sizeCm;
     });
@@ -1262,6 +1270,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     { id:'rod_rleg',    name:'레어 낚시대',  grade:'레어', emoji:'🎣', price:5000,  durability:90,       gradeBonus:0.10, desc:'레어+ 확률 +10%\n내구도 90' },
     { id:'rod_epic',    name:'에픽 낚시대',  grade:'에픽', emoji:'🎣', price:10000, durability:80,       gradeBonus:0.15, desc:'에픽+ 확률 +15%\n내구도 80' },
     { id:'rod_legend',  name:'전설 낚시대',  grade:'전설', emoji:'🎣', price:50000, durability:70,       gradeBonus:0.20, desc:'전설+ 확률 +20%\n내구도 70' },
+    { id:'rod_legendary', name:'레전더리 낚시대', grade:'레전더리', emoji:'🌌', price:200000, durability:60, gradeBonus:0.30, desc:'레전더리+ 확률 +30%\n내구도 60' },
   ];
   const BAIT_DEFS = [
     { id:'bait_snail',  name:'달팽이', emoji:'🐌', price:1000,  uses:20, sizeBonus:0.05, desc:'크기 보너스 +5%\n20회 사용 가능' },
@@ -1269,7 +1278,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     { id:'bait_cheese', name:'치즈',   emoji:'🧀', price:5000,  uses:40, sizeBonus:0.20, desc:'크기 보너스 +20%\n40회 사용 가능' },
     { id:'bait_cake',   name:'케이크', emoji:'🎂', price:10000, uses:50, sizeBonus:0.30, desc:'크기 보너스 +30%\n50회 사용 가능' },
   ];
-  const GRADE_COLORS = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+  const GRADE_COLORS = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#ff6b6b',레전더리:'#f0abfc'};
 
   // ── 낚시 장비 저장 헬퍼 ──
   const gearKey = () => 'ggo_fish_gear_' + un();
