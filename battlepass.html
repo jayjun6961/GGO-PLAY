@@ -2008,6 +2008,59 @@
     /* 일반 overflow 방지 */
     .content-wrap, .main, .main-wrap { overflow-x: hidden !important; }
   }
+
+  /* ════ BATTLEPASS 모바일 순위 레이아웃 ════ */
+  @media (max-width: 640px) {
+    /* 순위 테이블 래퍼 좌우 패딩 줄임 */
+    .lb-table-wrap { padding: 0 !important; }
+
+    /* 헤더 & 로우: 순위(36px) | 닉네임(1fr) | 서버(숨김) | 점수(72px) */
+    .lb-table-header.bp-header {
+      grid-template-columns: 36px 1fr 72px !important;
+      padding: 8px 10px !important;
+      font-size: 9px !important;
+    }
+    /* 헤더 서버 칼럼 숨김 */
+    .lb-table-header.bp-header span:nth-child(3) {
+      display: none !important;
+    }
+
+    /* 데이터 로우: 순위(36px) | 닉+아바타(1fr) | 점수(72px) */
+    .lb-row.bp-row {
+      grid-template-columns: 36px 1fr 72px !important;
+      padding: 8px 10px !important;
+      gap: 0;
+    }
+    /* 서버 칼럼(3번째 div) 숨김 */
+    .lb-row.bp-row > div:nth-child(3) {
+      display: none !important;
+    }
+
+    .lb-rank-num { font-size: 12px !important; }
+
+    /* 닉네임 영역 */
+    .lb-nick { gap: 6px !important; }
+    .lb-nick-avatar,
+    .lb-nick > span:first-child { /* 아바타 */
+      width: 26px !important;
+      height: 26px !important;
+      font-size: 11px !important;
+      flex-shrink: 0;
+    }
+    .lb-nick > div { min-width: 0; overflow: hidden; }
+    .lb-nick span[class] { font-size: 11px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* 티어 배지 작게 */
+    .lb-rank-title { font-size: 8px !important; padding: 1px 4px !important; }
+
+    /* 점수 */
+    .lb-score { font-size: 11px !important; }
+
+    /* 점수 바 */
+    .lb-row.bp-row > div:nth-child(4) {
+      text-align: right;
+    }
+  }
 </style>
 </head>
 <body>
