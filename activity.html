@@ -42,10 +42,63 @@
   @media(max-width:640px){
     .sidebar{display:none}.bottom-nav{display:flex}
     .main-wrap{margin-left:0!important;padding-bottom:calc(var(--bottombar-h)+20px)!important}
-    .top3-wrap{grid-template-columns:1fr!important;}
+
+    /* TOP3: 1위→2위→3위 세로 순서로 가로 나열 */
+    .top3-wrap{
+      display:flex !important;
+      flex-direction:row !important;
+      gap:8px !important;
+      align-items:stretch !important;
+      overflow-x: visible !important;
+    }
+    /* TOP3 카드 컴팩트 세로 레이아웃 */
+    .top-card{
+      flex:1 !important;
+      flex-direction:column !important;
+      align-items:center !important;
+      padding:12px 8px 10px !important;
+      text-align:center !important;
+      border-radius:14px !important;
+      gap:4px !important;
+      min-width:0 !important;
+    }
+    .top-crown{ font-size:18px !important; }
+    .top-avatar, .top-avatar-placeholder{
+      width:44px !important; height:44px !important;
+      font-size:18px !important;
+    }
+    .top-rank-badge{ font-size:9px !important; padding:2px 6px !important; }
+    .top-name{ font-size:11px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+    .top-server{ font-size:9px !important; }
+    .top-score{ font-size:15px !important; }
+    .top-score-label{ font-size:8px !important; }
+    .top-sub-stats{ gap:3px !important; flex-wrap:wrap !important; justify-content:center !important; }
+    .top-sub-stat{ font-size:8px !important; padding:1px 4px !important; }
+
+    /* 전체 순위: 모바일 컬럼 축소 */
     .lb-table{font-size:11px!important;}
     .lb-col-bp,.lb-col-ts,.lb-col-deco{display:none!important;}
     .lb-head-bp,.lb-head-ts,.lb-head-deco{display:none!important;}
+
+    /* 전체순위 grid: 순위 | 아바타 | 이름 | 서버 | 점수 */
+    .lb-head, .lb-row {
+      grid-template-columns: 38px 34px 1fr 46px 68px !important;
+      padding: 8px 10px !important;
+      align-items: center !important;
+    }
+    /* 헤더 BP/친선/꾸미기 셀 숨김 (서버 유지) */
+    .lb-head-cell { text-align: center !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+    .lb-head-cell.left { justify-content: flex-start !important; }
+    /* 셀 세로 가운데 정렬 */
+    .lb-rank, .lb-avatar-cell, .lb-name-cell, .lb-cell {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .lb-name-cell { justify-content: flex-start !important; }
+    .lb-name { font-size: 11px !important; }
+    .lb-cell.server { font-size: 10px !important; }
+    .lb-cell.score-total { font-size: 11px !important; font-weight: 700; }
   }
 
   /* MAIN */
@@ -449,9 +502,10 @@
           </div>`;
       });
 
-      // 1위가 가운데로: 2위, 1위, 3위 순서로 배치
+      // 1위가 가운데로: 2위, 1위, 3위 순서로 배치 (PC) / 모바일은 1,2,3 순
+      const isMobile = window.innerWidth <= 640;
       const ordered = players.length >= 3
-        ? [top3Html[1], top3Html[0], top3Html[2]]
+        ? (isMobile ? top3Html : [top3Html[1], top3Html[0], top3Html[2]])
         : top3Html;
       document.getElementById('top3-wrap').innerHTML = ordered.join('');
 
