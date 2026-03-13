@@ -799,6 +799,16 @@ function loadG(){
   const s=gGet('save');if(!s||!s.job)return false;
   const b=cBase(s.job,s.lv);
   G.equip=s.equip||{weapon:null,shield:null,armor:null,boots:null,gloves:null,accessory:null};
+  // 기존 세이브 마이그레이션: equip 슬롯에 기본 장비가 없으면 자동 세팅
+  const j=JOBS[s.job];
+  if(!G.equip.weapon&&j&&j.weapon){
+    G.equip.weapon={n:j.weapon.name,e:j.weapon.emoji||'⚔️',type:'weapon',slot:'weapon',atk:j.weapon.atk||5,def:0,grade:'기본',enh:0,_id:1};
+  }
+  if(!G.equip.armor&&j&&j.armor){
+    G.equip.armor={n:j.armor.name,e:j.armor.emoji||'🛡️',type:'armor',slot:'armor',atk:0,def:j.armor.def||3,grade:'기본',enh:0,_id:2};
+  }
+  // enh 필드 누락 마이그레이션
+  Object.values(G.equip).forEach(it=>{if(it&&it.enh==null)it.enh=0;});
   const eq=equipBonus();
   Object.assign(G,{job:s.job,lv:s.lv,hp:s.hp??b.mHP,mp:s.mp??b.mMP,mHP:b.mHP,mMP:b.mMP,
     atk:b.atk+eq.atk,def:b.def+eq.def,
@@ -1497,15 +1507,48 @@ function claimQ(qid){
   gwT(`🎉 퀘스트 완료! +${q.eR}EXP +${q.gR}G`);hud();saveG();renderQ();renderQdot();
 }
 
+function enhCost(enh){return 50+Math.floor((enh||0)*25);}
 function renderEnh(){
-  const j=JOBS[G.job];const items=G.inv.filter(i=>i.type==='weapon'||i.type==='armor');
-  document.getElementById('gw-enbody').innerHTML=`
-    <div style="font-size:10px;color:var(--text-dim);font-family:'Orbitron',sans-serif">기본 장비</div>
-    <div class="gw-ei"><div class="gw-ei-ico">${j.weapon?.emoji||'⚔️'}</div><div class="gw-ei-info"><div class="gw-ei-nm">${j.weapon?.name}</div><div class="gw-ei-st">ATK +${j.weapon?.atk||0} → 강화시 +${(j.weapon?.atk||0)+2}</div></div><button class="gw-enh-btn" onclick="enhBase()">강화 (50G)</button></div>
-    ${items.map((it,i)=>`<div class="gw-ei"><div class="gw-ei-ico">${it.e}</div><div class="gw-ei-info"><div class="gw-ei-nm">${it.n}</div><div class="gw-ei-st">${it.type==='weapon'?'ATK +'+it.atk:'DEF +'+it.def}</div></div><button class="gw-enh-btn" onclick="enhItem(${G.inv.indexOf(it)})">강화 (50G)</button></div>`).join('')}`;
+  const eq=G.equip||{};
+  const SLOT_LABEL={weapon:'무기',shield:'방패',armor:'방어구',boots:'신발',gloves:'장갑',accessory:'장신구'};
+  const rows=Object.entries(eq)
+    .filter(([,it])=>it!=null)
+    .map(([slot,it])=>{
+      const enh=it.enh||0;
+      const cost=enhCost(enh);
+      const stat=it.type==='weapon'?`ATK +${it.atk||0}`:`DEF +${it.def||0}`;
+      const nextStat=it.type==='weapon'?`ATK +${(it.atk||0)+2}`:`DEF +${(it.def||0)+2}`;
+      const enhBadge=enh>0?`<span style="font-size:9px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-left:4px">+${enh}</span>`:'';
+      return `<div class="gw-ei">
+        <div class="gw-ei-ico">${it.e||'🔧'}</div>
+        <div class="gw-ei-info">
+          <div class="gw-ei-nm">${it.n}${enhBadge} <span style="font-size:9px;color:var(--text-dim)">[${SLOT_LABEL[slot]||slot}]</span></div>
+          <div class="gw-ei-st">${stat} → 강화 후 ${nextStat}</div>
+        </div>
+        <button class="gw-enh-btn" onclick="enhSlot('${slot}')">강화 (${cost}G)</button>
+      </div>`;
+    });
+  const emptyMsg=rows.length===0
+    ?`<div style="text-align:center;padding:20px;color:var(--text-dim);font-size:11px">착용 중인 장비가 없습니다.<br><small>인벤토리에서 장비를 장착하세요.</small></div>`
+    :'';
+  document.getElementById('gw-enbody').innerHTML=
+    `<div style="font-size:10px;color:var(--text-dim);font-family:'Orbitron',sans-serif;margin-bottom:8px">⚔️ 착용 중인 장비만 강화 가능</div>`
+    +rows.join('')+emptyMsg;
 }
-function enhBase(){if(G.gold<50){gwT('골드 부족 (50G)');return;}G.gold-=50;const j=JOBS[G.job];if(j.weapon)j.weapon.atk=(j.weapon.atk||0)+2;gwT('⚒️ 강화! ATK+2');hud();saveG();renderEnh();}
-function enhItem(i){if(G.gold<50){gwT('골드 부족 (50G)');return;}const it=G.inv[i];if(!it)return;G.gold-=50;it.type==='weapon'?it.atk=(it.atk||0)+2:it.def=(it.def||0)+2;gwT('⚒️ '+it.n+' 강화!');hud();saveG();renderEnh();}
+function enhSlot(slot){
+  const it=(G.equip||{})[slot];
+  if(!it){gwT('해당 슬롯에 장비 없음');return;}
+  const enh=it.enh||0;
+  const cost=enhCost(enh);
+  if(G.gold<cost){gwT(`골드 부족 (${cost}G 필요)`);return;}
+  G.gold-=cost;
+  it.enh=(it.enh||0)+1;
+  if(it.type==='weapon'||it.slot==='weapon'){it.atk=(it.atk||0)+2;}
+  else{it.def=(it.def||0)+2;}
+  recalcStats();hud();saveG();renderEnh();
+  gwT(`⚒️ ${it.n} +${it.enh} 강화 완료! (다음 비용: ${enhCost(it.enh)}G)`);
+}
+function enhItem(i){/* deprecated - 하위 호환용 */const it=G.inv[i];if(!it)return;}
 
 function renderStat(){
   const b=cBase(G.job,G.lv);
@@ -1572,6 +1615,10 @@ function confirmJob(){
   Object.assign(G,{job:_selJob,lv:1,mHP:b.mHP,mMP:b.mMP,hp:b.mHP,mp:b.mMP,
     atk:b.atk,def:b.def,exp:0,gold:100,inv:[],qprog:{},qclaim:{},
     sk:{},buffs:{},defBuff:false,quests:makeQ()});
+  // 기본 장비를 equip 슬롯에 장착 (강화 수치 영속 유지)
+  G.equip={weapon:null,shield:null,armor:null,boots:null,gloves:null,accessory:null};
+  if(j.weapon){G.equip.weapon={n:j.weapon.name,e:j.weapon.emoji||'⚔️',type:'weapon',slot:'weapon',atk:j.weapon.atk||5,def:0,grade:'기본',enh:0,_id:1};}
+  if(j.armor) {G.equip.armor ={n:j.armor.name, e:j.armor.emoji||'🛡️',type:'armor', slot:'armor', atk:0,def:j.armor.def||3, grade:'기본',enh:0,_id:2};}
   G.inv.push({n:'HP 포션',e:'🧪',type:'pot',eff:'hp',val:30,grade:'일반',qty:2,_id:Date.now()});
   gwT(`${j.emoji} ${j.name} 생성! 기본 장비 + HP포션×2 지급!`);
   saveG();goTown();
