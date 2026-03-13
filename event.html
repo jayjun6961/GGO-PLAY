@@ -109,6 +109,50 @@
   .loading-wrap{text-align:center;padding:60px;color:var(--text-dim);}
   .spinner{width:32px;height:32px;border:3px solid rgba(124,58,237,0.15);border-top-color:var(--purple-2);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
   .empty-msg{text-align:center;padding:40px;color:var(--text-dim);font-size:13px;}
+
+  /* ════ 모바일 텍스트 짤림 수정 ════ */
+  @media (max-width: 640px) {
+    /* 텍스트 전역 줄바꿈 허용 */
+    * { word-break: keep-all; overflow-wrap: break-word; }
+
+    /* Topbar */
+    .topbar { padding: 10px 12px !important; gap: 8px !important; flex-wrap: nowrap !important; }
+    .greeting { flex: 1; min-width: 0; overflow: hidden; }
+    .greeting h1 { font-size: 11px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .greeting h2 { font-size: 11px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .greeting p  { font-size: 10px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .search-bar  { min-width: 0; flex: 1; }
+    .search-bar input { font-size: 12px !important; }
+    .topbar-icons { flex-shrink: 0; gap: 6px !important; }
+    .topbar-btn   { width: 36px !important; height: 36px !important; }
+
+    /* 헤더/타이틀 */
+    .page-title   { font-size: 18px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .section-title{ font-size: 13px !important; }
+    .hero-title   { font-size: 22px !important; line-height: 1.1; }
+    .hero-sub     { font-size: 11px !important; }
+
+    /* 카드 내 텍스트 */
+    .card-title   { font-size: 12px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-sub     { font-size: 10px !important; overflow: hidden; }
+
+    /* 탭 버튼 */
+    .tab  { font-size: 10px !important; padding: 6px 8px !important; white-space: nowrap; }
+    .tab-bar { overflow-x: auto !important; flex-wrap: nowrap !important; scrollbar-width: none; }
+    .tab-bar::-webkit-scrollbar { display: none; }
+
+    /* 배틀패스 / 친선대회 보상 텍스트 */
+    .reward-name  { font-size: 10px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bp-tier-label{ font-size: 9px !important; }
+
+    /* 순위표 */
+    .lb-name  { font-size: 11px !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90px; }
+    .lb-row   { padding: 8px 10px !important; }
+    .lb-cell  { font-size: 10px !important; }
+
+    /* 일반 overflow 방지 */
+    .content-wrap, .main, .main-wrap { overflow-x: hidden !important; }
+  }
 </style>
 </head>
 <body>
@@ -144,12 +188,57 @@
 </aside>
 
 <!-- BOTTOM NAV -->
-<nav class="bottom-nav">
-  <div class="bottom-nav-item" onclick="location.href='index.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span><span>홈</span></div>
-  <div class="bottom-nav-item" onclick="location.href='character.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span><span>캐릭터</span></div>
-  <div class="bottom-nav-item" onclick="location.href='equipment.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg></span><span>장비</span></div>
-  <div class="bottom-nav-item" onclick="location.href='battlepass.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span>배틀패스</span></div>
-  <div class="bottom-nav-item active" onclick="location.href='event.html'"><span class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg></span><span>이벤트</span></div>
+<nav class="bottom-nav" id="bottomNav">
+  <div class="bnav-scroll">
+  <div class="bnav-item " onclick="location.href='index.html'">
+    <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span>
+    <span class="bnav-label">홈</span>
+  </div>
+  <div class="bnav-item " onclick="location.href='character.html'">
+    <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+    <span class="bnav-label">캐릭터</span>
+  </div>
+  <div class="bnav-item " onclick="location.href='equipment.html'">
+    <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18"/><path d="M9 3v18"/></svg></span>
+    <span class="bnav-label">장비</span>
+  </div>
+  <div class="bnav-item " onclick="location.href='battlepass.html'">
+    <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+    <span class="bnav-label">배틀패스</span>
+  </div>
+  <div class="bnav-item " onclick="location.href='tournament.html'">
+    <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6v8a4 4 0 008 0V4h6"/><path d="M6 8H2"/><path d="M22 8h-4"/><path d="M12 16v4"/><path d="M9 20h6"/></svg></span>
+    <span class="bnav-label">친선대회</span>
+  </div>
+  <div class="bnav-item " onclick="location.href='activity.html'">
+    <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span>
+    <span class="bnav-label">활동점수</span>
+  </div>
+  <div class="bnav-item " onclick="location.href='shop.html'">
+    <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+    <span class="bnav-label">상점</span>
+  </div>
+  <div class="bnav-item active" onclick="location.href='event.html'">
+    <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/><path d="M12 6c0 0-2-4 0-4s2 4 0 4z"/></svg></span>
+    <span class="bnav-label">이벤트</span>
+  </div>
+  <div class="bnav-item " onclick="location.href='fishing.html'">
+    <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6a4 4 0 00-4 4c0 2.5-2 5-6 5a6 6 0 006 5c4 0 7-2.5 7-7a7 7 0 00-3-5.83"/><path d="M14 6V3"/><path d="M16 5l-2-2-2 2"/></svg></span>
+    <span class="bnav-label">낚시</span>
+  </div>
+  <div class="bnav-item " onclick="location.href='gworld.html'">
+    <span class="bnav-icon"><span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:900;line-height:1">G</span></span>
+    <span class="bnav-label">G월드</span>
+  </div>
+  <div class="bnav-item " onclick="location.href='mypage.html'">
+    <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0113 0"/></svg></span>
+    <span class="bnav-label">마이페이지</span>
+  </div>
+  <div class="bnav-item " onclick="location.href='build.html'">
+    <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg></span>
+    <span class="bnav-label">빌드</span>
+  </div>
+  </div>
 </nav>
 
 <main class="main-wrap">
