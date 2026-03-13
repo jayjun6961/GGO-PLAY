@@ -307,6 +307,35 @@
     /* 일반 overflow 방지 */
     .content-wrap, .main, .main-wrap { overflow-x: hidden !important; }
   }
+
+  /* ── 데이터 동기화 버튼 ── */
+  .sync-section {
+    display: flex; gap: 8px;
+    padding: 14px 20px 0;
+    animation: fadeUp 0.4s ease 0.08s both;
+  }
+  .sync-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 12px;
+    border-radius: 12px; border: 1px solid;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all .18s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .export-btn {
+    background: rgba(124,58,237,.12);
+    border-color: rgba(124,58,237,.35);
+    color: #c084fc;
+  }
+  .export-btn:hover, .export-btn:active { background: rgba(124,58,237,.22); transform: translateY(-1px); }
+  .import-btn {
+    background: rgba(5,150,105,.1);
+    border-color: rgba(5,150,105,.35);
+    color: #34d399;
+  }
+  .import-btn:hover, .import-btn:active { background: rgba(5,150,105,.2); transform: translateY(-1px); }
+  #sync-modal.open { display: flex !important; }
 </style>
 </head>
 <body>
@@ -335,7 +364,42 @@
 </aside>
 
 <!-- BOTTOM NAV -->
-<nav class="bottom-nav" id="bottomNav">
+<!-- ── 데이터 동기화 모달 ── -->
+<div id="sync-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#0d0a1a;border:1px solid rgba(124,58,237,.4);border-radius:20px;width:100%;max-width:480px;padding:28px 24px;position:relative;">
+    <button onclick="closeSyncModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1">✕</button>
+
+    <!-- EXPORT -->
+    <div id="sync-export-panel">
+      <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:#c084fc;margin-bottom:6px">📤 데이터 내보내기</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:16px;line-height:1.6">아래 코드를 복사해서 다른 기기의 <b style="color:#a78bfa">데이터 가져오기</b>에 붙여넣으세요.<br>루비·크리스탈·GP·꾸미기·낚시·G월드 기록이 모두 포함됩니다.</div>
+      <div style="position:relative;">
+        <textarea id="sync-export-code" readonly style="width:100%;height:120px;background:#07040e;border:1px solid rgba(124,58,237,.3);border-radius:10px;color:#e2e8f0;font-size:11px;font-family:monospace;padding:10px;resize:none;outline:none;line-height:1.5"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button onclick="copyExportCode()" id="copy-btn" style="flex:1;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:none;color:#fff;padding:12px;border-radius:10px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s">
+          📋 코드 복사
+        </button>
+      </div>
+      <div id="copy-ok" style="display:none;text-align:center;color:#34d399;font-size:12px;margin-top:8px;font-weight:600">✅ 클립보드에 복사됐습니다!</div>
+    </div>
+
+    <!-- IMPORT -->
+    <div id="sync-import-panel" style="display:none">
+      <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:#34d399;margin-bottom:6px">📥 데이터 가져오기</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:16px;line-height:1.6">다른 기기에서 <b style="color:#a78bfa">내보낸 코드</b>를 붙여넣고 가져오기를 누르세요.<br><span style="color:#f87171">⚠️ 현재 이 기기의 데이터가 덮어씌워집니다.</span></div>
+      <textarea id="sync-import-code" placeholder="코드를 여기에 붙여넣으세요..." style="width:100%;height:120px;background:#07040e;border:1px solid rgba(124,58,237,.3);border-radius:10px;color:#e2e8f0;font-size:11px;font-family:monospace;padding:10px;resize:none;outline:none;line-height:1.5"></textarea>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button onclick="doImport()" style="flex:1;background:linear-gradient(135deg,#059669,#047857);border:none;color:#fff;padding:12px;border-radius:10px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;cursor:pointer">
+          ✅ 가져오기 실행
+        </button>
+      </div>
+      <div id="import-msg" style="display:none;text-align:center;font-size:12px;margin-top:8px;font-weight:600"></div>
+    </div>
+  </div>
+</div>
+
+
   <div class="bnav-scroll">
   <div class="bnav-item " onclick="location.href='index.html'">
     <span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span>
@@ -415,6 +479,18 @@
         <div class="profile-title-badge" id="profile-title" style="display:none"></div>
         <div class="profile-name" id="profile-name">—</div>
         <div class="profile-server" id="profile-server"></div>
+      </div>
+
+      <!-- 데이터 동기화 버튼 -->
+      <div class="sync-section">
+        <button class="sync-btn export-btn" onclick="openSyncModal('export')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          데이터 내보내기
+        </button>
+        <button class="sync-btn import-btn" onclick="openSyncModal('import')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 16 12 21 17 16"/><line x1="12" y1="21" x2="12" y2="9"/></svg>
+          데이터 가져오기
+        </button>
       </div>
 
       <!-- 재화 -->
@@ -1840,7 +1916,173 @@
     }
   }
 
+
   window.addEventListener('DOMContentLoaded', loadMyPage);
+
+  // ════════════════════════════════════════════════
+  //  데이터 내보내기 / 가져오기 동기화
+  // ════════════════════════════════════════════════
+
+  // 동기화할 키 접두사 목록 (username이 접미사로 붙는 것들)
+  const SYNC_KEY_PREFIXES = [
+    'ggo_currency_',
+    'ggo_items_',
+    'ggo_deco_exp_',
+    'ggo_bp_claimed_',
+    'ggo_tour_claimed_',
+    'ggo_used_coupons_',
+    'ggo_notifs_',
+    'ggo_fish_stats_',
+    'ggo_fish_storage_',
+    'ggo_fish_map_',
+    'ggo_fish_dex_claimed_',
+    'ggo_fish_fp_',
+    'ggo_fish_gear_',
+    'ggo_fish_owned_rods_',
+    'gwo_save_',
+    'ggo_rank_snap_',
+  ];
+
+  // 낚시 퀘스트 키 (날짜 포함 동적 키)
+  const SYNC_KEY_DYNAMIC_PREFIXES = [
+    'ggo_fish_quest_',
+    'ggo_fish_rank_claimed_',
+  ];
+
+  function collectAllSyncData() {
+    const username = localStorage.getItem('ggo_username') || '';
+    const data = {
+      _v: 2,
+      _username: username,
+      _ts: Date.now(),
+      keys: {}
+    };
+
+    // 1. 유저별 고정 접미사 키
+    SYNC_KEY_PREFIXES.forEach(prefix => {
+      const key = prefix + username;
+      const val = localStorage.getItem(key);
+      if (val !== null) data.keys[key] = val;
+    });
+
+    // 2. 동적 접두사 키 (날짜 등 포함) — 전체 스캔
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      const isDynamic = SYNC_KEY_DYNAMIC_PREFIXES.some(p => k.startsWith(p));
+      if (isDynamic && k.includes(username)) {
+        data.keys[k] = localStorage.getItem(k);
+      }
+    }
+
+    return data;
+  }
+
+  function openSyncModal(mode) {
+    const modal = document.getElementById('sync-modal');
+    const exportPanel = document.getElementById('sync-export-panel');
+    const importPanel = document.getElementById('sync-import-panel');
+
+    if (mode === 'export') {
+      exportPanel.style.display = 'block';
+      importPanel.style.display = 'none';
+      // 코드 생성
+      const data = collectAllSyncData();
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+      document.getElementById('sync-export-code').value = encoded;
+      document.getElementById('copy-ok').style.display = 'none';
+    } else {
+      exportPanel.style.display = 'none';
+      importPanel.style.display = 'block';
+      document.getElementById('sync-import-code').value = '';
+      document.getElementById('import-msg').style.display = 'none';
+    }
+
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+  }
+
+  function closeSyncModal() {
+    const modal = document.getElementById('sync-modal');
+    modal.style.display = 'none';
+    modal.classList.remove('open');
+  }
+
+  function copyExportCode() {
+    const ta = document.getElementById('sync-export-code');
+    ta.select();
+    ta.setSelectionRange(0, 99999);
+    try {
+      navigator.clipboard.writeText(ta.value).catch(() => {
+        document.execCommand('copy');
+      });
+    } catch(e) {
+      document.execCommand('copy');
+    }
+    const btn = document.getElementById('copy-btn');
+    const ok  = document.getElementById('copy-ok');
+    btn.textContent = '✅ 복사됨!';
+    ok.style.display = 'block';
+    setTimeout(() => { btn.textContent = '📋 코드 복사'; }, 2500);
+  }
+
+  function doImport() {
+    const raw = document.getElementById('sync-import-code').value.trim();
+    const msg = document.getElementById('import-msg');
+    msg.style.display = 'none';
+
+    if (!raw) {
+      msg.style.cssText = 'display:block;color:#f87171';
+      msg.textContent = '❌ 코드를 먼저 붙여넣어 주세요.';
+      return;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(decodeURIComponent(escape(atob(raw))));
+    } catch(e) {
+      msg.style.cssText = 'display:block;color:#f87171';
+      msg.textContent = '❌ 코드가 올바르지 않습니다. 다시 확인해주세요.';
+      return;
+    }
+
+    if (!data || !data.keys || !data._username) {
+      msg.style.cssText = 'display:block;color:#f87171';
+      msg.textContent = '❌ 데이터 형식이 맞지 않습니다.';
+      return;
+    }
+
+    // 현재 로그인된 username
+    const currentUN = localStorage.getItem('ggo_username') || '';
+    const sourceUN  = data._username;
+
+    // username이 다를 경우: 키를 현재 username으로 교체해서 저장
+    let count = 0;
+    Object.entries(data.keys).forEach(([key, val]) => {
+      let targetKey = key;
+      // 소스 username → 현재 username으로 키 변환
+      if (sourceUN && currentUN && sourceUN !== currentUN) {
+        if (key.endsWith('_' + sourceUN)) {
+          targetKey = key.slice(0, key.length - sourceUN.length) + currentUN;
+        }
+      }
+      localStorage.setItem(targetKey, val);
+      count++;
+    });
+
+    msg.style.cssText = 'display:block;color:#34d399';
+    msg.textContent = `✅ ${count}개 데이터 복원 완료! 페이지를 새로고침합니다...`;
+
+    setTimeout(() => {
+      closeSyncModal();
+      location.reload();
+    }, 1800);
+  }
+
+  // 모달 배경 클릭 시 닫기
+  document.getElementById('sync-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeSyncModal();
+  });
 </script>
 </body>
 </html>
