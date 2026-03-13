@@ -1912,6 +1912,54 @@
     /* 일반 overflow 방지 */
     .content-wrap, .main, .main-wrap { overflow-x: hidden !important; }
   }
+
+  /* ════ TOURNAMENT 모바일 순위 레이아웃 ════ */
+  @media (max-width: 640px) {
+    .lb-table-wrap { padding: 0 !important; }
+
+    /* 헤더: 순위 | 닉네임 | 점수 | 랭크 (서버 숨김) */
+    .lb-table-header.tour-header {
+      grid-template-columns: 36px 1fr 60px 78px !important;
+      padding: 8px 10px !important;
+      font-size: 9px !important;
+    }
+    .lb-table-header.tour-header span:nth-child(3) {
+      display: none !important; /* 서버 헤더 숨김 */
+    }
+
+    /* 데이터 로우: 순위 | 닉네임 | 점수 | 티어 (서버 숨김) */
+    .lb-row.tour-row {
+      grid-template-columns: 36px 1fr 60px 78px !important;
+      padding: 8px 10px !important;
+    }
+    /* 서버 div(3번째) 숨김 */
+    .lb-row.tour-row > div:nth-child(3) {
+      display: none !important;
+    }
+
+    .lb-rank-num { font-size: 12px !important; }
+
+    /* 닉네임 */
+    .lb-nick { gap: 6px !important; }
+    .lb-nick-avatar {
+      width: 26px !important;
+      height: 26px !important;
+      font-size: 11px !important;
+    }
+    .lb-nick span { font-size: 11px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* 티어 배지 */
+    .lb-tier-badge {
+      gap: 3px !important;
+      justify-content: flex-end !important;
+    }
+    .tier-icon { font-size: 13px !important; }
+    .tier-name { font-size: 9px !important; white-space: nowrap; }
+
+    /* 점수 */
+    .lb-score { font-size: 11px !important; }
+    .lb-rank-title { font-size: 8px !important; padding: 1px 4px !important; }
+  }
 </style>
 </head>
 <body>
