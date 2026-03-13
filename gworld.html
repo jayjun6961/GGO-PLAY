@@ -667,8 +667,17 @@ function cBase(job,lv){
   return{mHP:Math.floor(j.bHP+j.hLv*l),mMP:Math.floor(j.bMP+j.mLv*l),
          atk:Math.floor(j.bATK+j.aLv*l),def:Math.floor(j.bDEF+j.dLv*l)};
 }
-function tAtk(){const j=JOBS[G.job];let a=cBase(G.job,G.lv).atk+(j.weapon?.atk||0);G.inv.forEach(i=>{if(i._eq&&i.type==='weapon')a+=i.atk||0;});return a;}
-function tDef(){const j=JOBS[G.job];let d=cBase(G.job,G.lv).def+(j.armor?.def||0);G.inv.forEach(i=>{if(i._eq&&i.type==='armor')d+=i.def||0;});if(G.defBuff)d=Math.floor(d*1.5);return d;}
+function tAtk(){
+  const b=cBase(G.job,G.lv);const eq=G.equip||{};
+  let a=b.atk+(JOBS[G.job]?.weapon?.atk||0);
+  Object.values(eq).forEach(it=>{if(it)a+=(it.atk||0);});return a;
+}
+function tDef(){
+  const b=cBase(G.job,G.lv);const eq=G.equip||{};
+  let d=b.def+(JOBS[G.job]?.armor?.def||0);
+  Object.values(eq).forEach(it=>{if(it)d+=(it.def||0);});
+  if(G.defBuff)d=Math.floor(d*1.5);return d;
+}
 
 function saveG(){gSet('save',{job:G.job,lv:G.lv,hp:G.hp,mp:G.mp,exp:G.exp,gold:G.gold,inv:G.inv,qprog:G.qprog,qclaim:G.qclaim,sk:G.sk,quests:G.quests,equip:G.equip||{}});}
 
@@ -1032,7 +1041,7 @@ function goTown(){
   gwSC('town');
   setTimeout(()=>{
     const cv=document.getElementById('gw-tcv');
-    if(cv){cv.width=cv.offsetWidth||500;cv.height=cv.offsetHeight||220;drawTown(cv);}
+    if(cv){cv.width=cv.offsetWidth||600;cv.height=cv.offsetHeight||280;drawTown(cv);}
     hud();renderQdot();
   },25);
 }
@@ -1385,14 +1394,16 @@ function enhBase(){if(G.gold<50){gwT('골드 부족 (50G)');return;}G.gold-=50;c
 function enhItem(i){if(G.gold<50){gwT('골드 부족 (50G)');return;}const it=G.inv[i];if(!it)return;G.gold-=50;it.type==='weapon'?it.atk=(it.atk||0)+2:it.def=(it.def||0)+2;gwT('⚒️ '+it.n+' 강화!');hud();saveG();renderEnh();}
 
 function renderStat(){
+  const b=cBase(G.job,G.lv);
+  const eq=equipBonus();
   document.getElementById('gw-stbody').innerHTML=`
     <div class="gw-stat-g">
       <div class="gw-stat-row"><span class="gw-stat-l">직업</span><span class="gw-stat-v" style="color:${JOBS[G.job]?.color}">${JOBS[G.job]?.name}</span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">레벨</span><span class="gw-stat-v">Lv.${G.lv}</span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">HP</span><span class="gw-stat-v">${G.hp}/${G.mHP}</span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">MP</span><span class="gw-stat-v">${G.mp}/${G.mMP}</span></div>
-      <div class="gw-stat-row"><span class="gw-stat-l">공격력</span><span class="gw-stat-v">${tAtk()}</span></div>
-      <div class="gw-stat-row"><span class="gw-stat-l">방어력</span><span class="gw-stat-v">${tDef()}</span></div>
+      <div class="gw-stat-row"><span class="gw-stat-l">공격력</span><span class="gw-stat-v">${tAtk()} <span style="color:#34d399;font-size:10px">${eq.atk>0?'(+'+eq.atk+')':''}</span></span></div>
+      <div class="gw-stat-row"><span class="gw-stat-l">방어력</span><span class="gw-stat-v">${tDef()} <span style="color:#60a5fa;font-size:10px">${eq.def>0?'(+'+eq.def+')':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">골드</span><span class="gw-stat-v" style="color:#fbbf24">${G.gold.toLocaleString()}G</span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">EXP</span><span class="gw-stat-v">${G.exp}/${expNeed(G.lv)}</span></div>
     </div>`;
