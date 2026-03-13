@@ -148,6 +148,7 @@
   .fish-topbar{display:flex;align-items:center;padding:16px 24px;gap:14px;position:sticky;top:0;background:rgba(10,6,18,0.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(124,58,237,0.12);z-index:50;}
   .fish-topbar-title{font-family:'Orbitron',sans-serif;font-size:15px;font-weight:700;color:var(--text-main);}
   .fish-topbar-spacer{flex:1;}
+  .fish-fp-badge{display:flex;align-items:center;gap:6px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.35);border-radius:10px;padding:6px 14px;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#60a5fa;cursor:default;}
   .fish-gp-badge{display:flex;align-items:center;gap:6px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);border-radius:10px;padding:6px 14px;font-family:'Orbitron',sans-serif;font-size:12px;color:#fbbf24;font-weight:700;}
   .fish-tabs{display:flex;gap:4px;padding:16px 20px 0;border-bottom:1px solid rgba(124,58,237,0.1);}
   .fish-tab{background:none;border:none;color:var(--text-dim);padding:10px 18px;border-radius:10px 10px 0 0;font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;transition:all 0.2s;border-bottom:2px solid transparent;}
@@ -316,6 +317,13 @@
   <div class="fish-topbar">
     <div class="fish-topbar-title">🎣 낚시터</div>
     <div class="fish-topbar-spacer"></div>
+    <div class="fish-fp-badge" id="fish-fp-badge" style="display:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2C12 2 5 9.5 5 14a7 7 0 0014 0C19 9.5 12 2 12 2Z" fill="#3b82f6" opacity="0.85"/>
+        <path d="M12 6C12 6 8 11 8 14a4 4 0 008 0C16 11 12 6 12 6Z" fill="#93c5fd" opacity="0.5"/>
+      </svg>
+      <span id="fish-fp-val">0</span> FP
+    </div>
     <div class="fish-gp-badge" id="fish-gp-badge" style="display:none">
       <svg width="12" height="12" viewBox="0 0 22 22" fill="none"><polygon points="11,1 19,17 3,17" fill="#fbbf24"/></svg>
       <span id="fish-gp-val">0</span> GP
@@ -579,6 +587,19 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   const getFS = k => { try{ return JSON.parse(localStorage.getItem(fKey(k)) || 'null'); }catch(e){return null;} };
   const setFS = (k,v) => localStorage.setItem(fKey(k), JSON.stringify(v));
 
+  // ── FP (낚시 포인트) 재화 ──
+  const fpKey = () => 'ggo_fish_fp_' + un();
+  function getFP() {
+    return parseInt(localStorage.getItem(fpKey()) || '0');
+  }
+  function addFP(amount) {
+    localStorage.setItem(fpKey(), (getFP() + amount).toString());
+  }
+  function updateFPBadge() {
+    const el = document.getElementById('fish-fp-val');
+    if(el) el.textContent = getFP().toLocaleString();
+  }
+
   // GP 추가 (shop.html 방식)
   function addGP(amount) {
     const u = un();
@@ -645,6 +666,8 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     renderStorageTab();
     renderMapTab();
     updateGPBadge();
+    updateFPBadge();
+    checkRankAutoReward();
   }
 
   function updateGPBadge() {
@@ -744,10 +767,10 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
 
   function sellCatch() {
     if(!_currentFish) return;
-    addGP(_currentFish.price);
+    addFP(_currentFish.price);
     updateStats('sell', _currentFish);
-    updateGPBadge();
-    showFishToast('🪙 ' + _currentFish.name + ' 판매! +' + _currentFish.price.toLocaleString() + ' GP');
+    updateFPBadge();
+    showFishToast('💧 ' + _currentFish.name + ' 판매! +' + _currentFish.price.toLocaleString() + ' FP');
     resetToIdle();
   }
 
@@ -993,24 +1016,78 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     return 100;
   }
 
+  // ── 순위 자동 보상 지급 (사이클 종료 시 자동 실행) ──
+  function checkRankAutoReward() {
+    const username = un();
+    if(!username) return;
+
+    // 지난 사이클 체크 (현재 사이클 시작 = 직전 사이클 끝)
+    const EPOCH = new Date('2025-01-01').getTime();
+    const now   = Date.now();
+    const elapsed = now - EPOCH;
+    const cycleN  = Math.floor(elapsed / RANK_CYCLE_MS);
+    if(cycleN < 1) return; // 첫 사이클이면 이전 사이클 없음
+
+    // 직전 사이클 키
+    const prevCycleStart = EPOCH + (cycleN - 1) * RANK_CYCLE_MS;
+    const prevCycleKey   = 'c' + prevCycleStart;
+
+    // 이미 자동 지급했으면 스킵
+    const autoClaimKey = 'ggo_fish_rank_auto_' + prevCycleKey + '_' + username;
+    if(localStorage.getItem(autoClaimKey)) return;
+
+    // 직전 사이클 순위 데이터
+    const prevRankData = getRankFS('rank_' + prevCycleKey) || {};
+    const rankList     = Object.values(prevRankData).sort((a,b)=>{
+      const go = ['일반','희귀','레어','에픽','전설','신화'];
+      const gd = go.indexOf(b.grade) - go.indexOf(a.grade);
+      return gd !== 0 ? gd : b.sizeCm - a.sizeCm;
+    });
+
+    // 이 사용자의 순위 찾기
+    const myRank = rankList.findIndex(r => r.user === username);
+    if(myRank === -1) {
+      // 순위 없어도 자동 지급 처리 완료 표시
+      localStorage.setItem(autoClaimKey, '1');
+      return;
+    }
+
+    const rank = myRank + 1;
+    const fp   = getRankGP(rank); // 보상량 (FP로 지급)
+    addFP(fp);
+    updateFPBadge();
+    localStorage.setItem(autoClaimKey, '1');
+
+    // 알림 토스트
+    setTimeout(() => {
+      showFishToast(`🏆 지난 시즌 ${rank}위 보상! +${fp.toLocaleString()} FP 자동 지급`);
+    }, 1500);
+  }
+
   function renderRankTab() {
     const daysLeft = getRankDaysLeft();
-    const canClaim = isClaimablePeriod();
     const cycleKey = 'c' + getRankCycleStart();
-    const claimed  = getFS('rank_claimed_' + cycleKey) || false;
+    const username = un();
 
     document.getElementById('rank-timer-val').textContent = daysLeft + '일 남음';
 
+    // 자동 지급 여부 확인 (현재 사이클 기준 이전 사이클)
+    const EPOCH = new Date('2025-01-01').getTime();
+    const now   = Date.now();
+    const cycleN = Math.floor((now - EPOCH) / RANK_CYCLE_MS);
+    const prevCycleStart = cycleN >= 1 ? EPOCH + (cycleN-1)*RANK_CYCLE_MS : null;
+    const prevCycleKey   = prevCycleStart ? 'c'+prevCycleStart : null;
+    const autoReceived   = prevCycleKey && username
+      ? !!localStorage.getItem('ggo_fish_rank_auto_' + prevCycleKey + '_' + username)
+      : false;
+
     const notice = document.getElementById('rank-reward-notice');
-    if(canClaim && !claimed){
-      notice.className = 'rank-reward-notice claimable-period';
-      notice.innerHTML = '⚡ 순위가 확정되었습니다! 보상 수령 기간 (남은 ' + daysLeft + '일)<br>아래 순위에서 보상을 수령하세요.';
-    } else if(claimed) {
+    if(autoReceived) {
       notice.className = 'rank-reward-notice';
-      notice.innerHTML = '✅ 이번 시즌 보상을 이미 수령했습니다.';
+      notice.innerHTML = '✅ 지난 시즌 보상이 자동으로 지급되었습니다.';
     } else {
       notice.className = 'rank-reward-notice';
-      notice.innerHTML = '📌 순위 기록은 25일마다 초기화됩니다.<br>남은 ' + (daysLeft-5) + '일 이후 순위 확정 시 보상을 수령할 수 있습니다.';
+      notice.innerHTML = '📌 순위 기록은 25일마다 초기화됩니다.<br>시즌 종료 시 순위에 따라 <b>FP</b>가 자동으로 지급됩니다.';
     }
 
     const rankList = getRankList();
@@ -1022,20 +1099,18 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     }
     list.innerHTML = rankList.map((r,i) => {
       const rank = i+1;
-      const gp   = getRankGP(rank);
+      const fp   = getRankGP(rank);
       const gi   = FISH_GRADE_INFO[r.grade];
       const numCls = rank<=3 ? 'r'+rank : '';
       const isMine = r.user === myUser;
       const crownIco = rank===1?'👑':rank===2?'🥈':rank===3?'🥉':'';
-      const showClaimBtn = canClaim && !claimed && isMine;
       return `<div class="rank-item ${isMine?'my-rank':''}">
         <div class="rank-num ${numCls}">${crownIco||rank}</div>
         <div class="rank-info">
           <div class="rank-user">${r.user}${isMine?' (나)':''}</div>
           <div class="rank-fish-detail" style="color:${gi.color}">${r.grade} · ${r.name} · ${r.sizeCm}cm</div>
         </div>
-        <div class="rank-gp-reward">${gp.toLocaleString()} GP</div>
-        ${showClaimBtn ? `<button class="rank-claim-btn" onclick="claimRankReward(${rank},${gp})">수령</button>` : ''}
+        <div class="rank-gp-reward" style="color:#60a5fa">+${fp.toLocaleString()} FP</div>
       </div>`;
     }).join('');
   }
@@ -1128,6 +1203,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     } else {
       document.getElementById('fish-login-gate').style.display = 'none';
       document.getElementById('fish-game-body').style.display  = 'flex';
+      document.getElementById('fish-fp-badge').style.display   = 'flex';
       document.getElementById('fish-gp-badge').style.display   = 'flex';
       // 현재 맵 이름 표시
       const mapName = MAP_DATA.find(m=>m.id===(_currentMap||'river'))?.name || '강가 낚시터';
