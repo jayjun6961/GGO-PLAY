@@ -1428,13 +1428,19 @@
   .lb-rank-num.r2 { color: #c0c0c0; }
   .lb-rank-num.r3 { color: #cd7f32; }
 
-  .lb-nick { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--text-main); }
+  .lb-nick { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--text-main); min-width: 0; overflow: hidden; }
   .lb-nick-avatar {
     width: 32px; height: 32px; border-radius: 50%;
     background: linear-gradient(135deg, var(--purple-1), var(--purple-3));
     display: flex; align-items: center; justify-content: center;
     font-size: 14px; flex-shrink: 0;
   }
+
+  .lb-rank-title { font-size:10px; font-family:'Orbitron',sans-serif; padding:1px 7px; border-radius:3px; border:1px solid rgba(124,58,237,0.3); color:var(--text-sub); white-space:nowrap; }
+  .lb-rank-title.t-희귀  { color:#34d399; border-color:rgba(52,211,153,0.4); }
+  .lb-rank-title.t-레어  { color:#60a5fa; border-color:rgba(96,165,250,0.4); }
+  .lb-rank-title.t-에픽  { color:#a855f7; border-color:rgba(168,85,247,0.4); }
+  .lb-rank-title.t-전설  { color:#fbbf24; border-color:rgba(251,191,36,0.4); background:linear-gradient(90deg,rgba(251,191,36,0.08),rgba(249,115,22,0.08)); }
 
   .lb-score { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; color: var(--purple-3); text-align: right; }
   .lb-tier-badge { display: flex; align-items: center; gap: 5px; justify-content: flex-end; }
@@ -2078,14 +2084,91 @@
       // 전체 리스트
       let hl = '';
       rows.forEach((row,i) => {
-        const score  = Number(row[1])||0;
-        const server = row[2] || '—';
-        const tier = getTier(score);
+        const score     = Number(row[1])||0;
+        const server    = row[2] || '—';
+        const tier      = getTier(score);
+        const nickname  = row[0] || '—';
+
+        // ── 꾸미기 요소 로드 ──
+        const userItems   = JSON.parse(localStorage.getItem('ggo_items_' + nickname) || '[]');
+        const iconItem    = userItems.find(it=>it.type==='프로필아이콘'&&it.equipped);
+        const borderItem  = userItems.find(it=>it.type==='테두리효과'&&it.equipped);
+        const nameEffItem = userItems.find(it=>it.type==='이름색상효과'&&it.equipped);
+        const titleItem   = userItems.find(it=>it.type==='칭호'&&it.equipped);
+
+        // ── 아이콘 HTML ──
+        let avatarInner = nickname.charAt(0).toUpperCase() || '?';
+        let avatarBg    = 'linear-gradient(135deg,var(--purple-1),var(--purple-3))';
+        let avatarExtra = '';
+        if(iconItem) {
+          if(iconItem.visualKey === '시즌7번들상자') {
+            const s7r = MP_S7.아이콘렌더[iconItem._s7Idx||0];
+            if(s7r) { avatarInner = s7r(32); avatarBg = '#0a0000'; }
+          } else {
+            const g  = iconItem.grade;
+            const bi = iconItem.itemIdx !== undefined ? iconItem.itemIdx : (iconItem.visualIdx||0);
+            const it2 = (MP_ICON_ITEMS[g]||[])[bi % (MP_ICON_ITEMS[g]?.length||1)];
+            if(it2) {
+              avatarBg = 'var(--bg-card)';
+              if(it2.emoji)      avatarInner = `<span style="font-size:18px;line-height:1">${it2.emoji}</span>`;
+              else if(it2.svg)   avatarInner = `<svg width="28" height="28" viewBox="0 0 52 52" fill="none">${it2.svg}</svg>`;
+              else if(it2.holo)  { avatarInner = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.holo};background-size:200%;${it2.anim?'animation:legendaryFlow 3s ease infinite':''}"></div><div style="position:relative;font-size:14px">✦</div>`; avatarExtra='position:relative;'; }
+              else if(it2.glass) { avatarInner = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.glass};border:2px solid ${it2.border}"></div><div style="position:relative;font-size:14px">💠</div>`; avatarExtra='position:relative;'; }
+            }
+          }
+        }
+
+        // ── 테두리 ──
+        let borderStyle = '';
+        if(borderItem) {
+          if(borderItem.visualKey === '시즌7번들상자') {
+            const s7b = MP_S7.테두리[borderItem._s7Idx||0];
+            if(s7b && s7b.isSvgBorder) borderStyle = `border:2px solid #ff4400;box-shadow:0 0 8px rgba(255,68,0,0.6);`;
+            else if(s7b) borderStyle = `border:2px solid transparent;box-shadow:${s7b.glow||''};`;
+          } else {
+            const bg  = borderItem.grade;
+            const bbi = borderItem.itemIdx !== undefined ? borderItem.itemIdx : (borderItem.visualIdx||0);
+            const bList = MP_BORDER_ITEMS[bg]||[];
+            const br  = bList[bbi % (bList.length||1)];
+            if(br) {
+              if(br.color)     borderStyle = `border:2px solid ${br.color};`;
+              else if(br.grad) borderStyle = `border:2px solid transparent;`;
+              if(br.glow)      borderStyle += `box-shadow:0 0 8px ${br.glow};`;
+            }
+          }
+        }
+
+        // ── 이름 HTML ──
+        let nameHtml = '';
+        if(nameEffItem) {
+          if(nameEffItem.visualKey === '시즌7번들상자') {
+            const s7n = MP_S7.이름효과[nameEffItem._s7Idx||0];
+            if(s7n) nameHtml = `<span style="background:${s7n.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:s7NameFlow 2s linear infinite">${nickname}</span>`;
+          } else {
+            const g2  = nameEffItem.grade;
+            const bi2 = nameEffItem.itemIdx !== undefined ? nameEffItem.itemIdx : (nameEffItem.visualIdx||0);
+            const nst = (MP_NAME_EFF_ITEMS[g2]||[])[bi2 % (MP_NAME_EFF_ITEMS[g2]?.length||1)];
+            if(nst && nst.grad)  nameHtml = `<span style="background:${nst.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;${nst.anim?'animation:nameFlow 3s linear infinite':''}">${nickname}</span>`;
+            else if(nst && nst.color) nameHtml = `<span style="color:${nst.color};${nst.glow?'text-shadow:'+nst.glow:''}">${nickname}</span>`;
+          }
+        }
+        if(!nameHtml) nameHtml = nickname;
+
+        // ── 칭호 HTML ──
+        let titleHtml = '';
+        if(titleItem) {
+          const tg = titleItem.grade || '일반';
+          const tName = titleItem.name || '';
+          titleHtml = `<span class="lb-rank-title t-${tg}">${tg==='전설'?`<span>< ${tName} ></span>`:'< '+tName+' >'}</span>`;
+        }
+
         hl += `<div class="lb-row tour-row ${i<3?'top'+(i+1):''}">
           <div class="lb-rank-num ${i<3?'r'+(i+1):''}">${i+1}</div>
           <div class="lb-nick">
-            <div class="lb-nick-avatar">${avatars[i%avatars.length]}</div>
-            ${row[0]||'—'}
+            <div class="lb-nick-avatar" style="background:${avatarBg};${borderStyle}${avatarExtra}">${avatarInner}</div>
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">${nameHtml}${titleHtml}</div>
+            </div>
           </div>
           <div style="text-align:center;font-size:11px;color:var(--accent-cyan);font-family:'Orbitron',sans-serif;letter-spacing:0.3px;align-self:center">${server}</div>
           <div class="lb-score" style="text-align:right">${score.toLocaleString()}</div>
