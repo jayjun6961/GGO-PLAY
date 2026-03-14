@@ -804,39 +804,91 @@ const ZONES = [
 ];
 
 const DROPS = [
-  {n:'HP 포션',   e:'🧪',type:'pot',  eff:'hp',val:30,  grade:'일반'},
-  {n:'MP 포션',   e:'💧',type:'pot',  eff:'mp',val:20,  grade:'일반'},
-  {n:'대형 HP 포션',e:'🔴',type:'pot',eff:'hp',val:80,  grade:'희귀'},
-  {n:'대형 MP 포션',e:'🔵',type:'pot',eff:'mp',val:50,  grade:'희귀'},
-  // 무기 (jobType: 착용 가능 직업 배열)
-  {n:'낡은 검',    e:'⚔️', type:'weapon', slot:'weapon', atk:3,  def:0, grade:'일반', sellPrice:20,  jobType:['warrior','paladin']},
-  {n:'강철 검',    e:'🗡️', type:'weapon', slot:'weapon', atk:13, def:0, grade:'희귀', sellPrice:80,  jobType:['warrior','paladin']},
-  {n:'롱소드',     e:'⚔️',  type:'weapon', slot:'weapon', atk:15, def:2, grade:'에픽',  sellPrice:180, jobType:['paladin']},
-  {n:'마법 지팡이',e:'🪄', type:'weapon', slot:'weapon', atk:16, def:0, grade:'희귀', sellPrice:90,  jobType:['mage']},
-  {n:'에테르 지팡이',e:'✨', type:'weapon',slot:'weapon', atk:22, def:0, grade:'에픽',  sellPrice:220, jobType:['mage']},
-  {n:'단궁',       e:'🏹', type:'weapon', slot:'weapon', atk:11, def:0, grade:'희귀', sellPrice:75,  jobType:['archer']},
-  {n:'강화 장궁',  e:'🪃', type:'weapon', slot:'weapon', atk:18, def:0, grade:'에픽',  sellPrice:200, jobType:['archer']},
-  {n:'단검',       e:'🔪', type:'weapon', slot:'weapon', atk:10, def:0, grade:'일반', sellPrice:50,  jobType:['rogue']},
-  {n:'독 단검',    e:'🗡️', type:'weapon', slot:'weapon', atk:17, def:0, grade:'에픽',  sellPrice:210, jobType:['rogue']},
-  // 방패
-  {n:'나무 방패',  e:'🛡️', type:'shield',  slot:'shield',   atk:0,  def:6, grade:'일반', sellPrice:25},
-  {n:'강철 방패',  e:'🛡️', type:'shield',  slot:'shield',   atk:0,  def:14,grade:'희귀', sellPrice:85},
-  {n:'마법 방패',  e:'✨',  type:'shield',  slot:'shield',   atk:2,  def:18,grade:'에픽', sellPrice:200},
-  // 갑옷
-  {n:'가죽 갑옷',  e:'🥋', type:'armor',   slot:'armor',    atk:0,  def:5, grade:'일반', sellPrice:30},
-  {n:'철 갑옷',    e:'🔩', type:'armor',   slot:'armor',    atk:0,  def:11,grade:'희귀', sellPrice:90},
-  {n:'용비늘 갑옷',e:'🐉', type:'armor',   slot:'armor',    atk:3,  def:20,grade:'에픽', sellPrice:250},
-  // 신발
-  {n:'가죽 신발',  e:'👟', type:'boots',   slot:'boots',    atk:0,  def:2, grade:'일반', sellPrice:15},
-  {n:'마법 장화',  e:'🥾', type:'boots',   slot:'boots',    atk:1,  def:5, grade:'희귀', sellPrice:60},
-  // 장갑
-  {n:'가죽 장갑',  e:'🧤', type:'gloves',  slot:'gloves',   atk:1,  def:1, grade:'일반', sellPrice:15},
-  {n:'강철 장갑',  e:'🥊', type:'gloves',  slot:'gloves',   atk:4,  def:3, grade:'희귀', sellPrice:65},
-  // 장신구
-  {n:'마력 반지',  e:'💍', type:'accessory',slot:'accessory',atk:3,  def:2, grade:'희귀', sellPrice:70},
-  {n:'수호의 목걸이',e:'📿',type:'accessory',slot:'accessory',atk:1,  def:5, grade:'희귀', sellPrice:70},
-  {n:'마법석',     e:'💎', type:'mat',     val:50,           grade:'희귀', sellPrice:50},
+  // ══════════════════════════════════════
+  // 무기 - 직업별 5등급 (전설 제외 드롭)
+  // ══════════════════════════════════════
+
+  // ── 전사 / 성기사 (검 계열) ──
+  {n:'녹슨 검',      e:'⚔️', type:'weapon', slot:'weapon', atk:5,  def:0, grade:'일반', sellPrice:20,  jobType:['warrior','paladin']},
+  {n:'기사의 검',    e:'🗡️', type:'weapon', slot:'weapon', atk:14, def:0, grade:'희귀', sellPrice:90,  jobType:['warrior','paladin']},
+  {n:'강철 장검',    e:'⚔️', type:'weapon', slot:'weapon', atk:26, def:1, grade:'레어', sellPrice:220, jobType:['warrior','paladin']},
+  {n:'흑요석 대검',  e:'🗡️', type:'weapon', slot:'weapon', atk:44, def:3, grade:'에픽', sellPrice:500, jobType:['warrior','paladin']},
+  {n:'천상의 성검',  e:'✨', type:'weapon', slot:'weapon', atk:70, def:8, grade:'전설', sellPrice:1200,jobType:['warrior','paladin']},
+
+  // ── 성기사 전용 (롱소드) ──
+  {n:'롱소드',       e:'⚔️', type:'weapon', slot:'weapon', atk:12, def:3, grade:'일반', sellPrice:25,  jobType:['paladin']},
+  {n:'성기사의 검',  e:'🗡️', type:'weapon', slot:'weapon', atk:22, def:7, grade:'희귀', sellPrice:110, jobType:['paladin']},
+  {n:'신성 장검',    e:'⚔️', type:'weapon', slot:'weapon', atk:36, def:12,grade:'레어', sellPrice:260, jobType:['paladin']},
+  {n:'빛의 성검',    e:'✨', type:'weapon', slot:'weapon', atk:58, def:20,grade:'에픽', sellPrice:580, jobType:['paladin']},
+  {n:'신의 성검',    e:'🌟', type:'weapon', slot:'weapon', atk:85, def:30,grade:'전설', sellPrice:1400,jobType:['paladin']},
+
+  // ── 궁수 (활 계열) ──
+  {n:'나무 단궁',    e:'🏹', type:'weapon', slot:'weapon', atk:6,  def:0, grade:'일반', sellPrice:18,  jobType:['archer']},
+  {n:'사냥꾼의 활',  e:'🏹', type:'weapon', slot:'weapon', atk:15, def:0, grade:'희귀', sellPrice:85,  jobType:['archer']},
+  {n:'엘프의 장궁',  e:'🪃', type:'weapon', slot:'weapon', atk:28, def:0, grade:'레어', sellPrice:210, jobType:['archer']},
+  {n:'폭풍 장궁',    e:'🏹', type:'weapon', slot:'weapon', atk:46, def:0, grade:'에픽', sellPrice:480, jobType:['archer']},
+  {n:'신화의 각궁',  e:'✨', type:'weapon', slot:'weapon', atk:72, def:2, grade:'전설', sellPrice:1200,jobType:['archer']},
+
+  // ── 도적 (단검 계열) ──
+  {n:'낡은 단검',    e:'🔪', type:'weapon', slot:'weapon', atk:4,  def:0, grade:'일반', sellPrice:15,  jobType:['rogue']},
+  {n:'독 단검',      e:'🗡️', type:'weapon', slot:'weapon', atk:13, def:0, grade:'희귀', sellPrice:80,  jobType:['rogue']},
+  {n:'그림자 단검',  e:'🔪', type:'weapon', slot:'weapon', atk:25, def:1, grade:'레어', sellPrice:200, jobType:['rogue']},
+  {n:'어둠의 단도',  e:'🗡️', type:'weapon', slot:'weapon', atk:42, def:2, grade:'에픽', sellPrice:460, jobType:['rogue']},
+  {n:'심연의 비수',  e:'✨', type:'weapon', slot:'weapon', atk:68, def:5, grade:'전설', sellPrice:1200,jobType:['rogue']},
+
+  // ── 마법사 (지팡이 계열) ──
+  {n:'나무 지팡이',  e:'🪄', type:'weapon', slot:'weapon', atk:7,  def:0, grade:'일반', sellPrice:22,  jobType:['mage']},
+  {n:'마법사의 지팡이',e:'🪄',type:'weapon',slot:'weapon', atk:17, def:0, grade:'희귀', sellPrice:100, jobType:['mage']},
+  {n:'수정 지팡이',  e:'🔮', type:'weapon', slot:'weapon', atk:32, def:0, grade:'레어', sellPrice:250, jobType:['mage']},
+  {n:'에테르 지팡이',e:'✨', type:'weapon', slot:'weapon', atk:52, def:0, grade:'에픽', sellPrice:560, jobType:['mage']},
+  {n:'별의 마법봉',  e:'🌟', type:'weapon', slot:'weapon', atk:80, def:2, grade:'전설', sellPrice:1400,jobType:['mage']},
+
+  // ══════════════════════════════════════
+  // 방패 (전사/성기사 전용)
+  // ══════════════════════════════════════
+  {n:'나무 방패',    e:'🛡️', type:'shield', slot:'shield', atk:0, def:6,  grade:'일반', sellPrice:20,  jobType:['warrior','paladin']},
+  {n:'강철 방패',    e:'🛡️', type:'shield', slot:'shield', atk:0, def:14, grade:'희귀', sellPrice:85,  jobType:['warrior','paladin']},
+  {n:'기사 방패',    e:'🛡️', type:'shield', slot:'shield', atk:0, def:24, grade:'레어', sellPrice:200, jobType:['warrior','paladin']},
+  {n:'성벽 방패',    e:'🛡️', type:'shield', slot:'shield', atk:2, def:36, grade:'에픽', sellPrice:450, jobType:['warrior','paladin']},
+  {n:'신성 방패',    e:'✨', type:'shield', slot:'shield', atk:5, def:55, grade:'전설', sellPrice:1000,jobType:['warrior','paladin']},
+
+  // ══════════════════════════════════════
+  // 갑옷 (공용)
+  // ══════════════════════════════════════
+  {n:'가죽 갑옷',    e:'🥋', type:'armor',  slot:'armor',  atk:0, def:5,  grade:'일반', sellPrice:25},
+  {n:'사슬 갑옷',    e:'🔗', type:'armor',  slot:'armor',  atk:0, def:12, grade:'희귀', sellPrice:95},
+  {n:'판금 갑옷',    e:'🔩', type:'armor',  slot:'armor',  atk:0, def:22, grade:'레어', sellPrice:230},
+  {n:'용비늘 갑옷',  e:'🐉', type:'armor',  slot:'armor',  atk:2, def:36, grade:'에픽', sellPrice:520},
+  {n:'천공의 갑옷',  e:'✨', type:'armor',  slot:'armor',  atk:5, def:55, grade:'전설', sellPrice:1200},
+
+  // ══════════════════════════════════════
+  // 신발 (공용)
+  // ══════════════════════════════════════
+  {n:'가죽 신발',    e:'👟', type:'boots',  slot:'boots',  atk:0, def:2,  grade:'일반', sellPrice:12},
+  {n:'질주의 부츠',  e:'👢', type:'boots',  slot:'boots',  atk:1, def:5,  grade:'희귀', sellPrice:55},
+  {n:'질풍 장화',    e:'🥾', type:'boots',  slot:'boots',  atk:2, def:10, grade:'레어', sellPrice:140},
+  {n:'폭풍의 부츠',  e:'⚡', type:'boots',  slot:'boots',  atk:4, def:16, grade:'에픽', sellPrice:340},
+  {n:'신의 발걸음',  e:'✨', type:'boots',  slot:'boots',  atk:7, def:25, grade:'전설', sellPrice:800},
+
+  // ══════════════════════════════════════
+  // 장갑 (공용)
+  // ══════════════════════════════════════
+  {n:'가죽 장갑',    e:'🧤', type:'gloves', slot:'gloves', atk:1, def:1,  grade:'일반', sellPrice:12},
+  {n:'강철 장갑',    e:'🥊', type:'gloves', slot:'gloves', atk:3, def:3,  grade:'희귀', sellPrice:60},
+  {n:'전투 장갑',    e:'🧤', type:'gloves', slot:'gloves', atk:6, def:6,  grade:'레어', sellPrice:150},
+  {n:'패왕의 장갑',  e:'🥊', type:'gloves', slot:'gloves', atk:10,def:10, grade:'에픽', sellPrice:360},
+  {n:'신성 장갑',    e:'✨', type:'gloves', slot:'gloves', atk:16,def:16, grade:'전설', sellPrice:850},
+
+  // ══════════════════════════════════════
+  // 장신구 (공용)
+  // ══════════════════════════════════════
+  {n:'철 반지',      e:'💍', type:'accessory',slot:'accessory', atk:1, def:1, grade:'일반', sellPrice:15},
+  {n:'마력 반지',    e:'💍', type:'accessory',slot:'accessory', atk:3, def:3, grade:'희귀', sellPrice:75},
+  {n:'용사의 목걸이',e:'📿', type:'accessory',slot:'accessory', atk:5, def:5, grade:'레어', sellPrice:180},
+  {n:'전설의 부적',  e:'🔮', type:'accessory',slot:'accessory', atk:9, def:9, grade:'에픽', sellPrice:420},
+  {n:'신의 목걸이',  e:'✨', type:'accessory',slot:'accessory', atk:15,def:15,grade:'전설', sellPrice:1000},
 ];
+
 
 function expNeed(lv){ return Math.floor(50*Math.pow(lv,1.5)); }
 
@@ -1339,15 +1391,26 @@ function mobDead(){
   G.exp+=m.exp;G.gold+=m.g;
   blog(`<span class="li">💀 ${m.n} 처치! +${m.exp}EXP +${m.g}G</span>`);
   if(Math.random()<m.drop){
-    // 직업에 맞는 드롭 풀 선택 (무기는 현재 직업 전용만)
-    const validDrops = DROPS.filter(d => {
-      if(d.type === 'weapon') return !d.jobType || d.jobType.includes(G.job);
+    // 직업에 맞는 장비 풀 (전설 제외, 포션/재료 제외)
+    const eqPool = DROPS.filter(d => {
+      if(d.type==='pot'||d.type==='mat') return false;
+      if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
       return true;
     });
-    const it=validDrops[Math.floor(Math.random()*validDrops.length)];
-    const ex=G.inv.find(i=>i.n===it.n);
-    if(ex)ex.qty=(ex.qty||1)+1;else G.inv.push({...it,qty:1,_id:Date.now()});
-    blog(`<span class="li">✨ ${it.e} ${it.n} 획득!</span>`);
+    // 사냥터 드롭 등급 확률: 일반60% 희귀30% 레어10%
+    const r = Math.random();
+    let gradeFilter;
+    if(r < 0.60)      gradeFilter = '일반';
+    else if(r < 0.90) gradeFilter = '희귀';
+    else               gradeFilter = '레어';
+    const pool = eqPool.filter(d=>d.grade===gradeFilter&&d.grade!=='전설');
+    if(pool.length){
+      const it={...pool[Math.floor(Math.random()*pool.length)],qty:1,_id:Date.now()};
+      const ex=G.inv.find(i=>i.n===it.n);
+      if(ex)ex.qty=(ex.qty||1)+1;else G.inv.push(it);
+      const gc=GRADE_COLOR[it.grade]||'#94a3b8';
+      blog(`<span class="li">✨ <span style="color:${gc}">[${it.grade}]</span> ${it.e} ${it.n} 획득!</span>`);
+    }
   }
   G.quests.forEach(q=>{
     if(G.qclaim[q.id])return;
@@ -1459,7 +1522,7 @@ const SLOT_INFO={
   gloves:   {label:'장갑',    emoji:'🧤'},
   accessory:{label:'장신구',  emoji:'💍'},
 };
-const GRADE_COLOR={일반:'#94a3b8',희귀:'#34d399',에픽:'#a855f7',전설:'#fbbf24'};
+const GRADE_COLOR={일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
 
 function renderInv(){
   // ── 장착 슬롯 6개 ──
@@ -1535,14 +1598,15 @@ function showItemModal(idx,it){
     if(item.jobType) return item.jobType;
     if(item.type !== 'weapon') return null;
     const n = item.n || '';
-    if(/검|소드|롱소드|블레이드/.test(n)) return ['warrior','paladin'];
-    if(/지팡이|완드|스태프/.test(n))      return ['mage'];
-    if(/활|궁|장궁|단궁/.test(n))         return ['archer'];
-    if(/단검|대거|독/.test(n))             return ['rogue'];
-    return null; // 분류 불명 → 모두 가능
+    if(/검|소드|롱소드|블레이드|성검/.test(n)) return ['warrior','paladin'];
+    if(/지팡이|완드|스태프|마법봉/.test(n))    return ['mage'];
+    if(/활|궁|장궁|단궁|각궁/.test(n))        return ['archer'];
+    if(/단검|대거|독|단도|비수/.test(n))        return ['rogue'];
+    if(/방패/.test(n))                         return ['warrior','paladin'];
+    return null;
   }
   const jobTypes = getJobTypes(it);
-  const canEquip = !(it.type==='weapon' && jobTypes && !jobTypes.includes(G.job));
+  const canEquip = !((it.type==='weapon'||it.type==='shield') && jobTypes && !jobTypes.includes(G.job));
   const jobWarnHtml = !canEquip
     ? `<div style="font-size:10px;color:#f87171;margin-top:4px">⚠️ ${(jobTypes||[]).map(j=>JOB_NAMES[j]||j).join(', ')} 전용 무기</div>`
     : '';
@@ -1578,14 +1642,15 @@ function doEquip(){
     if(item.jobType) return item.jobType;
     if(item.type!=='weapon') return null;
     const n=item.n||'';
-    if(/검|소드|롱소드|블레이드/.test(n)) return ['warrior','paladin'];
-    if(/지팡이|완드|스태프/.test(n))      return ['mage'];
-    if(/활|궁|장궁|단궁/.test(n))         return ['archer'];
-    if(/단검|대거|독/.test(n))             return ['rogue'];
+    if(/검|소드|롱소드|블레이드|성검/.test(n)) return ['warrior','paladin'];
+    if(/지팡이|완드|스태프|마법봉/.test(n))    return ['mage'];
+    if(/활|궁|장궁|단궁|각궁/.test(n))        return ['archer'];
+    if(/단검|대거|독|단도|비수/.test(n))        return ['rogue'];
+    if(/방패/.test(n))                         return ['warrior','paladin'];
     return null;
   }
   const jt=_getJT(it);
-  if(it.type==='weapon' && jt && !jt.includes(G.job)){
+  if((it.type==='weapon'||it.type==='shield') && jt && !jt.includes(G.job)){
     const JOB_NAMES={warrior:'전사',archer:'궁수',rogue:'도적',mage:'마법사',paladin:'성기사'};
     const allowed=jt.map(j=>JOB_NAMES[j]||j).join(', ');
     gwT(`⚠️ ${it.n}은(는) ${allowed}만 장착 가능합니다.`);
@@ -2046,20 +2111,29 @@ function dunBossDead() {
     if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
     return d.type!=='pot'&&d.type!=='mat';
   });
-  // 희귀 90%
-  if(Math.random()<0.9){
-    const pool=validDrops.filter(d=>d.grade==='희귀');
-    if(pool.length){const it={...pool[Math.floor(Math.random()*pool.length)],qty:1,_id:Date.now()};G.inv.push(it);droppedItems.push(it);}
+  // 던전 드롭: 희귀60% 레어30% 에픽10% (최소 1개 보장)
+  const dunDropR = Math.random();
+  let dunGrade;
+  if(dunDropR < 0.60)      dunGrade='희귀';
+  else if(dunDropR < 0.90) dunGrade='레어';
+  else                      dunGrade='에픽';
+  const gradePool1=validDrops.filter(d=>d.grade===dunGrade);
+  if(gradePool1.length){
+    const it={...gradePool1[Math.floor(Math.random()*gradePool1.length)],qty:1,_id:Date.now()};
+    G.inv.push(it);droppedItems.push(it);
   }
-  // 레어 50%
+  // 추가 드롭 기회 (50%)
   if(Math.random()<0.5){
-    const pool=validDrops.filter(d=>d.grade==='에픽');
-    if(pool.length){const it={...pool[Math.floor(Math.random()*pool.length)],qty:1,_id:Date.now()+1};G.inv.push(it);droppedItems.push(it);}
-  }
-  // 에픽 20%
-  if(Math.random()<0.2){
-    const pool=validDrops.filter(d=>d.grade==='에픽');
-    if(pool.length){const it={...pool[Math.floor(Math.random()*pool.length)],qty:1,_id:Date.now()+2};G.inv.push(it);droppedItems.push(it);}
+    const dunDropR2=Math.random();
+    let dunGrade2;
+    if(dunDropR2<0.60)      dunGrade2='희귀';
+    else if(dunDropR2<0.90) dunGrade2='레어';
+    else                     dunGrade2='에픽';
+    const gradePool2=validDrops.filter(d=>d.grade===dunGrade2);
+    if(gradePool2.length){
+      const it2={...gradePool2[Math.floor(Math.random()*gradePool2.length)],qty:1,_id:Date.now()+1};
+      G.inv.push(it2);droppedItems.push(it2);
+    }
   }
 
   saveG();
