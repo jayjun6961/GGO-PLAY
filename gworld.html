@@ -540,6 +540,14 @@
   </div>
 </div>
 
+<!-- 패널: 던전 선택 -->
+<div class="gw-pov" id="gw-pdungeon" onclick="if(event.target===this)closeP('gw-pdungeon')">
+  <div class="gw-pbox" style="max-width:360px;width:100%">
+    <div class="gw-phdr"><div class="gw-pttl">🏯 던전 입장</div><button class="gw-px" onclick="closeP('gw-pdungeon')">✕</button></div>
+    <div class="gw-pbdy" id="gw-dunbody" style="padding:14px;"></div>
+  </div>
+</div>
+
 <!-- 패널: 장비 강화 -->
 <div class="gw-pov" id="gw-pen" onclick="if(event.target===this)closeP('gw-pen')">
   <div class="gw-pbox">
@@ -624,6 +632,7 @@
         <div class="gw-act" onclick="openP('gw-pst')"><div class="gw-act-ico">📊</div><div class="gw-act-lbl">캐릭터 정보</div></div>
         <div class="gw-act" onclick="openP('gw-psk')"><div class="gw-act-ico">✨</div><div class="gw-act-lbl">스킬</div></div>
         <div class="gw-act" onclick="openP('gw-pshop')"><div class="gw-act-ico">🏪</div><div class="gw-act-lbl">포션 상점</div></div>
+        <div class="gw-act" onclick="showDungeonSelect()"><div class="gw-act-ico">🏯</div><div class="gw-act-lbl">던전 입장</div></div>
         <div class="gw-act" onclick="resetChar()" style="border-color:rgba(239,68,68,.15)"><div class="gw-act-ico">🔄</div><div class="gw-act-lbl">초기화</div></div>
       </div>
     </div>
@@ -671,6 +680,55 @@
         <div id="gw-skbtns" style="display:flex;gap:5px;flex-wrap:wrap;flex:1;"></div>
         <button class="gw-retreat" onclick="retreatToTown()">🏃 마을로</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 던전 전투 -->
+  <div class="gw-screen" id="gs-dungeon">
+    <div class="gw-battle">
+      <!-- HUD -->
+      <div class="gw-hud">
+        <div class="gw-lv-tag" id="dh-lv">Lv.1</div>
+        <div class="gw-hud-nm" id="dh-jnm">전사</div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#ef4444">HP</div><div class="bar-bg"><div class="bar-hp" id="dh-hpf" style="width:100%"></div></div><div class="bar-v" id="dh-hpv">-/-</div></div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#3b82f6">MP</div><div class="bar-bg"><div class="bar-mp" id="dh-mpf" style="width:100%"></div></div><div class="bar-v" id="dh-mpv">-/-</div></div>
+        <div class="gw-gold" id="dh-gold">0G</div>
+      </div>
+      <!-- 보스 씬 -->
+      <div class="gw-battle-scene" id="dh-scene" style="min-height:140px;">
+        <canvas id="dh-cv"></canvas>
+        <div class="gw-mob-hpbar">
+          <div class="gw-mob-nm-lbl" id="dh-bnm">고블린 킹</div>
+          <div class="gw-mob-bar-bg"><div class="gw-mob-bar-f" id="dh-barf" style="width:100%"></div></div>
+        </div>
+        <!-- 보스 시간 표시 -->
+        <div id="dh-timer" style="position:absolute;top:8px;right:10px;font-family:'Orbitron',sans-serif;font-size:11px;color:#fbbf24;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:6px;">⏱ 0:00</div>
+      </div>
+      <!-- 배틀 로그 -->
+      <div class="gw-blog" id="dh-blog" style="height:175px;"></div>
+      <!-- 포션 퀵슬롯 -->
+      <div style="display:flex;gap:5px;padding:5px 11px;background:rgba(5,3,12,.96);border-top:1px solid rgba(124,58,237,.09);align-items:center;">
+        <span style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;margin-right:3px">포션</span>
+        <button id="dpot-hp-btn" onclick="usePotInDungeon('hp')" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💚 HP</button>
+        <button id="dpot-mp-btn" onclick="usePotInDungeon('mp')" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:#60a5fa;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💧 MP</button>
+        <span id="dpot-hp-count" style="font-size:9px;color:#64748b;"></span>
+        <span id="dpot-mp-count" style="font-size:9px;color:#64748b;"></span>
+      </div>
+      <!-- 스킬/철수 -->
+      <div class="gw-sk-bar">
+        <div id="dh-skbtns" style="display:flex;gap:5px;flex-wrap:wrap;flex:1;"></div>
+        <button class="gw-retreat" onclick="dungeonRetreat()">🏃 철수</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 던전 보상 결과 화면 -->
+  <div class="gw-screen" id="gs-dun-result">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;padding:24px 20px;gap:0;overflow-y:auto;">
+      <div style="font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;color:#fbbf24;margin-bottom:4px;text-shadow:0 0 16px #fbbf2488;">🏆 던전 클리어!</div>
+      <div id="dr-dunname" style="font-size:12px;color:#a855f7;font-family:'Orbitron',sans-serif;margin-bottom:16px;"></div>
+      <div id="dr-body" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:8px;"></div>
+      <button onclick="dungeonResultClose()" style="margin-top:20px;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:10px 32px;border-radius:10px;font-size:13px;font-family:'Orbitron',sans-serif;cursor:pointer;">마을로 돌아가기</button>
     </div>
   </div>
 
@@ -1372,12 +1430,13 @@ function blog(html){const l=document.getElementById('gw-blog');if(!l)return;cons
 function openP(id){document.getElementById(id).classList.add('on');renderP(id);}
 function closeP(id){document.getElementById(id).classList.remove('on');}
 function renderP(id){
-  if(id==='gw-pi')    renderInv();
-  if(id==='gw-pq')    renderQ();
-  if(id==='gw-pen')   renderEnh();
-  if(id==='gw-pst')   renderStat();
-  if(id==='gw-psk')   renderSkList();
-  if(id==='gw-pshop') renderShop();
+  if(id==='gw-pi')       renderInv();
+  if(id==='gw-pq')       renderQ();
+  if(id==='gw-pen')      renderEnh();
+  if(id==='gw-pst')      renderStat();
+  if(id==='gw-psk')      renderSkList();
+  if(id==='gw-pshop')    renderShop();
+  if(id==='gw-pdungeon') renderDungeonSelect();
 }
 
 // ── 장비 보너스 합산 ──
@@ -1795,6 +1854,379 @@ function updatePotBar() {
   if(hpBtn) hpBtn.style.opacity = hp>0?'1':'0.4';
   if(mpBtn) mpBtn.style.opacity = mp>0?'1':'0.4';
 }
+
+// ════════════════════════════════════════
+// 던전 시스템
+// ════════════════════════════════════════
+const DUNGEONS = [
+  {
+    id:'goblin',
+    name:'고블린 던전',
+    icon:'👺',
+    minLv:30,
+    desc:'고블린들의 소굴. 강력한 왕이 기다린다.',
+    boss:{ n:'고블린 킹', e:'👺', hp:8000, atk:38, def:8,  exp:1200, g:800  },
+    rewards:{ g:[600,1000], exp:[800,1400] },
+  },
+  {
+    id:'orc',
+    name:'오크 던전',
+    icon:'🧟',
+    minLv:45,
+    desc:'타락한 오크들의 요새. 분노한 군주가 도사린다.',
+    boss:{ n:'타락한 다크오크', e:'🧟', hp:14000, atk:65, def:18, exp:2800, g:2000 },
+    rewards:{ g:[1500,2500], exp:[2000,3500] },
+  },
+];
+
+// 던전 전용 상태
+let _dun = {
+  dungeon: null,   // 현재 던전 정보
+  bossHp: 0,
+  bossMhp: 0,
+  tick: null,
+  timerSec: 0,
+  timerInt: null,
+  dead: false,
+};
+
+/* ── 던전 선택 패널 렌더 ── */
+function showDungeonSelect() {
+  renderDungeonSelect();
+  openP('gw-pdungeon');
+}
+function renderDungeonSelect() {
+  const el = document.getElementById('gw-dunbody');
+  if(!el) return;
+  let html = '';
+  DUNGEONS.forEach(d => {
+    const locked = G.lv < d.minLv;
+    const col = locked ? '#475569' : '#e2e8f0';
+    const bg  = locked ? 'rgba(71,85,105,.08)' : 'rgba(124,58,237,.08)';
+    const bd  = locked ? 'rgba(71,85,105,.2)'  : 'rgba(124,58,237,.25)';
+    html += `<div style="border:1px solid ${bd};border-radius:14px;padding:14px 16px;margin-bottom:10px;background:${bg};">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <span style="font-size:28px">${d.icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:${col};font-family:'Orbitron',sans-serif;">${d.name}</div>
+          <div style="font-size:10px;color:#64748b;margin-top:2px;">${d.desc}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+        <div style="font-size:10px;color:${locked?'#ef4444':'#34d399'};">
+          ${locked ? `🔒 ${d.minLv}레벨 이상 입장 가능 (현재 ${G.lv}레벨)` : `✅ 입장 가능 (Lv.${G.lv})`}
+        </div>
+        <button onclick="enterDungeon('${d.id}')"
+          ${locked?'disabled':''}
+          style="background:${locked?'rgba(71,85,105,.2)':'linear-gradient(135deg,#7c3aed,#5b21b6)'};
+            border:1px solid ${locked?'#374151':'#a855f7'};
+            color:${locked?'#475569':'#fff'};
+            padding:6px 16px;border-radius:8px;font-size:11px;
+            font-family:'Orbitron',sans-serif;cursor:${locked?'not-allowed':'pointer'};
+            white-space:nowrap;">
+          ${locked?'잠금':'입장 ▶'}
+        </button>
+      </div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+/* ── 던전 입장 ── */
+function enterDungeon(id) {
+  const dun = DUNGEONS.find(d=>d.id===id);
+  if(!dun || G.lv < dun.minLv) { gwT('🔒 레벨이 부족합니다!'); return; }
+  closeP('gw-pdungeon');
+  _dun.dungeon = dun;
+  _dun.bossHp  = dun.boss.hp;
+  _dun.bossMhp = dun.boss.hp;
+  _dun.dead    = false;
+  _dun.timerSec = 0;
+  // 화면 전환
+  gwSC('dungeon');
+  // HUD 초기화
+  const dhLv = document.getElementById('dh-lv');
+  const dhJn = document.getElementById('dh-jnm');
+  if(dhLv) dhLv.textContent = 'Lv.'+G.lv;
+  if(dhJn) dhJn.textContent = JOBS[G.job]?.name||'';
+  document.getElementById('dh-blog').innerHTML = '';
+  document.getElementById('dh-bnm').textContent = dun.boss.n;
+  // 캔버스 초기화
+  setTimeout(()=>{
+    const cv=document.getElementById('dh-cv');
+    if(cv){cv.width=cv.offsetWidth||500;cv.height=cv.offsetHeight||140;drawBossBattle(cv);}
+  },30);
+  // 스킬 버튼
+  renderDunSkills();
+  // 포션 카운트
+  updateDunPotBar();
+  hud(); dunHud();
+  // 전투 시작
+  if(_dun.tick) clearInterval(_dun.tick);
+  if(_dun.timerInt) clearInterval(_dun.timerInt);
+  _dun.tick = setInterval(dunFight, 1150);
+  _dun.timerInt = setInterval(()=>{
+    _dun.timerSec++;
+    const m=Math.floor(_dun.timerSec/60), s=_dun.timerSec%60;
+    const el=document.getElementById('dh-timer');
+    if(el) el.textContent = `⏱ ${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+  // 전투 애니메이션 시작
+  startDunAnim();
+  dunBlog(`<span style="color:#fbbf24">🏯 ${dun.name} 입장! ${dun.boss.n}이(가) 나타났다!</span>`);
+}
+
+/* ── 던전 HUD 업데이트 ── */
+function dunHud() {
+  document.getElementById('dh-hpf').style.width=(G.hp/G.mHP*100)+'%';
+  document.getElementById('dh-hpv').textContent=G.hp+'/'+G.mHP;
+  document.getElementById('dh-mpf').style.width=(G.mp/G.mMP*100)+'%';
+  document.getElementById('dh-mpv').textContent=G.mp+'/'+G.mMP;
+  document.getElementById('dh-gold').textContent=G.gold+'G';
+  const pct = _dun.bossMhp>0 ? (_dun.bossHp/_dun.bossMhp*100) : 0;
+  document.getElementById('dh-barf').style.width=pct+'%';
+}
+
+/* ── 던전 배틀 로그 ── */
+function dunBlog(html) {
+  const el=document.getElementById('dh-blog');
+  if(!el) return;
+  el.innerHTML+=html+'<br>';
+  el.scrollTop=el.scrollHeight;
+}
+
+/* ── 던전 자동 전투 ── */
+function dunFight() {
+  if(!_dun.dungeon || _dun.bossHp<=0 || _dun.dead) return;
+  const boss = _dun.dungeon.boss;
+  // 플레이어 공격
+  const dmg = Math.max(1, tAtk()-boss.def+Math.floor(Math.random()*6)-2);
+  _dun.bossHp = Math.max(0, _dun.bossHp-dmg);
+  dunBlog(`<span class="ld">⚔️ ${boss.n}에게 ${dmg} 데미지! (HP ${_dun.bossHp}/${_dun.bossMhp})</span>`);
+  dunHud();
+  if(_dun.bossHp<=0){ dunBossDead(); return; }
+  // 보스 공격
+  const md = Math.max(1, boss.atk-tDef()+Math.floor(Math.random()*5)-2);
+  G.hp = Math.max(0, G.hp-md);
+  dunBlog(`<span class="ld">${boss.n}의 공격! -${md} HP</span>`);
+  dunHud();
+  if(G.hp<=0){
+    _dun.dead=true;
+    clearInterval(_dun.tick); clearInterval(_dun.timerInt);
+    dunBlog(`<span style="color:#ef4444">💀 ${boss.n}에게 쓰러졌습니다... 마을로 귀환합니다.</span>`);
+    saveG();
+    setTimeout(()=>{ G.hp=Math.floor(G.mHP*0.1); saveG(); goTown(); gwT('💀 던전에서 패배...'); },2200);
+  }
+}
+
+/* ── 보스 처치 ── */
+function dunBossDead() {
+  clearInterval(_dun.tick);
+  clearInterval(_dun.timerInt);
+  const dun = _dun.dungeon;
+  const m=Math.floor(_dun.timerSec/60), s=_dun.timerSec%60;
+  dunBlog(`<span style="color:#fbbf24;font-weight:700">👑 ${dun.boss.n} 처치! 클리어 시간: ${m}:${String(s).padStart(2,'0')}</span>`);
+
+  // 보상 계산
+  const goldMin=dun.rewards.g[0], goldMax=dun.rewards.g[1];
+  const expMin=dun.rewards.exp[0],  expMax=dun.rewards.exp[1];
+  const goldGain = goldMin + Math.floor(Math.random()*(goldMax-goldMin+1));
+  const expGain  = expMin  + Math.floor(Math.random()*(expMax-expMin+1));
+  G.gold += goldGain;
+  G.exp  += expGain;
+
+  // 레벨업 처리
+  let lvUp=0;
+  while(G.exp>=expNeed(G.lv)&&G.lv<50){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  if(lvUp>0){dunBlog(`<span style="color:#a855f7">🆙 레벨업! Lv.${G.lv}</span>`);const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
+
+  // 장비 드롭 (직업 맞는 것만)
+  const droppedItems=[];
+  const validDrops=DROPS.filter(d=>{
+    if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
+    return d.type!=='pot'&&d.type!=='mat';
+  });
+  // 희귀 90%
+  if(Math.random()<0.9){
+    const pool=validDrops.filter(d=>d.grade==='희귀');
+    if(pool.length){const it={...pool[Math.floor(Math.random()*pool.length)],qty:1,_id:Date.now()};G.inv.push(it);droppedItems.push(it);}
+  }
+  // 레어 50%
+  if(Math.random()<0.5){
+    const pool=validDrops.filter(d=>d.grade==='에픽');
+    if(pool.length){const it={...pool[Math.floor(Math.random()*pool.length)],qty:1,_id:Date.now()+1};G.inv.push(it);droppedItems.push(it);}
+  }
+  // 에픽 20%
+  if(Math.random()<0.2){
+    const pool=validDrops.filter(d=>d.grade==='에픽');
+    if(pool.length){const it={...pool[Math.floor(Math.random()*pool.length)],qty:1,_id:Date.now()+2};G.inv.push(it);droppedItems.push(it);}
+  }
+
+  saveG();
+  // 보상 결과 화면으로 이동
+  setTimeout(()=>showDunResult(dun, goldGain, expGain, droppedItems, lvUp), 1200);
+}
+
+/* ── 보상 결과 화면 ── */
+function showDunResult(dun, gold, exp, items, lvUp) {
+  gwSC('dun-result');
+  document.getElementById('dr-dunname').textContent = dun.name + ' 클리어!';
+  const GRADE_COL={'일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24'};
+  let html = '';
+  // 골드/경험치
+  html += `<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:24px">💰</span>
+    <div><div style="font-size:13px;color:#fbbf24;font-family:'Orbitron',sans-serif;font-weight:700">+${gold.toLocaleString()} G</div>
+    <div style="font-size:10px;color:#64748b">골드 획득</div></div>
+  </div>`;
+  html += `<div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:24px">⭐</span>
+    <div><div style="font-size:13px;color:#a855f7;font-family:'Orbitron',sans-serif;font-weight:700">+${exp.toLocaleString()} EXP</div>
+    <div style="font-size:10px;color:#64748b">경험치 획득${lvUp>0?' · 레벨업 '+lvUp+'회':''}</div></div>
+  </div>`;
+  // 드롭 아이템
+  if(items.length>0){
+    html += `<div style="font-size:10px;color:#94a3b8;font-family:'Orbitron',sans-serif;margin-top:4px;margin-bottom:2px;">🎁 획득 장비</div>`;
+    items.forEach(it=>{
+      const gc=GRADE_COL[it.grade]||'#94a3b8';
+      html+=`<div style="background:${gc}11;border:1px solid ${gc}33;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px">${it.e}</span>
+        <div><div style="font-size:12px;font-weight:700;color:${gc}">${it.n}</div>
+        <div style="font-size:9px;color:#64748b">${it.grade} · ${it.atk?'ATK +'+it.atk:''}${it.def?' DEF +'+it.def:''}</div></div>
+      </div>`;
+    });
+  } else {
+    html += `<div style="font-size:11px;color:#475569;text-align:center;padding:8px;">장비 드롭 없음</div>`;
+  }
+  document.getElementById('dr-body').innerHTML = html;
+  hud();
+}
+
+function dungeonResultClose(){ goTown(); }
+
+/* ── 던전 철수 ── */
+function dungeonRetreat(){
+  clearInterval(_dun.tick);
+  clearInterval(_dun.timerInt);
+  _dun.dungeon=null;
+  G.buffs={};saveG();goTown();
+  gwT('🏃 던전에서 철수했습니다.');
+}
+
+/* ── 던전 포션 사용 ── */
+function usePotInDungeon(eff){
+  const pot=G.inv.find(i=>i.type==='pot'&&i.eff===eff);
+  if(!pot){ gwT(eff==='hp'?'💚 HP 포션 없음':'💧 MP 포션 없음'); return; }
+  if(eff==='hp'){
+    if(G.hp>=G.mHP){gwT('HP가 이미 가득 찼습니다!');return;}
+    const h=Math.min(pot.val,G.mHP-G.hp);G.hp+=h;
+    dunBlog(`<span style="color:#4ade80">💚 HP 포션 사용! +${h} HP</span>`);gwT(`💚 HP +${h}`);
+  } else {
+    if(G.mp>=G.mMP){gwT('MP가 이미 가득 찼습니다!');return;}
+    const m2=Math.min(pot.val,G.mMP-G.mp);G.mp+=m2;
+    dunBlog(`<span style="color:#60a5fa">💧 MP 포션 사용! +${m2} MP</span>`);gwT(`💧 MP +${m2}`);
+  }
+  pot.qty--;if(pot.qty<=0)G.inv.splice(G.inv.indexOf(pot),1);
+  dunHud();saveG();updateDunPotBar();
+}
+
+function updateDunPotBar(){
+  const hp=G.inv.filter(i=>i.type==='pot'&&i.eff==='hp').reduce((s,i)=>s+(i.qty||1),0);
+  const mp=G.inv.filter(i=>i.type==='pot'&&i.eff==='mp').reduce((s,i)=>s+(i.qty||1),0);
+  const hel=document.getElementById('dpot-hp-count');
+  const mel=document.getElementById('dpot-mp-count');
+  if(hel)hel.textContent='×'+hp;
+  if(mel)mel.textContent='×'+mp;
+  const hb=document.getElementById('dpot-hp-btn');
+  const mb=document.getElementById('dpot-mp-btn');
+  if(hb)hb.style.opacity=hp>0?'1':'0.4';
+  if(mb)mb.style.opacity=mp>0?'1':'0.4';
+}
+
+/* ── 던전 스킬 버튼 렌더 ── */
+function renderDunSkills(){
+  const el=document.getElementById('dh-skbtns');
+  if(!el)return;
+  const job=JOBS[G.job];if(!job)return;
+  const skList=job.skills.filter(s=>G.lv>=s.lv);
+  el.innerHTML=skList.map(sk=>`
+    <button class="gw-sk-btn" id="dsk-${sk.id}"
+      onclick="useDunSkill('${sk.id}')"
+      style="opacity:1">
+      <div style="font-size:9px;font-weight:700">${sk.name}</div>
+      <div style="font-size:8px;color:#94a3b8">${sk.mp}MP</div>
+    </button>`).join('');
+}
+
+function useDunSkill(skId){
+  const job=JOBS[G.job];
+  const sk=job?.skills.find(s=>s.id===skId);
+  if(!sk||G.mp<sk.mp){gwT('MP 부족!');return;}
+  G.mp=Math.max(0,G.mp-sk.mp);
+  if(sk.eff==='single'){
+    const dmg=Math.max(1,Math.floor(tAtk()*sk.dmg)-_dun.dungeon.boss.def);
+    _dun.bossHp=Math.max(0,_dun.bossHp-dmg);
+    dunBlog(`<span style="color:#a855f7">✨ ${sk.name}! ${_dun.dungeon.boss.n}에게 ${dmg} 피해!</span>`);
+  } else if(sk.eff==='def_buff'){
+    G.buffs.def_buff={t:5};
+    dunBlog(`<span style="color:#60a5fa">🛡️ ${sk.name}! 5초간 방어력 강화!</span>`);
+  } else if(sk.eff==='heal'){
+    const h=Math.min(Math.floor(G.mHP*sk.dmg),G.mHP-G.hp);G.hp+=h;
+    dunBlog(`<span style="color:#4ade80">💚 ${sk.name}! HP +${h}</span>`);
+  }
+  dunHud();saveG();
+  if(_dun.bossHp<=0){dunBossDead();}
+}
+
+/* ── 던전 캔버스 애니메이션 ── */
+let _dunAnimFrame=null;
+function startDunAnim(){
+  if(_dunAnimFrame) cancelAnimationFrame(_dunAnimFrame);
+  function loop(){
+    const cv=document.getElementById('dh-cv');
+    if(cv&&G.sc==='dungeon'){drawBossBattle(cv); _dunAnimFrame=requestAnimationFrame(loop);}
+  }
+  _dunAnimFrame=requestAnimationFrame(loop);
+}
+
+function drawBossBattle(cv){
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  if(!W||!H)return;
+  ctx.clearRect(0,0,W,H);
+  // 배경 - 던전 느낌
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#0d0718');bg.addColorStop(1,'#1a0a2e');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  // 던전 바닥 패턴
+  ctx.fillStyle='rgba(124,58,237,.06)';
+  for(let x=0;x<W;x+=40){ctx.fillRect(x,H*0.7,1,H*0.3);}
+  ctx.fillStyle='rgba(124,58,237,.06)';
+  ctx.fillRect(0,Math.floor(H*0.7),W,2);
+  // 보스 그리기
+  if(_dun.dungeon){
+    const bossX=W*0.62,bossY=H*0.5;
+    // 보스 이모지 + 체력 반응
+    const pct=_dun.bossHp/_dun.bossMhp;
+    const sz=Math.floor(H*0.38);
+    ctx.font=`${sz}px serif`;
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    // HP 낮을수록 빨간 글로우
+    if(pct<0.3){ctx.shadowColor='#ef4444';ctx.shadowBlur=20;}
+    else if(pct<0.6){ctx.shadowColor='#f97316';ctx.shadowBlur=10;}
+    else{ctx.shadowColor='rgba(124,58,237,.5)';ctx.shadowBlur=8;}
+    ctx.fillText(_dun.dungeon.boss.e,bossX,bossY);
+    ctx.shadowBlur=0;
+  }
+  // 플레이어 그리기 (작게, 왼쪽)
+  const plX=W*0.22,plY=H*0.55;
+  const psz=Math.floor(H*0.28);
+  ctx.font=`${psz}px serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(JOBS[G.job]?.emoji||'⚔️',plX,plY);
+}
+// ════ 던전 시스템 끝 ════
+
 // ════ 포션 상점 끝 ════
 
 function resetChar(){if(!confirm('캐릭터를 초기화하시겠습니까?'))return;gSet('save',null);location.reload();}
