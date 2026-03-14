@@ -1123,8 +1123,8 @@ const MP_BANNER_ITEMS = {
 
 // ── 사이드바 아바타 초기화 (아이콘 + 이름효과) ──
 function initSidebarProfile() {
-  const username   = localStorage.getItem('ggo_username') || '';
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const username   = sessionStorage.getItem('ggo_username') || '';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   const av = document.getElementById('sidebar-avatar');
   if(!av) return;
 
@@ -1234,22 +1234,22 @@ function toggleSidebarBox(e) {
   e.stopPropagation();
   const box = document.getElementById('logout-box');
   if(!box) return;
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   if(!isLoggedIn) { location.href='login.html'; return; }
   box.style.display = box.style.display==='none' ? 'block' : 'none';
-  const username = localStorage.getItem('ggo_username') || '';
+  const username = sessionStorage.getItem('ggo_username') || '';
   const nameEl = document.getElementById('logout-user-name');
   if(nameEl) nameEl.textContent = username + ' 님';
 }
 
 function doSidebarLogout() {
-  localStorage.removeItem('ggo_logged_in');
-  localStorage.removeItem('ggo_username');
+  sessionStorage.removeItem('ggo_logged_in');
+  sessionStorage.removeItem('ggo_username');
   location.href = 'index.html';
 }
 
 function goSidebarMyPage() {
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   if(!isLoggedIn) { location.href='login.html'; return; }
   location.href = 'mypage.html';
 }
@@ -1289,7 +1289,7 @@ function scBackspace(e, el, prevId) {
 }
 
 async function submitSidebarCoupon() {
-  const username = localStorage.getItem('ggo_username') || '';
+  const username = sessionStorage.getItem('ggo_username') || '';
   if(!username) { location.href='login.html'; return; }
   const a = (document.getElementById('sc-coupon-a')?.value||'').trim().toUpperCase();
   const b = (document.getElementById('sc-coupon-b')?.value||'').trim().toUpperCase();
