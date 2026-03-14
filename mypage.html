@@ -719,7 +719,7 @@
 
   function renderDecoLevel(items) {
     // 누적 EXP 우선 (삭제해도 EXP 보존)
-    const username = localStorage.getItem('ggo_username')||'';
+    const username = sessionStorage.getItem('ggo_username')||'';
     const savedExp = parseInt(localStorage.getItem('ggo_deco_exp_'+username)||'0');
     const EXP_MAP2 = {일반:100,희귀:300,에픽:500,전설:1000};
     const curExp   = items.reduce((s,it)=>s+(EXP_MAP2[it.grade]||0),0);
@@ -827,7 +827,7 @@
   });
 
   function saveItems(items) {
-    const username = localStorage.getItem('ggo_username')||'';
+    const username = sessionStorage.getItem('ggo_username')||'';
     // EXP는 보존 — 별도 누적 저장
     const expKey = 'ggo_deco_exp_'+username;
     const EXP_MAP = {일반:100,희귀:300,에픽:500,전설:1000};
@@ -841,7 +841,7 @@
 
   function equipItem(idx, e) {
     e.stopPropagation();
-    const username = localStorage.getItem('ggo_username')||'';
+    const username = sessionStorage.getItem('ggo_username')||'';
     const items = JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
     if(!items[idx]) return;
     const type = items[idx].type;
@@ -860,7 +860,7 @@
 
   function unequipItem(idx, e) {
     e.stopPropagation();
-    const username = localStorage.getItem('ggo_username')||'';
+    const username = sessionStorage.getItem('ggo_username')||'';
     const items = JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
     if(!items[idx]) return;
     items[idx].equipped = false;
@@ -875,7 +875,7 @@
   function deleteItem(idx, e) {
     e.stopPropagation();
     if(!confirm('아이템을 삭제하시겠습니까?\n획득한 꾸미기 EXP는 유지됩니다.')) return;
-    const username = localStorage.getItem('ggo_username')||'';
+    const username = sessionStorage.getItem('ggo_username')||'';
     const items = JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
     items.splice(idx,1);
     saveItems(items);
@@ -1768,7 +1768,7 @@
           }
         }
       } else {
-        const u = localStorage.getItem('ggo_username')||'';
+        const u = sessionStorage.getItem('ggo_username')||'';
         avatarEl.innerHTML = u.charAt(0).toUpperCase()||'?';
         avatarEl.style.background  = 'linear-gradient(135deg,var(--purple-1),var(--purple-2))';
         avatarEl.style.fontSize    = '';
@@ -1939,8 +1939,8 @@
 
   async function loadMyPage() {
     // 로그인 체크
-    const username = localStorage.getItem('ggo_username');
-    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    const username = sessionStorage.getItem('ggo_username');
+    const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
     if(!isLoggedIn || !username) { location.href='login.html'; return; }
 
     try {
@@ -2023,7 +2023,7 @@
   ];
 
   function collectAllSyncData() {
-    const username = localStorage.getItem('ggo_username') || '';
+    const username = sessionStorage.getItem('ggo_username') || '';
     const data = {
       _v: 2,
       _username: username,
@@ -2126,7 +2126,7 @@
     }
 
     // 현재 로그인된 username
-    const currentUN = localStorage.getItem('ggo_username') || '';
+    const currentUN = sessionStorage.getItem('ggo_username') || '';
     const sourceUN  = data._username;
 
     // username이 다를 경우: 키를 현재 username으로 교체해서 저장
