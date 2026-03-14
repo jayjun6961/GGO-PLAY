@@ -583,6 +583,19 @@
   </div>
 </div>
 
+<!-- 패널: 월드 보스 -->
+<div class="gw-pov" id="gw-pwb" onclick="if(event.target===this)closeP('gw-pwb')">
+  <div class="gw-pbox" style="max-width:420px;width:100%">
+    <div class="gw-phdr">
+      <div class="gw-pttl">👻 월드 보스</div>
+      <button class="gw-px" onclick="closeP('gw-pwb')">✕</button>
+    </div>
+    <div class="gw-pbdy" id="gw-wbbody" style="padding:14px;max-height:500px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+
+
 
 
 
@@ -674,6 +687,7 @@
         <div class="gw-act" onclick="showDungeonSelect()"><div class="gw-act-ico">🏯</div><div class="gw-act-lbl">던전 입장</div></div>
         <div class="gw-act" onclick="openDojo()"><div class="gw-act-ico">🎯</div><div class="gw-act-lbl">도장</div></div>
         <div class="gw-act" onclick="openCashShop()"><div class="gw-act-ico">💠</div><div class="gw-act-lbl">캐시 상점</div></div>
+        <div class="gw-act" onclick="openWorldBoss()"><div class="gw-act-ico">👻</div><div class="gw-act-lbl">월드 보스</div></div>
         <div class="gw-act" onclick="resetChar()" style="border-color:rgba(239,68,68,.15)"><div class="gw-act-ico">🔄</div><div class="gw-act-lbl">초기화</div></div>
       </div>
     </div>
@@ -1401,6 +1415,7 @@ function drawJobChar(cv,jid){
 
 // ═══ 마을 ═══
 function goTown(){
+  if(!window._WB_DROPS) window._WB_DROPS = typeof DROPS !== 'undefined' ? DROPS : [];
   gwSC('town');
   setTimeout(()=>{
     const cv=document.getElementById('gw-tcv');
@@ -1616,6 +1631,7 @@ function renderP(id){
   if(id==='gw-pdungeon') renderDungeonSelect();
   if(id==='gw-pdojo')    renderDojoEnter();
   if(id==='gw-pcash')    renderCashShop();
+  if(id==='gw-pwb')      renderWorldBoss();
 }
 
 // ── 장비 보너스 합산 ──
@@ -3170,6 +3186,388 @@ function buyCashItem(itemId) {
   renderCashShop();
 }
 // ════ 캐시 상점 끝 ════
+
+// ════════════════════════════════════════
+// 월드 보스 시스템
+// ════════════════════════════════════════
+const WB_NAME       = '유령기사 발드릭스';
+const WB_EMOJI      = '👻';
+const WB_MIN_LV     = 50;
+const WB_MAX_PARTY  = 5;
+
+// 공유 저장소 키 (날짜+파티번호 기반)
+const _wbKey  = k => 'gwo_wb_' + k;
+const _wbGet  = k => { try{ return JSON.parse(localStorage.getItem(_wbKey(k))||'null'); }catch{return null;} };
+const _wbSet  = (k,v) => localStorage.setItem(_wbKey(k), JSON.stringify(v));
+
+// 오늘 날짜 키 (YYYY-MM-DD)
+function wbTodayKey() {
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// 자정이 지났는지 (보상 수령 가능 시간)
+// 참가일 기준: 참가한 날 자정(다음날 00:00) 이후 보상 수령
+function wbCanClaim(joinDate) {
+  if(!joinDate) return false;
+  const now   = new Date();
+  const today = wbTodayKey();
+  // 어제 이전에 참가했으면 수령 가능
+  return joinDate < today;
+}
+
+// 이 유저가 오늘 참가한 파티 정보 반환
+function wbGetMyParty(username) {
+  const today = wbTodayKey();
+  // 파티0, 파티1, 파티2... 순서로 확인
+  for(let i = 0; i < 20; i++) {
+    const party = _wbGet('party_' + today + '_' + i);
+    if(!party) break;
+    if(party.members.some(m => m.user === username)) return { party, idx: i, date: today };
+  }
+  return null;
+}
+
+// 어제 참가한 파티 (보상 수령용)
+function wbGetYesterdayParty(username) {
+  const d = new Date(Date.now() - 86400000);
+  const yesterday = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  for(let i = 0; i < 20; i++) {
+    const party = _wbGet('party_' + yesterday + '_' + i);
+    if(!party) break;
+    if(party.members.some(m => m.user === username)) return { party, idx: i, date: yesterday };
+  }
+  return null;
+}
+
+// 오늘 참가 가능한 빈 파티 찾기 (5인 미만)
+function wbFindOpenParty() {
+  const today = wbTodayKey();
+  for(let i = 0; i < 20; i++) {
+    const party = _wbGet('party_' + today + '_' + i);
+    if(!party) return i;                         // 빈 파티 슬롯
+    if(party.members.length < WB_MAX_PARTY) return i;  // 자리 있는 파티
+  }
+  return -1;
+}
+
+/* ── 월드 보스 패널 열기 ── */
+function openWorldBoss() {
+  renderWorldBoss();
+  openP('gw-pwb');
+}
+
+/* ── 월드 보스 패널 렌더 ── */
+function renderWorldBoss() {
+  const el = document.getElementById('gw-wbbody');
+  if(!el) return;
+  const username = gwUN();
+  const today    = wbTodayKey();
+  const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+
+  // 보스 헤더
+  let html = `
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-size:44px;line-height:1;margin-bottom:6px;">${WB_EMOJI}</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:15px;font-weight:900;color:#ef4444;">${WB_NAME}</div>
+      <div style="font-size:10px;color:#64748b;margin-top:4px;font-family:'Noto Sans KR',sans-serif;">
+        최대 ${WB_MAX_PARTY}인 파티 · 입장 제한 Lv.${WB_MIN_LV} · 하루 1회
+      </div>
+    </div>`;
+
+  // 레벨 체크
+  if(G.lv < WB_MIN_LV) {
+    html += `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px;text-align:center;color:#f87171;font-size:12px;font-family:'Noto Sans KR',sans-serif;">
+      🔒 Lv.${WB_MIN_LV} 이상부터 참가 가능합니다.<br>
+      <span style="font-size:10px;color:#64748b">(현재 레벨: ${G.lv})</span>
+    </div>`;
+    el.innerHTML = html;
+    return;
+  }
+
+  // 보상 수령 가능 확인 (어제 참가 + 자정 지남)
+  const yestParty = wbGetYesterdayParty(username);
+  const claimKey  = _wbKey('claimed_' + (yestParty?.date||'') + '_' + username);
+  if(yestParty && !localStorage.getItem(claimKey)) {
+    html += renderWbClaimSection(username, yestParty);
+    el.innerHTML = html;
+    return;
+  }
+
+  // 오늘 이미 참가중인지 확인
+  const myParty = wbGetMyParty(username);
+  if(myParty) {
+    html += renderWbPartyStatus(myParty.party, myParty.idx, username);
+    el.innerHTML = html;
+    return;
+  }
+
+  // 참가 가능 → 현재 모집중인 파티들 표시 + 참가 버튼
+  html += renderWbJoinSection(username);
+  el.innerHTML = html;
+}
+
+/* ── 파티 참가 섹션 ── */
+function renderWbJoinSection(username) {
+  const today = wbTodayKey();
+  const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+  let html = '';
+
+  // 현재 모집중 파티 목록
+  let parties = [];
+  for(let i = 0; i < 20; i++) {
+    const p = _wbGet('party_' + today + '_' + i);
+    if(!p) break;
+    if(p.members.length < WB_MAX_PARTY) parties.push({p, i});
+  }
+
+  if(parties.length > 0) {
+    html += `<div style="font-size:10px;color:#94a3b8;font-family:'Orbitron',sans-serif;margin-bottom:8px;">📋 모집중인 파티</div>`;
+    parties.forEach(({p, i}) => {
+      html += `<div style="background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.18);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div style="flex:1;">
+          <div style="font-size:10px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:4px;">파티 ${i+1} · ${p.members.length}/${WB_MAX_PARTY}명</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            ${p.members.map(m=>`<span style="font-size:10px;background:rgba(124,58,237,.15);border-radius:6px;padding:2px 6px;color:#c084fc;">${JOB_EMOJI[m.job]||'?'} ${m.user}</span>`).join('')}
+          </div>
+        </div>
+        <button onclick="wbJoinParty(${i})"
+          style="flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;
+            color:#fff;padding:6px 14px;border-radius:8px;font-size:11px;font-family:'Orbitron',sans-serif;cursor:pointer;white-space:nowrap;">
+          참가
+        </button>
+      </div>`;
+    });
+  }
+
+  // 새 파티 시작 버튼
+  html += `<button onclick="wbJoinParty(-1)"
+    style="width:100%;margin-top:8px;background:linear-gradient(135deg,#ef4444,#dc2626);
+      border:1px solid #f87171;color:#fff;padding:13px;border-radius:12px;
+      font-size:13px;font-weight:700;font-family:'Orbitron',sans-serif;cursor:pointer;">
+    ⚔️ ${parties.length>0?'새 파티 구성':'파티 구성 및 파견'}
+  </button>`;
+  return html;
+}
+
+/* ── 파티 현황 표시 ── */
+function renderWbPartyStatus(party, idx, username) {
+  const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+  const joinTime  = new Date(party.createdAt||Date.now()).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  let html = `
+    <div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px;margin-bottom:12px;">
+      <div style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:#ef4444;margin-bottom:8px;">
+        ⚔️ 파티 ${idx+1} — 파견 중
+      </div>
+      <div style="font-size:10px;color:#64748b;margin-bottom:10px;font-family:'Noto Sans KR',sans-serif;">
+        파견 시작: ${joinTime} · 자정(00:00) 이후 보상 수령 가능
+      </div>
+      <div style="display:grid;gap:6px;">
+        ${party.members.map((m,i)=>`
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(124,58,237,.08);border-radius:8px;padding:7px 10px;">
+            <span style="font-size:16px">${JOB_EMOJI[m.job]||'?'}</span>
+            <div style="flex:1">
+              <div style="font-size:11px;font-weight:700;color:${m.user===username?'#c084fc':'#e2e8f0'}">${m.user}${m.user===username?' ✦':''}</div>
+              <div style="font-size:9px;color:#64748b">${['전사','궁수','마법사','도적','성기사'][['warrior','archer','mage','rogue','paladin'].indexOf(m.job)]||m.job}</div>
+            </div>
+            <span style="font-size:9px;color:#34d399">Lv.${m.lv||'?'}</span>
+          </div>`).join('')}
+        ${Array(WB_MAX_PARTY-party.members.length).fill(0).map(()=>`
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(71,85,105,.06);border:1px dashed #374151;border-radius:8px;padding:7px 10px;">
+            <span style="font-size:14px;color:#374151">👤</span>
+            <span style="font-size:10px;color:#374151">빈 자리</span>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div style="font-size:11px;color:#64748b;text-align:center;font-family:'Noto Sans KR',sans-serif;">
+      자정 이후 이 화면에서 보상을 수령할 수 있습니다.
+    </div>`;
+  return html;
+}
+
+/* ── 보상 수령 섹션 ── */
+function renderWbClaimSection(username, partyInfo) {
+  const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+  return `
+    <div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.3);border-radius:14px;padding:16px;text-align:center;margin-bottom:12px;">
+      <div style="font-size:28px;margin-bottom:6px;">🏆</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:4px;">${WB_NAME} 토벌 완료!</div>
+      <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:12px;">
+        파티원 ${partyInfo.party.members.length}명이 토벌에 참여했습니다.
+      </div>
+      <button onclick="wbClaimReward('${partyInfo.date}')"
+        style="background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;color:#000;
+          padding:12px 32px;border-radius:10px;font-size:13px;font-weight:700;
+          font-family:'Orbitron',sans-serif;cursor:pointer;">
+        🎁 보상 수령하기
+      </button>
+    </div>`;
+}
+
+/* ── 파티 참가 ── */
+function wbJoinParty(partyIdx) {
+  const username = gwUN();
+  if(!username || username==='_g') { gwT('로그인이 필요합니다.'); return; }
+  if(G.lv < WB_MIN_LV) { gwT(`🔒 Lv.${WB_MIN_LV} 이상부터 참가 가능합니다.`); return; }
+
+  const today = wbTodayKey();
+  // 이미 오늘 참가했는지
+  if(wbGetMyParty(username)) { gwT('오늘 이미 파견에 참가했습니다.'); return; }
+
+  // 파티 인덱스 결정
+  let idx = partyIdx;
+  if(idx < 0) idx = wbFindOpenParty();
+  if(idx < 0) { gwT('참가 가능한 파티가 없습니다.'); return; }
+
+  const partyKey = 'party_' + today + '_' + idx;
+  const party    = _wbGet(partyKey) || { members: [], createdAt: Date.now() };
+
+  if(party.members.length >= WB_MAX_PARTY) { gwT('파티 정원이 가득 찼습니다.'); return; }
+  if(party.members.some(m=>m.user===username)) { gwT('이미 이 파티에 참가중입니다.'); return; }
+
+  party.members.push({ user:username, job:G.job, lv:G.lv, joinAt:Date.now() });
+  _wbSet(partyKey, party);
+
+  gwT(`👻 파티 ${idx+1}에 참가! 자정 이후 보상 수령 가능합니다.`);
+  renderWorldBoss();
+}
+
+/* ── 보상 수령 ── */
+function wbClaimReward(date) {
+  const username = gwUN();
+  if(!username||username==='_g') return;
+
+  const claimKey = _wbKey('claimed_' + date + '_' + username);
+  if(localStorage.getItem(claimKey)) { gwT('이미 보상을 수령했습니다.'); return; }
+  localStorage.setItem(claimKey, '1');
+
+  // 보상 계산 (username 기반 시드로 랜덤)
+  const seed    = username.split('').reduce((s,c)=>s+c.charCodeAt(0),0) + new Date(date).getTime();
+  const rng     = (n=>{let s=seed+n; s^=s<<13;s^=s>>7;s^=s<<17; return (s>>>0)/0xffffffff;}); // 간단 xorshift
+
+  const gold    = 2000 + Math.floor(rng(1)*3000);   // 2000~5000
+  const exp     = 1500 + Math.floor(rng(2)*2500);   // 1500~4000
+  const stones  = 3    + Math.floor(rng(3)*5);       // 3~7개
+
+  G.gold += gold;
+  G.exp  += exp;
+  // 레벨업
+  let lvUp=0;
+  while(G.exp>=expNeed(G.lv)&&G.lv<50){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  if(lvUp>0){const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
+
+  // 마법석
+  const stEx = G.inv.find(i=>i.n==='마법석');
+  if(stEx) stEx.qty=(stEx.qty||1)+stones;
+  else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:stones,_id:Date.now()});
+
+  // 장비 드롭 (7슬롯 각각 독립 확률)
+  const droppedGear = [];
+  const WB_SLOTS = ['weapon','shield','armor','boots','gloves'];
+  const WB_ACC   = ['necklace','ring'];
+  const JOB_MAP  = {warrior:['warrior','paladin'],archer:['archer'],mage:['mage'],rogue:['rogue'],paladin:['paladin','warrior']};
+
+  function wbPickGrade(rngN, isAcc) {
+    const r = rng(rngN);
+    if(isAcc){
+      if(r<0.35) return '일반';
+      if(r<0.65) return '희귀';
+      if(r<0.85) return '레어';
+      if(r<0.95) return '에픽';
+      return '전설';
+    } else {
+      if(r<0.50) return '희귀';
+      if(r<0.80) return '레어';
+      if(r<0.95) return '에픽';
+      return '전설';
+    }
+  }
+
+  const drops_start = 10;
+  // 일반 장비 슬롯 (weapon~gloves): 각 40% 확률
+  WB_SLOTS.forEach((slot,si) => {
+    if(rng(drops_start+si) > 0.40) return;
+    const grade = wbPickGrade(drops_start+si+100, false);
+    let pool;
+    if(slot==='weapon'){
+      const allowed = JOB_MAP[G.job]||[];
+      pool = window._WB_DROPS.filter(d=>d.type==='weapon'&&d.grade===grade&&d.jobType&&d.jobType.some(j=>allowed.includes(j)));
+    } else {
+      pool = window._WB_DROPS.filter(d=>d.type===slot&&d.grade===grade);
+    }
+    if(pool.length){
+      const it={...pool[Math.floor(rng(drops_start+si+200)*pool.length)],qty:1,_id:Date.now()+si};
+      G.inv.push(it); droppedGear.push(it);
+    }
+  });
+
+  // 목걸이/반지: 각 60% 확률 (월드보스 전용)
+  WB_ACC.forEach((sub,si) => {
+    if(rng(drops_start+10+si) > 0.60) return;
+    const grade = wbPickGrade(drops_start+10+si+100, true);
+    const pool  = window._WB_DROPS.filter(d=>d.type==='accessory'&&d.subType===sub&&d.grade===grade);
+    if(pool.length){
+      const it={...pool[Math.floor(rng(drops_start+10+si+200)*pool.length)],qty:1,_id:Date.now()+10+si};
+      G.inv.push(it); droppedGear.push(it);
+    }
+  });
+
+  saveG();
+  showWbResult(gold, exp, stones, droppedGear, lvUp);
+}
+
+/* ── 보상 결과 화면 ── */
+function showWbResult(gold, exp, stones, gear, lvUp) {
+  const GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+  const el = document.getElementById('gw-wbbody');
+  if(!el) return;
+
+  let html = `
+    <div style="text-align:center;margin-bottom:12px;">
+      <div style="font-size:28px">🏆</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;color:#fbbf24;">${WB_NAME}</div>
+      <div style="font-size:10px;color:#34d399;font-family:'Noto Sans KR',sans-serif;">토벌 보상</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px;">
+      <div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:#94a3b8">💰 골드</span>
+        <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#fbbf24;">+${gold.toLocaleString()} G</span>
+      </div>
+      <div style="background:rgba(168,85,247,.07);border:1px solid rgba(168,85,247,.2);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:#94a3b8">⭐ 경험치</span>
+        <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#a855f7;">+${exp.toLocaleString()} EXP${lvUp>0?' (Lv.Up ×'+lvUp+')':''}</span>
+      </div>
+      <div style="background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.2);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:#94a3b8">💎 마법석</span>
+        <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#34d399;">+${stones}개</span>
+      </div>
+    </div>`;
+
+  if(gear.length > 0) {
+    html += `<div style="font-size:10px;color:#94a3b8;font-family:'Orbitron',sans-serif;margin-bottom:6px;">🎁 획득 장비</div>`;
+    gear.forEach(it=>{
+      const gc = GRADE_COL[it.grade]||'#94a3b8';
+      const stats = [it.atk?'ATK+'+it.atk:'', it.def?'DEF+'+it.def:'', it.spd?'SPD-'+it.spd:'ms', it.critRate?'CR+'+it.critRate+'%':'', it.critDmg?'CD+'+it.critDmg+'%':''].filter(Boolean).join(' ');
+      html += `<div style="background:${gc}11;border:1px solid ${gc}33;border-radius:10px;padding:9px 13px;margin-bottom:5px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px">${it.e}</span>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:${gc}">${it.n}</div>
+          <div style="font-size:9px;color:#64748b">${it.grade} · ${stats}</div>
+        </div>
+      </div>`;
+    });
+  } else {
+    html += `<div style="font-size:11px;color:#475569;text-align:center;padding:8px;">장비 드롭 없음</div>`;
+  }
+  html += `<button onclick="closeP('gw-pwb')" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:10px;border-radius:10px;font-size:12px;font-family:'Orbitron',sans-serif;cursor:pointer;">확인</button>`;
+  el.innerHTML = html;
+  hud();
+}
+
+// DROPS 참조용 (월드보스 드롭 풀)
+window._WB_DROPS = null;
+// ════ 월드 보스 시스템 끝 ════
+
 
 
 
