@@ -1960,6 +1960,27 @@
     .lb-score { font-size: 11px !important; }
     .lb-rank-title { font-size: 8px !important; padding: 1px 4px !important; }
   }
+
+  /* ── 이름 효과 애니메이션 ── */
+  @keyframes legendaryFlow {
+    0%,100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+  @keyframes nameFlow {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+  @keyframes s7NameFlow {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+  .lb-name-shimmer {
+    animation: legendaryFlow 3s ease infinite;
+    background-size: 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 </style>
 </head>
 <body>
@@ -2243,19 +2264,24 @@
 
         // ── 테두리 ──
         let borderStyle = '';
+        let svgBorderHtml = '';
         if(borderItem) {
           if(borderItem.visualKey === '시즌7번들상자') {
             const s7b = MP_S7.테두리[borderItem._s7Idx||0];
-            if(s7b && s7b.isSvgBorder) borderStyle = `border:2px solid #ff4400;box-shadow:0 0 8px rgba(255,68,0,0.6);`;
-            else if(s7b) borderStyle = `border:2px solid transparent;box-shadow:${s7b.glow||''};`;
+            if(s7b && typeof s7b.svgBorder === 'function') {
+              svgBorderHtml = s7b.svgBorder(44, 36);
+              borderStyle = '';
+            } else if(s7b) {
+              borderStyle = `box-shadow:${s7b.glow||'0 0 6px rgba(124,58,237,0.6)'};`;
+            }
           } else {
             const bg  = borderItem.grade;
             const bbi = borderItem.itemIdx !== undefined ? borderItem.itemIdx : (borderItem.visualIdx||0);
             const bList = MP_BORDER_ITEMS[bg]||[];
             const br  = bList[bbi % (bList.length||1)];
             if(br) {
-              if(br.color)     borderStyle = `border:2px solid ${br.color};`;
-              else if(br.grad) borderStyle = `border:2px solid transparent;`;
+              if(br.color)     borderStyle = `box-shadow:0 0 0 2px ${br.color},0 0 8px ${br.color}55;`;
+              else if(br.grad) borderStyle = `box-shadow:0 0 0 2px transparent;`;
               if(br.glow)      borderStyle += `box-shadow:0 0 8px ${br.glow};`;
             }
           }
@@ -2288,7 +2314,7 @@
         hl += `<div class="lb-row tour-row ${i<3?'top'+(i+1):''}">
           <div class="lb-rank-num ${i<3?'r'+(i+1):''}">${i+1}</div>
           <div class="lb-nick">
-            <div class="lb-nick-avatar" style="background:${avatarBg};${borderStyle}${avatarExtra}">${avatarInner}</div>
+            <div class="lb-nick-avatar" style="background:${avatarBg};${borderStyle}${avatarExtra};position:relative;overflow:hidden;">${avatarInner}${svgBorderHtml}</div>
             <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
               <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">${nameHtml}${titleHtml}</div>
             </div>
