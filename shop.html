@@ -1871,19 +1871,19 @@ function parseCSV(txt) {
 }
 
 function getCurrency() {
-  const u = localStorage.getItem('ggo_username')||'';
+  const u = sessionStorage.getItem('ggo_username')||'';
   return JSON.parse(localStorage.getItem('ggo_currency_'+u)||'{"루비":0,"크리스탈":0,"GP":0}');
 }
 function saveCurrency(curr) {
-  const u = localStorage.getItem('ggo_username')||'';
+  const u = sessionStorage.getItem('ggo_username')||'';
   localStorage.setItem('ggo_currency_'+u, JSON.stringify(curr));
 }
 
 function updateCurrencyHUD() { renderCurrencyBar(); }
 
   function renderCurrencyBar() {
-  const isLoggedIn = localStorage.getItem('ggo_logged_in')==='true';
-  const username   = localStorage.getItem('ggo_username')||'';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in')==='true';
+  const username   = sessionStorage.getItem('ggo_username')||'';
   const el = document.getElementById('currency-bar-content');
   if(!isLoggedIn) {
     el.innerHTML = '<div class="login-notice-bar">🔐 <a onclick="location.href=\'login.html\'">로그인</a> 후 상자를 구매할 수 있습니다</div>';
@@ -1938,7 +1938,7 @@ function pickItem(boxKey, grade, allItems) {
 
 // 상자 카드 HTML 생성
 function buildBoxCard(boxDef, allItems) {
-  const isLoggedIn = localStorage.getItem('ggo_logged_in')==='true';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in')==='true';
   // 배너상자는 하드코딩 BANNER_ITEMS 사용, 나머지는 구글시트 데이터
   let boxItems;
   if(boxDef.key === '배너상자') {
@@ -2054,7 +2054,7 @@ function toggleContents(id) {
 }
 
 function buyBox(boxKey) {
-  const username = localStorage.getItem('ggo_username')||'';
+  const username = sessionStorage.getItem('ggo_username')||'';
   if(!username) { location.href='login.html'; return; }
 
   const boxDef = BOX_DEFS.find(b=>b.key===boxKey);
@@ -2291,7 +2291,7 @@ function updateExchangePreview(type) {
 }
 
 function doExchange(type) {
-  const username = localStorage.getItem('ggo_username');
+  const username = sessionStorage.getItem('ggo_username');
   if(!username) { alert('로그인 후 이용하세요.'); return; }
 
   const input   = document.getElementById(`ex-${type}-input`);
@@ -2468,7 +2468,7 @@ function toggleS7Contents() {
 
 // 시즌7 구매
 function buySeason7(currency) {
-  const username = localStorage.getItem('ggo_username');
+  const username = sessionStorage.getItem('ggo_username');
   if(!username) { location.href='login.html'; return; }
 
   const COST = 1000;
@@ -2660,7 +2660,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // ── 상점 구매 알림 저장 유틸 ──
   function addShopNotif(itemName, grade, boxName, isGP, gpAmt) {
-    const username = localStorage.getItem('ggo_username') || '';
+    const username = sessionStorage.getItem('ggo_username') || '';
     if(!username) return;
     const key = 'ggo_notifs_' + username;
     try {
@@ -3009,8 +3009,8 @@ const MP_BANNER_ITEMS = {
 
 // ── 사이드바 아바타 초기화 (아이콘 + 이름효과) ──
 function initSidebarProfile() {
-  const username   = localStorage.getItem('ggo_username') || '';
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const username   = sessionStorage.getItem('ggo_username') || '';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   const av = document.getElementById('sidebar-avatar');
   if(!av) return;
 
@@ -3120,22 +3120,22 @@ function toggleSidebarBox(e) {
   e.stopPropagation();
   const box = document.getElementById('logout-box');
   if(!box) return;
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   if(!isLoggedIn) { location.href='login.html'; return; }
   box.style.display = box.style.display==='none' ? 'block' : 'none';
-  const username = localStorage.getItem('ggo_username') || '';
+  const username = sessionStorage.getItem('ggo_username') || '';
   const nameEl = document.getElementById('logout-user-name');
   if(nameEl) nameEl.textContent = username + ' 님';
 }
 
 function doSidebarLogout() {
-  localStorage.removeItem('ggo_logged_in');
-  localStorage.removeItem('ggo_username');
+  sessionStorage.removeItem('ggo_logged_in');
+  sessionStorage.removeItem('ggo_username');
   location.href = 'index.html';
 }
 
 function goSidebarMyPage() {
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   if(!isLoggedIn) { location.href='login.html'; return; }
   location.href = 'mypage.html';
 }
@@ -3175,7 +3175,7 @@ function scBackspace(e, el, prevId) {
 }
 
 async function submitSidebarCoupon() {
-  const username = localStorage.getItem('ggo_username') || '';
+  const username = sessionStorage.getItem('ggo_username') || '';
   if(!username) { location.href='login.html'; return; }
   const a = (document.getElementById('sc-coupon-a')?.value||'').trim().toUpperCase();
   const b = (document.getElementById('sc-coupon-b')?.value||'').trim().toUpperCase();
