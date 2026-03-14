@@ -763,7 +763,7 @@ const DROPS = [
 function expNeed(lv){ return Math.floor(50*Math.pow(lv,1.5)); }
 
 // 스토리지
-const gwUN = ()=>localStorage.getItem('ggo_username')||'_g';
+const gwUN = ()=>sessionStorage.getItem('ggo_username')||'_g';
 const gKey = k=>'gwo_'+k+'_'+gwUN();
 const gGet = k=>{try{return JSON.parse(localStorage.getItem(gKey(k))||'null');}catch{return null;}};
 const gSet = (k,v)=>localStorage.setItem(gKey(k),JSON.stringify(v));
@@ -837,7 +837,7 @@ function hud(){
     if(lv)lv.textContent='Lv.'+G.lv;
     if(gd)gd.textContent=G.gold.toLocaleString()+'G';
   });
-  const jn=document.getElementById('gw-jnm');if(jn)jn.textContent=JOBS[G.job]?.name+' · '+(localStorage.getItem('ggo_username')||'');
+  const jn=document.getElementById('gw-jnm');if(jn)jn.textContent=JOBS[G.job]?.name+' · '+(sessionStorage.getItem('ggo_username')||'');
   const jn2=document.getElementById('gw-bjnm');if(jn2)jn2.textContent=JOBS[G.job]?.name;
   drawSkBtns();
 }
@@ -998,7 +998,7 @@ function drawTown(cv){
   const plyX=W*.38,plyY=H*.73;
   pxCharBig(ctx,plyX,plyY,JOBS[G.job]?.color||'#7c3aed',true);
   // 이름
-  const un=localStorage.getItem('ggo_username')||'';
+  const un=sessionStorage.getItem('ggo_username')||'';
   if(un){ctx.fillStyle='rgba(255,255,255,.7)';ctx.font='bold 8px Orbitron,monospace';ctx.textAlign='center';ctx.fillText(un,plyX,plyY-62);}
 }
 
@@ -1631,8 +1631,8 @@ let _gwTt=null;
 function gwT(msg){const t=document.getElementById('gw-toast');if(!t)return;clearTimeout(_gwTt);t.textContent=msg;t.classList.add('on');_gwTt=setTimeout(()=>t.classList.remove('on'),2400);}
 
 function initGW(){
-  const li=localStorage.getItem('ggo_logged_in')==='true';
-  const un=localStorage.getItem('ggo_username')||'';
+  const li=sessionStorage.getItem('ggo_logged_in')==='true';
+  const un=sessionStorage.getItem('ggo_username')||'';
   if(!li||!un){gwSC('login');return;}
   if(loadG())goTown();
   else{gwSC('intro');setTimeout(()=>{const cv=document.getElementById('gw-icv');if(cv){cv.width=cv.offsetWidth||320;cv.height=cv.offsetHeight||138;drawIntro(cv);}},40);}
@@ -2479,8 +2479,8 @@ const MP_BANNER_ITEMS = {
 
 // ── 사이드바 아바타 초기화 (아이콘 + 이름효과) ──
 function initSidebarProfile() {
-  const username   = localStorage.getItem('ggo_username') || '';
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const username   = sessionStorage.getItem('ggo_username') || '';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   const av = document.getElementById('sidebar-avatar');
   if(!av) return;
 
@@ -2590,22 +2590,22 @@ function toggleSidebarBox(e) {
   e.stopPropagation();
   const box = document.getElementById('logout-box');
   if(!box) return;
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   if(!isLoggedIn) { location.href='login.html'; return; }
   box.style.display = box.style.display==='none' ? 'block' : 'none';
-  const username = localStorage.getItem('ggo_username') || '';
+  const username = sessionStorage.getItem('ggo_username') || '';
   const nameEl = document.getElementById('logout-user-name');
   if(nameEl) nameEl.textContent = username + ' 님';
 }
 
 function doSidebarLogout() {
-  localStorage.removeItem('ggo_logged_in');
-  localStorage.removeItem('ggo_username');
+  sessionStorage.removeItem('ggo_logged_in');
+  sessionStorage.removeItem('ggo_username');
   location.href = 'index.html';
 }
 
 function goSidebarMyPage() {
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   if(!isLoggedIn) { location.href='login.html'; return; }
   location.href = 'mypage.html';
 }
@@ -2645,7 +2645,7 @@ function scBackspace(e, el, prevId) {
 }
 
 async function submitSidebarCoupon() {
-  const username = localStorage.getItem('ggo_username') || '';
+  const username = sessionStorage.getItem('ggo_username') || '';
   if(!username) { location.href='login.html'; return; }
   const a = (document.getElementById('sc-coupon-a')?.value||'').trim().toUpperCase();
   const b = (document.getElementById('sc-coupon-b')?.value||'').trim().toUpperCase();
