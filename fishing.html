@@ -775,7 +775,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   const STORAGE_MAX = 100;
 
   // ── storage key helpers ──
-  const un = () => localStorage.getItem('ggo_username') || '';
+  const un = () => sessionStorage.getItem('ggo_username') || '';
   const fKey  = k => 'ggo_fish_' + k + '_' + un();
   const getFS = k => { try{ return JSON.parse(localStorage.getItem(fKey(k)) || 'null'); }catch(e){return null;} };
   const setFS = (k,v) => localStorage.setItem(fKey(k), JSON.stringify(v));
@@ -1800,8 +1800,8 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   window.addEventListener('DOMContentLoaded', () => {
     initSidebarProfile();
 
-    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
-    const username   = localStorage.getItem('ggo_username') || '';
+    const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
+    const username   = sessionStorage.getItem('ggo_username') || '';
 
     if(!isLoggedIn || !username) {
       document.getElementById('fish-login-gate').style.display = 'flex';
@@ -2546,8 +2546,8 @@ const MP_BANNER_ITEMS = {
 
 // ── 사이드바 아바타 초기화 (아이콘 + 이름효과) ──
 function initSidebarProfile() {
-  const username   = localStorage.getItem('ggo_username') || '';
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const username   = sessionStorage.getItem('ggo_username') || '';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   const av = document.getElementById('sidebar-avatar');
   if(!av) return;
 
@@ -2657,22 +2657,22 @@ function toggleSidebarBox(e) {
   e.stopPropagation();
   const box = document.getElementById('logout-box');
   if(!box) return;
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   if(!isLoggedIn) { location.href='login.html'; return; }
   box.style.display = box.style.display==='none' ? 'block' : 'none';
-  const username = localStorage.getItem('ggo_username') || '';
+  const username = sessionStorage.getItem('ggo_username') || '';
   const nameEl = document.getElementById('logout-user-name');
   if(nameEl) nameEl.textContent = username + ' 님';
 }
 
 function doSidebarLogout() {
-  localStorage.removeItem('ggo_logged_in');
-  localStorage.removeItem('ggo_username');
+  sessionStorage.removeItem('ggo_logged_in');
+  sessionStorage.removeItem('ggo_username');
   location.href = 'index.html';
 }
 
 function goSidebarMyPage() {
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   if(!isLoggedIn) { location.href='login.html'; return; }
   location.href = 'mypage.html';
 }
@@ -2712,7 +2712,7 @@ function scBackspace(e, el, prevId) {
 }
 
 async function submitSidebarCoupon() {
-  const username = localStorage.getItem('ggo_username') || '';
+  const username = sessionStorage.getItem('ggo_username') || '';
   if(!username) { location.href='login.html'; return; }
   const a = (document.getElementById('sc-coupon-a')?.value||'').trim().toUpperCase();
   const b = (document.getElementById('sc-coupon-b')?.value||'').trim().toUpperCase();
