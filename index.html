@@ -2600,8 +2600,8 @@
   window.addEventListener('DOMContentLoaded', () => {
     initSidebarProfile();
     // 로그인 상태 체크
-    const username = localStorage.getItem('ggo_username');
-    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    const username = sessionStorage.getItem('ggo_username');
+    const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
     if(isLoggedIn && username) {
       document.getElementById('greet-name').textContent = username;
       document.getElementById('hero-login-btn').innerHTML = '👋 ' + username + ' 님';
@@ -2619,8 +2619,8 @@
   const CSV_MEMBER_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1765510409&single=true&output=csv';
 
   async function loadMyActivity() {
-    const username   = localStorage.getItem('ggo_username') || '';
-    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    const username   = sessionStorage.getItem('ggo_username') || '';
+    const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
 
     const totalEl = document.getElementById('activity-total');
     const bpEl    = document.getElementById('activity-bp');
@@ -2670,11 +2670,11 @@
   }
 
   function goLoginOrLogout() {
-    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
     if(isLoggedIn) {
       if(confirm('로그아웃 하시겠습니까?')) {
-        localStorage.removeItem('ggo_logged_in');
-        localStorage.removeItem('ggo_username');
+        sessionStorage.removeItem('ggo_logged_in');
+        sessionStorage.removeItem('ggo_username');
         location.reload();
       }
     } else {
@@ -2685,21 +2685,21 @@
   function _old_toggleLogoutBox(e) {
     e.stopPropagation();
     const box = document.getElementById('logout-box');
-    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
     if(!isLoggedIn) { location.href='login.html'; return; }
     box.style.display = box.style.display==='none' ? 'block' : 'none';
-    const username = localStorage.getItem('ggo_username') || '';
+    const username = sessionStorage.getItem('ggo_username') || '';
     document.getElementById('logout-user-name').textContent = username + ' 님';
   }
 
   function _old_doLogout() {
-    localStorage.removeItem('ggo_logged_in');
-    localStorage.removeItem('ggo_username');
+    sessionStorage.removeItem('ggo_logged_in');
+    sessionStorage.removeItem('ggo_username');
     location.reload();
   }
 
   function _old_goMyPage() {
-    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
     if(!isLoggedIn) { location.href='login.html'; return; }
     location.href='mypage.html';
   }
@@ -2719,7 +2719,7 @@
   const CURRENCY_COLORS = {루비:'#f87171', 크리스탈:'#60a5fa', GP:'#fbbf24'};
 
   function _old_openCouponModal() {
-    const isLoggedIn = localStorage.getItem('ggo_logged_in')==='true';
+    const isLoggedIn = sessionStorage.getItem('ggo_logged_in')==='true';
     if(!isLoggedIn){ location.href='login.html'; return; }
     ['coupon-a','coupon-b','coupon-c'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     setCouponMsg('','');
@@ -2753,7 +2753,7 @@
     const code = a+b+c;
     if(code.length!==12){ setCouponMsg('⚠️ 12자리를 모두 입력해주세요','#f472b6'); return; }
 
-    const username = localStorage.getItem('ggo_username')||'';
+    const username = sessionStorage.getItem('ggo_username')||'';
     const usedKey  = 'ggo_used_coupons_'+username;
     const used     = JSON.parse(localStorage.getItem(usedKey)||'[]');
     if(used.includes(code)){ setCouponMsg('⚠️ 이미 사용한 쿠폰입니다','#f472b6'); return; }
@@ -2805,7 +2805,7 @@
 // ════════════════════════════════════════
 
   // ── localStorage 키 ──
-  const NOTIF_KEY = () => 'ggo_notifs_' + (localStorage.getItem('ggo_username') || '_guest');
+  const NOTIF_KEY = () => 'ggo_notifs_' + (sessionStorage.getItem('ggo_username') || '_guest');
 
   function loadNotifs() {
     try { return JSON.parse(localStorage.getItem(NOTIF_KEY()) || '[]'); }
@@ -2944,7 +2944,7 @@
   // ── 상점 구매 알림 (shop.html에서 postMessage로 받거나 storage 이벤트) ──
   // shop.html 구매 시 NOTIF_KEY에 직접 추가 → 여기서 storage 이벤트 감지
   window.addEventListener('storage', (e) => {
-    const username = localStorage.getItem('ggo_username') || '';
+    const username = sessionStorage.getItem('ggo_username') || '';
     if(e.key === 'ggo_notifs_' + username) {
       refreshNotifBadge();
       if(_notifOpen) renderNotifList();
@@ -2952,11 +2952,11 @@
   });
 
   // ── 순위 알림: BP + 친선대회 점수 비교 ──
-  const _RANK_SNAPSHOT_KEY = () => 'ggo_rank_snap_' + (localStorage.getItem('ggo_username') || '_guest');
+  const _RANK_SNAPSHOT_KEY = () => 'ggo_rank_snap_' + (sessionStorage.getItem('ggo_username') || '_guest');
 
   async function checkRankChanges() {
-    const username = localStorage.getItem('ggo_username') || '';
-    if(!username || localStorage.getItem('ggo_logged_in') !== 'true') return;
+    const username = sessionStorage.getItem('ggo_username') || '';
+    if(!username || sessionStorage.getItem('ggo_logged_in') !== 'true') return;
 
     try {
       const [resBP, resTour] = await Promise.all([
@@ -3052,8 +3052,8 @@
 
   // ── 초기화 ──
   async function initNotifications() {
-    const username = localStorage.getItem('ggo_username') || '';
-    if(!username || localStorage.getItem('ggo_logged_in') !== 'true') {
+    const username = sessionStorage.getItem('ggo_username') || '';
+    if(!username || sessionStorage.getItem('ggo_logged_in') !== 'true') {
       refreshNotifBadge();
       return;
     }
@@ -3790,8 +3790,8 @@ const MP_BANNER_ITEMS = {
 
 // ── 사이드바 아바타 초기화 (아이콘 + 이름효과) ──
 function initSidebarProfile() {
-  const username   = localStorage.getItem('ggo_username') || '';
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const username   = sessionStorage.getItem('ggo_username') || '';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   const av = document.getElementById('sidebar-avatar');
   if(!av) return;
 
@@ -3901,22 +3901,22 @@ function toggleSidebarBox(e) {
   e.stopPropagation();
   const box = document.getElementById('logout-box');
   if(!box) return;
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   if(!isLoggedIn) { location.href='login.html'; return; }
   box.style.display = box.style.display==='none' ? 'block' : 'none';
-  const username = localStorage.getItem('ggo_username') || '';
+  const username = sessionStorage.getItem('ggo_username') || '';
   const nameEl = document.getElementById('logout-user-name');
   if(nameEl) nameEl.textContent = username + ' 님';
 }
 
 function doSidebarLogout() {
-  localStorage.removeItem('ggo_logged_in');
-  localStorage.removeItem('ggo_username');
+  sessionStorage.removeItem('ggo_logged_in');
+  sessionStorage.removeItem('ggo_username');
   location.href = 'index.html';
 }
 
 function goSidebarMyPage() {
-  const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+  const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
   if(!isLoggedIn) { location.href='login.html'; return; }
   location.href = 'mypage.html';
 }
@@ -3956,7 +3956,7 @@ function scBackspace(e, el, prevId) {
 }
 
 async function submitSidebarCoupon() {
-  const username = localStorage.getItem('ggo_username') || '';
+  const username = sessionStorage.getItem('ggo_username') || '';
   if(!username) { location.href='login.html'; return; }
   const a = (document.getElementById('sc-coupon-a')?.value||'').trim().toUpperCase();
   const b = (document.getElementById('sc-coupon-b')?.value||'').trim().toUpperCase();
@@ -4088,7 +4088,7 @@ document.addEventListener('click', () => {
   function renderMailList() {
     const listEl = document.getElementById('mail-list');
     if (!listEl) return;
-    const username = localStorage.getItem('ggo_username') || '';
+    const username = sessionStorage.getItem('ggo_username') || '';
     if (!username) {
       listEl.innerHTML = '<div class="mail-empty">📭 로그인 후 우편함을 확인하세요.</div>';
       updateMailBadge(0); return;
@@ -4135,7 +4135,7 @@ document.addEventListener('click', () => {
   }
 
   function claimMail(mailId) {
-    const username = localStorage.getItem('ggo_username') || '';
+    const username = sessionStorage.getItem('ggo_username') || '';
     if (!username) { alert('로그인이 필요합니다.'); return; }
     const mail = _mailData.find(m => m.id === mailId);
     if (!mail) return;
@@ -4159,7 +4159,7 @@ document.addEventListener('click', () => {
   }
 
   function claimAllMail() {
-    const username = localStorage.getItem('ggo_username') || '';
+    const username = sessionStorage.getItem('ggo_username') || '';
     if (!username) return;
     const claimed = getClaimedSet(username);
     const currKey = 'ggo_currency_' + username;
@@ -4195,7 +4195,7 @@ document.addEventListener('click', () => {
   }
 
   (async function() {
-    const username = localStorage.getItem('ggo_username') || '';
+    const username = sessionStorage.getItem('ggo_username') || '';
     if (!username) return;
     try {
       const res = await fetch(CSV_MAIL + '&t=' + Date.now(), { cache: 'no-store' });
@@ -4218,12 +4218,12 @@ document.addEventListener('click', () => {
     if (e) e.stopPropagation();
     const box = document.getElementById('mobile-settings-box');
     if (!box) return;
-    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    const isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
     if (!isLoggedIn) { location.href = 'login.html'; return; }
     const isOpen = box.style.display !== 'none';
     box.style.display = isOpen ? 'none' : 'block';
     if (!isOpen) {
-      const username = localStorage.getItem('ggo_username') || '';
+      const username = sessionStorage.getItem('ggo_username') || '';
       const el = document.getElementById('mobile-settings-user');
       if (el) el.textContent = username + ' 님';
     }
