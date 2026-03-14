@@ -994,22 +994,42 @@ const DROPS = [
   {n:'신성 장갑',    e:'✨', type:'gloves', slot:'gloves', atk:16,def:16, grade:'전설', sellPrice:850},
 
   // ══════════════════════════════════════
-  // 목걸이 (공용) - critRate: 치명타 확률 (%)
+  // 목걸이 - critRate: 치명타 확률 (%) / 월드보스 전용
   // ══════════════════════════════════════
-  {n:'가죽 목걸이',  e:'📿', type:'accessory', slot:'accessory', subType:'necklace', critRate:3,  grade:'일반', sellPrice:15},
-  {n:'용사의 목걸이',e:'📿', type:'accessory', slot:'accessory', subType:'necklace', critRate:6,  grade:'희귀', sellPrice:75},
-  {n:'수호의 목걸이',e:'📿', type:'accessory', slot:'accessory', subType:'necklace', critRate:10, grade:'레어', sellPrice:180},
-  {n:'영웅의 목걸이',e:'🔮', type:'accessory', slot:'accessory', subType:'necklace', critRate:15, grade:'에픽', sellPrice:420},
-  {n:'신의 목걸이',  e:'✨', type:'accessory', slot:'accessory', subType:'necklace', critRate:22, grade:'전설', sellPrice:1000},
+  {n:'가죽 목걸이',  e:'📿', type:'accessory', slot:'necklace', subType:'necklace', critRate:3,  grade:'일반', sellPrice:15},
+  {n:'용사의 목걸이',e:'📿', type:'accessory', slot:'necklace', subType:'necklace', critRate:6,  grade:'희귀', sellPrice:75},
+  {n:'수호의 목걸이',e:'📿', type:'accessory', slot:'necklace', subType:'necklace', critRate:10, grade:'레어', sellPrice:180},
+  {n:'영웅의 목걸이',e:'🔮', type:'accessory', slot:'necklace', subType:'necklace', critRate:15, grade:'에픽', sellPrice:420},
+  {n:'신의 목걸이',  e:'✨', type:'accessory', slot:'necklace', subType:'necklace', critRate:22, grade:'전설', sellPrice:1000},
 
   // ══════════════════════════════════════
-  // 반지 (공용) - critDmg: 치명타 대미지 (%)
+  // 반지 4종 - 각 종류별 다른 효과 / 월드보스 전용
+  // ring_crit:치명타대미지 / ring_atk:공격력 / ring_def:방어력 / ring_exp:경험치
   // ══════════════════════════════════════
-  {n:'철 반지',     e:'💍', type:'accessory', slot:'accessory', subType:'ring', critDmg:15, grade:'일반', sellPrice:15},
-  {n:'마력 반지',   e:'💍', type:'accessory', slot:'accessory', subType:'ring', critDmg:30, grade:'희귀', sellPrice:75},
-  {n:'전사의 반지', e:'💍', type:'accessory', slot:'accessory', subType:'ring', critDmg:50, grade:'레어', sellPrice:180},
-  {n:'패왕의 반지', e:'💎', type:'accessory', slot:'accessory', subType:'ring', critDmg:75, grade:'에픽', sellPrice:420},
-  {n:'신의 반지',   e:'✨', type:'accessory', slot:'accessory', subType:'ring', critDmg:110,grade:'전설', sellPrice:1000},
+  // ── 치명타 반지 ──
+  {n:'철 반지',      e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_crit', critDmg:15,  grade:'일반', sellPrice:15},
+  {n:'마력 반지',    e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_crit', critDmg:30,  grade:'희귀', sellPrice:75},
+  {n:'혈기의 반지',  e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_crit', critDmg:50,  grade:'레어', sellPrice:180},
+  {n:'패왕의 반지',  e:'💎', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_crit', critDmg:75,  grade:'에픽', sellPrice:420},
+  {n:'파멸의 반지',  e:'✨', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_crit', critDmg:110, grade:'전설', sellPrice:1000},
+  // ── 공격 반지 ──
+  {n:'전사의 반지',  e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_atk', atk:3,  grade:'일반', sellPrice:15},
+  {n:'용사의 반지',  e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_atk', atk:7,  grade:'희귀', sellPrice:75},
+  {n:'투사의 반지',  e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_atk', atk:13, grade:'레어', sellPrice:180},
+  {n:'영웅의 반지',  e:'💎', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_atk', atk:20, grade:'에픽', sellPrice:420},
+  {n:'신의 반지',    e:'✨', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_atk', atk:30, grade:'전설', sellPrice:1000},
+  // ── 방어 반지 ──
+  {n:'수호의 반지',  e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_def', def:3,  grade:'일반', sellPrice:15},
+  {n:'철벽의 반지',  e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_def', def:7,  grade:'희귀', sellPrice:75},
+  {n:'성벽의 반지',  e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_def', def:13, grade:'레어', sellPrice:180},
+  {n:'불사의 반지',  e:'💎', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_def', def:20, grade:'에픽', sellPrice:420},
+  {n:'천상의 반지',  e:'✨', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_def', def:30, grade:'전설', sellPrice:1000},
+  // ── 경험치 반지 ──
+  {n:'지혜의 반지',  e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp', expBonus:5,  grade:'일반', sellPrice:15},
+  {n:'학자의 반지',  e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp', expBonus:10, grade:'희귀', sellPrice:75},
+  {n:'현자의 반지',  e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp', expBonus:18, grade:'레어', sellPrice:180},
+  {n:'탐구자의 반지',e:'💎', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp', expBonus:28, grade:'에픽', sellPrice:420},
+  {n:'신화의 반지',  e:'✨', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp', expBonus:40, grade:'전설', sellPrice:1000},
 ];
 
 
@@ -1026,7 +1046,7 @@ let G={sc:'intro',job:null,lv:1,hp:0,mHP:0,mp:0,mMP:0,atk:0,def:0,
        exp:0,gold:0,inv:[],qprog:{},qclaim:{},sk:{},
        zone:null,mob:null,mhp:0,mmhp:0,buffs:{},defBuff:false,
        tick:null,quests:[],
-       equip:{weapon:null,shield:null,armor:null,boots:null,gloves:null,accessory:null}};
+       equip:{weapon:null,shield:null,armor:null,boots:null,gloves:null,necklace:null,ring1:null,ring2:null,ring3:null}};
 let _selJob=null;
 
 function cBase(job,lv){
@@ -1051,7 +1071,7 @@ function saveG(){gSet('save',{job:G.job,lv:G.lv,hp:G.hp,mp:G.mp,exp:G.exp,gold:G
 function loadG(){
   const s=gGet('save');if(!s||!s.job)return false;
   const b=cBase(s.job,s.lv);
-  G.equip=s.equip||{weapon:null,shield:null,armor:null,boots:null,gloves:null,accessory:null};
+  G.equip=s.equip||{weapon:null,shield:null,armor:null,boots:null,gloves:null,necklace:null,ring1:null,ring2:null,ring3:null};
   // 기존 세이브 마이그레이션: equip 슬롯에 기본 장비가 없으면 자동 세팅
   const j=JOBS[s.job];
   if(!G.equip.weapon&&j&&j.weapon){
@@ -1515,8 +1535,8 @@ function autoFight(){
 
 function mobDead(){
   stopAuto();const m=G.mob;
-  G.exp+=m.exp;G.gold+=m.g;
-  blog(`<span class="li">💀 ${m.n} 처치! +${m.exp}EXP +${m.g}G</span>`);
+  const _gainedExp=Math.floor(m.exp*tExpRate());G.exp+=_gainedExp;G.gold+=m.g;
+  blog(`<span class="li">💀 ${m.n} 처치! +${_gainedExp}EXP +${m.g}G</span>`);
   if(Math.random()<m.drop){
     // 직업에 맞는 장비 풀 (전설/포션/재료 제외 → 장비만)
     const eqPool = DROPS.filter(d => {
@@ -1637,7 +1657,7 @@ function renderP(id){
 // ── 장비 보너스 합산 ──
 function equipBonus(){
   const eq=G.equip||{};
-  let atk=0,def=0,spd=0,critRate=0,critDmg=0;
+  let atk=0,def=0,spd=0,critRate=0,critDmg=0,expBonus=0;
   Object.values(eq).forEach(it=>{
     if(it){
       atk      +=(it.atk||0);
@@ -1645,10 +1665,13 @@ function equipBonus(){
       spd      +=(it.spd||0);
       critRate +=(it.critRate||0);
       critDmg  +=(it.critDmg||0);
+      expBonus +=(it.expBonus||0);
     }
   });
-  return {atk,def,spd,critRate,critDmg};
+  return {atk,def,spd,critRate,critDmg,expBonus};
 }
+// 경험치 획득 배율 (1 + expBonus%)
+function tExpRate(){ return 1 + (equipBonus().expBonus||0)/100; }
 function recalcStats(){
   const b=cBase(G.job,G.lv);const eq=equipBonus();
   G.atk=b.atk+eq.atk;G.def=b.def+eq.def;
@@ -1666,13 +1689,16 @@ const SLOT_INFO={
   armor:    {label:'갑옷',    emoji:'🥋'},
   boots:    {label:'신발',    emoji:'👟'},
   gloves:   {label:'장갑',    emoji:'🧤'},
-  accessory:{label:'장신구',  emoji:'💍'},
+  necklace: {label:'목걸이',  emoji:'📿'},
+  ring1:    {label:'반지1',   emoji:'💍'},
+  ring2:    {label:'반지2',   emoji:'💍'},
+  ring3:    {label:'반지3',   emoji:'💍'},
 };
 const GRADE_COLOR={일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
 
 function renderInv(){
   // ── 장착 슬롯 6개 ──
-  const slots=['weapon','shield','armor','boots','gloves','accessory'];
+  const slots=['weapon','shield','armor','boots','gloves','necklace','ring1','ring2','ring3'];
   const eq=G.equip||{};
   document.getElementById('gw-eqrow').innerHTML=slots.map(s=>{
     const it=eq[s],info=SLOT_INFO[s];
@@ -1742,6 +1768,7 @@ function showItemModal(idx,it){
   if(it.spd)       statParts.push(`공격속도 -${it.spd}ms`);
   if(it.critRate)  statParts.push(`치명타확률 +${it.critRate}%`);
   if(it.critDmg)   statParts.push(`치명타대미지 +${it.critDmg}%`);
+  if(it.expBonus)  statParts.push(`경험치 +${it.expBonus}%`);
   const stats = statParts.join(' / ');
   // 직업 제한 체크
   const JOB_NAMES={warrior:'전사',archer:'궁수',rogue:'도적',mage:'마법사',paladin:'성기사'};
@@ -1759,13 +1786,17 @@ function showItemModal(idx,it){
   }
   const jobTypes = getJobTypes(it);
   const canEquip = !((it.type==='weapon'||it.type==='shield') && jobTypes && !jobTypes.includes(G.job));
-  const jobWarnHtml = !canEquip
+  // 반지 중복 체크 (같은 이름)
+  const ringDup = it.subType==='ring' && ['ring1','ring2','ring3'].some(s=>(G.equip||{})[s]?.n===it.n);
+  const jobWarnHtml = ringDup
+    ? `<div style="font-size:10px;color:#f87171;margin-top:4px">⚠️ 같은 이름의 반지 중복 착용 불가</div>`
+    : !canEquip
     ? `<div style="font-size:10px;color:#f87171;margin-top:4px">⚠️ ${(jobTypes||[]).map(j=>JOB_NAMES[j]||j).join(', ')} 전용 무기</div>`
     : '';
   const cmpHtml=curEq
     ?`<div style="font-size:10px;color:#64748b;margin-top:4px">현재 장착: ${curEq.e} ${curEq.n} (ATK+${curEq.atk||0}/DEF+${curEq.def||0})</div>`
     :`<div style="font-size:10px;color:#64748b;margin-top:4px">${sl.label} 슬롯 비어있음</div>`;
-  const equipBtnStyle = canEquip
+  const equipBtnStyle = (canEquip && !ringDup)
     ? 'background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;cursor:pointer;'
     : 'background:#1e1b2e;border:1px solid #374151;color:#475569;cursor:not-allowed;opacity:0.5;';
   document.getElementById('gw-item-modal').innerHTML=`
@@ -1789,10 +1820,10 @@ function showItemModal(idx,it){
 function closeItemModal(){document.getElementById('gw-item-modal').style.display='none';_modalIdx=-1;}
 function doEquip(){
   const it=G.inv[_modalIdx];if(!it)return closeItemModal();
-  // 직업별 무기 장착 제한 (jobType 없으면 이름으로 추론)
+  // 직업별 무기/방패 제한
   function _getJT(item){
     if(item.jobType) return item.jobType;
-    if(item.type!=='weapon') return null;
+    if(item.type!=='weapon'&&item.type!=='shield') return null;
     const n=item.n||'';
     if(/검|소드|롱소드|블레이드|성검/.test(n)) return ['warrior','paladin'];
     if(/지팡이|완드|스태프|마법봉/.test(n))    return ['mage'];
@@ -1804,17 +1835,37 @@ function doEquip(){
   const jt=_getJT(it);
   if((it.type==='weapon'||it.type==='shield') && jt && !jt.includes(G.job)){
     const JOB_NAMES={warrior:'전사',archer:'궁수',rogue:'도적',mage:'마법사',paladin:'성기사'};
-    const allowed=jt.map(j=>JOB_NAMES[j]||j).join(', ');
-    gwT(`⚠️ ${it.n}은(는) ${allowed}만 장착 가능합니다.`);
+    gwT(`⚠️ ${it.n}은(는) ${jt.map(j=>JOB_NAMES[j]||j).join(', ')}만 장착 가능합니다.`);
     closeItemModal();return;
   }
-  const slot=it.slot;
+  // 목걸이 슬롯 제한
+  if(it.subType==='necklace' && it.slot!=='necklace'){
+    gwT('목걸이 슬롯에만 장착 가능합니다.');closeItemModal();return;
+  }
+  // 반지 슬롯 배정 및 제한
+  let slot = it.slot;
+  if(it.subType==='ring'){
+    // 같은 이름 반지 중복 착용 방지
+    const eq=G.equip||{};
+    const dupSlot=['ring1','ring2','ring3'].find(s=>eq[s]&&eq[s].n===it.n);
+    if(dupSlot){gwT(`⚠️ 같은 이름의 반지는 중복 착용 불가합니다.`);closeItemModal();return;}
+    // 비어있는 반지 슬롯에 자동 배정
+    slot=['ring1','ring2','ring3'].find(s=>!eq[s]);
+    if(!slot){
+      // 모두 차있으면 ring1 교체 (사용자에게 안내)
+      gwT('반지 슬롯이 가득 찼습니다. 반지1을 교체합니다.');
+      slot='ring1';
+    }
+  }
+  // 목걸이는 necklace 슬롯만
+  if(it.subType==='necklace') slot='necklace';
+
   const cur=(G.equip||{})[slot];
   if(cur){G.inv.push({...cur,qty:1,_id:Date.now()});}
   G.equip[slot]=it;
   G.inv.splice(_modalIdx,1);
   recalcStats();hud();saveG();renderInv();
-  gwT(`${it.e} ${it.n} 장착!`);
+  gwT(`${it.e} ${it.n} 장착! (${SLOT_INFO[slot]?.label||slot})`);
   closeItemModal();
 }
 function doSell(){
@@ -1875,8 +1926,13 @@ function renderEnh(){
         stat=`ATK +${it.atk||0}`; nextStat=`ATK +${(it.atk||0)+2}`;
       } else if(it.type==='accessory'){
         if(it.subType==='necklace'){stat=`치명타확률 +${it.critRate||0}%`;nextStat=`치명타확률 +${(it.critRate||0)+1}%`;}
-        else if(it.subType==='ring'){stat=`치명타대미지 +${it.critDmg||0}%`;nextStat=`치명타대미지 +${(it.critDmg||0)+5}%`;}
-        else{stat=`ATK +${it.atk||0}`;nextStat=`ATK +${(it.atk||0)+1}`;}
+        else if(it.subType==='ring'){
+          if(it.ringType==='ring_crit'){stat=`치명타대미지 +${it.critDmg||0}%`;nextStat=`치명타대미지 +${(it.critDmg||0)+5}%`;}
+          else if(it.ringType==='ring_atk'){stat=`ATK +${it.atk||0}`;nextStat=`ATK +${(it.atk||0)+1}`;}
+          else if(it.ringType==='ring_def'){stat=`DEF +${it.def||0}`;nextStat=`DEF +${(it.def||0)+1}`;}
+          else if(it.ringType==='ring_exp'){stat=`경험치 +${it.expBonus||0}%`;nextStat=`경험치 +${(it.expBonus||0)+2}%`;}
+          else{stat=`치명타대미지 +${it.critDmg||0}%`;nextStat=`치명타대미지 +${(it.critDmg||0)+5}%`;}
+        } else{stat=`ATK +${it.atk||0}`;nextStat=`ATK +${(it.atk||0)+1}`;}
       } else {
         stat=`DEF +${it.def||0}`; nextStat=`DEF +${(it.def||0)+2}`;
       }
@@ -1918,8 +1974,13 @@ function enhSlot(slot){
     it.atk=(it.atk||0)+2;
   } else if(it.type==='accessory'){
     if(it.subType==='necklace') it.critRate=(it.critRate||0)+1;
-    else if(it.subType==='ring') it.critDmg=(it.critDmg||0)+5;
-    else it.atk=(it.atk||0)+1;
+    else if(it.subType==='ring'){
+      if(it.ringType==='ring_crit')     it.critDmg=(it.critDmg||0)+5;
+      else if(it.ringType==='ring_atk') it.atk=(it.atk||0)+1;
+      else if(it.ringType==='ring_def') it.def=(it.def||0)+1;
+      else if(it.ringType==='ring_exp') it.expBonus=(it.expBonus||0)+2;
+      else it.critDmg=(it.critDmg||0)+5;
+    } else it.atk=(it.atk||0)+1;
   } else {
     it.def=(it.def||0)+2;
   }
@@ -1944,6 +2005,7 @@ function renderStat(){
       <div class="gw-stat-row"><span class="gw-stat-l">공격 속도</span><span class="gw-stat-v">${(spd/1000).toFixed(2)}초 <span style="color:#34d399;font-size:10px">${eq.spd>0?'(-'+eq.spd+'ms)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">치명타 확률</span><span class="gw-stat-v">${cr}% <span style="color:#f97316;font-size:10px">${eq.critRate>0?'(+'+eq.critRate+'%)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">치명타 대미지</span><span class="gw-stat-v">${cd}% <span style="color:#f97316;font-size:10px">${eq.critDmg>0?'(+'+eq.critDmg+'%)':''}</span></span></div>
+      <div class="gw-stat-row"><span class="gw-stat-l">경험치 획득량</span><span class="gw-stat-v" style="color:#34d399">×${tExpRate().toFixed(2)} <span style="color:#34d399;font-size:10px">${eq.expBonus>0?'(+'+eq.expBonus+'%)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">골드</span><span class="gw-stat-v" style="color:#fbbf24">${G.gold.toLocaleString()}G</span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">EXP</span><span class="gw-stat-v">${G.exp}/${expNeed(G.lv)}</span></div>
     </div>`;
@@ -2052,7 +2114,7 @@ function confirmJob(){
     atk:b.atk,def:b.def,exp:0,gold:100,inv:[],qprog:{},qclaim:{},
     sk:{},buffs:{},defBuff:false,quests:makeQ()});
   // 기본 장비를 equip 슬롯에 장착 (강화 수치 영속 유지)
-  G.equip={weapon:null,shield:null,armor:null,boots:null,gloves:null,accessory:null};
+  G.equip={weapon:null,shield:null,armor:null,boots:null,gloves:null,necklace:null,ring1:null,ring2:null,ring3:null};
   if(j.weapon){G.equip.weapon={n:j.weapon.name,e:j.weapon.emoji||'⚔️',type:'weapon',slot:'weapon',atk:j.weapon.atk||5,def:0,grade:'기본',enh:0,_id:1};}
   if(j.armor) {G.equip.armor ={n:j.armor.name, e:j.armor.emoji||'🛡️',type:'armor', slot:'armor', atk:0,def:j.armor.def||3, grade:'기본',enh:0,_id:2};}
   G.inv.push({n:'HP 포션',e:'🧪',type:'pot',eff:'hp',val:30,grade:'일반',qty:2,_id:Date.now()});
@@ -2340,7 +2402,7 @@ function dunBossDead() {
   const goldMin=dun.rewards.g[0], goldMax=dun.rewards.g[1];
   const expMin=dun.rewards.exp[0],  expMax=dun.rewards.exp[1];
   const goldGain = goldMin + Math.floor(Math.random()*(goldMax-goldMin+1));
-  const expGain  = expMin  + Math.floor(Math.random()*(expMax-expMin+1));
+  const expGain  = Math.floor((expMin  + Math.floor(Math.random()*(expMax-expMin+1)))*tExpRate());
   G.gold += goldGain;
   G.exp  += expGain;
 
@@ -3446,7 +3508,7 @@ function wbClaimReward(date) {
   const rng     = (n=>{let s=seed+n; s^=s<<13;s^=s>>7;s^=s<<17; return (s>>>0)/0xffffffff;}); // 간단 xorshift
 
   const gold    = 2000 + Math.floor(rng(1)*3000);   // 2000~5000
-  const exp     = 1500 + Math.floor(rng(2)*2500);   // 1500~4000
+  const exp     = Math.floor((1500 + Math.floor(rng(2)*2500))*tExpRate());   // 1500~4000 × 배율
   const stones  = 3    + Math.floor(rng(3)*5);       // 3~7개
 
   G.gold += gold;
