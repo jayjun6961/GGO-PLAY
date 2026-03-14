@@ -214,13 +214,13 @@
 
 /* ── 전투 ── */
 .gw-battle{flex:1;display:flex;flex-direction:column;min-height:0;}
-.gw-battle-scene{flex:1;position:relative;min-height:190px;background:#07040e;overflow:hidden;}
+.gw-battle-scene{flex:1;position:relative;min-height:140px;background:#07040e;overflow:hidden;}
 .gw-battle-scene canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;}
 .gw-mob-hpbar{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:175px;text-align:center;z-index:5;}
 .gw-mob-nm-lbl{font-family:'Orbitron',sans-serif;font-size:9px;color:var(--text-sub);margin-bottom:3px;}
 .gw-mob-bar-bg{height:9px;background:rgba(255,255,255,.06);border:1px solid rgba(239,68,68,.28);overflow:hidden;}
 .gw-mob-bar-f{height:100%;background:linear-gradient(90deg,#ef4444,#dc2626);transition:width .2s;}
-.gw-blog{height:115px;overflow-y:auto;padding:7px 13px;background:rgba(5,3,12,.93);border-top:1px solid rgba(124,58,237,.09);font-size:11px;font-family:'Noto Sans KR',sans-serif;color:var(--text-sub);line-height:1.8;}
+.gw-blog{height:175px;overflow-y:auto;padding:7px 13px;background:rgba(5,3,12,.93);border-top:1px solid rgba(124,58,237,.09);font-size:11px;font-family:'Noto Sans KR',sans-serif;color:var(--text-sub);line-height:1.8;}
 .gw-blog::-webkit-scrollbar{width:3px;}
 .gw-blog::-webkit-scrollbar-thumb{background:rgba(124,58,237,.18);}
 .ld{color:#f87171;font-weight:700;} .lh{color:#34d399;} .li{color:#fbbf24;} .ll{color:#c084fc;font-weight:700;} .ls{color:#22d3ee;}
@@ -531,6 +531,15 @@
   </div>
 </div>
 
+
+<!-- 패널: 포션 상점 -->
+<div class="gw-pov" id="gw-pshop" onclick="if(event.target===this)closeP('gw-pshop')">
+  <div class="gw-pbox">
+    <div class="gw-phdr"><div class="gw-pttl">🏪 포션 상점</div><button class="gw-px" onclick="closeP('gw-pshop')">✕</button></div>
+    <div class="gw-pbdy" id="gw-shopbody"></div>
+  </div>
+</div>
+
 <!-- 패널: 장비 강화 -->
 <div class="gw-pov" id="gw-pen" onclick="if(event.target===this)closeP('gw-pen')">
   <div class="gw-pbox">
@@ -614,7 +623,7 @@
         <div class="gw-act" onclick="showHunt()"><div class="gw-act-ico">⚔️</div><div class="gw-act-lbl">사냥터 입장</div></div>
         <div class="gw-act" onclick="openP('gw-pst')"><div class="gw-act-ico">📊</div><div class="gw-act-lbl">캐릭터 정보</div></div>
         <div class="gw-act" onclick="openP('gw-psk')"><div class="gw-act-ico">✨</div><div class="gw-act-lbl">스킬</div></div>
-        <div class="gw-act" onclick="quickPot()"><div class="gw-act-ico">🧪</div><div class="gw-act-lbl">HP 포션</div></div>
+        <div class="gw-act" onclick="openP('gw-pshop')"><div class="gw-act-ico">🏪</div><div class="gw-act-lbl">포션 상점</div></div>
         <div class="gw-act" onclick="resetChar()" style="border-color:rgba(239,68,68,.15)"><div class="gw-act-ico">🔄</div><div class="gw-act-lbl">초기화</div></div>
       </div>
     </div>
@@ -650,6 +659,14 @@
         </div>
       </div>
       <div class="gw-blog" id="gw-blog"></div>
+      <!-- 포션 퀵슬롯 바 -->
+      <div id="gw-pot-bar" style="display:flex;gap:5px;padding:5px 11px;background:rgba(5,3,12,.96);border-top:1px solid rgba(124,58,237,.09);align-items:center;flex-wrap:wrap;">
+        <span style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;margin-right:3px;white-space:nowrap;">포션</span>
+        <button id="pot-hp-btn" onclick="usePotInBattle('hp')" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap">💚 HP</button>
+        <button id="pot-mp-btn" onclick="usePotInBattle('mp')" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:#60a5fa;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap">💧 MP</button>
+        <span id="pot-hp-count" style="font-size:9px;color:#64748b;margin-left:1px"></span>
+        <span id="pot-mp-count" style="font-size:9px;color:#64748b;margin-left:1px"></span>
+      </div>
       <div class="gw-sk-bar">
         <div id="gw-skbtns" style="display:flex;gap:5px;flex-wrap:wrap;flex:1;"></div>
         <button class="gw-retreat" onclick="retreatToTown()">🏃 마을로</button>
@@ -1213,7 +1230,7 @@ function showHunt(){
 function enterZone(zid){
   G.zone=ZONES.find(z=>z.id===zid);gwSC('battle');
   document.getElementById('gw-blog').innerHTML='';
-  spawnMob();hud();startAuto();
+  spawnMob();hud();startAuto();updatePotBar();
   setTimeout(()=>{const cv=document.getElementById('gw-bcv');if(cv){cv.width=cv.offsetWidth||500;cv.height=cv.offsetHeight||190;drawBattle(cv);}},25);
 }
 
@@ -1355,11 +1372,12 @@ function blog(html){const l=document.getElementById('gw-blog');if(!l)return;cons
 function openP(id){document.getElementById(id).classList.add('on');renderP(id);}
 function closeP(id){document.getElementById(id).classList.remove('on');}
 function renderP(id){
-  if(id==='gw-pi')  renderInv();
-  if(id==='gw-pq')  renderQ();
-  if(id==='gw-pen') renderEnh();
-  if(id==='gw-pst') renderStat();
-  if(id==='gw-psk') renderSkList();
+  if(id==='gw-pi')    renderInv();
+  if(id==='gw-pq')    renderQ();
+  if(id==='gw-pen')   renderEnh();
+  if(id==='gw-pst')   renderStat();
+  if(id==='gw-psk')   renderSkList();
+  if(id==='gw-pshop') renderShop();
 }
 
 // ── 장비 보너스 합산 ──
@@ -1677,6 +1695,108 @@ function confirmJob(){
 }
 
 function quickPot(){const p=G.inv.find(i=>i.type==='pot'&&i.eff==='hp');if(!p){gwT('HP 포션 없음');return;}const h=Math.min(p.val,G.mHP-G.hp);G.hp+=h;p.qty--;if(p.qty<=0)G.inv.splice(G.inv.indexOf(p),1);gwT('💚 HP +'+h);hud();saveG();}
+// ════ 포션 상점 시스템 ════
+const POTIONS = [
+  // HP 포션 3종
+  {id:'hp_s', name:'소형 HP 포션', e:'🧪', eff:'hp', val:30,  price:30,  grade:'일반'},
+  {id:'hp_m', name:'중형 HP 포션', e:'💊', eff:'hp', val:80,  price:80,  grade:'희귀'},
+  {id:'hp_l', name:'대형 HP 포션', e:'🔴', eff:'hp', val:180, price:180, grade:'에픽'},
+  // MP 포션 3종
+  {id:'mp_s', name:'소형 MP 포션', e:'💧', eff:'mp', val:20,  price:20,  grade:'일반'},
+  {id:'mp_m', name:'중형 MP 포션', e:'🫧', eff:'mp', val:50,  price:50,  grade:'희귀'},
+  {id:'mp_l', name:'대형 MP 포션', e:'🔵', eff:'mp', val:120, price:120, grade:'에픽'},
+];
+
+function renderShop() {
+  const el = document.getElementById('gw-shopbody');
+  if(!el) return;
+  const GRADE_COL = {일반:'#94a3b8', 희귀:'#34d399', 에픽:'#a855f7'};
+  let html = `<div style="font-size:10px;color:var(--text-dim);margin-bottom:10px;font-family:'Orbitron',sans-serif">💰 보유 골드: <span style="color:#fbbf24">${G.gold}G</span></div>`;
+  // HP 포션 섹션
+  html += `<div style="font-size:10px;color:#f87171;font-family:'Orbitron',sans-serif;margin-bottom:6px;letter-spacing:1px">💚 HP 포션</div>`;
+  html += '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">';
+  POTIONS.filter(p=>p.eff==='hp').forEach(p=>{
+    const gc=GRADE_COL[p.grade]||'#94a3b8';
+    const cnt=G.inv.filter(i=>i.id===p.id).reduce((s,i)=>s+(i.qty||1),0);
+    html+=`<div style="display:flex;align-items:center;gap:8px;background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.12);border-radius:10px;padding:8px 11px;">
+      <span style="font-size:20px">${p.e}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;font-weight:700;color:${gc}">${p.name}</div>
+        <div style="font-size:9px;color:var(--text-dim)">HP +${p.val} · 보유 ${cnt}개</div>
+      </div>
+      <span style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-right:4px">${p.price}G</span>
+      <button onclick="buyPotion('${p.id}')" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:5px 12px;border-radius:8px;font-size:10px;cursor:pointer;font-family:'Orbitron',sans-serif;white-space:nowrap">구매</button>
+    </div>`;
+  });
+  html += '</div>';
+  // MP 포션 섹션
+  html += `<div style="font-size:10px;color:#60a5fa;font-family:'Orbitron',sans-serif;margin-bottom:6px;letter-spacing:1px">💧 MP 포션</div>`;
+  html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+  POTIONS.filter(p=>p.eff==='mp').forEach(p=>{
+    const gc=GRADE_COL[p.grade]||'#94a3b8';
+    const cnt=G.inv.filter(i=>i.id===p.id).reduce((s,i)=>s+(i.qty||1),0);
+    html+=`<div style="display:flex;align-items:center;gap:8px;background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.12);border-radius:10px;padding:8px 11px;">
+      <span style="font-size:20px">${p.e}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;font-weight:700;color:${gc}">${p.name}</div>
+        <div style="font-size:9px;color:var(--text-dim)">MP +${p.val} · 보유 ${cnt}개</div>
+      </div>
+      <span style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-right:4px">${p.price}G</span>
+      <button onclick="buyPotion('${p.id}')" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:5px 12px;border-radius:8px;font-size:10px;cursor:pointer;font-family:'Orbitron',sans-serif;white-space:nowrap">구매</button>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function buyPotion(id) {
+  const pot = POTIONS.find(p=>p.id===id);
+  if(!pot) return;
+  if(G.gold < pot.price){ gwT('💰 골드 부족!'); return; }
+  G.gold -= pot.price;
+  // 인벤에 같은 포션 있으면 수량 증가
+  const exist = G.inv.find(i=>i.id===pot.id);
+  if(exist) exist.qty=(exist.qty||1)+1;
+  else G.inv.push({...pot, type:'pot', slot:null, qty:1, _id:Date.now()});
+  gwT(`${pot.e} ${pot.name} 구매! (-${pot.price}G)`);
+  hud(); saveG(); renderShop();
+}
+
+// 사냥터 포션 퀵 사용
+function usePotInBattle(eff) {
+  // 인벤에서 해당 효과 포션 중 가장 작은 것부터 사용
+  const pot = G.inv.find(i=>i.type==='pot'&&i.eff===eff);
+  if(!pot){ gwT(eff==='hp'?'💚 HP 포션 없음':'💧 MP 포션 없음'); return; }
+  if(eff==='hp'){
+    if(G.hp>=G.mHP){ gwT('HP가 이미 가득 찼습니다!'); return; }
+    const h=Math.min(pot.val,G.mHP-G.hp); G.hp+=h;
+    blog(`<span style="color:#4ade80">💚 HP 포션 사용! +${h} HP</span>`);
+    gwT(`💚 HP +${h}`);
+  } else {
+    if(G.mp>=G.mMP){ gwT('MP가 이미 가득 찼습니다!'); return; }
+    const m=Math.min(pot.val,G.mMP-G.mp); G.mp+=m;
+    blog(`<span style="color:#60a5fa">💧 MP 포션 사용! +${m} MP</span>`);
+    gwT(`💧 MP +${m}`);
+  }
+  pot.qty--; if(pot.qty<=0) G.inv.splice(G.inv.indexOf(pot),1);
+  hud(); saveG(); updatePotBar();
+}
+
+// 포션 퀵슬롯 수량 업데이트
+function updatePotBar() {
+  const hp = G.inv.filter(i=>i.type==='pot'&&i.eff==='hp').reduce((s,i)=>s+(i.qty||1),0);
+  const mp = G.inv.filter(i=>i.type==='pot'&&i.eff==='mp').reduce((s,i)=>s+(i.qty||1),0);
+  const hpEl=document.getElementById('pot-hp-count');
+  const mpEl=document.getElementById('pot-mp-count');
+  if(hpEl) hpEl.textContent = `×${hp}`;
+  if(mpEl) mpEl.textContent = `×${mp}`;
+  const hpBtn=document.getElementById('pot-hp-btn');
+  const mpBtn=document.getElementById('pot-mp-btn');
+  if(hpBtn) hpBtn.style.opacity = hp>0?'1':'0.4';
+  if(mpBtn) mpBtn.style.opacity = mp>0?'1':'0.4';
+}
+// ════ 포션 상점 끝 ════
+
 function resetChar(){if(!confirm('캐릭터를 초기화하시겠습니까?'))return;gSet('save',null);location.reload();}
 
 let _gwTt=null;
