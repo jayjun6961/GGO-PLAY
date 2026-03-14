@@ -486,6 +486,9 @@
     </div>
   </div>
 </div>
+
+<!-- 아이템 액션 모달 -->
+<div id="gw-item-modal" style="display:none;position:fixed;inset:0;z-index:99999;"></div>
 </body>
 </html>
 
@@ -523,7 +526,6 @@
 </div>
 
 <!-- 아이템 액션 모달 -->
-<div id="gw-item-modal" style="display:none;position:fixed;inset:0;z-index:9999;"></div>
 
 <!-- 패널: 퀘스트 -->
 <div class="gw-pov" id="gw-pq" onclick="if(event.target===this)closeP('gw-pq')">
@@ -735,11 +737,16 @@ const DROPS = [
   {n:'MP 포션',   e:'💧',type:'pot',  eff:'mp',val:20,  grade:'일반'},
   {n:'대형 HP 포션',e:'🔴',type:'pot',eff:'hp',val:80,  grade:'희귀'},
   {n:'대형 MP 포션',e:'🔵',type:'pot',eff:'mp',val:50,  grade:'희귀'},
-  // 무기
-  {n:'낡은 검',    e:'⚔️', type:'weapon',  slot:'weapon',   atk:3,  def:0, grade:'일반', sellPrice:20},
-  {n:'강철 검',    e:'🗡️', type:'weapon',  slot:'weapon',   atk:13, def:0, grade:'희귀', sellPrice:80},
-  {n:'마법 지팡이',e:'🪄', type:'weapon',  slot:'weapon',   atk:16, def:0, grade:'희귀', sellPrice:90},
-  {n:'단궁',       e:'🏹', type:'weapon',  slot:'weapon',   atk:11, def:0, grade:'희귀', sellPrice:75},
+  // 무기 (jobType: 착용 가능 직업 배열)
+  {n:'낡은 검',    e:'⚔️', type:'weapon', slot:'weapon', atk:3,  def:0, grade:'일반', sellPrice:20,  jobType:['warrior','paladin']},
+  {n:'강철 검',    e:'🗡️', type:'weapon', slot:'weapon', atk:13, def:0, grade:'희귀', sellPrice:80,  jobType:['warrior','paladin']},
+  {n:'롱소드',     e:'⚔️',  type:'weapon', slot:'weapon', atk:15, def:2, grade:'에픽',  sellPrice:180, jobType:['paladin']},
+  {n:'마법 지팡이',e:'🪄', type:'weapon', slot:'weapon', atk:16, def:0, grade:'희귀', sellPrice:90,  jobType:['mage']},
+  {n:'에테르 지팡이',e:'✨', type:'weapon',slot:'weapon', atk:22, def:0, grade:'에픽',  sellPrice:220, jobType:['mage']},
+  {n:'단궁',       e:'🏹', type:'weapon', slot:'weapon', atk:11, def:0, grade:'희귀', sellPrice:75,  jobType:['archer']},
+  {n:'강화 장궁',  e:'🪃', type:'weapon', slot:'weapon', atk:18, def:0, grade:'에픽',  sellPrice:200, jobType:['archer']},
+  {n:'단검',       e:'🔪', type:'weapon', slot:'weapon', atk:10, def:0, grade:'일반', sellPrice:50,  jobType:['rogue']},
+  {n:'독 단검',    e:'🗡️', type:'weapon', slot:'weapon', atk:17, def:0, grade:'에픽',  sellPrice:210, jobType:['rogue']},
   // 방패
   {n:'나무 방패',  e:'🛡️', type:'shield',  slot:'shield',   atk:0,  def:6, grade:'일반', sellPrice:25},
   {n:'강철 방패',  e:'🛡️', type:'shield',  slot:'shield',   atk:0,  def:14,grade:'희귀', sellPrice:85},
@@ -1261,7 +1268,12 @@ function mobDead(){
   G.exp+=m.exp;G.gold+=m.g;
   blog(`<span class="li">💀 ${m.n} 처치! +${m.exp}EXP +${m.g}G</span>`);
   if(Math.random()<m.drop){
-    const it=DROPS[Math.floor(Math.random()*DROPS.length)];
+    // 직업에 맞는 드롭 풀 선택 (무기는 현재 직업 전용만)
+    const validDrops = DROPS.filter(d => {
+      if(d.type === 'weapon') return !d.jobType || d.jobType.includes(G.job);
+      return true;
+    });
+    const it=validDrops[Math.floor(Math.random()*validDrops.length)];
     const ex=G.inv.find(i=>i.n===it.n);
     if(ex)ex.qty=(ex.qty||1)+1;else G.inv.push({...it,qty:1,_id:Date.now()});
     blog(`<span class="li">✨ ${it.e} ${it.n} 획득!</span>`);
@@ -1439,9 +1451,18 @@ function showItemModal(idx,it){
   const curEq=(G.equip||{})[it.slot||'weapon'];
   const sp=it.sellPrice||Math.floor((it.atk||0)*8+(it.def||0)*8+10);
   const stats=(it.atk?`ATK +${it.atk} `:'')+(it.def?`DEF +${it.def}`:'');
+  // 직업 제한 체크
+  const JOB_NAMES={warrior:'전사',archer:'궁수',rogue:'도적',mage:'마법사',paladin:'성기사'};
+  const canEquip = !(it.type==='weapon' && it.jobType && !it.jobType.includes(G.job));
+  const jobWarnHtml = !canEquip
+    ? `<div style="font-size:10px;color:#f87171;margin-top:4px">⚠️ ${it.jobType.map(j=>JOB_NAMES[j]||j).join(', ')} 전용 무기</div>`
+    : '';
   const cmpHtml=curEq
     ?`<div style="font-size:10px;color:#64748b;margin-top:4px">현재 장착: ${curEq.e} ${curEq.n} (ATK+${curEq.atk||0}/DEF+${curEq.def||0})</div>`
     :`<div style="font-size:10px;color:#64748b;margin-top:4px">${sl.label} 슬롯 비어있음</div>`;
+  const equipBtnStyle = canEquip
+    ? 'background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;cursor:pointer;'
+    : 'background:#1e1b2e;border:1px solid #374151;color:#475569;cursor:not-allowed;opacity:0.5;';
   document.getElementById('gw-item-modal').innerHTML=`
     <div onclick="closeItemModal()" style="position:absolute;inset:0;background:rgba(0,0,0,.7)"></div>
     <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
@@ -1451,8 +1472,9 @@ function showItemModal(idx,it){
       <div style="font-size:10px;background:${gc}22;color:${gc};border:1px solid ${gc}44;border-radius:6px;padding:2px 8px;display:inline-block;margin:4px 0">${it.grade||'일반'} · ${sl.label}</div>
       <div style="font-size:12px;color:#e2e8f0;margin:6px 0">${stats||'효과 없음'}</div>
       ${cmpHtml}
+      ${jobWarnHtml}
       <div style="display:flex;gap:8px;margin-top:14px;justify-content:center">
-        <button onclick="doEquip()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:8px 18px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Orbitron',sans-serif">장착</button>
+        <button onclick="doEquip()" style="${equipBtnStyle}padding:8px 18px;border-radius:8px;font-size:12px;font-family:'Orbitron',sans-serif">장착</button>
         <button onclick="doSell()" style="background:linear-gradient(135deg,#b45309,#92400e);border:1px solid #fbbf24;color:#fbbf24;padding:8px 18px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Orbitron',sans-serif">판매 +${sp}G</button>
         <button onclick="closeItemModal()" style="background:#1e1b2e;border:1px solid #374151;color:#94a3b8;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer">취소</button>
       </div>
@@ -1462,6 +1484,13 @@ function showItemModal(idx,it){
 function closeItemModal(){document.getElementById('gw-item-modal').style.display='none';_modalIdx=-1;}
 function doEquip(){
   const it=G.inv[_modalIdx];if(!it)return closeItemModal();
+  // 직업별 무기 장착 제한
+  if(it.type==='weapon' && it.jobType && !it.jobType.includes(G.job)){
+    const JOB_NAMES={warrior:'전사',archer:'궁수',rogue:'도적',mage:'마법사',paladin:'성기사'};
+    const allowed=it.jobType.map(j=>JOB_NAMES[j]||j).join(', ');
+    gwT(`⚠️ ${it.n}은(는) ${allowed}만 장착 가능합니다.`);
+    closeItemModal();return;
+  }
   const slot=it.slot;
   const cur=(G.equip||{})[slot];
   if(cur){G.inv.push({...cur,qty:1,_id:Date.now()});}
@@ -2703,5 +2732,8 @@ document.addEventListener('click', () => {
   <div class="bnav-item " onclick="location.href='build.html'"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg></span><span class="bnav-label">빌드</span></div>
   </div>
 </nav>
+
+<!-- 아이템 액션 모달 -->
+<div id="gw-item-modal" style="display:none;position:fixed;inset:0;z-index:99999;"></div>
 </body>
 </html>
