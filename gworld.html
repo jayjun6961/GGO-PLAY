@@ -778,7 +778,7 @@
         </div>
         <!-- 타이머 + 총대미지 -->
         <div style="display:flex;gap:8px;align-items:center;margin-left:auto;">
-          <div id="dojo-timer-hud" style="font-family:'Orbitron',sans-serif;font-size:12px;color:#fbbf24;background:rgba(0,0,0,.4);padding:3px 10px;border-radius:8px;">⏱ 3:00</div>
+          <div id="dojo-timer-hud" style="font-family:'Orbitron',sans-serif;font-size:12px;color:#fbbf24;background:rgba(0,0,0,.4);padding:3px 10px;border-radius:8px;">⏱ 1:00</div>
           <div style="font-size:10px;color:#a855f7;font-family:'Orbitron',sans-serif;">
             총: <span id="dojo-total-hud" style="color:#f97316;font-weight:700;">0</span>
           </div>
@@ -812,7 +812,7 @@
   <div class="gw-screen" id="gs-dojo-result">
     <div style="display:flex;flex-direction:column;align-items:center;padding:24px 20px;gap:0;overflow-y:auto;height:100%;">
       <div style="font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;color:#f97316;margin-bottom:4px;text-shadow:0 0 16px #f9731688;">🎯 도장 결과</div>
-      <div style="font-size:11px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:16px;">3분 동안의 총 공격량</div>
+      <div style="font-size:11px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:16px;">1분 동안의 총 공격량</div>
       <div id="dojo-result-body" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px;"></div>
       <button onclick="dojoResultClose()" style="margin-top:20px;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:10px 32px;border-radius:10px;font-size:13px;font-family:'Orbitron',sans-serif;cursor:pointer;">마을로 돌아가기</button>
     </div>
@@ -2462,7 +2462,7 @@ function drawBossBattle(cv){
 // ════════════════════════════════════════
 // 도장 시스템
 // ════════════════════════════════════════
-const DOJO_DURATION   = 3 * 60;          // 3분 (초)
+const DOJO_DURATION   = 1 * 60;          // 1분 (초)
 const DOJO_CYCLE_DAYS = 25;
 const DOJO_CYCLE_MS   = DOJO_CYCLE_DAYS * 24 * 60 * 60 * 1000;
 const DOJO_RANK_REWARDS = {
@@ -2725,41 +2725,106 @@ function dojoAttack() {
   _dojo.totalDmg+=dmg;
   dojoHud();
   dojoBlog(`<span class="ld">⚔️ ${isCrit?'<span style="color:#f97316">💥치명타! </span>':''}허수아비에게 ${dmg} 데미지! (누적: ${_dojo.totalDmg.toLocaleString()})</span>`);
-  // MP 자동 회복 (5초마다)
+  // 스킬 쿨다운 표시 갱신
+  renderDojoSkills();
+  // MP 자동 소량 회복
   if(Math.random()<0.15){ const m=Math.min(5,G.mMP-G.mp);G.mp+=m; }
 }
 
 /* ── 스킬 버튼 ── */
 function renderDojoSkills() {
-  const el=document.getElementById('dojo-skbtns');
-  if(!el)return;
-  const job=JOBS[G.job];if(!job)return;
-  el.innerHTML=job.skills.filter(s=>G.lv>=s.lv).map(sk=>`
-    <button class="gw-sk-btn" onclick="useDojoSkill('${sk.id}')"
-      style="opacity:1"><div style="font-size:9px;font-weight:700">${sk.name}</div>
-      <div style="font-size:8px;color:#94a3b8">${sk.mp}MP</div></button>`).join('');
+  const el = document.getElementById('dojo-skbtns');
+  if(!el) return;
+  const job = JOBS[G.job]; if(!job) return;
+  const now = Date.now();
+  el.innerHTML = job.skills.filter(s => G.lv >= s.lv).map(sk => {
+    const cdL = Math.max(0, sk.cd - (now - (G.sk[sk.id]?.t||0)) / 1000);
+    return `<button class="gw-sk" onclick="useDojoSkill('${sk.id}')" title="${sk.desc}">
+      ${sk.name}<br><span style="font-size:8px;opacity:.7">${sk.mp}MP</span>
+      ${cdL > 0 ? `<div class="gw-sk-cd">${Math.ceil(cdL)}s</div>` : ''}
+    </button>`;
+  }).join('');
 }
 
 function useDojoSkill(skId) {
-  if(_dojo.timeLeft<=0) return;
-  const job=JOBS[G.job];
-  const sk=job?.skills.find(s=>s.id===skId);
-  if(!sk||G.mp<sk.mp){gwT('MP 부족!');return;}
-  G.mp=Math.max(0,G.mp-sk.mp);
-  if(sk.eff==='single'){
-    let dmg=Math.max(1,Math.floor(tAtk()*sk.dmg));
-    const isCrit=Math.random()*100<tCritRate();
-    if(isCrit) dmg=Math.floor(dmg*tCritDmg()/100);
-    _dojo.totalDmg+=dmg;
-    dojoBlog(`<span style="color:#a855f7">✨ ${sk.name}! ${isCrit?'<span style="color:#f97316">💥치명타! </span>':''}허수아비에게 ${dmg} 피해! (누적: ${_dojo.totalDmg.toLocaleString()})</span>`);
-    dojoHud();
-  } else if(sk.eff==='heal'){
-    const h=Math.min(Math.floor(G.mHP*sk.dmg),G.mHP-G.hp);G.hp+=h;
-    dojoBlog(`<span style="color:#4ade80">💚 ${sk.name}! HP +${h}</span>`);
-    dojoHud();
-  } else {
-    dojoBlog(`<span style="color:#60a5fa">🛡️ ${sk.name} 사용!</span>`);
+  if(_dojo.timeLeft <= 0) return;
+  const job = JOBS[G.job];
+  const sk  = job?.skills.find(s => s.id === skId);
+  if(!sk || G.lv < sk.lv) { gwT('스킬 레벨 부족'); return; }
+  // ── 쿨다운 체크 (사냥터와 동일) ──
+  const now = Date.now();
+  if(now - (G.sk[skId]?.t||0) < sk.cd * 1000) {
+    gwT('쿨타임 중... (' + Math.ceil(sk.cd - (now-(G.sk[skId]?.t||0))/1000) + '초)');
+    return;
   }
+  if(G.mp < sk.mp) { gwT('MP 부족!'); return; }
+  G.mp -= sk.mp;
+  G.sk[skId] = { t: now };   // 쿨다운 기록
+
+  const a = tAtk();
+  const isCrit = Math.random()*100 < tCritRate();
+  const critMult = isCrit ? tCritDmg()/100 : 1;
+  const critTag  = isCrit ? '<span style="color:#f97316">💥치명타! </span>' : '';
+
+  let dmg = 0;
+  switch(sk.eff) {
+    case 'single':
+    case 'boss':
+    case 'chain':
+    case 'aoe': {
+      dmg = Math.floor(Math.floor(a * sk.dmg) * critMult);
+      _dojo.totalDmg += dmg;
+      dojoBlog(`<span style="color:#a855f7">✨ [${sk.name}] ${critTag}허수아비에게 ${dmg} 피해! (누적: ${_dojo.totalDmg.toLocaleString()})</span>`);
+      break;
+    }
+    case 'crit': {
+      dmg = Math.floor(Math.floor(a * sk.dmg) * (isCrit ? tCritDmg()/100 : 1.5));
+      _dojo.totalDmg += dmg;
+      dojoBlog(`<span style="color:#a855f7">⚡ [${sk.name}] 허수아비에게 ${dmg} 피해! (누적: ${_dojo.totalDmg.toLocaleString()})</span>`);
+      break;
+    }
+    case 'triple': {
+      let total = 0;
+      for(let i = 0; i < 3; i++) {
+        const d = Math.floor(Math.floor(a * sk.dmg) * critMult);
+        total += d;
+      }
+      _dojo.totalDmg += total;
+      dojoBlog(`<span style="color:#a855f7">🏹 [${sk.name}] ${critTag}허수아비에게 ${total} 피해! (누적: ${_dojo.totalDmg.toLocaleString()})</span>`);
+      break;
+    }
+    case 'heal30': {
+      const h = Math.min(Math.floor(G.mHP * .3), G.mHP - G.hp);
+      G.hp += h;
+      dojoBlog(`<span style="color:#4ade80">💚 [${sk.name}] HP +${h}</span>`);
+      break;
+    }
+    case 'def_buff':
+    case 'shield_atk': {
+      if(sk.eff === 'shield_atk') {
+        dmg = Math.floor(Math.floor(a * sk.dmg) * critMult);
+        _dojo.totalDmg += dmg;
+        dojoBlog(`<span style="color:#a855f7">⚔️ [${sk.name}] ${dmg} 피해! (누적: ${_dojo.totalDmg.toLocaleString()})</span>`);
+      }
+      G.defBuff = true;
+      dojoBlog(`<span style="color:#60a5fa">🛡️ [${sk.name}] 방어 강화!</span>`);
+      setTimeout(() => G.defBuff = false, 5000);
+      break;
+    }
+    case 'psn5':
+    case 'psn6': {
+      const dmgPsn = Math.floor(a * sk.dmg);
+      _dojo.totalDmg += dmgPsn;
+      dojoBlog(`<span style="color:#a3e635">☠️ [${sk.name}] ${dmgPsn} 피해! (누적: ${_dojo.totalDmg.toLocaleString()})</span>`);
+      break;
+    }
+    default: {
+      dojoBlog(`<span style="color:#60a5fa">✨ [${sk.name}] 사용!</span>`);
+    }
+  }
+
+  dojoHud();
+  renderDojoSkills();   // 쿨다운 즉시 반영
   saveG();
 }
 
