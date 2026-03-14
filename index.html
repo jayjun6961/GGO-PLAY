@@ -2041,6 +2041,12 @@
       max-height: 70vh;
     }
   }
+
+  /* ════ 모바일 설정 버튼 ════ */
+  .mobile-settings-btn { display: none !important; }
+  @media (max-width: 640px) {
+    .mobile-settings-btn { display: flex !important; }
+  }
 </style>
 </head>
 <body>
@@ -2113,50 +2119,20 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
         <span class="notif-badge" id="mail-badge" style="display:none"></span>
       </div>
+      <!-- 모바일 설정 버튼 (PC에서는 숨김) -->
+      <div class="icon-btn mobile-settings-btn" id="mobile-settings-btn" onclick="toggleMobileSettings(event)" title="설정">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </div>
     </div>
   </header>
-
-  <!-- 알림 패널 -->
-  <div class="notif-panel" id="notif-panel">
-    <div class="notif-panel-header">
-      <div class="notif-panel-title">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        알림
-        <span id="notif-count-label" style="font-size:10px;color:var(--text-dim);font-family:'Noto Sans KR',sans-serif;font-weight:400;"></span>
-      </div>
-      <div class="notif-panel-actions">
-        <button onclick="markAllRead()">모두 읽음</button>
-        <button onclick="clearAllNotifs()">전체 삭제</button>
-      </div>
-    </div>
-    <div class="notif-list" id="notif-list">
-      <div class="notif-loading">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="60" stroke-dashoffset="20"/></svg>
-        불러오는 중...
-      </div>
-    </div>
-
-
-
+  <!-- 모바일 설정 드롭다운 -->
+  <div id="mobile-settings-box" style="display:none;position:fixed;top:64px;right:8px;background:rgba(13,8,26,0.97);border:1px solid rgba(124,58,237,0.3);border-radius:14px;padding:10px;z-index:9998;box-shadow:0 8px 32px rgba(0,0,0,0.5);backdrop-filter:blur(20px);min-width:170px;">
+    <div id="mobile-settings-user" style="font-size:11px;color:var(--text-dim);padding:4px 10px 8px;border-bottom:1px solid rgba(124,58,237,0.12);margin-bottom:8px;font-family:'Orbitron',sans-serif;"></div>
+    <button onclick="openSidebarCoupon();closeMobileSettings()" style="width:100%;background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.2);color:var(--accent-cyan);padding:8px 14px;border-radius:10px;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;gap:8px;margin-bottom:8px;">🎟️ 쿠폰 등록하기</button>
+    <button onclick="doSidebarLogout()" style="width:100%;background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.2);color:var(--accent-pink);padding:8px 14px;border-radius:10px;font-size:13px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;gap:8px;">🚪 로그아웃</button>
   </div>
 
-  <!-- 우편함 패널 -->
-  <div class="mail-panel" id="mail-panel">
-    <div class="mail-panel-header">
-      <div class="mail-panel-title">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
-        우편함
-        <span id="mail-count-label" style="font-size:10px;color:var(--text-dim);font-family:'Noto Sans KR',sans-serif;font-weight:400;"></span>
-      </div>
-      <div class="mail-panel-actions">
-        <button onclick="claimAllMail()">전체 수령</button>
-        <button onclick="toggleMailPanel()">✕</button>
-      </div>
-    </div>
-    <div class="mail-list" id="mail-list">
-      <div class="mail-loading">📬 우편함 불러오는 중...</div>
-    </div>
-  </div>
+
 
   <!-- CONTENT GRID -->
   <div class="content" id="mainContent">
@@ -4236,6 +4212,36 @@ document.addEventListener('click', () => {
   })();
   // ════ 우편함 끝 ════
 
+
+  // ════ 모바일 설정 패널 ════
+  function toggleMobileSettings(e) {
+    if (e) e.stopPropagation();
+    const box = document.getElementById('mobile-settings-box');
+    if (!box) return;
+    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    if (!isLoggedIn) { location.href = 'login.html'; return; }
+    const isOpen = box.style.display !== 'none';
+    box.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+      const username = localStorage.getItem('ggo_username') || '';
+      const el = document.getElementById('mobile-settings-user');
+      if (el) el.textContent = username + ' 님';
+    }
+  }
+  function closeMobileSettings() {
+    const box = document.getElementById('mobile-settings-box');
+    if (box) box.style.display = 'none';
+  }
+  document.addEventListener('click', (e) => {
+    const box = document.getElementById('mobile-settings-box');
+    const btn = document.getElementById('mobile-settings-btn');
+    if (box && box.style.display !== 'none' &&
+        btn && !btn.contains(e.target) && !box.contains(e.target)) {
+      box.style.display = 'none';
+    }
+  });
+  // ════ 모바일 설정 끝 ════
+
 </script>
 
 <!-- 쿠폰 등록 모달 -->
@@ -4290,5 +4296,48 @@ document.addEventListener('click', () => {
     </div>
   </div>
 </div>
+
+<!-- 알림 패널 -->
+  <div class="notif-panel" id="notif-panel">
+    <div class="notif-panel-header">
+      <div class="notif-panel-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        알림
+        <span id="notif-count-label" style="font-size:10px;color:var(--text-dim);font-family:'Noto Sans KR',sans-serif;font-weight:400;"></span>
+      </div>
+      <div class="notif-panel-actions">
+        <button onclick="markAllRead()">모두 읽음</button>
+        <button onclick="clearAllNotifs()">전체 삭제</button>
+      </div>
+    </div>
+    <div class="notif-list" id="notif-list">
+      <div class="notif-loading">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="60" stroke-dashoffset="20"/></svg>
+        불러오는 중...
+      </div>
+    </div>
+
+
+
+  </div>
+
+  <!-- 우편함 패널 -->
+  <div class="mail-panel" id="mail-panel">
+    <div class="mail-panel-header">
+      <div class="mail-panel-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
+        우편함
+        <span id="mail-count-label" style="font-size:10px;color:var(--text-dim);font-family:'Noto Sans KR',sans-serif;font-weight:400;"></span>
+      </div>
+      <div class="mail-panel-actions">
+        <button onclick="claimAllMail()">전체 수령</button>
+        <button onclick="toggleMailPanel()">✕</button>
+      </div>
+    </div>
+    <div class="mail-list" id="mail-list">
+      <div class="mail-loading">📬 우편함 불러오는 중...</div>
+    </div>
+  </div>
+
 </body>
 </html>
