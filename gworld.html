@@ -572,6 +572,19 @@
   </div>
 </div>
 
+<!-- 패널: 캐시 상점 -->
+<div class="gw-pov" id="gw-pcash" onclick="if(event.target===this)closeP('gw-pcash')">
+  <div class="gw-pbox" style="max-width:360px;width:100%">
+    <div class="gw-phdr">
+      <div class="gw-pttl">💠 캐시 상점</div>
+      <button class="gw-px" onclick="closeP('gw-pcash')">✕</button>
+    </div>
+    <div class="gw-pbdy" id="gw-cashbody" style="padding:14px;"></div>
+  </div>
+</div>
+
+
+
 
 
 <!-- 패널: 장비 강화 -->
@@ -660,6 +673,7 @@
         <div class="gw-act" onclick="openP('gw-pshop')"><div class="gw-act-ico">🏪</div><div class="gw-act-lbl">포션 상점</div></div>
         <div class="gw-act" onclick="showDungeonSelect()"><div class="gw-act-ico">🏯</div><div class="gw-act-lbl">던전 입장</div></div>
         <div class="gw-act" onclick="openDojo()"><div class="gw-act-ico">🎯</div><div class="gw-act-lbl">도장</div></div>
+        <div class="gw-act" onclick="openCashShop()"><div class="gw-act-ico">💠</div><div class="gw-act-lbl">캐시 상점</div></div>
         <div class="gw-act" onclick="resetChar()" style="border-color:rgba(239,68,68,.15)"><div class="gw-act-ico">🔄</div><div class="gw-act-lbl">초기화</div></div>
       </div>
     </div>
@@ -1599,6 +1613,7 @@ function renderP(id){
   if(id==='gw-pshop')    renderShop();
   if(id==='gw-pdungeon') renderDungeonSelect();
   if(id==='gw-pdojo')    renderDojoEnter();
+  if(id==='gw-pcash')    renderCashShop();
 }
 
 // ── 장비 보너스 합산 ──
@@ -2952,6 +2967,143 @@ function drawDojo(cv) {
   ctx.fillText(JOBS[G.job]?.emoji||'⚔️',plX,plY);
 }
 // ════ 도장 시스템 끝 ════
+
+// ════════════════════════════════════════
+// 캐시 상점 시스템
+// ════════════════════════════════════════
+const CASH_ITEMS = [
+  { id:'gold_2000',  name:'골드 2000',      e:'💰', desc:'인게임 골드 2,000 지급', gpCost:100,
+    type:'gold',     value:2000 },
+  { id:'magicstone', name:'마법석 100개',    e:'💎', desc:'인벤토리에 마법석 100개 지급', gpCost:100,
+    type:'mat',      value:100 },
+  { id:'hp_pot_100', name:'HP포션 100개',    e:'🧪', desc:'소형 HP 포션 100개 지급', gpCost:50,
+    type:'hppot',    value:100 },
+  { id:'mp_pot_100', name:'MP포션 100개',    e:'💧', desc:'소형 MP 포션 100개 지급', gpCost:50,
+    type:'mppot',    value:100 },
+];
+
+function openCashShop() {
+  renderCashShop();
+  openP('gw-pcash');
+}
+
+function renderCashShop() {
+  const el = document.getElementById('gw-cashbody');
+  if(!el) return;
+  const username = gwUN();
+  const currKey  = 'ggo_currency_' + username;
+  const curr     = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
+  const myGP     = curr['GP'] || 0;
+
+  let html = `
+    <div style="display:flex;align-items:center;justify-content:space-between;
+      background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);
+      border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+      <span style="font-size:11px;color:#94a3b8;font-family:'Orbitron',sans-serif;">보유 GP</span>
+      <span style="font-size:16px;font-weight:900;color:#fbbf24;font-family:'Orbitron',sans-serif;">
+        🪙 ${myGP.toLocaleString()} GP
+      </span>
+    </div>`;
+
+  CASH_ITEMS.forEach(item => {
+    const canBuy  = myGP >= item.gpCost;
+    const btnStyle = canBuy
+      ? 'background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;cursor:pointer;'
+      : 'background:rgba(71,85,105,.15);border:1px solid #374151;color:#475569;cursor:not-allowed;';
+
+    html += `
+      <div style="display:flex;align-items:center;gap:10px;
+        background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.12);
+        border-radius:12px;padding:11px 14px;margin-bottom:8px;">
+        <span style="font-size:26px;flex-shrink:0">${item.e}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:#e2e8f0">${item.name}</div>
+          <div style="font-size:10px;color:#64748b;margin-top:2px;font-family:'Noto Sans KR',sans-serif">${item.desc}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+          <span style="font-size:11px;font-weight:700;color:#fbbf24;font-family:'Orbitron',sans-serif">
+            🪙 ${item.gpCost} GP
+          </span>
+          <button onclick="buyCashItem('${item.id}')"
+            ${canBuy?'':'disabled'}
+            style="${btnStyle}padding:5px 14px;border-radius:8px;font-size:10px;
+                   font-family:'Orbitron',sans-serif;white-space:nowrap;">
+            구매
+          </button>
+        </div>
+      </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+function buyCashItem(itemId) {
+  const item     = CASH_ITEMS.find(i => i.id === itemId);
+  if(!item) return;
+
+  const username = gwUN();
+  const currKey  = 'ggo_currency_' + username;
+  const curr     = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
+  const myGP     = curr['GP'] || 0;
+
+  if(myGP < item.gpCost) {
+    gwT(`🪙 GP가 부족합니다! (필요: ${item.gpCost}GP / 보유: ${myGP}GP)`);
+    return;
+  }
+
+  // GP 차감
+  curr['GP'] = myGP - item.gpCost;
+  localStorage.setItem(currKey, JSON.stringify(curr));
+
+  // 아이템 지급
+  switch(item.type) {
+    case 'gold':
+      G.gold += item.value;
+      hud(); saveG();
+      gwT(`💰 골드 +${item.value.toLocaleString()} 지급! (-${item.gpCost} GP)`);
+      break;
+
+    case 'mat': {
+      // 마법석 인벤 추가
+      const exist = G.inv.find(i => i.n === '마법석');
+      if(exist) exist.qty = (exist.qty||1) + item.value;
+      else G.inv.push({ n:'마법석', e:'💎', type:'mat', val:50, grade:'희귀',
+                        sellPrice:50, qty:item.value, _id:Date.now() });
+      saveG(); renderInv();
+      gwT(`💎 마법석 ×${item.value} 지급! (-${item.gpCost} GP)`);
+      break;
+    }
+
+    case 'hppot': {
+      // 소형 HP 포션 추가
+      const exist = G.inv.find(i => i.id === 'hp_s');
+      if(exist) exist.qty = (exist.qty||1) + item.value;
+      else G.inv.push({ id:'hp_s', n:'소형 HP 포션', e:'🧪', type:'pot',
+                        eff:'hp', val:30, price:30, grade:'일반',
+                        qty:item.value, _id:Date.now() });
+      saveG(); renderInv();
+      gwT(`🧪 소형 HP 포션 ×${item.value} 지급! (-${item.gpCost} GP)`);
+      break;
+    }
+
+    case 'mppot': {
+      // 소형 MP 포션 추가
+      const exist = G.inv.find(i => i.id === 'mp_s');
+      if(exist) exist.qty = (exist.qty||1) + item.value;
+      else G.inv.push({ id:'mp_s', n:'소형 MP 포션', e:'💧', type:'pot',
+                        eff:'mp', val:20, price:20, grade:'일반',
+                        qty:item.value, _id:Date.now() });
+      saveG(); renderInv();
+      gwT(`💧 소형 MP 포션 ×${item.value} 지급! (-${item.gpCost} GP)`);
+      break;
+    }
+  }
+
+  // 상점 UI 갱신 (GP 잔액 업데이트)
+  renderCashShop();
+}
+// ════ 캐시 상점 끝 ════
+
 
 
 // ════ 포션 상점 끝 ════
