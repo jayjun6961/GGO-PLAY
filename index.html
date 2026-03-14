@@ -2109,7 +2109,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="notif-badge" id="notif-badge" style="display:none"></span>
       </div>
-      <div class="icon-btn" id="mail-btn" onclick="toggleMailPanel()" title="우편함" style="position:relative">
+      <div class="icon-btn" id="mail-btn" onclick="toggleMailPanel(event)" title="우편함" style="position:relative">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
         <span class="notif-badge" id="mail-badge" style="display:none"></span>
       </div>
@@ -4030,7 +4030,8 @@ document.addEventListener('click', () => {
   let _mailLoaded = false;
 
   /* ── 패널 열기/닫기 ── */
-  function toggleMailPanel() {
+  function toggleMailPanel(e) {
+    if (e) e.stopPropagation();
     const panel = document.getElementById('mail-panel');
     _mailOpen = !_mailOpen;
     if (_mailOpen) {
