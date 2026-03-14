@@ -196,7 +196,7 @@
     });
 
     // 이미 로그인 상태면 바로 이동
-    const already = localStorage.getItem('ggo_logged_in');
+    const already = sessionStorage.getItem('ggo_logged_in');
     if(already === 'true') location.href = 'index.html';
   });
 
@@ -247,8 +247,8 @@
           localStorage.removeItem('ggo_id');
           localStorage.removeItem('ggo_num');
         }
-        localStorage.setItem('ggo_logged_in', 'true');
-        localStorage.setItem('ggo_username', inputId);
+        sessionStorage.setItem('ggo_logged_in', 'true');
+        sessionStorage.setItem('ggo_username', inputId);
 
         // 성공 화면
         document.getElementById('login-form-wrap').style.display='none';
