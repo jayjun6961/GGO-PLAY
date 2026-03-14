@@ -473,6 +473,11 @@
   }
 
   async function loadAll(){
+    // 로그인 체크
+    const username  = localStorage.getItem('ggo_username');
+    const isLoggedIn = localStorage.getItem('ggo_logged_in') === 'true';
+    if(!isLoggedIn || !username){ location.href='login.html'; return; }
+
     document.getElementById('loading-state').style.display='block';
     document.getElementById('content-wrap').style.display='none';
     try{
