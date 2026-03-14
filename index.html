@@ -1920,12 +1920,12 @@
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     display: none;
     flex-direction: column;
-    z-index: 500;
+    z-index: 9999;
     overflow: hidden;
     backdrop-filter: blur(20px);
-    animation: slideDown 0.2s ease;
+    animation: notifSlideIn 0.18s ease;
   }
-  .mail-panel.open { display: flex; }
+  .mail-panel.open { display: flex !important; }
 
   .mail-panel-header {
     display: flex; align-items: center; justify-content: space-between;
