@@ -1503,7 +1503,7 @@ function mobDead(){
   G.exp+=m.exp;G.gold+=m.g;
   blog(`<span class="li">💀 ${m.n} 처치! +${m.exp}EXP +${m.g}G</span>`);
   if(Math.random()<m.drop){
-    // 직업에 맞는 장비 풀 (전설 제외, 포션/재료 제외)
+    // 직업에 맞는 장비 풀 (전설/포션/재료 제외 → 장비만)
     const eqPool = DROPS.filter(d => {
       if(d.type==='pot'||d.type==='mat') return false;
       if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
@@ -1563,17 +1563,19 @@ function useSkill(sid){
   if(G.mp<sk.mp){gwT('MP 부족!');return;}
   G.mp-=sk.mp;G.sk[sid]={t:now};
   const a=tAtk();
+  // 강화 레벨 반영 dmg
+  const skBoostDmg = sk.dmg + (G.sk[sid]?.lv||0)*0.1;
   switch(sk.eff){
-    case 'single':{const d=Math.floor(a*sk.dmg);G.mhp=Math.max(0,G.mhp-d);floatDmg(d,'#22d3ee');blog(`<span class="ls">✨ [${sk.name}] ${d}!</span>`);break;}
-    case 'crit':{let d=Math.floor(a*sk.dmg);if(Math.random()<.2){d=Math.floor(d*1.5);blog(`<span class="ls">💥 치명타!</span>`);}G.mhp=Math.max(0,G.mhp-d);floatDmg(d,'#22d3ee');blog(`<span class="ls">⚡ [${sk.name}] ${d}!</span>`);break;}
-    case 'triple':{let t=0;for(let i=0;i<3;i++){const d=Math.floor(a*sk.dmg);G.mhp=Math.max(0,G.mhp-d);t+=d;if(G.mhp<=0)break;}floatDmg(t,'#22d3ee');blog(`<span class="ls">🏹 [${sk.name}] ${t}!</span>`);break;}
-    case 'aoe':{const d=Math.floor(a*sk.dmg);G.mhp=Math.max(0,G.mhp-d);floatDmg(d,'#22d3ee');blog(`<span class="ls">💫 [${sk.name}] 광역 ${d}!</span>`);break;}
-    case 'chain':{const d=Math.floor(a*sk.dmg);G.mhp=Math.max(0,G.mhp-d);floatDmg(d,'#22d3ee');blog(`<span class="ls">⚡ [${sk.name}] ${d}!</span>`);break;}
+    case 'single':{const d=Math.floor(a*skBoostDmg);G.mhp=Math.max(0,G.mhp-d);floatDmg(d,'#22d3ee');blog(`<span class="ls">✨ [${sk.name}] ${d}!</span>`);break;}
+    case 'crit':{let d=Math.floor(a*skBoostDmg);if(Math.random()<.2){d=Math.floor(d*1.5);blog(`<span class="ls">💥 치명타!</span>`);}G.mhp=Math.max(0,G.mhp-d);floatDmg(d,'#22d3ee');blog(`<span class="ls">⚡ [${sk.name}] ${d}!</span>`);break;}
+    case 'triple':{let t=0;for(let i=0;i<3;i++){const d=Math.floor(a*skBoostDmg);G.mhp=Math.max(0,G.mhp-d);t+=d;if(G.mhp<=0)break;}floatDmg(t,'#22d3ee');blog(`<span class="ls">🏹 [${sk.name}] ${t}!</span>`);break;}
+    case 'aoe':{const d=Math.floor(a*skBoostDmg);G.mhp=Math.max(0,G.mhp-d);floatDmg(d,'#22d3ee');blog(`<span class="ls">💫 [${sk.name}] 광역 ${d}!</span>`);break;}
+    case 'chain':{const d=Math.floor(a*skBoostDmg);G.mhp=Math.max(0,G.mhp-d);floatDmg(d,'#22d3ee');blog(`<span class="ls">⚡ [${sk.name}] ${d}!</span>`);break;}
     case 'psn5':case 'psn6':{const mx=sk.eff==='psn6'?6:5;G.buffs.psn={max:mx,t:0};blog(`<span class="ls">☠️ [${sk.name}] 독 부여!</span>`);break;}
     case 'def_buff':{G.defBuff=true;blog(`<span class="ls">🛡️ [${sk.name}] 방어 강화!</span>`);setTimeout(()=>G.defBuff=false,5000);break;}
     case 'heal30':{const h=Math.floor(G.mHP*.3);G.hp=Math.min(G.mHP,G.hp+h);blog(`<span class="lh">💚 [${sk.name}] HP +${h}!</span>`);break;}
-    case 'boss':{const d=Math.floor(a*sk.dmg);G.mhp=Math.max(0,G.mhp-d);floatDmg(d,'#22d3ee');blog(`<span class="ls">🗡️ [${sk.name}] ${d}!</span>`);break;}
-    case 'shield_atk':{const d=Math.floor(a*sk.dmg);G.mhp=Math.max(0,G.mhp-d);G.defBuff=true;floatDmg(d,'#22d3ee');blog(`<span class="ls">⚔️ [${sk.name}] ${d} + 방어 강화!</span>`);setTimeout(()=>G.defBuff=false,10000);break;}
+    case 'boss':{const d=Math.floor(a*skBoostDmg);G.mhp=Math.max(0,G.mhp-d);floatDmg(d,'#22d3ee');blog(`<span class="ls">🗡️ [${sk.name}] ${d}!</span>`);break;}
+    case 'shield_atk':{const d=Math.floor(a*skBoostDmg);G.mhp=Math.max(0,G.mhp-d);G.defBuff=true;floatDmg(d,'#22d3ee');blog(`<span class="ls">⚔️ [${sk.name}] ${d} + 방어 강화!</span>`);setTimeout(()=>G.defBuff=false,10000);break;}
   }
   hud();updMobBar();const cv=document.getElementById('gw-bcv');if(cv)drawBattle(cv);
   if(G.mhp<=0){stopAuto();mobDead();}
@@ -1931,18 +1933,71 @@ function renderStat(){
     </div>`;
 }
 
+function getSkLv(skId){ return G.sk[skId]?.lv||0; }
+function getSkDmgBoosted(sk){
+  const lv=getSkLv(sk.id);
+  // def_buff/heal30 계열은 dmg 대신 효과 텍스트 표시
+  if(sk.eff==='def_buff'||sk.eff==='heal30') return null;
+  return (sk.dmg + lv*0.1).toFixed(2);
+}
+function getSkUpgradeCost(skId){
+  const lv=getSkLv(skId);
+  return (lv+1)*2; // 1강=2개, 2강=4개, 3강=6개...
+}
+function upgradeSkill(skId){
+  const sk=JOBS[G.job]?.skills.find(s=>s.id===skId);
+  if(!sk){gwT('스킬 없음');return;}
+  const cost=getSkUpgradeCost(skId);
+  const stone=G.inv.find(i=>i.n==='마법석');
+  if(!stone||stone.qty<cost){gwT(`💎 마법석 부족! (필요: ${cost}개)`);return;}
+  stone.qty-=cost;
+  if(stone.qty<=0)G.inv.splice(G.inv.indexOf(stone),1);
+  if(!G.sk[skId]) G.sk[skId]={};
+  G.sk[skId].lv=(G.sk[skId].lv||0)+1;
+  const newLv=G.sk[skId].lv;
+  gwT(`✨ [${sk.name}] ${newLv}강 강화! DMG +0.1 (마법석 -${cost}개)`);
+  saveG(); renderSkList();
+}
 function renderSkList(){
-  document.getElementById('gw-skbody').innerHTML=JOBS[G.job].skills.map(sk=>{
+  const stoneQty=(G.inv.find(i=>i.n==='마법석')?.qty||0);
+  document.getElementById('gw-skbody').innerHTML=
+    `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
+      margin-bottom:10px;padding:6px 10px;background:rgba(52,211,153,.07);
+      border:1px solid rgba(52,211,153,.2);border-radius:8px;">
+      💎 보유 마법석: <span style="color:#34d399;font-weight:700">${stoneQty}개</span>
+    </div>`+
+    JOBS[G.job].skills.map(sk=>{
     const lk=G.lv<sk.lv;
+    const skLv=getSkLv(sk.id);
+    const boosted=getSkDmgBoosted(sk);
+    const upgCost=getSkUpgradeCost(sk.id);
+    const canUpg=!lk&&stoneQty>=upgCost;
+    const dmgText=boosted
+      ?`<span style="color:#a855f7">DMG ${boosted}${skLv>0?` <span style="color:#fbbf24;font-size:9px">(+${(skLv*0.1).toFixed(1)})</span>`:''}</span>`
+      :'';
     return`<div class="gw-sk-item${lk?' sk-lk':''}">
-      <div class="gw-sk-nm">${sk.name}</div>
-      <div class="gw-sk-tags">
-        <span class="gw-sk-tag">Lv.${sk.lv} 해금</span>
-        <span class="gw-sk-tag">MP ${sk.mp}</span>
-        <span class="gw-sk-tag">쿨타임 ${sk.cd}초</span>
-        ${lk?`<span class="gw-sk-tag red">잠김 (Lv.${G.lv})</span>`:''}
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+        <div style="flex:1;min-width:0;">
+          <div class="gw-sk-nm">${sk.name}${skLv>0?` <span style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif">+${skLv}</span>`:''}</div>
+          <div class="gw-sk-tags">
+            <span class="gw-sk-tag">Lv.${sk.lv}</span>
+            <span class="gw-sk-tag">MP ${sk.mp}</span>
+            <span class="gw-sk-tag">CD ${sk.cd}s</span>
+            ${dmgText}
+            ${lk?`<span class="gw-sk-tag red">잠김</span>`:''}
+          </div>
+          <div class="gw-sk-desc">${sk.desc}</div>
+        </div>
+        ${!lk?`<button onclick="upgradeSkill('${sk.id}')"
+          ${canUpg?'':'disabled'}
+          style="flex-shrink:0;padding:6px 10px;border-radius:8px;font-size:10px;
+            background:${canUpg?'linear-gradient(135deg,#7c3aed,#5b21b6)':'rgba(71,85,105,.15)'};
+            border:1px solid ${canUpg?'#a855f7':'#374151'};
+            color:${canUpg?'#fff':'#475569'};cursor:${canUpg?'pointer':'not-allowed'};
+            font-family:'Orbitron',sans-serif;white-space:nowrap;">
+          💎${upgCost}<br><span style="font-size:8px">강화</span>
+        </button>`:''}
       </div>
-      <div class="gw-sk-desc">${sk.desc}</div>
     </div>`;
   }).join('');
 }
@@ -2284,6 +2339,14 @@ function dunBossDead() {
     if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
     return d.type!=='pot'&&d.type!=='mat';
   });
+  // 던전 마법석 드롭 (보스 처치 시 항상 지급)
+  const stoneAmt = dun.id==='orc' ? Math.floor(Math.random()*3)+2 : Math.floor(Math.random()*2)+1;
+  const stoneEx = G.inv.find(i=>i.n==='마법석');
+  if(stoneEx) stoneEx.qty=(stoneEx.qty||1)+stoneAmt;
+  else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:stoneAmt,_id:Date.now()-10});
+  droppedItems.push({n:'마법석',e:'💎',grade:'희귀',qty:stoneAmt,_isMat:true});
+  dunBlog(`<span style="color:#34d399">💎 마법석 ×${stoneAmt} 획득!</span>`);
+
   // 던전 드롭: 희귀60% 레어30% 에픽10% (최소 1개 보장)
   const dunDropR = Math.random();
   let dunGrade;
@@ -2336,10 +2399,11 @@ function showDunResult(dun, gold, exp, items, lvUp) {
     html += `<div style="font-size:10px;color:#94a3b8;font-family:'Orbitron',sans-serif;margin-top:4px;margin-bottom:2px;">🎁 획득 장비</div>`;
     items.forEach(it=>{
       const gc=GRADE_COL[it.grade]||'#94a3b8';
+      const subInfo=it._isMat ? `×${it.qty}개` : `${it.grade}${it.atk?' · ATK +'+it.atk:''}${it.def?' · DEF +'+it.def:''}`;
       html+=`<div style="background:${gc}11;border:1px solid ${gc}33;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
         <span style="font-size:22px">${it.e}</span>
         <div><div style="font-size:12px;font-weight:700;color:${gc}">${it.n}</div>
-        <div style="font-size:9px;color:#64748b">${it.grade} · ${it.atk?'ATK +'+it.atk:''}${it.def?' DEF +'+it.def:''}</div></div>
+        <div style="font-size:9px;color:#64748b">${subInfo}</div></div>
       </div>`;
     });
   } else {
@@ -2409,16 +2473,17 @@ function useDunSkill(skId){
   const job=JOBS[G.job];
   const sk=job?.skills.find(s=>s.id===skId);
   if(!sk||G.mp<sk.mp){gwT('MP 부족!');return;}
+  const skBoostDmg=sk.dmg+(G.sk[skId]?.lv||0)*0.1;
   G.mp=Math.max(0,G.mp-sk.mp);
   if(sk.eff==='single'){
-    const dmg=Math.max(1,Math.floor(tAtk()*sk.dmg)-_dun.dungeon.boss.def);
+    const dmg=Math.max(1,Math.floor(tAtk()*skBoostDmg)-_dun.dungeon.boss.def);
     _dun.bossHp=Math.max(0,_dun.bossHp-dmg);
     dunBlog(`<span style="color:#a855f7">✨ ${sk.name}! ${_dun.dungeon.boss.n}에게 ${dmg} 피해!</span>`);
   } else if(sk.eff==='def_buff'){
     G.buffs.def_buff={t:5};
     dunBlog(`<span style="color:#60a5fa">🛡️ ${sk.name}! 5초간 방어력 강화!</span>`);
   } else if(sk.eff==='heal'){
-    const h=Math.min(Math.floor(G.mHP*sk.dmg),G.mHP-G.hp);G.hp+=h;
+    const h=Math.min(Math.floor(G.mHP*skBoostDmg),G.mHP-G.hp);G.hp+=h;
     dunBlog(`<span style="color:#4ade80">💚 ${sk.name}! HP +${h}</span>`);
   }
   dunHud();saveG();
@@ -2777,6 +2842,8 @@ function useDojoSkill(skId) {
   G.sk[skId] = { t: now };   // 쿨다운 기록
 
   const a = tAtk();
+  // 강화 레벨 반영 dmg
+  const skBoostDmg = sk.dmg + (G.sk[skId]?.lv||0)*0.1;
   const isCrit = Math.random()*100 < tCritRate();
   const critMult = isCrit ? tCritDmg()/100 : 1;
   const critTag  = isCrit ? '<span style="color:#f97316">💥치명타! </span>' : '';
@@ -2787,13 +2854,13 @@ function useDojoSkill(skId) {
     case 'boss':
     case 'chain':
     case 'aoe': {
-      dmg = Math.floor(Math.floor(a * sk.dmg) * critMult);
+      dmg = Math.floor(Math.floor(a * skBoostDmg) * critMult);
       _dojo.totalDmg += dmg;
       dojoBlog(`<span style="color:#a855f7">✨ [${sk.name}] ${critTag}허수아비에게 ${dmg} 피해! (누적: ${_dojo.totalDmg.toLocaleString()})</span>`);
       break;
     }
     case 'crit': {
-      dmg = Math.floor(Math.floor(a * sk.dmg) * (isCrit ? tCritDmg()/100 : 1.5));
+      dmg = Math.floor(Math.floor(a * skBoostDmg) * (isCrit ? tCritDmg()/100 : 1.5));
       _dojo.totalDmg += dmg;
       dojoBlog(`<span style="color:#a855f7">⚡ [${sk.name}] 허수아비에게 ${dmg} 피해! (누적: ${_dojo.totalDmg.toLocaleString()})</span>`);
       break;
@@ -2801,7 +2868,7 @@ function useDojoSkill(skId) {
     case 'triple': {
       let total = 0;
       for(let i = 0; i < 3; i++) {
-        const d = Math.floor(Math.floor(a * sk.dmg) * critMult);
+        const d = Math.floor(Math.floor(a * skBoostDmg) * critMult);
         total += d;
       }
       _dojo.totalDmg += total;
@@ -2817,7 +2884,7 @@ function useDojoSkill(skId) {
     case 'def_buff':
     case 'shield_atk': {
       if(sk.eff === 'shield_atk') {
-        dmg = Math.floor(Math.floor(a * sk.dmg) * critMult);
+        dmg = Math.floor(Math.floor(a * skBoostDmg) * critMult);
         _dojo.totalDmg += dmg;
         dojoBlog(`<span style="color:#a855f7">⚔️ [${sk.name}] ${dmg} 피해! (누적: ${_dojo.totalDmg.toLocaleString()})</span>`);
       }
@@ -2828,7 +2895,7 @@ function useDojoSkill(skId) {
     }
     case 'psn5':
     case 'psn6': {
-      const dmgPsn = Math.floor(a * sk.dmg);
+      const dmgPsn = Math.floor(a * skBoostDmg);
       _dojo.totalDmg += dmgPsn;
       dojoBlog(`<span style="color:#a3e635">☠️ [${sk.name}] ${dmgPsn} 피해! (누적: ${_dojo.totalDmg.toLocaleString()})</span>`);
       break;
