@@ -2109,7 +2109,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="notif-badge" id="notif-badge" style="display:none"></span>
       </div>
-      <div class="icon-btn" id="mail-btn" onclick="toggleMailPanel(event)" title="우편함" style="position:relative">
+      <div class="icon-btn" id="mail-btn" onclick="toggleMailPanel()" title="우편함" style="position:relative">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
         <span class="notif-badge" id="mail-badge" style="display:none"></span>
       </div>
@@ -4022,20 +4022,17 @@ document.addEventListener('click', () => {
   // 우편함 시스템
   // ════════════════════════════════════════
   const CSV_MAIL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1995403060&single=true&output=csv';
-  const MAIL_ICON = { '루비':'🔴', '크리스탈':'💎', 'GP':'🪙' };
+  const MAIL_ICON  = { '루비':'🔴', '크리스탈':'💎', 'GP':'🪙' };
   const MAIL_COLOR = { '루비':'#f87171', '크리스탈':'#60a5fa', 'GP':'#fbbf24' };
 
-  let _mailOpen = false;
-  let _mailData  = [];   // 파싱된 우편 목록 캐시
+  let _mailOpen   = false;
+  let _mailData   = [];
   let _mailLoaded = false;
 
-  /* ── 패널 열기/닫기 ── */
-  function toggleMailPanel(e) {
-    if (e) e.stopPropagation();
+  function toggleMailPanel() {
     const panel = document.getElementById('mail-panel');
     _mailOpen = !_mailOpen;
     if (_mailOpen) {
-      // 알림 패널 닫기
       const np = document.getElementById('notif-panel');
       if (np) np.classList.remove('open');
       _notifOpen = false;
@@ -4046,9 +4043,18 @@ document.addEventListener('click', () => {
     }
   }
 
-  /* ── CSV 파싱 ── */
+  document.addEventListener('click', (e) => {
+    if (!_mailOpen) return;
+    const panel = document.getElementById('mail-panel');
+    const btn   = document.getElementById('mail-btn');
+    if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+      panel.classList.remove('open');
+      _mailOpen = false;
+    }
+  });
+
   function parseMailCSV(txt) {
-    const lines = txt.trim().split('\n').slice(1); // 헤더 제거
+    const lines = txt.trim().split('\n').slice(1);
     return lines.map(line => {
       const cols = []; let cur = '', inQ = false;
       for (const ch of line) {
@@ -4058,25 +4064,21 @@ document.addEventListener('click', () => {
       }
       cols.push(cur.trim());
       return {
-        id:       (cols[0]||'').trim(),   // A: 우편ID
-        to:       (cols[1]||'').trim(),   // B: 수신자 (닉네임 or ALL)
-        title:    (cols[2]||'').trim(),   // C: 제목
-        body:     (cols[3]||'').trim(),   // D: 내용
-        currency: (cols[4]||'').trim(),   // E: 재화종류
-        amount:   parseInt(cols[5])||0,   // F: 수량
-        expire:   (cols[6]||'').trim(),   // G: 만료일 (YYYY-MM-DD, 빈칸=무기한)
+        id:       (cols[0]||'').trim(),
+        to:       (cols[1]||'').trim(),
+        title:    (cols[2]||'').trim(),
+        body:     (cols[3]||'').trim(),
+        currency: (cols[4]||'').trim(),
+        amount:   parseInt(cols[5])||0,
+        expire:   (cols[6]||'').trim(),
       };
     }).filter(m => m.id && m.to);
   }
 
-  /* ── 우편함 데이터 로드 ── */
   async function loadMailData() {
     const listEl = document.getElementById('mail-list');
     if (!listEl) return;
-
-    // 이미 로드됐으면 렌더만
     if (_mailLoaded) { renderMailList(); return; }
-
     listEl.innerHTML = '<div class="mail-loading">📬 우편함 불러오는 중...</div>';
     try {
       const res = await fetch(CSV_MAIL + '&t=' + Date.now(), { cache: 'no-store' });
@@ -4089,63 +4091,40 @@ document.addEventListener('click', () => {
     }
   }
 
-  /* ── 수령 여부 확인 ── */
   function getClaimedSet(username) {
-    try {
-      return new Set(JSON.parse(localStorage.getItem('ggo_mail_claimed_' + username) || '[]'));
-    } catch { return new Set(); }
+    try { return new Set(JSON.parse(localStorage.getItem('ggo_mail_claimed_' + username) || '[]')); }
+    catch { return new Set(); }
   }
   function saveClaimed(username, set) {
     localStorage.setItem('ggo_mail_claimed_' + username, JSON.stringify([...set]));
   }
-
-  /* ── 오늘 날짜 비교 ── */
-  function isExpired(dateStr) {
+  function isMailExpired(dateStr) {
     if (!dateStr) return false;
-    const today = new Date().toISOString().slice(0, 10);
-    return dateStr < today;
+    return dateStr < new Date().toISOString().slice(0, 10);
   }
-  function daysLeft(dateStr) {
+  function mailDaysLeft(dateStr) {
     if (!dateStr) return null;
-    const diff = Math.ceil((new Date(dateStr) - new Date()) / 86400000);
-    return diff;
+    return Math.ceil((new Date(dateStr) - new Date()) / 86400000);
   }
 
-  /* ── 우편함 렌더링 ── */
   function renderMailList() {
     const listEl = document.getElementById('mail-list');
     if (!listEl) return;
-
     const username = localStorage.getItem('ggo_username') || '';
     if (!username) {
       listEl.innerHTML = '<div class="mail-empty">📭 로그인 후 우편함을 확인하세요.</div>';
-      updateMailBadge(0);
-      return;
+      updateMailBadge(0); return;
     }
-
     const claimed = getClaimedSet(username);
-    const today   = new Date().toISOString().slice(0, 10);
-
-    // 나에게 온 우편 필터링 (내 닉네임 or ALL), 만료 제외
-    const myMail = _mailData.filter(m => {
-      if (isExpired(m.expire)) return false;
-      return m.to === 'ALL' || m.to === username;
-    });
-
-    // 미수령 우선 정렬
-    myMail.sort((a, b) => {
-      const ac = claimed.has(a.id) ? 1 : 0;
-      const bc = claimed.has(b.id) ? 1 : 0;
-      return ac - bc;
-    });
+    const myMail = _mailData.filter(m =>
+      !isMailExpired(m.expire) && (m.to === 'ALL' || m.to === username)
+    ).sort((a, b) => (claimed.has(a.id)?1:0) - (claimed.has(b.id)?1:0));
 
     if (myMail.length === 0) {
       listEl.innerHTML = '<div class="mail-empty">📭 수신된 우편이 없습니다.</div>';
       document.getElementById('mail-count-label').textContent = '';
-      updateMailBadge(0);
-      return;
+      updateMailBadge(0); return;
     }
-
     const unclaimed = myMail.filter(m => !claimed.has(m.id)).length;
     document.getElementById('mail-count-label').textContent =
       unclaimed > 0 ? `(미수령 ${unclaimed})` : `(${myMail.length}개)`;
@@ -4153,132 +4132,91 @@ document.addEventListener('click', () => {
 
     listEl.innerHTML = myMail.map(m => {
       const isClaimed = claimed.has(m.id);
-      const icon = MAIL_ICON[m.currency] || '📦';
+      const icon  = MAIL_ICON[m.currency]  || '📦';
       const color = MAIL_COLOR[m.currency] || 'var(--purple-3)';
-      const dl = daysLeft(m.expire);
-      const expireTag = (dl !== null && dl <= 3 && !isClaimed)
+      const dl = mailDaysLeft(m.expire);
+      const expTag = (dl !== null && dl <= 3 && !isClaimed)
         ? `<span class="mail-expire-warn">⏰ ${dl}일 후 만료</span>` : '';
-
-      return `
-        <div class="mail-item ${isClaimed ? 'mail-claimed' : ''}" id="mail-item-${m.id}">
-          <div class="mail-item-header">
-            <div class="mail-item-icon">${icon}</div>
-            <div class="mail-item-title">${m.title || '운영자 우편'}${expireTag}</div>
-            <div class="mail-item-date">${m.expire || '무기한'}</div>
+      return `<div class="mail-item ${isClaimed?'mail-claimed':''}" id="mail-item-${m.id}">
+        <div class="mail-item-header">
+          <div class="mail-item-icon">${icon}</div>
+          <div class="mail-item-title">${m.title||'운영자 우편'}${expTag}</div>
+          <div class="mail-item-date">${m.expire||'무기한'}</div>
+        </div>
+        ${m.body?`<div class="mail-item-body">${m.body}</div>`:''}
+        <div class="mail-item-reward">
+          <div class="mail-reward-chip" style="color:${color};border-color:${color}40">
+            ${icon} <span>${m.amount.toLocaleString()} ${m.currency}</span>
           </div>
-          ${m.body ? `<div class="mail-item-body">${m.body}</div>` : ''}
-          <div class="mail-item-reward">
-            <div class="mail-reward-chip" style="color:${color};border-color:${color}40">
-              ${icon} <span>${m.amount.toLocaleString()} ${m.currency}</span>
-            </div>
-            <button class="mail-claim-btn"
-              onclick="claimMail('${m.id}')"
-              ${isClaimed ? 'disabled' : ''}>
-              ${isClaimed ? '수령완료' : '수령'}
-            </button>
-          </div>
-        </div>`;
+          <button class="mail-claim-btn" onclick="claimMail('${m.id}')" ${isClaimed?'disabled':''}>
+            ${isClaimed?'수령완료':'수령'}
+          </button>
+        </div>
+      </div>`;
     }).join('');
   }
 
-  /* ── 단일 우편 수령 ── */
   function claimMail(mailId) {
     const username = localStorage.getItem('ggo_username') || '';
     if (!username) { alert('로그인이 필요합니다.'); return; }
-
     const mail = _mailData.find(m => m.id === mailId);
     if (!mail) return;
-
     const claimed = getClaimedSet(username);
     if (claimed.has(mailId)) return;
-    if (isExpired(mail.expire)) { alert('만료된 우편입니다.'); return; }
-
-    // 재화 지급
+    if (isMailExpired(mail.expire)) { alert('만료된 우편입니다.'); return; }
     if (mail.currency && mail.amount > 0) {
       const currKey = 'ggo_currency_' + username;
-      const curr = JSON.parse(localStorage.getItem(currKey) || '{"루비":0,"크리스탈":0,"GP":0}');
-      curr[mail.currency] = (curr[mail.currency] || 0) + mail.amount;
+      const curr = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
+      curr[mail.currency] = (curr[mail.currency]||0) + mail.amount;
       localStorage.setItem(currKey, JSON.stringify(curr));
-
-      const icon = MAIL_ICON[mail.currency] || '💰';
-      // 알림 추가
-      const notifs = JSON.parse(localStorage.getItem('ggo_notifs_' + username) || '[]');
-      notifs.unshift({ id: Date.now(), type: 'mail', msg: `📬 우편 수령: ${icon} ${mail.currency} +${mail.amount.toLocaleString()}`, read: false, time: Date.now() });
+      const notifs = JSON.parse(localStorage.getItem('ggo_notifs_'+username)||'[]');
+      notifs.unshift({id:Date.now(),type:'mail',msg:`📬 우편 수령: ${MAIL_ICON[mail.currency]||''} ${mail.currency} +${mail.amount.toLocaleString()}`,read:false,time:Date.now()});
       if (notifs.length > 50) notifs.length = 50;
-      localStorage.setItem('ggo_notifs_' + username, JSON.stringify(notifs));
+      localStorage.setItem('ggo_notifs_'+username, JSON.stringify(notifs));
     }
-
-    // 수령 기록
     claimed.add(mailId);
     saveClaimed(username, claimed);
-
-    // UI 갱신
     renderMailList();
-    updateCurrencyDisplay && updateCurrencyDisplay();
+    if (typeof updateCurrencyDisplay === 'function') updateCurrencyDisplay();
   }
 
-  /* ── 전체 수령 ── */
   function claimAllMail() {
     const username = localStorage.getItem('ggo_username') || '';
     if (!username) return;
     const claimed = getClaimedSet(username);
-    const today   = new Date().toISOString().slice(0, 10);
-
     const currKey = 'ggo_currency_' + username;
-    const curr = JSON.parse(localStorage.getItem(currKey) || '{"루비":0,"크리스탈":0,"GP":0}');
+    const curr = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
     let gained = {};
-
     _mailData.forEach(m => {
-      if (claimed.has(m.id)) return;
-      if (isExpired(m.expire)) return;
+      if (claimed.has(m.id) || isMailExpired(m.expire)) return;
       if (m.to !== 'ALL' && m.to !== username) return;
       if (m.currency && m.amount > 0) {
-        curr[m.currency] = (curr[m.currency] || 0) + m.amount;
-        gained[m.currency] = (gained[m.currency] || 0) + m.amount;
+        curr[m.currency] = (curr[m.currency]||0) + m.amount;
+        gained[m.currency] = (gained[m.currency]||0) + m.amount;
       }
       claimed.add(m.id);
     });
-
     localStorage.setItem(currKey, JSON.stringify(curr));
     saveClaimed(username, claimed);
-
     if (Object.keys(gained).length > 0) {
-      const summary = Object.entries(gained).map(([k,v]) => `${MAIL_ICON[k]||''}${k} +${v.toLocaleString()}`).join(' / ');
-      const notifs = JSON.parse(localStorage.getItem('ggo_notifs_' + username) || '[]');
-      notifs.unshift({ id: Date.now(), type:'mail', msg:`📬 우편 전체 수령: ${summary}`, read:false, time:Date.now() });
+      const summary = Object.entries(gained).map(([k,v])=>`${MAIL_ICON[k]||''}${k} +${v.toLocaleString()}`).join(' / ');
+      const notifs = JSON.parse(localStorage.getItem('ggo_notifs_'+username)||'[]');
+      notifs.unshift({id:Date.now(),type:'mail',msg:`📬 전체 수령: ${summary}`,read:false,time:Date.now()});
       if (notifs.length > 50) notifs.length = 50;
-      localStorage.setItem('ggo_notifs_' + username, JSON.stringify(notifs));
+      localStorage.setItem('ggo_notifs_'+username, JSON.stringify(notifs));
     }
-
     renderMailList();
-    updateCurrencyDisplay && updateCurrencyDisplay();
+    if (typeof updateCurrencyDisplay === 'function') updateCurrencyDisplay();
   }
 
-  /* ── 뱃지 업데이트 ── */
   function updateMailBadge(count) {
     const badge = document.getElementById('mail-badge');
     if (!badge) return;
-    if (count > 0) {
-      badge.textContent = count > 9 ? '9+' : count;
-      badge.style.display = 'flex';
-    } else {
-      badge.style.display = 'none';
-    }
+    if (count > 0) { badge.textContent = count > 9 ? '9+' : count; badge.style.display = 'flex'; }
+    else { badge.style.display = 'none'; }
   }
 
-  /* ── 패널 외부 클릭 닫기 ── */
-  document.addEventListener('click', (e) => {
-    if (!_mailOpen) return;
-    const panel = document.getElementById('mail-panel');
-    const btn   = document.getElementById('mail-btn');
-    if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
-      panel.classList.remove('open');
-      _mailOpen = false;
-    }
-  });
-
-  /* ── 페이지 로드 시 미수령 뱃지 표시 ── */
-  (async function initMailBadge() {
+  (async function() {
     const username = localStorage.getItem('ggo_username') || '';
     if (!username) return;
     try {
@@ -4287,14 +4225,12 @@ document.addEventListener('click', () => {
       _mailData = parseMailCSV(txt);
       _mailLoaded = true;
       const claimed = getClaimedSet(username);
-      const today   = new Date().toISOString().slice(0, 10);
       const unclaimed = _mailData.filter(m =>
-        !claimed.has(m.id) &&
-        !isExpired(m.expire) &&
+        !claimed.has(m.id) && !isMailExpired(m.expire) &&
         (m.to === 'ALL' || m.to === username)
       ).length;
       updateMailBadge(unclaimed);
-    } catch(e) { /* 뱃지 표시 실패 시 조용히 무시 */ }
+    } catch(e) {}
   })();
   // ════ 우편함 끝 ════
 
