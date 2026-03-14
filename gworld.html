@@ -487,10 +487,6 @@
   </div>
 </div>
 
-<!-- 아이템 액션 모달 -->
-<div id="gw-item-modal" style="display:none;position:fixed;inset:0;z-index:99999;"></div>
-</body>
-</html>
 
 
 <!-- 사망 오버레이 -->
@@ -1429,8 +1425,12 @@ function openItemAction(idx){
   const it=G.inv[idx];if(!it)return;
   // 포션
   if(it.type==='pot'){useItem(idx);return;}
-  // 장비
-  if(it.slot){showItemModal(idx,it);return;}
+  // 장비 (slot 없어도 type으로 판단)
+  const EQ_TYPES=['weapon','shield','armor','boots','gloves','accessory'];
+  if(it.slot || EQ_TYPES.includes(it.type)){
+    if(!it.slot) it.slot=it.type; // slot 누락 시 type으로 보완
+    showItemModal(idx,it);return;
+  }
   // 재료
   if(it.type==='mat'){
     if(confirm(`💎 ${it.n} 판매? (+${it.sellPrice||it.val||10} G)`)){
@@ -1453,9 +1453,21 @@ function showItemModal(idx,it){
   const stats=(it.atk?`ATK +${it.atk} `:'')+(it.def?`DEF +${it.def}`:'');
   // 직업 제한 체크
   const JOB_NAMES={warrior:'전사',archer:'궁수',rogue:'도적',mage:'마법사',paladin:'성기사'};
-  const canEquip = !(it.type==='weapon' && it.jobType && !it.jobType.includes(G.job));
+  // 무기 이름으로 직업 추론 (기존 세이브 데이터 호환)
+  function getJobTypes(item) {
+    if(item.jobType) return item.jobType;
+    if(item.type !== 'weapon') return null;
+    const n = item.n || '';
+    if(/검|소드|롱소드|블레이드/.test(n)) return ['warrior','paladin'];
+    if(/지팡이|완드|스태프/.test(n))      return ['mage'];
+    if(/활|궁|장궁|단궁/.test(n))         return ['archer'];
+    if(/단검|대거|독/.test(n))             return ['rogue'];
+    return null; // 분류 불명 → 모두 가능
+  }
+  const jobTypes = getJobTypes(it);
+  const canEquip = !(it.type==='weapon' && jobTypes && !jobTypes.includes(G.job));
   const jobWarnHtml = !canEquip
-    ? `<div style="font-size:10px;color:#f87171;margin-top:4px">⚠️ ${it.jobType.map(j=>JOB_NAMES[j]||j).join(', ')} 전용 무기</div>`
+    ? `<div style="font-size:10px;color:#f87171;margin-top:4px">⚠️ ${(jobTypes||[]).map(j=>JOB_NAMES[j]||j).join(', ')} 전용 무기</div>`
     : '';
   const cmpHtml=curEq
     ?`<div style="font-size:10px;color:#64748b;margin-top:4px">현재 장착: ${curEq.e} ${curEq.n} (ATK+${curEq.atk||0}/DEF+${curEq.def||0})</div>`
@@ -1484,10 +1496,21 @@ function showItemModal(idx,it){
 function closeItemModal(){document.getElementById('gw-item-modal').style.display='none';_modalIdx=-1;}
 function doEquip(){
   const it=G.inv[_modalIdx];if(!it)return closeItemModal();
-  // 직업별 무기 장착 제한
-  if(it.type==='weapon' && it.jobType && !it.jobType.includes(G.job)){
+  // 직업별 무기 장착 제한 (jobType 없으면 이름으로 추론)
+  function _getJT(item){
+    if(item.jobType) return item.jobType;
+    if(item.type!=='weapon') return null;
+    const n=item.n||'';
+    if(/검|소드|롱소드|블레이드/.test(n)) return ['warrior','paladin'];
+    if(/지팡이|완드|스태프/.test(n))      return ['mage'];
+    if(/활|궁|장궁|단궁/.test(n))         return ['archer'];
+    if(/단검|대거|독/.test(n))             return ['rogue'];
+    return null;
+  }
+  const jt=_getJT(it);
+  if(it.type==='weapon' && jt && !jt.includes(G.job)){
     const JOB_NAMES={warrior:'전사',archer:'궁수',rogue:'도적',mage:'마법사',paladin:'성기사'};
-    const allowed=it.jobType.map(j=>JOB_NAMES[j]||j).join(', ');
+    const allowed=jt.map(j=>JOB_NAMES[j]||j).join(', ');
     gwT(`⚠️ ${it.n}은(는) ${allowed}만 장착 가능합니다.`);
     closeItemModal();return;
   }
