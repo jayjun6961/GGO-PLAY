@@ -855,17 +855,23 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
 (function(){
-  var cfg = {
-    apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
-    authDomain: "ggo-play.firebaseapp.com",
-    databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "ggo-play",
-    storageBucket: "ggo-play.firebasestorage.app",
-    messagingSenderId: "645489083721",
-    appId: "1:645489083721:web:30a518e5e03238ea8dc698"
-  };
-  if(!firebase.apps.length) firebase.initializeApp(cfg);
-  window._gwDB = firebase.database();
+  try {
+    var cfg = {
+      apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+      authDomain: "ggo-play.firebaseapp.com",
+      databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ggo-play",
+      storageBucket: "ggo-play.firebasestorage.app",
+      messagingSenderId: "645489083721",
+      appId: "1:645489083721:web:30a518e5e03238ea8dc698"
+    };
+    if(!firebase.apps.length) firebase.initializeApp(cfg);
+    window._gwDB = firebase.database();
+    console.log('✅ Firebase 연결 성공');
+  } catch(e) {
+    console.warn('⚠️ Firebase 초기화 실패 (오프라인 모드):', e.message);
+    window._gwDB = null;
+  }
 })();
 </script>
 <script>
@@ -2650,14 +2656,15 @@ const DOJO_RANK_MID     = 300;  // 4~10위
 // localStorage 공유 키 (모든 유저 순위 공유)
 // ── 도장 순위: Firebase 기반 ──
 const _dojoCache = {};
-const _dojoRef   = k => window._gwDB.ref('dojo_rank/' + k);
+const _dojoRef   = k => window._gwDB ? window._gwDB.ref('dojo_rank/' + k) : null;
 const _dojoRGet  = k => _dojoCache[k] ?? null;
 const _dojoRSet  = (k,v) => {
   _dojoCache[k] = v;
-  return _dojoRef(k).set(v).catch(e => console.warn('도장 Firebase 저장 실패:', e));
+  const r=_dojoRef(k); if(r) return r.set(v).catch(e => console.warn('도장 Firebase 저장 실패:', e));
 };
 function _dojoRLoad(k) {
-  return _dojoRef(k).get().then(snap => {
+  const ref=_dojoRef(k); if(!ref) return Promise.resolve(null);
+  return ref.get().then(snap => {
     const val = snap.exists() ? snap.val() : null;
     _dojoCache[k] = val;
     return val;
@@ -2682,6 +2689,7 @@ function updateDojoRank(totalDmg) {
   const username = sessionStorage.getItem('ggo_username') || '';
   if(!username) return;
   const cycleKey = getDojoCycleKey();
+  if(!window._gwDB) return;
   const userRef  = window._gwDB.ref('dojo_rank/rank_' + cycleKey + '/' + username);
   userRef.get().then(snap => {
     const prev = snap.exists() ? (snap.val().dmg || 0) : 0;
@@ -2835,6 +2843,10 @@ function renderDojoRank() {
     <div style="text-align:center;padding:20px;color:#475569;font-size:11px;">🔄 순위 불러오는 중...</div>`;
 
   // Firebase 실시간 구독
+  if(!window._gwDB){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:#ef4444;font-size:11px;">⚠️ 네트워크 연결 필요</div>';
+    return;
+  }
   window._gwDB.ref('dojo_rank/rank_' + cycleKey).on('value', snap => {
     const rankData = snap.exists() ? snap.val() : {};
     _dojoCache['rank_' + cycleKey] = rankData;
@@ -2916,7 +2928,7 @@ function enterDojo() {
   _dojo.tick = setInterval(dojoAttack, tSpd());
   // 애니메이션
   startDojoAnim();
-  dojoBlog(`<span style="color:#f97316">⚔️ 도장 시작! 3분 동안 최대한 공격하세요!</span>`);
+  dojoBlog(`<span style="color:#f97316">⚔️ 도장 시작! 1분 동안 최대한 공격하세요!</span>`);
 }
 
 function dojoHud() {
@@ -3332,14 +3344,16 @@ const WB_MAX_PARTY  = 5;
 // 공유 저장소 키 (날짜+파티번호 기반)
 // ── 월드보스: Firebase 기반 ──
 const _wbCache = {};
-const _wbRef   = k => window._gwDB.ref('world_boss/' + k);
+const _wbKey = k => 'gwo_wb_' + k; // claimed 등 로컬 전용 키
+const _wbRef   = k => window._gwDB ? window._gwDB.ref('world_boss/' + k) : null;
 const _wbGet   = k => _wbCache[k] ?? null;
 const _wbSet   = (k,v) => {
   _wbCache[k] = v;
-  return _wbRef(k).set(v).catch(e => console.warn('월드보스 Firebase 저장 실패:', e));
+  const r=_wbRef(k); if(r) return r.set(v).catch(e => console.warn('월드보스 Firebase 저장 실패:', e));
 };
 function _wbLoad(k) {
-  return _wbRef(k).get().then(snap => {
+  const ref=_wbRef(k); if(!ref) return Promise.resolve(null);
+  return ref.get().then(snap => {
     const val = snap.exists() ? snap.val() : null;
     _wbCache[k] = val;
     return val;
@@ -3364,6 +3378,7 @@ function wbCanClaim(joinDate) {
 
 // 이 유저가 오늘 참가한 파티 정보 반환
 async function wbGetMyParty(username) {
+  if(!window._gwDB) return null;
   const today = wbTodayKey();
   for(let i = 0; i < 20; i++) {
     const snap = await window._gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
@@ -3378,6 +3393,7 @@ async function wbGetMyParty(username) {
 
 // 어제 참가한 파티 (보상 수령용)
 async function wbGetYesterdayParty(username) {
+  if(!window._gwDB) return null;
   const d = new Date(Date.now() - 86400000);
   const yesterday = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   for(let i = 0; i < 20; i++) {
@@ -3393,6 +3409,7 @@ async function wbGetYesterdayParty(username) {
 
 // 오늘 참가 가능한 빈 파티 찾기 (5인 미만)
 async function wbFindOpenParty() {
+  if(!window._gwDB) return 0; // Firebase 없으면 파티0 사용
   const today = wbTodayKey();
   for(let i = 0; i < 20; i++) {
     const snap = await window._gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
@@ -3414,6 +3431,7 @@ function openWorldBoss() {
 async function renderWorldBoss() {
   const el = document.getElementById('gw-wbbody');
   if(!el) return;
+  try {
   const username = gwUN();
   const today    = wbTodayKey();
   const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
@@ -3454,8 +3472,11 @@ async function renderWorldBoss() {
   }
 
   el.innerHTML = html + await renderWbJoinSection(username);
+  } catch(e) {
+    console.warn('renderWorldBoss 오류:', e);
+    if(el) el.innerHTML = '<div style="text-align:center;padding:20px;color:#ef4444;font-size:12px;">⚠️ 불러오기 실패. 다시 시도해주세요.</div>';
+  }
 }
-
 async function renderWbJoinSection(username) {
   const today = wbTodayKey();
   const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
@@ -3567,6 +3588,7 @@ async function wbJoinParty(partyIdx) {
   if(idx < 0) { gwT('참가 가능한 파티가 없습니다.'); return; }
 
   const partyPath = 'world_boss/party_' + today + '_' + idx;
+  if(!window._gwDB){gwT('⚠️ 네트워크 연결 오류');return;}
   const snap = await window._gwDB.ref(partyPath).get().catch(()=>null);
   const party = (snap && snap.exists()) ? snap.val() : { members: [], createdAt: Date.now() };
 
