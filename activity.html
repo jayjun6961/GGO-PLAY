@@ -471,11 +471,16 @@
   function uploadMyProfileToFirebase() {
     const username = sessionStorage.getItem('ggo_username') || '';
     if(!username || !window._actDB) return;
-    const items = JSON.parse(localStorage.getItem('ggo_items_' + username) || '[]');
+    const items    = JSON.parse(localStorage.getItem('ggo_items_' + username) || '[]');
     const equipped = items.filter(it => it.equipped);
-    // equipped가 없어도 빈 배열로 업로드해서 레벨 1 유지
+    // 누적 EXP (마이페이지에서 쌓인 ggo_deco_exp_ 값 포함)
+    const savedExp = parseInt(localStorage.getItem('ggo_deco_exp_' + username) || '0');
+    const EXP_MAP  = {일반:100, 희귀:300, 에픽:500, 전설:1000};
+    const itemExp  = items.reduce((s,it) => s+(EXP_MAP[it.grade]||0), 0);
+    const decoExp  = Math.max(savedExp, itemExp); // 마이페이지와 동일한 계산
     window._actDB.ref('profiles/' + username).set({
       items: equipped,
+      decoExp: decoExp,
       ts: Date.now()
     }).catch(e => console.warn('프로필 업로드 실패:', e));
   }
@@ -521,9 +526,15 @@
           if(snap.exists()) {
             const fbData = snap.val();
             Object.keys(fbData).forEach(uname => {
-              const items = fbData[uname]?.items || [];
-              const totalExp = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0), 0);
-              decoMap[uname] = Math.floor(totalExp/1000)+1;
+              const profile = fbData[uname];
+              // decoExp (저장된 누적값) 우선, 없으면 아이템 합산으로 계산
+              if(profile.decoExp !== undefined) {
+                decoMap[uname] = Math.floor(profile.decoExp/1000)+1;
+              } else {
+                const items = profile?.items || [];
+                const totalExp = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0), 0);
+                decoMap[uname] = Math.floor(totalExp/1000)+1;
+              }
             });
           }
         } catch(e) {
@@ -534,9 +545,11 @@
       // 2순위: localStorage 폴백 (Firebase에 없는 유저)
       rawPlayers.forEach(p => {
         if(!decoMap[p.name]) {
-          const items = JSON.parse(localStorage.getItem('ggo_items_'+p.name)||'[]');
-          const totalExp = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0), 0);
-          decoMap[p.name] = Math.floor(totalExp/1000)+1;
+          const savedExp = parseInt(localStorage.getItem('ggo_deco_exp_'+p.name)||'0');
+          const items    = JSON.parse(localStorage.getItem('ggo_items_'+p.name)||'[]');
+          const itemExp  = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0), 0);
+          const useExp   = Math.max(savedExp, itemExp);
+          decoMap[p.name] = Math.floor(useExp/1000)+1;
         }
       });
 
