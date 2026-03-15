@@ -2083,6 +2083,29 @@
     background-clip: text;
   }
 </style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  try {
+    var cfg = {
+      apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+      authDomain: "ggo-play.firebaseapp.com",
+      databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ggo-play",
+      storageBucket: "ggo-play.firebasestorage.app",
+      messagingSenderId: "645489083721",
+      appId: "1:645489083721:web:30a518e5e03238ea8dc698"
+    };
+    if(!firebase.apps.length) firebase.initializeApp(cfg);
+    window._bpDB = firebase.database();
+  } catch(e) {
+    console.warn('Firebase 초기화 실패:', e.message);
+    window._bpDB = null;
+  }
+})();
+</script>
 </head>
 <body>
 <aside class="sidebar">
@@ -3011,9 +3034,63 @@
 
   
   // ── 배틀패스 순위 리스트용 꾸미기 적용 헬퍼 ──
-  function getLbProfile(username) {
+
+  // ══════════════════════════════════════════════
+  //  프로필 Firebase 동기화
+  // ══════════════════════════════════════════════
+
+  // Firebase 프로필 캐시 (username → items 배열)
+  window._profileCache = {};
+
+  // 내 프로필을 Firebase에 업로드
+  function uploadMyProfile() {
+    const username = sessionStorage.getItem('ggo_username') || '';
+    if(!username || !window._bpDB) return;
+    const items = JSON.parse(localStorage.getItem('ggo_items_' + username) || '[]');
+    // 장착된 아이템만 업로드 (용량 절약)
+    const equipped = items.filter(it => it.equipped);
+    if(!equipped.length) return;
+    window._bpDB.ref('profiles/' + username).set({
+      items: equipped,
+      ts: Date.now()
+    }).catch(e => console.warn('프로필 업로드 실패:', e));
+  }
+
+  // 여러 유저의 프로필을 Firebase에서 배치 로드
+  async function loadProfilesFromFirebase(usernames) {
+    if(!window._bpDB || !usernames.length) return;
+    try {
+      const snap = await window._bpDB.ref('profiles').get();
+      if(!snap.exists()) return;
+      const data = snap.val();
+      usernames.forEach(u => {
+        if(data[u]) {
+          window._profileCache[u] = data[u].items || [];
+        }
+      });
+    } catch(e) {
+      console.warn('프로필 로드 실패:', e);
+    }
+  }
+
+  // Firebase 캐시를 포함한 프로필 아이템 조회
+  function getProfileItems(username) {
+    // 1순위: 내 로컬 데이터
+    const myUser = sessionStorage.getItem('ggo_username') || '';
+    if(username === myUser) {
+      return JSON.parse(localStorage.getItem('ggo_items_' + username) || '[]');
+    }
+    // 2순위: Firebase 캐시
+    if(window._profileCache[username]) {
+      return window._profileCache[username];
+    }
+    // 3순위: 로컬 스토리지 (같은 기기 다른 계정)
+    return JSON.parse(localStorage.getItem('ggo_items_' + username) || '[]');
+  }
+
+  function getLbProfile(username, size=36) {
     if(!username) return { avatarHtml:'?', borderStyle:'', nameStyle:'', nameClass:'', titleHtml:'' };
-    const items = JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
+    const items = getProfileItems(username);
 
     // ── 아이콘 ──
     const iconItem = items.find(it=>it.type==='프로필아이콘'&&it.equipped);
@@ -3062,8 +3139,8 @@
       }
     }
     // avatarHtml: 아이콘은 overflow:hidden, 테두리는 바깥 wrapper에 적용
-    const avatarHtml = `<div style="position:relative;flex-shrink:0;width:36px;height:36px;${borderStyle}border-radius:50%;">
-      <div style="width:36px;height:36px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:15px;overflow:hidden;position:relative;${avatarExtra}">${avatarInner}</div>
+    const avatarHtml = `<div style="position:relative;flex-shrink:0;width:${size}px;height:${size}px;${borderStyle}border-radius:50%;">
+      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;overflow:hidden;position:relative;${avatarExtra}">${avatarInner}</div>
       ${svgBorderHtml}
     </div>`;
 
@@ -3117,6 +3194,10 @@
       const maxScore = Math.max(...rows.map(r => Number(r[1])||0), 1);
       const avatars = ['⚔️','🔮','🏹','🛡️','🌟','🔥','💧','🌀'];
 
+      // ── Firebase에서 모든 유저 프로필 배치 로드 ──
+      const usernames = rows.map(r => (r[0]||'').trim()).filter(Boolean);
+      await loadProfilesFromFirebase(usernames);
+
       // TOP 3
       const top = rows.slice(0,3);
       const order   = top.length>=3 ? [top[1],top[0],top[2]] : top;
@@ -3128,11 +3209,15 @@
         if(!row) return;
         const score = Number(row[1])||0;
         const server = row[2] || '';
+        const deco3 = getLbProfile(row[0]||'', 52);
         h3 += `<div class="lb-top-card ${classes[ci]}">
           ${classes[ci]==='top1'?'<div class="lb-top-crown">👑</div>':''}
-          <div class="lb-top-avatar">${avatars[rows.indexOf(row)%avatars.length]}</div>
+          <div class="lb-top-avatar" style="display:flex;justify-content:center;margin-bottom:4px">${deco3.avatarHtml}</div>
           <div class="lb-top-rank">${medals[ci]} ${nums[ci]}위</div>
-          <div class="lb-top-name">${row[0]||'—'}</div>
+          <div class="lb-top-name">
+            <span class="${deco3.nameClass}" style="${deco3.nameStyle}">${row[0]||'—'}</span>
+          </div>
+          ${deco3.titleHtml ? `<div style="margin-bottom:2px">${deco3.titleHtml}</div>` : ''}
           ${server ? `<div style="font-size:10px;color:var(--accent-cyan);font-family:'Orbitron',sans-serif;letter-spacing:0.5px;margin-bottom:2px">${server}</div>` : ''}
           <div class="lb-top-score">${score.toLocaleString()} pts</div>
         </div>`;
@@ -3182,6 +3267,7 @@
 
   window.addEventListener('DOMContentLoaded', () => {
     initSidebarProfile();
+    uploadMyProfile(); // 내 프로필을 Firebase에 업로드
     loadBattlepass().then(() => loadRewards());
   });
 
