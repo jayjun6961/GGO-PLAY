@@ -431,23 +431,6 @@
     z-index: 1;
   }
 </style>
-<!-- Firebase SDK (Realtime Database) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
-    authDomain: "ggo-play.firebaseapp.com",
-    databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "ggo-play",
-    storageBucket: "ggo-play.firebasestorage.app",
-    messagingSenderId: "645489083721",
-    appId: "1:645489083721:web:30a518e5e03238ea8dc698"
-  };
-  // 중복 초기화 방지
-  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-  const _gwDB = firebase.database();
-</script>
 </head>
 <body>
 
@@ -867,6 +850,24 @@
 
 <div class="gw-toast" id="gw-toast"></div>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  var cfg = {
+    apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+    authDomain: "ggo-play.firebaseapp.com",
+    databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ggo-play",
+    storageBucket: "ggo-play.firebasestorage.app",
+    messagingSenderId: "645489083721",
+    appId: "1:645489083721:web:30a518e5e03238ea8dc698"
+  };
+  if(!firebase.apps.length) firebase.initializeApp(cfg);
+  window._gwDB = firebase.database();
+})();
+</script>
 <script>
 
 // ═══════════════════════════════════
@@ -2649,7 +2650,7 @@ const DOJO_RANK_MID     = 300;  // 4~10위
 // localStorage 공유 키 (모든 유저 순위 공유)
 // ── 도장 순위: Firebase 기반 ──
 const _dojoCache = {};
-const _dojoRef   = k => _gwDB.ref('dojo_rank/' + k);
+const _dojoRef   = k => window._gwDB.ref('dojo_rank/' + k);
 const _dojoRGet  = k => _dojoCache[k] ?? null;
 const _dojoRSet  = (k,v) => {
   _dojoCache[k] = v;
@@ -2681,7 +2682,7 @@ function updateDojoRank(totalDmg) {
   const username = sessionStorage.getItem('ggo_username') || '';
   if(!username) return;
   const cycleKey = getDojoCycleKey();
-  const userRef  = _gwDB.ref('dojo_rank/rank_' + cycleKey + '/' + username);
+  const userRef  = window._gwDB.ref('dojo_rank/rank_' + cycleKey + '/' + username);
   userRef.get().then(snap => {
     const prev = snap.exists() ? (snap.val().dmg || 0) : 0;
     if(totalDmg > prev) {
@@ -2725,7 +2726,7 @@ function dojoAutoClaimReward() {
   if(localStorage.getItem(autoKey)) return;
 
   // Firebase에서 지난 사이클 데이터 읽기
-  _gwDB.ref('dojo_rank/rank_' + prevCycleKey).get().then(snap => {
+  window._gwDB.ref('dojo_rank/rank_' + prevCycleKey).get().then(snap => {
     const rankData = snap.exists() ? snap.val() : {};
     const rankList = Object.values(rankData).sort((a,b) => b.dmg - a.dmg);
     localStorage.setItem(autoKey, '1');
@@ -2834,7 +2835,7 @@ function renderDojoRank() {
     <div style="text-align:center;padding:20px;color:#475569;font-size:11px;">🔄 순위 불러오는 중...</div>`;
 
   // Firebase 실시간 구독
-  _gwDB.ref('dojo_rank/rank_' + cycleKey).on('value', snap => {
+  window._gwDB.ref('dojo_rank/rank_' + cycleKey).on('value', snap => {
     const rankData = snap.exists() ? snap.val() : {};
     _dojoCache['rank_' + cycleKey] = rankData;
     const rankList = Object.values(rankData).sort((a,b) => b.dmg - a.dmg);
@@ -3331,7 +3332,7 @@ const WB_MAX_PARTY  = 5;
 // 공유 저장소 키 (날짜+파티번호 기반)
 // ── 월드보스: Firebase 기반 ──
 const _wbCache = {};
-const _wbRef   = k => _gwDB.ref('world_boss/' + k);
+const _wbRef   = k => window._gwDB.ref('world_boss/' + k);
 const _wbGet   = k => _wbCache[k] ?? null;
 const _wbSet   = (k,v) => {
   _wbCache[k] = v;
@@ -3365,7 +3366,7 @@ function wbCanClaim(joinDate) {
 async function wbGetMyParty(username) {
   const today = wbTodayKey();
   for(let i = 0; i < 20; i++) {
-    const snap = await _gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
+    const snap = await window._gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) break;
     const party = snap.val();
     _wbCache['party_' + today + '_' + i] = party;
@@ -3380,7 +3381,7 @@ async function wbGetYesterdayParty(username) {
   const d = new Date(Date.now() - 86400000);
   const yesterday = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   for(let i = 0; i < 20; i++) {
-    const snap = await _gwDB.ref('world_boss/party_' + yesterday + '_' + i).get().catch(()=>null);
+    const snap = await window._gwDB.ref('world_boss/party_' + yesterday + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) break;
     const party = snap.val();
     _wbCache['party_' + yesterday + '_' + i] = party;
@@ -3394,7 +3395,7 @@ async function wbGetYesterdayParty(username) {
 async function wbFindOpenParty() {
   const today = wbTodayKey();
   for(let i = 0; i < 20; i++) {
-    const snap = await _gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
+    const snap = await window._gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) return i;        // 빈 파티 슬롯
     const party = snap.val();
     _wbCache['party_' + today + '_' + i] = party;
@@ -3463,7 +3464,7 @@ async function renderWbJoinSection(username) {
   // Firebase에서 오늘 파티 목록 읽기 (실시간 구독 → on value)
   const parties = [];
   for(let i = 0; i < 20; i++) {
-    const snap = await _gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
+    const snap = await window._gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) break;
     const p = snap.val();
     _wbCache['party_' + today + '_' + i] = p;
@@ -3566,7 +3567,7 @@ async function wbJoinParty(partyIdx) {
   if(idx < 0) { gwT('참가 가능한 파티가 없습니다.'); return; }
 
   const partyPath = 'world_boss/party_' + today + '_' + idx;
-  const snap = await _gwDB.ref(partyPath).get().catch(()=>null);
+  const snap = await window._gwDB.ref(partyPath).get().catch(()=>null);
   const party = (snap && snap.exists()) ? snap.val() : { members: [], createdAt: Date.now() };
 
   if(!party.members) party.members = [];
@@ -3574,7 +3575,7 @@ async function wbJoinParty(partyIdx) {
   if(party.members.some(m=>m.user===username)) { gwT('이미 이 파티에 참가중입니다.'); return; }
 
   party.members.push({ user:username, job:G.job, lv:G.lv, joinAt:Date.now() });
-  await _gwDB.ref(partyPath).set(party).catch(e => {
+  await window._gwDB.ref(partyPath).set(party).catch(e => {
     gwT('파티 참가 중 오류가 발생했습니다.'); console.warn(e); return;
   });
   _wbCache['party_' + today + '_' + idx] = party;
