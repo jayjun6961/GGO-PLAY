@@ -313,6 +313,29 @@
     z-index: 1;
   }
 </style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  try {
+    var cfg = {
+      apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+      authDomain: "ggo-play.firebaseapp.com",
+      databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ggo-play",
+      storageBucket: "ggo-play.firebasestorage.app",
+      messagingSenderId: "645489083721",
+      appId: "1:645489083721:web:30a518e5e03238ea8dc698"
+    };
+    if(!firebase.apps.length) firebase.initializeApp(cfg);
+    window._actDB = firebase.database();
+  } catch(e) {
+    console.warn('Firebase 초기화 실패:', e.message);
+    window._actDB = null;
+  }
+})();
+</script>
 </head>
 <body>
 
@@ -443,6 +466,20 @@
   const RANK_CLS = ['r1','r2','r3'];
   const RANK_LABELS = ['rank1','rank2','rank3'];
 
+
+  // ── 내 꾸미기 데이터를 Firebase에 업로드 ──
+  function uploadMyProfileToFirebase() {
+    const username = sessionStorage.getItem('ggo_username') || '';
+    if(!username || !window._actDB) return;
+    const items = JSON.parse(localStorage.getItem('ggo_items_' + username) || '[]');
+    const equipped = items.filter(it => it.equipped);
+    // equipped가 없어도 빈 배열로 업로드해서 레벨 1 유지
+    window._actDB.ref('profiles/' + username).set({
+      items: equipped,
+      ts: Date.now()
+    }).catch(e => console.warn('프로필 업로드 실패:', e));
+  }
+
   async function loadActivity() {
     document.getElementById('loading-state').style.display='block';
     document.getElementById('content-wrap').style.display='none';
@@ -463,20 +500,51 @@
         if(n) serverMap[n] = (r[2]||'').trim();
       });
 
-      // 데이터 파싱 + 점수 계산
-      const players = rows.map(r => {
+      // 데이터 파싱 (이름/점수 추출)
+      const rawPlayers = rows.map(r => {
         const name=(r[0]||'').trim();
         if(!name) return null;
         const bp=parseFloat(r[2])||0;
         const ts=parseFloat(r[3])||0;
-        const EXP_MAP={일반:100,희귀:300,에픽:500,전설:1000};
-        const items=JSON.parse(localStorage.getItem('ggo_items_'+name)||'[]');
-        const totalExp=items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
-        const deco=Math.floor(totalExp/1000)+1;
-        // 서버는 배틀패스 시트에서 닉네임으로 조회
         const server = serverMap[name] || '';
-        return{name,server,img:'',bp,ts,deco,score:calcScore(bp,ts,deco)};
+        return {name, server, bp, ts};
       }).filter(p=>p&&p.name);
+
+      // ── Firebase에서 모든 유저 꾸미기 데이터 배치 로드 ──
+      const EXP_MAP = {일반:100, 희귀:300, 에픽:500, 전설:1000};
+      const decoMap = {}; // name → deco level
+
+      // 1순위: Firebase profiles/ (다기기 공유)
+      if(window._actDB) {
+        try {
+          const snap = await window._actDB.ref('profiles').get();
+          if(snap.exists()) {
+            const fbData = snap.val();
+            Object.keys(fbData).forEach(uname => {
+              const items = fbData[uname]?.items || [];
+              const totalExp = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0), 0);
+              decoMap[uname] = Math.floor(totalExp/1000)+1;
+            });
+          }
+        } catch(e) {
+          console.warn('Firebase 꾸미기 로드 실패:', e);
+        }
+      }
+
+      // 2순위: localStorage 폴백 (Firebase에 없는 유저)
+      rawPlayers.forEach(p => {
+        if(!decoMap[p.name]) {
+          const items = JSON.parse(localStorage.getItem('ggo_items_'+p.name)||'[]');
+          const totalExp = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0), 0);
+          decoMap[p.name] = Math.floor(totalExp/1000)+1;
+        }
+      });
+
+      // 최종 players 생성
+      const players = rawPlayers.map(p => {
+        const deco = decoMap[p.name] || 1;
+        return {name:p.name, server:p.server, img:'', bp:p.bp, ts:p.ts, deco, score:calcScore(p.bp,p.ts,deco)};
+      });
 
       // 점수 내림차순 정렬
       players.sort((a,b) => b.score - a.score);
@@ -536,7 +604,12 @@
     }
   }
 
-  window.addEventListener('DOMContentLoaded', () => { initSidebarProfile(); loadActivity(); });
+  window.addEventListener('DOMContentLoaded', () => {
+    initSidebarProfile();
+    // 내 꾸미기 데이터를 Firebase에 업로드 (다른 기기에서 조회 가능하도록)
+    uploadMyProfileToFirebase();
+    loadActivity();
+  });
 
 // ════════════════════════════════════════
 //  공통 사이드바 JS
