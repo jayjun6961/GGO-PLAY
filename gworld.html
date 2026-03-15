@@ -2769,6 +2769,16 @@ const DOJO_RANK_REWARDS = {
 const DOJO_RANK_DEFAULT = 100;  // 11위 이하
 const DOJO_RANK_MID     = 300;  // 4~10위
 
+// 도장 전투 상태 객체
+let _dojo = {
+  tick:      null,
+  timerInt:  null,
+  timeLeft:  DOJO_DURATION,
+  totalDmg:  0,
+  animFrame: null,
+  dead:      false,
+};
+
 // localStorage 공유 키 (모든 유저 순위 공유)
 // ── 도장 순위: Firebase 기반 ──
 const _dojoCache = {};
