@@ -431,6 +431,23 @@
     z-index: 1;
   }
 </style>
+<!-- Firebase SDK (Realtime Database) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+    authDomain: "ggo-play.firebaseapp.com",
+    databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ggo-play",
+    storageBucket: "ggo-play.firebasestorage.app",
+    messagingSenderId: "645489083721",
+    appId: "1:645489083721:web:30a518e5e03238ea8dc698"
+  };
+  // 중복 초기화 방지
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const _gwDB = firebase.database();
+</script>
 </head>
 <body>
 
@@ -1651,7 +1668,7 @@ function renderP(id){
   if(id==='gw-pdungeon') renderDungeonSelect();
   if(id==='gw-pdojo')    renderDojoEnter();
   if(id==='gw-pcash')    renderCashShop();
-  if(id==='gw-pwb')      renderWorldBoss();
+  if(id==='gw-pwb')      renderWorldBoss(); // async
 }
 
 // ── 장비 보너스 합산 ──
@@ -2630,9 +2647,21 @@ const DOJO_RANK_DEFAULT = 100;  // 11위 이하
 const DOJO_RANK_MID     = 300;  // 4~10위
 
 // localStorage 공유 키 (모든 유저 순위 공유)
-const _dojoRKey = k => 'gwo_dojo_' + k;
-const _dojoRGet = k => { try{ return JSON.parse(localStorage.getItem(_dojoRKey(k))||'null'); }catch{return null;} };
-const _dojoRSet = (k,v)=> localStorage.setItem(_dojoRKey(k), JSON.stringify(v));
+const // ── 도장 순위: Firebase 기반 ──
+const _dojoCache = {};
+const _dojoRef   = k => _gwDB.ref('dojo_rank/' + k);
+const _dojoRGet  = k => _dojoCache[k] ?? null;
+const _dojoRSet  = (k,v) => {
+  _dojoCache[k] = v;
+  return _dojoRef(k).set(v).catch(e => console.warn('도장 Firebase 저장 실패:', e));
+};
+function _dojoRLoad(k) {
+  return _dojoRef(k).get().then(snap => {
+    const val = snap.exists() ? snap.val() : null;
+    _dojoCache[k] = val;
+    return val;
+  }).catch(() => null);
+}
 
 function getDojoCycleStart() {
   const EPOCH = new Date('2025-01-01').getTime();
@@ -2652,12 +2681,25 @@ function updateDojoRank(totalDmg) {
   const username = sessionStorage.getItem('ggo_username') || '';
   if(!username) return;
   const cycleKey = getDojoCycleKey();
-  const rankData = _dojoRGet('rank_' + cycleKey) || {};
-  const prev = rankData[username]?.dmg || 0;
-  if(totalDmg > prev) {
-    rankData[username] = { user: username, dmg: totalDmg, ts: Date.now() };
-    _dojoRSet('rank_' + cycleKey, rankData);
-  }
+  const userRef  = _gwDB.ref('dojo_rank/rank_' + cycleKey + '/' + username);
+  userRef.get().then(snap => {
+    const prev = snap.exists() ? (snap.val().dmg || 0) : 0;
+    if(totalDmg > prev) {
+      const entry = { user: username, dmg: totalDmg, ts: Date.now() };
+      userRef.set(entry).catch(e => console.warn('도장 순위 저장 실패:', e));
+      // 로컬 캐시 업데이트
+      if(!_dojoCache['rank_' + cycleKey]) _dojoCache['rank_' + cycleKey] = {};
+      _dojoCache['rank_' + cycleKey][username] = entry;
+    }
+  }).catch(() => {
+    // Firebase 실패 시 로컬 캐시로 폴백
+    const rankData = _dojoCache['rank_' + cycleKey] || {};
+    const prev = rankData[username]?.dmg || 0;
+    if(totalDmg > prev) {
+      if(!_dojoCache['rank_' + cycleKey]) _dojoCache['rank_' + cycleKey] = {};
+      _dojoCache['rank_' + cycleKey][username] = { user:username, dmg:totalDmg, ts:Date.now() };
+    }
+  });
 }
 
 // 순위 보상 계산
@@ -2677,35 +2719,46 @@ function dojoAutoClaimReward() {
   const now    = Date.now();
   const cycleN = Math.floor((now - EPOCH) / DOJO_CYCLE_MS);
   if(cycleN < 1) return;
-  const prevCycleStart = EPOCH + (cycleN - 1) * DOJO_CYCLE_MS;
+  const prevCycleStart = EPOCH + (cycleN-1) * DOJO_CYCLE_MS;
   const prevCycleKey   = 'c' + prevCycleStart;
-  const autoKey = 'gwo_dojo_auto_' + prevCycleKey + '_' + username;
+  const autoKey        = 'gwo_dojo_auto_' + prevCycleKey + '_' + username;
   if(localStorage.getItem(autoKey)) return;
 
-  const rankData = _dojoRGet('rank_' + prevCycleKey) || {};
-  const rankList = Object.values(rankData).sort((a,b) => b.dmg - a.dmg);
-  const myRank   = rankList.findIndex(r => r.user === username);
-  localStorage.setItem(autoKey, '1');
-  if(myRank === -1) return;
-
-  const rank = myRank + 1;
-  const gp   = getDojoGPReward(rank);
-  // GP 지급
-  const currKey = 'ggo_currency_' + username;
-  const curr = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
-  curr['GP'] = (curr['GP']||0) + gp;
-  localStorage.setItem(currKey, JSON.stringify(curr));
-  // 알림 추가
-  const notifKey = 'ggo_notifs_' + username;
-  const notifs = JSON.parse(localStorage.getItem(notifKey)||'[]');
-  notifs.unshift({ id:Date.now(), type:'dojo',
-    msg:`🎯 도장 지난 시즌 ${rank}위 보상! +${gp.toLocaleString()} GP 자동 지급`,
-    read:false, time:Date.now() });
-  if(notifs.length>50) notifs.length=50;
-  localStorage.setItem(notifKey, JSON.stringify(notifs));
+  // Firebase에서 지난 사이클 데이터 읽기
+  _gwDB.ref('dojo_rank/rank_' + prevCycleKey).get().then(snap => {
+    const rankData = snap.exists() ? snap.val() : {};
+    const rankList = Object.values(rankData).sort((a,b) => b.dmg - a.dmg);
+    localStorage.setItem(autoKey, '1');
+    const myRank = rankList.findIndex(r => r.user === username);
+    if(myRank === -1) return;
+    const rank = myRank + 1;
+    const gp   = getDojoGPReward(rank);
+    const currKey = 'ggo_currency_' + username;
+    const curr = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
+    curr['GP'] = (curr['GP']||0) + gp;
+    localStorage.setItem(currKey, JSON.stringify(curr));
+    const notifKey = 'ggo_notifs_' + username;
+    const notifs = JSON.parse(localStorage.getItem(notifKey)||'[]');
+    notifs.unshift({ id:Date.now(), type:'dojo',
+      msg:`🎯 도장 지난 시즌 ${rank}위 보상! +${gp.toLocaleString()} GP 자동 지급`,
+      read:false, time:Date.now() });
+    if(notifs.length>50) notifs.length=50;
+    localStorage.setItem(notifKey, JSON.stringify(notifs));
+  }).catch(() => {
+    // Firebase 실패 시 캐시 폴백
+    const rankData = _dojoCache['rank_' + prevCycleKey] || {};
+    const rankList = Object.values(rankData).sort((a,b) => b.dmg - a.dmg);
+    localStorage.setItem(autoKey, '1');
+    const myRank = rankList.findIndex(r => r.user === username);
+    if(myRank === -1) return;
+    const rank=myRank+1, gp=getDojoGPReward(rank);
+    const currKey='ggo_currency_'+username;
+    const curr=JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
+    curr['GP']=(curr['GP']||0)+gp;
+    localStorage.setItem(currKey, JSON.stringify(curr));
+  });
 }
 
-/* ── 도장 패널 열기 ── */
 function openDojo() {
   dojoAutoClaimReward();
   dojoTab('enter');
@@ -2772,51 +2825,69 @@ function renderDojoRank() {
   if(!el) return;
   const username = sessionStorage.getItem('ggo_username') || '';
   const cycleKey = getDojoCycleKey();
-  const rankData = _dojoRGet('rank_' + cycleKey) || {};
-  const rankList = Object.values(rankData).sort((a,b) => b.dmg - a.dmg);
   const daysLeft = getDojoCycleDaysLeft();
-
   const RANK_MEDALS = ['🥇','🥈','🥉'];
 
-  if(rankList.length === 0) {
-    el.innerHTML = `
-      <div style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;text-align:right;margin-bottom:10px;">시즌 초기화: ${daysLeft}일 남음</div>
-      <div style="text-align:center;padding:30px;color:#475569;font-size:12px;font-family:'Noto Sans KR',sans-serif;">아직 도전 기록이 없습니다.</div>`;
-    return;
-  }
+  // 로딩 표시
+  el.innerHTML = `
+    <div style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;text-align:right;margin-bottom:10px;">시즌 초기화: ${daysLeft}일 남음</div>
+    <div style="text-align:center;padding:20px;color:#475569;font-size:11px;">🔄 순위 불러오는 중...</div>`;
 
-  let html = `<div style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;text-align:right;margin-bottom:10px;">시즌 초기화: ${daysLeft}일 남음</div>`;
-  html += `<div style="display:grid;grid-template-columns:36px 1fr 90px 70px;gap:0;background:rgba(124,58,237,.08);border-radius:8px;overflow:hidden;margin-bottom:4px;">
-    <div style="padding:6px;font-size:9px;color:#475569;font-family:'Orbitron',sans-serif;text-align:center;">순위</div>
-    <div style="padding:6px;font-size:9px;color:#475569;font-family:'Orbitron',sans-serif;">닉네임</div>
-    <div style="padding:6px;font-size:9px;color:#475569;font-family:'Orbitron',sans-serif;text-align:right;">총 대미지</div>
-    <div style="padding:6px;font-size:9px;color:#475569;font-family:'Orbitron',sans-serif;text-align:right;">보상</div>
-  </div>`;
+  // Firebase 실시간 구독
+  _gwDB.ref('dojo_rank/rank_' + cycleKey).on('value', snap => {
+    const rankData = snap.exists() ? snap.val() : {};
+    _dojoCache['rank_' + cycleKey] = rankData;
+    const rankList = Object.values(rankData).sort((a,b) => b.dmg - a.dmg);
 
-  rankList.forEach((entry, i) => {
-    const rank = i+1;
-    const isMe = entry.user === username;
-    const medal = RANK_MEDALS[i] || rank;
-    const gp    = getDojoGPReward(rank);
-    const rankColor = rank===1?'#fbbf24':rank===2?'#c0c0c0':rank===3?'#cd7f32':'#94a3b8';
-    const bg = isMe ? 'rgba(124,58,237,.15)' : (i%2===0?'rgba(255,255,255,.02)':'transparent');
-    html += `<div style="display:grid;grid-template-columns:36px 1fr 90px 70px;background:${bg};border-radius:4px;align-items:center;">
-      <div style="padding:7px 4px;text-align:center;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:${rankColor}">${typeof medal==='string'?medal:rank}</div>
-      <div style="padding:7px 6px;font-size:11px;color:${isMe?'#c084fc':'#e2e8f0'};font-weight:${isMe?700:400};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${entry.user}${isMe?' ✦':''}</div>
-      <div style="padding:7px 4px;text-align:right;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:#f97316;">${entry.dmg.toLocaleString()}</div>
-      <div style="padding:7px 4px;text-align:right;font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;">${gp}GP</div>
+    if(rankList.length === 0) {
+      el.innerHTML = `
+        <div style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;text-align:right;margin-bottom:10px;">시즌 초기화: ${daysLeft}일 남음</div>
+        <div style="text-align:center;padding:30px;color:#475569;font-size:12px;font-family:'Noto Sans KR',sans-serif;">아직 도전 기록이 없습니다.</div>`;
+      return;
+    }
+
+    let html = `<div style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;text-align:right;margin-bottom:10px;">시즌 초기화: ${daysLeft}일 남음</div>`;
+    html += `<div style="display:grid;grid-template-columns:36px 1fr 90px 70px;gap:0;background:rgba(124,58,237,.08);border-radius:8px;overflow:hidden;margin-bottom:4px;">
+      <div style="padding:6px;font-size:9px;color:#475569;font-family:'Orbitron',sans-serif;text-align:center;">순위</div>
+      <div style="padding:6px;font-size:9px;color:#475569;font-family:'Orbitron',sans-serif;">닉네임</div>
+      <div style="padding:6px;font-size:9px;color:#475569;font-family:'Orbitron',sans-serif;text-align:right;">총 대미지</div>
+      <div style="padding:6px;font-size:9px;color:#475569;font-family:'Orbitron',sans-serif;text-align:right;">보상</div>
     </div>`;
-  });
-  el.innerHTML = html;
-}
 
-/* ── 도장 전투 시작 ── */
-let _dojo = {
-  tick: null, timerInt: null,
-  timeLeft: DOJO_DURATION,
-  totalDmg: 0,
-  animFrame: null,
-};
+    rankList.forEach((entry, i) => {
+      const rank = i+1;
+      const isMe = entry.user === username;
+      const medal = RANK_MEDALS[i] || rank;
+      const gp    = getDojoGPReward(rank);
+      const rankColor = rank===1?'#fbbf24':rank===2?'#c0c0c0':rank===3?'#cd7f32':'#94a3b8';
+      const bg = isMe ? 'rgba(124,58,237,.15)' : (i%2===0?'rgba(255,255,255,.02)':'transparent');
+      html += `<div style="display:grid;grid-template-columns:36px 1fr 90px 70px;background:${bg};border-radius:4px;align-items:center;">
+        <div style="padding:7px 4px;text-align:center;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:${rankColor}">${typeof medal==='string'?medal:rank}</div>
+        <div style="padding:7px 6px;font-size:11px;color:${isMe?'#c084fc':'#e2e8f0'};font-weight:${isMe?700:400};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${entry.user}${isMe?' ✦':''}</div>
+        <div style="padding:7px 4px;text-align:right;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:#f97316;">${entry.dmg.toLocaleString()}</div>
+        <div style="padding:7px 4px;text-align:right;font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;">${gp}GP</div>
+      </div>`;
+    });
+    el.innerHTML = html;
+  }, err => {
+    // Firebase 실패 시 로컬 캐시 폴백
+    console.warn('도장 순위 Firebase 읽기 실패:', err);
+    const rankData = _dojoCache['rank_' + cycleKey] || {};
+    const rankList = Object.values(rankData).sort((a,b) => b.dmg - a.dmg);
+    el.innerHTML = rankList.length === 0
+      ? `<div style="text-align:center;padding:30px;color:#475569;">아직 기록이 없습니다.</div>`
+      : rankList.map((entry,i)=>{
+          const rank=i+1,isMe=entry.user===username,medal=RANK_MEDALS[i]||rank,gp=getDojoGPReward(rank);
+          const rc=rank===1?'#fbbf24':rank===2?'#c0c0c0':rank===3?'#cd7f32':'#94a3b8';
+          return `<div style="display:grid;grid-template-columns:36px 1fr 90px 70px;background:${isMe?'rgba(124,58,237,.15)':'transparent'};border-radius:4px;align-items:center;">
+            <div style="padding:7px 4px;text-align:center;color:${rc};font-weight:700">${typeof medal==='string'?medal:rank}</div>
+            <div style="padding:7px 6px;font-size:11px;color:${isMe?'#c084fc':'#e2e8f0'}">${entry.user}${isMe?' ✦':''}</div>
+            <div style="padding:7px 4px;text-align:right;color:#f97316;font-weight:700">${entry.dmg.toLocaleString()}</div>
+            <div style="padding:7px 4px;text-align:right;color:#fbbf24;font-size:10px">${gp}GP</div>
+          </div>`;
+        }).join('');
+  });
+}
 
 function enterDojo() {
   closeP('gw-pdojo');
@@ -3258,9 +3329,21 @@ const WB_MIN_LV     = 50;
 const WB_MAX_PARTY  = 5;
 
 // 공유 저장소 키 (날짜+파티번호 기반)
-const _wbKey  = k => 'gwo_wb_' + k;
-const _wbGet  = k => { try{ return JSON.parse(localStorage.getItem(_wbKey(k))||'null'); }catch{return null;} };
-const _wbSet  = (k,v) => localStorage.setItem(_wbKey(k), JSON.stringify(v));
+const // ── 월드보스: Firebase 기반 ──
+const _wbCache = {};
+const _wbRef   = k => _gwDB.ref('world_boss/' + k);
+const _wbGet   = k => _wbCache[k] ?? null;
+const _wbSet   = (k,v) => {
+  _wbCache[k] = v;
+  return _wbRef(k).set(v).catch(e => console.warn('월드보스 Firebase 저장 실패:', e));
+};
+function _wbLoad(k) {
+  return _wbRef(k).get().then(snap => {
+    const val = snap.exists() ? snap.val() : null;
+    _wbCache[k] = val;
+    return val;
+  }).catch(() => null);
+}
 
 // 오늘 날짜 키 (YYYY-MM-DD)
 function wbTodayKey() {
@@ -3279,55 +3362,61 @@ function wbCanClaim(joinDate) {
 }
 
 // 이 유저가 오늘 참가한 파티 정보 반환
-function wbGetMyParty(username) {
+async function wbGetMyParty(username) {
   const today = wbTodayKey();
-  // 파티0, 파티1, 파티2... 순서로 확인
   for(let i = 0; i < 20; i++) {
-    const party = _wbGet('party_' + today + '_' + i);
-    if(!party) break;
-    if(party.members.some(m => m.user === username)) return { party, idx: i, date: today };
+    const snap = await _gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
+    if(!snap || !snap.exists()) break;
+    const party = snap.val();
+    _wbCache['party_' + today + '_' + i] = party;
+    if(party.members && party.members.some(m => m.user === username))
+      return { party, idx: i, date: today };
   }
   return null;
 }
 
 // 어제 참가한 파티 (보상 수령용)
-function wbGetYesterdayParty(username) {
+async function wbGetYesterdayParty(username) {
   const d = new Date(Date.now() - 86400000);
   const yesterday = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   for(let i = 0; i < 20; i++) {
-    const party = _wbGet('party_' + yesterday + '_' + i);
-    if(!party) break;
-    if(party.members.some(m => m.user === username)) return { party, idx: i, date: yesterday };
+    const snap = await _gwDB.ref('world_boss/party_' + yesterday + '_' + i).get().catch(()=>null);
+    if(!snap || !snap.exists()) break;
+    const party = snap.val();
+    _wbCache['party_' + yesterday + '_' + i] = party;
+    if(party.members && party.members.some(m => m.user === username))
+      return { party, idx: i, date: yesterday };
   }
   return null;
 }
 
 // 오늘 참가 가능한 빈 파티 찾기 (5인 미만)
-function wbFindOpenParty() {
+async function wbFindOpenParty() {
   const today = wbTodayKey();
   for(let i = 0; i < 20; i++) {
-    const party = _wbGet('party_' + today + '_' + i);
-    if(!party) return i;                         // 빈 파티 슬롯
-    if(party.members.length < WB_MAX_PARTY) return i;  // 자리 있는 파티
+    const snap = await _gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
+    if(!snap || !snap.exists()) return i;        // 빈 파티 슬롯
+    const party = snap.val();
+    _wbCache['party_' + today + '_' + i] = party;
+    if(!party.members || party.members.length < WB_MAX_PARTY) return i;
   }
   return -1;
 }
 
 /* ── 월드 보스 패널 열기 ── */
 function openWorldBoss() {
-  renderWorldBoss();
   openP('gw-pwb');
+  renderWorldBoss();
 }
 
 /* ── 월드 보스 패널 렌더 ── */
-function renderWorldBoss() {
+async function renderWorldBoss() {
   const el = document.getElementById('gw-wbbody');
   if(!el) return;
   const username = gwUN();
   const today    = wbTodayKey();
   const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
 
-  // 보스 헤더
   let html = `
     <div style="text-align:center;margin-bottom:14px;">
       <div style="font-size:44px;line-height:1;margin-bottom:6px;">${WB_EMOJI}</div>
@@ -3337,7 +3426,6 @@ function renderWorldBoss() {
       </div>
     </div>`;
 
-  // 레벨 체크
   if(G.lv < WB_MIN_LV) {
     html += `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px;text-align:center;color:#f87171;font-size:12px;font-family:'Noto Sans KR',sans-serif;">
       🔒 Lv.${WB_MIN_LV} 이상부터 참가 가능합니다.<br>
@@ -3347,40 +3435,39 @@ function renderWorldBoss() {
     return;
   }
 
-  // 보상 수령 가능 확인 (어제 참가 + 자정 지남)
-  const yestParty = wbGetYesterdayParty(username);
-  const claimKey  = _wbKey('claimed_' + (yestParty?.date||'') + '_' + username);
+  // 로딩 표시
+  el.innerHTML = html + '<div style="text-align:center;padding:20px;color:#475569;font-size:11px;">🔄 파티 정보 불러오는 중...</div>';
+
+  // Firebase에서 비동기로 데이터 읽기
+  const yestParty   = await wbGetYesterdayParty(username);
+  const claimKey    = _wbKey('claimed_' + (yestParty?.date||'') + '_' + username);
   if(yestParty && !localStorage.getItem(claimKey)) {
-    html += renderWbClaimSection(username, yestParty);
-    el.innerHTML = html;
+    el.innerHTML = html + renderWbClaimSection(username, yestParty);
     return;
   }
 
-  // 오늘 이미 참가중인지 확인
-  const myParty = wbGetMyParty(username);
+  const myParty = await wbGetMyParty(username);
   if(myParty) {
-    html += renderWbPartyStatus(myParty.party, myParty.idx, username);
-    el.innerHTML = html;
+    el.innerHTML = html + renderWbPartyStatus(myParty.party, myParty.idx, username);
     return;
   }
 
-  // 참가 가능 → 현재 모집중인 파티들 표시 + 참가 버튼
-  html += renderWbJoinSection(username);
-  el.innerHTML = html;
+  el.innerHTML = html + await renderWbJoinSection(username);
 }
 
-/* ── 파티 참가 섹션 ── */
-function renderWbJoinSection(username) {
+async function renderWbJoinSection(username) {
   const today = wbTodayKey();
   const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
   let html = '';
 
-  // 현재 모집중 파티 목록
-  let parties = [];
+  // Firebase에서 오늘 파티 목록 읽기 (실시간 구독 → on value)
+  const parties = [];
   for(let i = 0; i < 20; i++) {
-    const p = _wbGet('party_' + today + '_' + i);
-    if(!p) break;
-    if(p.members.length < WB_MAX_PARTY) parties.push({p, i});
+    const snap = await _gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
+    if(!snap || !snap.exists()) break;
+    const p = snap.val();
+    _wbCache['party_' + today + '_' + i] = p;
+    if(!p.members || p.members.length < WB_MAX_PARTY) parties.push({p, i});
   }
 
   if(parties.length > 0) {
@@ -3402,7 +3489,6 @@ function renderWbJoinSection(username) {
     });
   }
 
-  // 새 파티 시작 버튼
   html += `<button onclick="wbJoinParty(-1)"
     style="width:100%;margin-top:8px;background:linear-gradient(135deg,#ef4444,#dc2626);
       border:1px solid #f87171;color:#fff;padding:13px;border-radius:12px;
@@ -3412,7 +3498,6 @@ function renderWbJoinSection(username) {
   return html;
 }
 
-/* ── 파티 현황 표시 ── */
 function renderWbPartyStatus(party, idx, username) {
   const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
   const joinTime  = new Date(party.createdAt||Date.now()).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
@@ -3467,34 +3552,37 @@ function renderWbClaimSection(username, partyInfo) {
 }
 
 /* ── 파티 참가 ── */
-function wbJoinParty(partyIdx) {
+async function wbJoinParty(partyIdx) {
   const username = gwUN();
   if(!username || username==='_g') { gwT('로그인이 필요합니다.'); return; }
   if(G.lv < WB_MIN_LV) { gwT(`🔒 Lv.${WB_MIN_LV} 이상부터 참가 가능합니다.`); return; }
 
   const today = wbTodayKey();
-  // 이미 오늘 참가했는지
-  if(wbGetMyParty(username)) { gwT('오늘 이미 파견에 참가했습니다.'); return; }
+  const already = await wbGetMyParty(username);
+  if(already) { gwT('오늘 이미 파견에 참가했습니다.'); return; }
 
-  // 파티 인덱스 결정
   let idx = partyIdx;
-  if(idx < 0) idx = wbFindOpenParty();
+  if(idx < 0) idx = await wbFindOpenParty();
   if(idx < 0) { gwT('참가 가능한 파티가 없습니다.'); return; }
 
-  const partyKey = 'party_' + today + '_' + idx;
-  const party    = _wbGet(partyKey) || { members: [], createdAt: Date.now() };
+  const partyPath = 'world_boss/party_' + today + '_' + idx;
+  const snap = await _gwDB.ref(partyPath).get().catch(()=>null);
+  const party = (snap && snap.exists()) ? snap.val() : { members: [], createdAt: Date.now() };
 
+  if(!party.members) party.members = [];
   if(party.members.length >= WB_MAX_PARTY) { gwT('파티 정원이 가득 찼습니다.'); return; }
   if(party.members.some(m=>m.user===username)) { gwT('이미 이 파티에 참가중입니다.'); return; }
 
   party.members.push({ user:username, job:G.job, lv:G.lv, joinAt:Date.now() });
-  _wbSet(partyKey, party);
+  await _gwDB.ref(partyPath).set(party).catch(e => {
+    gwT('파티 참가 중 오류가 발생했습니다.'); console.warn(e); return;
+  });
+  _wbCache['party_' + today + '_' + idx] = party;
 
   gwT(`👻 파티 ${idx+1}에 참가! 자정 이후 보상 수령 가능합니다.`);
   renderWorldBoss();
 }
 
-/* ── 보상 수령 ── */
 function wbClaimReward(date) {
   const username = gwUN();
   if(!username||username==='_g') return;
