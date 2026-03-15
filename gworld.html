@@ -1562,9 +1562,11 @@ function mobDead(){
   const _gainedExp=Math.floor(m.exp*tExpRate());G.exp+=_gainedExp;G.gold+=m.g;
   blog(`<span class="li">💀 ${m.n} 처치! +${_gainedExp}EXP +${m.g}G</span>`);
   if(Math.random()<m.drop){
-    // 직업에 맞는 장비 풀 (전설/포션/재료 제외 → 장비만)
+    // 직업에 맞는 장비 풀 (전설/포션/재료/반지·목걸이 제외 → 일반 장비만)
     const eqPool = DROPS.filter(d => {
       if(d.type==='pot'||d.type==='mat') return false;
+      // 반지·목걸이는 월드보스 전용
+      if(d.type==='accessory') return false;
       if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
       return true;
     });
@@ -1761,10 +1763,18 @@ function openItemAction(idx){
   const it=G.inv[idx];if(!it)return;
   // 포션
   if(it.type==='pot'){useItem(idx);return;}
-  // 장비 (slot 없어도 type으로 판단)
+  // 장비 (slot 필드 기준 + type 보완)
+  // ring, necklace 슬롯도 포함
   const EQ_TYPES=['weapon','shield','armor','boots','gloves','accessory'];
-  if(it.slot || EQ_TYPES.includes(it.type)){
-    if(!it.slot) it.slot=it.type; // slot 누락 시 type으로 보완
+  const EQ_SLOTS=['weapon','shield','armor','boots','gloves','necklace','ring','ring1','ring2','ring3'];
+  const isEquip = EQ_SLOTS.includes(it.slot) || EQ_TYPES.includes(it.type);
+  if(isEquip){
+    // slot 누락 시 subType 또는 type으로 보완
+    if(!it.slot){
+      if(it.subType==='necklace') it.slot='necklace';
+      else if(it.subType==='ring') it.slot='ring';
+      else it.slot=it.type;
+    }
     showItemModal(idx,it);return;
   }
   // 재료
