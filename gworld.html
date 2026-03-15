@@ -883,7 +883,7 @@
 const JOBS = {
   warrior:{ id:'warrior',name:'전사',emoji:'⚔️',color:'#ef4444',
     desc:'높은 HP · 방어력 · 근접 공격',
-    bHP:120,bATK:15,bDEF:10,bMP:60, hLv:8,aLv:2,dLv:1.5,mLv:4,
+    bHP:120,bATK:15,bDEF:10,bMP:60, hLv:8,aLv:2.0,dLv:1.5,mLv:4,
     weapon:{name:'기본 검',emoji:'⚔️',atk:5}, armor:{name:'목재 방패',emoji:'🛡️',def:4},
     skills:[
       {id:'smash',  name:'강타',    lv:10,mp:10,cd:5, dmg:1.5,eff:'single',   desc:'공격력 150% 단일 공격'},
@@ -892,7 +892,7 @@ const JOBS = {
     ]},
   archer:{ id:'archer',name:'궁수',emoji:'🏹',color:'#34d399',
     desc:'빠른 공격 · 원거리 · 높은 회피',
-    bHP:80,bATK:18,bDEF:6,bMP:70, hLv:5,aLv:2.5,dLv:1,mLv:5,
+    bHP:90, bATK:14,bDEF:6, bMP:80, hLv:5,aLv:2.5,dLv:1.0,mLv:5,
     weapon:{name:'단궁',emoji:'🏹',atk:7}, armor:null,
     skills:[
       {id:'rapid',  name:'연속 화살',lv:10,mp:12,cd:4, dmg:0.8,eff:'triple',  desc:'3번 연속 공격력 80%'},
@@ -901,7 +901,7 @@ const JOBS = {
     ]},
   mage:{ id:'mage',name:'마법사',emoji:'🔮',color:'#a855f7',
     desc:'강한 스킬 · 광역 사냥 · 낮은 HP',
-    bHP:60,bATK:25,bDEF:4,bMP:100, hLv:3,aLv:3,dLv:0.5,mLv:8,
+    bHP:70, bATK:20,bDEF:4, bMP:110,hLv:3,aLv:3.0,dLv:0.5,mLv:8,
     weapon:{name:'초급 지팡이',emoji:'🪄',atk:10}, armor:null,
     skills:[
       {id:'fire',   name:'파이어볼',  lv:10,mp:15,cd:4, dmg:1.8,eff:'single', desc:'공격력 180% 마법 공격'},
@@ -910,7 +910,7 @@ const JOBS = {
     ]},
   rogue:{ id:'rogue',name:'도적',emoji:'🗡️',color:'#94a3b8',
     desc:'치명타 · 독 · 암살',
-    bHP:75,bATK:20,bDEF:7,bMP:65, hLv:4,aLv:2.8,dLv:1.2,mLv:4,
+    bHP:85, bATK:16,bDEF:6, bMP:70, hLv:4,aLv:2.8,dLv:1.0,mLv:4,
     weapon:{name:'단검',emoji:'🗡️',atk:8}, armor:null,
     skills:[
       {id:'rush',   name:'급습',    lv:10,mp:10,cd:5, dmg:1.4,eff:'crit',    desc:'공격력 140% + 치명타 +20%'},
@@ -919,8 +919,8 @@ const JOBS = {
     ]},
   paladin:{ id:'paladin',name:'성기사',emoji:'🛡️',color:'#fbbf24',
     desc:'치유 + 방어 · 성스러운 전사',
-    bHP:100,bATK:14,bDEF:12,bMP:80, hLv:7,aLv:1.8,dLv:2,mLv:6,
-    weapon:{name:'성검',emoji:'⚔️',atk:6}, armor:{name:'성방패',emoji:'🛡️',def:6},
+    bHP:130,bATK:10,bDEF:13,bMP:50, hLv:7,aLv:1.8,dLv:2.0,mLv:3,
+    weapon:{name:'성검',emoji:'⚔️',atk:6}, armor:{name:'그림자 복장',emoji:'🥋',def:2},
     skills:[
       {id:'holy',   name:'성스러운 타격',lv:10,mp:12,cd:5, dmg:1.4,eff:'single',    desc:'공격력 140% 성속성'},
       {id:'heal',   name:'치유',         lv:30,mp:20,cd:15,dmg:0,  eff:'heal30',    desc:'HP 30% 회복'},
@@ -1080,12 +1080,12 @@ function cBase(job,lv){
 }
 function tAtk(){
   const b=cBase(G.job,G.lv);const eq=G.equip||{};
-  let a=b.atk+(JOBS[G.job]?.weapon?.atk||0);
+  let a=b.atk;
   Object.values(eq).forEach(it=>{if(it)a+=(it.atk||0);});return a;
 }
 function tDef(){
   const b=cBase(G.job,G.lv);const eq=G.equip||{};
-  let d=b.def+(JOBS[G.job]?.armor?.def||0);
+  let d=b.def;
   Object.values(eq).forEach(it=>{if(it)d+=(it.def||0);});
   if(G.defBuff)d=Math.floor(d*1.5);return d;
 }
@@ -1703,11 +1703,11 @@ function recalcStats(){
   G.atk=b.atk+eq.atk;G.def=b.def+eq.def;
 }
 // 공격 속도: 기본 1150ms - 신발 spd (최소 400ms)
-function tSpd(){ return Math.max(400, 1150-(equipBonus().spd||0)); }
+function tSpd(){ const base=G.job==='archer'?1300:1500; return Math.max(400, base-(equipBonus().spd||0)); }
 // 치명타 확률 (%) - 기본 5%
-function tCritRate(){ return 5+(equipBonus().critRate||0); }
+function tCritRate(){ const base=G.job==='rogue'?10:5; return base+(equipBonus().critRate||0); }
 // 치명타 대미지 배율 (%) - 기본 150%
-function tCritDmg(){ return 150+(equipBonus().critDmg||0); }
+function tCritDmg(){ return 100+(equipBonus().critDmg||0); }
 
 const SLOT_INFO={
   weapon:   {label:'무기',    emoji:'⚔️'},
@@ -2026,7 +2026,7 @@ function enhItem(i){/* deprecated - 하위 호환용 */const it=G.inv[i];if(!it)
 function renderStat(){
   const b=cBase(G.job,G.lv);
   const eq=equipBonus();
-  const spd=tSpd(); const spdMs=1150-spd;
+  const spd=tSpd(); // spd = 실제 공격 간격(ms)
   const cr=tCritRate(); const cd=tCritDmg();
   document.getElementById('gw-stbody').innerHTML=`
     <div class="gw-stat-g">
