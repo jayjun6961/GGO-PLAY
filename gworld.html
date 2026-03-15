@@ -939,6 +939,38 @@ const ZONES = [
    mobs:[{n:'언데드 전사',e:'💀',hp:290,atk:36,def:18,exp:135,g:68,drop:.4},{n:'석상 수호자',e:'🗿',hp:360,atk:29,def:26,exp:155,g:78,drop:.45},{n:'폐허 악령',e:'👻',hp:250,atk:44,def:13,exp:145,g:72,drop:.42}]},
   {id:'volcano',name:'화산',emoji:'🌋',min:36,max:50,
    mobs:[{n:'불꽃 드래곤',e:'🐉',hp:620,atk:68,def:36,exp:310,g:155,drop:.5},{n:'용암 골렘',e:'🔥',hp:720,atk:57,def:46,exp:290,g:145,drop:.48},{n:'화산 피닉스',e:'🦅',hp:570,atk:75,def:29,exp:330,g:165,drop:.52}]},
+
+  // ── 고레벨 사냥터 (51~100) ──
+  {id:'abyss',   name:'심연의 균열', emoji:'🌀',min:51,max:60,
+   mobs:[
+     {n:'균열 악마',    e:'😈',hp:1100,atk:120,def:58, exp:580,g:290,drop:.5},
+     {n:'공허의 마수',  e:'🌑',hp:1350,atk:105,def:72, exp:630,g:315,drop:.52},
+     {n:'심연 감시자',  e:'👁️', hp:950, atk:138,def:48, exp:610,g:305,drop:.48},
+   ]},
+  {id:'skytemple',name:'천공 신전',  emoji:'⛩️', min:61,max:70,
+   mobs:[
+     {n:'신전 수호자',  e:'🗿',hp:2000,atk:210,def:105,exp:1050,g:525,drop:.52},
+     {n:'천공 뇌조',   e:'⚡',hp:1800,atk:240,def:88, exp:1100,g:550,drop:.5},
+     {n:'고대 석상',   e:'🏛️',hp:2400,atk:185,def:130,exp:1150,g:575,drop:.55},
+   ]},
+  {id:'shadowrealm',name:'어둠의 영역',emoji:'🌒',min:71,max:80,
+   mobs:[
+     {n:'그림자 기사',  e:'🧟',hp:3500,atk:350,def:160,exp:1850,g:925,drop:.54},
+     {n:'저주받은 망령',e:'💀',hp:3100,atk:400,def:135,exp:1950,g:975,drop:.52},
+     {n:'어둠 군주',   e:'🦹',hp:4200,atk:310,def:195,exp:2000,g:1000,drop:.56},
+   ]},
+  {id:'dragonspire',name:'용의 첨탑', emoji:'🐲',min:81,max:90,
+   mobs:[
+     {n:'고룡 전위대',  e:'🐲',hp:5800,atk:540,def:250,exp:3000,g:1500,drop:.55},
+     {n:'용암 고룡',   e:'🔴',hp:7000,atk:490,def:300,exp:3200,g:1600,drop:.54},
+     {n:'천룡의 수호',  e:'🌟',hp:5200,atk:610,def:220,exp:3400,g:1700,drop:.56},
+   ]},
+  {id:'godplane',  name:'신들의 영역', emoji:'✨',min:91,max:100,
+   mobs:[
+     {n:'신의 수호자',  e:'👼',hp:9500, atk:800,def:360,exp:4600,g:2300,drop:.56},
+     {n:'파멸의 사자',  e:'⚔️', hp:11000,atk:750,def:420,exp:4900,g:2450,drop:.55},
+     {n:'창조신의 분노',e:'💫',hp:8500, atk:880,def:330,exp:5200,g:2600,drop:.58},
+   ]},
 ];
 
 const DROPS = [
@@ -1647,7 +1679,7 @@ function mobDead(){
       if(G.zone?.id===q.target) G.qprog[q.id]=(G.qprog[q.id]||0)+1;
     }
   });
-  while(G.exp>=expNeed(G.lv)&&G.lv<50){
+  while(G.exp>=expNeed(G.lv)&&G.lv<100){
     G.exp-=expNeed(G.lv);G.lv++;
     const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk;G.def=b.def;
     G.hp=Math.min(G.hp+Math.floor(b.mHP*.2),b.mHP);
@@ -2024,7 +2056,7 @@ function claimQ(qid){
   const gainedExp=Math.floor(q.eR*tExpRate());
   G.exp+=gainedExp;G.gold+=q.gR;
   // 레벨업 처리
-  while(G.exp>=expNeed(G.lv)&&G.lv<50){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
   gwT(`🎉 퀘스트 완료! +${gainedExp}EXP +${q.gR}G`);hud();saveG();renderQ();renderQdot();
 }
 
@@ -2548,7 +2580,7 @@ function dunBossDead() {
 
   // 레벨업 처리
   let lvUp=0;
-  while(G.exp>=expNeed(G.lv)&&G.lv<50){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
   if(lvUp>0){dunBlog(`<span style="color:#a855f7">🆙 레벨업! Lv.${G.lv}</span>`);const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
 
   // 장비 드롭 (직업 맞는 것만)
@@ -3782,7 +3814,7 @@ function wbClaimReward(date) {
   G.exp  += exp;
   // 레벨업
   let lvUp=0;
-  while(G.exp>=expNeed(G.lv)&&G.lv<50){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
   if(lvUp>0){const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
 
   // 마법석
