@@ -2903,40 +2903,68 @@ function renderDojoRank() {
 }
 
 function enterDojo() {
-  closeP('gw-pdojo');
-  _dojo.timeLeft = DOJO_DURATION;
-  _dojo.totalDmg = 0;
-  gwSC('dojo');
-  // HUD
-  document.getElementById('dojo-lv').textContent  = 'Lv.'+G.lv;
-  document.getElementById('dojo-jnm').textContent = JOBS[G.job]?.name||'';
-  document.getElementById('dojo-blog').innerHTML  = '';
-  document.getElementById('dojo-total-hud').textContent = '0';
-  // 캔버스
-  setTimeout(()=>{
-    const cv=document.getElementById('dojo-cv');
-    if(cv){cv.width=cv.offsetWidth||500;cv.height=cv.offsetHeight||140;drawDojo(cv);}
-  },30);
-  // 스킬 버튼
-  renderDojoSkills();
-  dojoHud();
-  // 타이머
-  if(_dojo.timerInt) clearInterval(_dojo.timerInt);
-  _dojo.timerInt = setInterval(dojoTick, 1000);
-  // 자동 공격
-  if(_dojo.tick) clearInterval(_dojo.tick);
-  _dojo.tick = setInterval(dojoAttack, tSpd());
-  // 애니메이션
-  startDojoAnim();
-  dojoBlog(`<span style="color:#f97316">⚔️ 도장 시작! 1분 동안 최대한 공격하세요!</span>`);
+  // 기본 유효성 검사
+  if(!G.job){ gwT('캐릭터 정보를 불러올 수 없습니다. 새로고침 해주세요.'); return; }
+  if(!G.mHP || G.mHP <= 0){ gwT('HP 정보가 없습니다. 새로고침 해주세요.'); return; }
+
+  try {
+    // 패널 닫기 + 화면 전환
+    closeP('gw-pdojo');
+    _dojo.timeLeft = DOJO_DURATION;
+    _dojo.totalDmg = 0;
+    _dojo.dead = false;
+
+    // 기존 타이머/틱 정리
+    if(_dojo.timerInt){ clearInterval(_dojo.timerInt); _dojo.timerInt = null; }
+    if(_dojo.tick){ clearInterval(_dojo.tick); _dojo.tick = null; }
+    if(_dojo.animFrame){ cancelAnimationFrame(_dojo.animFrame); _dojo.animFrame = null; }
+
+    gwSC('dojo');
+
+    // HUD 요소 안전 업데이트
+    const safeSet = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+    const safeHTML = (id, html) => { const el=document.getElementById(id); if(el) el.innerHTML=html; };
+    safeSet('dojo-lv', 'Lv.'+G.lv);
+    safeSet('dojo-jnm', JOBS[G.job]?.name||G.job);
+    safeHTML('dojo-blog', '');
+    safeSet('dojo-total-hud', '0');
+    safeSet('dojo-timer-hud', '⏱ 1:00');
+
+    // 스킬 버튼 렌더
+    renderDojoSkills();
+    // HUD 업데이트
+    dojoHud();
+
+    // 캔버스 초기화 (딜레이)
+    setTimeout(()=>{
+      const cv = document.getElementById('dojo-cv');
+      if(cv){ cv.width=cv.offsetWidth||500; cv.height=cv.offsetHeight||140; drawDojo(cv); }
+    }, 50);
+
+    // 타이머 시작
+    _dojo.timerInt = setInterval(dojoTick, 1000);
+    // 자동 공격 시작
+    _dojo.tick = setInterval(dojoAttack, tSpd());
+    // 캔버스 애니메이션 시작
+    startDojoAnim();
+
+    dojoBlog(`<span style="color:#f97316">⚔️ 도장 시작! 1분 동안 최대한 공격하세요!</span>`);
+  } catch(e) {
+    console.error('enterDojo 오류:', e);
+    gwT('도장 입장 중 오류가 발생했습니다: ' + e.message);
+  }
 }
 
 function dojoHud() {
-  document.getElementById('dojo-hpf').style.width=(G.hp/G.mHP*100)+'%';
-  document.getElementById('dojo-hpv').textContent=G.hp+'/'+G.mHP;
-  document.getElementById('dojo-mpf').style.width=(G.mp/G.mMP*100)+'%';
-  document.getElementById('dojo-mpv').textContent=G.mp+'/'+G.mMP;
-  document.getElementById('dojo-total-hud').textContent=_dojo.totalDmg.toLocaleString();
+  const mHP = G.mHP||1, mMP = G.mMP||1;
+  const hpPct = Math.max(0,Math.min(100,(G.hp/mHP*100)));
+  const mpPct = Math.max(0,Math.min(100,(G.mp/mMP*100)));
+  const safe = (id, fn) => { const el=document.getElementById(id); if(el) fn(el); };
+  safe('dojo-hpf', el => el.style.width = hpPct+'%');
+  safe('dojo-hpv', el => el.textContent = G.hp+'/'+mHP);
+  safe('dojo-mpf', el => el.style.width = mpPct+'%');
+  safe('dojo-mpv', el => el.textContent = G.mp+'/'+mMP);
+  safe('dojo-total-hud', el => el.textContent = _dojo.totalDmg.toLocaleString());
 }
 
 function dojoBlog(html) {
@@ -2953,7 +2981,7 @@ function dojoTick() {
   const el=document.getElementById('dojo-timer-hud');
   if(el){
     el.textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
-    el.style.color=_dojo.timeLeft<=30?'#ef4444':_dojo.timeLeft<=60?'#f97316':'#fbbf24';
+    el.style.color=_dojo.timeLeft<=10?'#ef4444':_dojo.timeLeft<=30?'#f97316':'#fbbf24';
   }
   if(_dojo.timeLeft<=0){ dojoEnd(); }
 }
