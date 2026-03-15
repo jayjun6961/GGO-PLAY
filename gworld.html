@@ -2647,7 +2647,7 @@ const DOJO_RANK_DEFAULT = 100;  // 11위 이하
 const DOJO_RANK_MID     = 300;  // 4~10위
 
 // localStorage 공유 키 (모든 유저 순위 공유)
-const // ── 도장 순위: Firebase 기반 ──
+// ── 도장 순위: Firebase 기반 ──
 const _dojoCache = {};
 const _dojoRef   = k => _gwDB.ref('dojo_rank/' + k);
 const _dojoRGet  = k => _dojoCache[k] ?? null;
@@ -3329,7 +3329,7 @@ const WB_MIN_LV     = 50;
 const WB_MAX_PARTY  = 5;
 
 // 공유 저장소 키 (날짜+파티번호 기반)
-const // ── 월드보스: Firebase 기반 ──
+// ── 월드보스: Firebase 기반 ──
 const _wbCache = {};
 const _wbRef   = k => _gwDB.ref('world_boss/' + k);
 const _wbGet   = k => _wbCache[k] ?? null;
