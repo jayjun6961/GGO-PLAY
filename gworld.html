@@ -3513,6 +3513,9 @@ function dojoTick() {
 /* ── 자동 공격 ── */
 function dojoAttack() {
   if(_dojo.timeLeft<=0) return;
+  // 공격 애니메이션 트리거
+  _dojoAnim.attacking=true;
+  setTimeout(()=>{_dojoAnim.attacking=false;},200);
   let dmg=Math.max(1,tAtk()+Math.floor(Math.random()*4)-1);
   const isCrit=Math.random()*100<tCritRate();
   if(isCrit) dmg=Math.floor(dmg*tCritDmg()/100);
@@ -3696,6 +3699,7 @@ function dojoResultClose() { goTown(); }
 
 /* ── 도장 캔버스 ── */
 let _dojoAnimFrame = null;
+let _dojoAnim = { playerShake: 0, attacking: false };
 function startDojoAnim() {
   if(_dojoAnimFrame) cancelAnimationFrame(_dojoAnimFrame);
   function loop() {
@@ -3709,43 +3713,179 @@ function drawDojo(cv) {
   const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
   if(!W||!H)return;
   ctx.clearRect(0,0,W,H);
-  // 배경
+
+  // ── 배경: 도장 내부 ──
   const bg=ctx.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'#0a0a12');bg.addColorStop(1,'#121220');
+  bg.addColorStop(0,'#0d0a18');bg.addColorStop(1,'#14102a');
   ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-  // 도장 바닥
-  ctx.fillStyle='rgba(124,58,237,.04)';
-  for(let x=0;x<W;x+=32){ctx.fillRect(x,0,1,H);}
-  for(let y=0;y<H;y+=32){ctx.fillRect(0,y,W,1);}
-  ctx.fillStyle='rgba(124,58,237,.08)';ctx.fillRect(0,Math.floor(H*.72),W,2);
-  // 허수아비
-  const scX=W*.62,scY=H*.52;
-  // 기둥
-  ctx.fillStyle='#8B4513';ctx.fillRect(scX-4,Math.floor(H*.3),8,Math.floor(H*.5));
+
+  // 격자 바닥
+  ctx.strokeStyle='rgba(124,58,237,.06)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // 바닥선
+  const groundY=Math.floor(H*.72);
+  ctx.fillStyle='rgba(124,58,237,.15)';ctx.fillRect(0,groundY,W,2);
+  // 바닥 그라데이션
+  const floorG=ctx.createLinearGradient(0,groundY,0,H);
+  floorG.addColorStop(0,'rgba(60,30,100,.15)');floorG.addColorStop(1,'rgba(20,10,40,.25)');
+  ctx.fillStyle=floorG;ctx.fillRect(0,groundY,W,H-groundY);
+
+  // 벽 장식 (도장 현판)
+  ctx.fillStyle='rgba(124,58,237,.08)';ctx.fillRect(W*.35,H*.05,W*.3,H*.12);
+  ctx.strokeStyle='rgba(124,58,237,.2)';ctx.lineWidth=1;
+  ctx.strokeRect(W*.35,H*.05,W*.3,H*.12);
+  ctx.fillStyle='rgba(192,132,252,.4)';ctx.font=`bold ${Math.floor(H*.06)}px serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('道場',W*.5,H*.11);
+
+  // ── 허수아비 (scarecrow) ──
+  const scX=W*.65, scY=groundY;
+
+  // 기둥 (나무색)
+  ctx.fillStyle='#7c4a1e';
+  ctx.fillRect(scX-5,Math.floor(scY-H*.55),10,Math.floor(H*.55));
+  // 기둥 나이테
+  ctx.strokeStyle='rgba(0,0,0,.2)';ctx.lineWidth=1;
+  for(let i=0;i<4;i++){ctx.strokeRect(scX-5,scY-H*.55+i*H*.12,10,H*.1);}
+
   // 가로대
-  ctx.fillStyle='#8B4513';ctx.fillRect(scX-20,Math.floor(H*.32),40,6);
-  // 몸통
+  const armY=scY-H*.46;
+  ctx.fillStyle='#8B5E2A';
+  ctx.fillRect(scX-32,armY-4,64,8);
+  // 가로대 끝 마감
+  ctx.fillStyle='#6B3E0A';
+  ctx.fillRect(scX-34,armY-5,6,10);ctx.fillRect(scX+28,armY-5,6,10);
+
+  // 몸통 (볏짚 느낌의 자루)
   ctx.fillStyle='#d97706';
-  ctx.strokeStyle='#92400e';ctx.lineWidth=1;
-  ctx.beginPath();ctx.ellipse(scX,H*.5,14,18,0,0,Math.PI*2);ctx.fill();ctx.stroke();
-  // 머리 (볏짚 모자)
-  ctx.fillStyle='#fbbf24';
-  ctx.beginPath();ctx.ellipse(scX,H*.32,16,6,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#f59e0b';
-  ctx.beginPath();ctx.ellipse(scX,H*.34,10,10,0,0,Math.PI*2);ctx.fill();
-  // 눈
-  ctx.fillStyle='#1c1917';
-  ctx.beginPath();ctx.ellipse(scX-4,H*.34,2,2,0,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.ellipse(scX+4,H*.34,2,2,0,0,Math.PI*2);ctx.fill();
-  // 타이머 남은 시간 배경 표시 (빨간 선)
-  if(_dojo.timeLeft<=30){
-    ctx.strokeStyle=`rgba(239,68,68,${0.3+0.3*Math.sin(Date.now()/200)})`;
-    ctx.lineWidth=3;ctx.strokeRect(2,2,W-4,H-4);
+  ctx.beginPath();
+  const bx=scX-14,by=scY-H*.43,bw=28,bh=Math.floor(H*.28),br=4;
+  ctx.moveTo(bx+br,by);ctx.lineTo(bx+bw-br,by);ctx.quadraticCurveTo(bx+bw,by,bx+bw,by+br);
+  ctx.lineTo(bx+bw,by+bh-br);ctx.quadraticCurveTo(bx+bw,by+bh,bx+bw-br,by+bh);
+  ctx.lineTo(bx+br,by+bh);ctx.quadraticCurveTo(bx,by+bh,bx,by+bh-br);
+  ctx.lineTo(bx,by+br);ctx.quadraticCurveTo(bx,by,bx+br,by);
+  ctx.closePath();ctx.fill();
+  // 몸통 무늬 (짚 느낌)
+  ctx.strokeStyle='#b45309';ctx.lineWidth=1;
+  for(let i=0;i<5;i++){
+    ctx.beginPath();ctx.moveTo(scX-14,scY-H*.43+i*H*.055);ctx.lineTo(scX+14,scY-H*.43+i*H*.055);ctx.stroke();
   }
-  // 플레이어
-  const plX=W*.22,plY=H*.55,psz=Math.floor(H*.28);
-  ctx.font=`${psz}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(JOBS[G.job]?.emoji||'⚔️',plX,plY);
+  // 단추
+  ctx.fillStyle='#451a03';
+  [H*.12,H*.19,H*.26].forEach(oy=>{
+    ctx.beginPath();ctx.arc(scX,scY-H*.43+oy,2.5,0,Math.PI*2);ctx.fill();
+  });
+
+  // 팔 소매
+  ctx.fillStyle='#d97706';
+  ctx.fillRect(scX-32,armY-6,16,12);  // 왼팔
+  ctx.fillRect(scX+16,armY-6,16,12);  // 오른팔
+  // 장갑(손)
+  ctx.fillStyle='#92400e';
+  ctx.beginPath();ctx.ellipse(scX-32,armY,7,6,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(scX+32,armY,7,6,0,0,Math.PI*2);ctx.fill();
+
+  // 머리 (볏짚 삐져나온 모자)
+  const headY=scY-H*.5;
+  // 모자 챙
+  ctx.fillStyle='#f59e0b';
+  ctx.beginPath();ctx.ellipse(scX,headY,22,6,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#d97706';ctx.lineWidth=1;ctx.stroke();
+  // 모자 윗부분
+  ctx.fillStyle='#fbbf24';
+  ctx.beginPath();ctx.ellipse(scX,headY-8,13,12,0,0,Math.PI*2);ctx.fill();
+  // 볏짚
+  ctx.strokeStyle='#fcd34d';ctx.lineWidth=1.5;
+  [[-18,-12],[-12,-16],[0,-18],[12,-16],[18,-12]].forEach(([dx,dy])=>{
+    ctx.beginPath();ctx.moveTo(scX+dx*0.7,headY);ctx.lineTo(scX+dx,headY+dy);ctx.stroke();
+  });
+  // 얼굴
+  ctx.fillStyle='#fde68a';
+  ctx.beginPath();ctx.ellipse(scX,headY-6,11,13,0,0,Math.PI*2);ctx.fill();
+  // X자 눈 (봉제 느낌)
+  ctx.strokeStyle='#1c1917';ctx.lineWidth=2;
+  [[-4,0],[4,0]].forEach(([ex,ey])=>{
+    const cx=scX+ex, cy=headY-8+ey;
+    ctx.beginPath();ctx.moveTo(cx-2.5,cy-2.5);ctx.lineTo(cx+2.5,cy+2.5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+2.5,cy-2.5);ctx.lineTo(cx-2.5,cy+2.5);ctx.stroke();
+  });
+  // 꿰맨 입
+  ctx.strokeStyle='#1c1917';ctx.lineWidth=1.5;
+  ctx.beginPath();
+  for(let i=0;i<5;i++){
+    const sx=scX-5+i*2.5;
+    ctx.moveTo(sx,headY-1);ctx.lineTo(sx+1,headY+2);
+  }
+  ctx.stroke();
+  // 허수아비 HP 바 (도장 대상이므로 이름표)
+  ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(scX-28,headY-30,56,14);
+  ctx.fillStyle='rgba(239,68,68,.8)';ctx.fillRect(scX-26,headY-28,52,10);
+  ctx.fillStyle='#fff';ctx.font=`bold ${Math.floor(H*.05)}px monospace`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('허수아비',scX,headY-23);
+
+  // 타이머 경고 테두리
+  if(_dojo&&_dojo.timeLeft<=10){
+    ctx.strokeStyle=`rgba(239,68,68,${0.4+0.4*Math.sin(Date.now()/150)})`;
+    ctx.lineWidth=4;ctx.strokeRect(2,2,W-4,H-4);
+  }
+
+  // ── 플레이어 (pxCharBig 스타일) ──
+  const plX=Math.floor(W*.22), plY=groundY;
+  const color=JOBS[G.job]?.color||'#7c3aed';
+  const S=2;
+
+  // 피격 흔들림
+  const shakeX=(_dojoAnim&&_dojoAnim.playerShake>0)?(Math.sin(Date.now()/80)*3)|0:0;
+  const px=plX+shakeX;
+
+  // 그림자
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath();ctx.ellipse(px,plY,18,5,0,0,Math.PI*2);ctx.fill();
+
+  // 다리
+  ctx.fillStyle=color;
+  ctx.fillRect(px-S*4,plY-S*8,S*3,S*8);
+  ctx.fillRect(px+S*1,plY-S*8,S*3,S*8);
+  // 신발
+  ctx.fillStyle='#3e2a10';
+  ctx.fillRect(px-S*5,plY-S*2,S*4,S*2);
+  ctx.fillRect(px,plY-S*2,S*4,S*2);
+  // 몸통
+  ctx.fillStyle=color;ctx.fillRect(px-S*5,plY-S*22,S*10,S*14);
+  // 팔 (공격 애니메이션)
+  const atkSwing=(_dojoAnim&&_dojoAnim.attacking)?Math.sin(Date.now()/80)*8:0;
+  ctx.fillStyle=color;
+  ctx.fillRect(px-S*8,plY-S*20,S*3,S*10);
+  ctx.save();ctx.translate(px+S*5,plY-S*20);ctx.rotate(atkSwing*0.04);
+  ctx.fillStyle=color;ctx.fillRect(0,0,S*3,S*10);ctx.restore();
+  // 손
+  ctx.fillStyle='#fcd9b0';
+  ctx.fillRect(px-S*8,plY-S*11,S*3,S*3);
+  ctx.fillRect(px+S*5,plY-S*11,S*3,S*3);
+  // 머리
+  ctx.fillStyle='#fcd9b0';ctx.fillRect(px-S*5,plY-S*34,S*10,S*12);
+  // 눈
+  ctx.fillStyle='#333';
+  ctx.fillRect(px-S*3,plY-S*29,S*2,S*2);
+  ctx.fillRect(px+S*1,plY-S*29,S*2,S*2);
+  // 머리카락
+  ctx.fillStyle='#5c3d1e';ctx.fillRect(px-S*5,plY-S*34,S*10,S*3);
+
+  // 직업 무기 이모지
+  if(G.job){
+    const j=JOBS[G.job];
+    const wpn=G.equip?.weapon||j.weapon;
+    if(wpn){
+      ctx.font='16px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(wpn.e||wpn.emoji||'⚔️', px+20, plY-S*14);
+    }
+    // 직업 이모지 (머리 위 작게)
+    ctx.font='12px serif';
+    ctx.fillText(j.emoji, px, plY-S*36);
+  }
 }
 // ════ 도장 시스템 끝 ════
 
