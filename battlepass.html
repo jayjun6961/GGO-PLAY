@@ -3046,12 +3046,16 @@
   function uploadMyProfile() {
     const username = sessionStorage.getItem('ggo_username') || '';
     if(!username || !window._bpDB) return;
-    const items = JSON.parse(localStorage.getItem('ggo_items_' + username) || '[]');
-    // 장착된 아이템만 업로드 (용량 절약)
+    const items    = JSON.parse(localStorage.getItem('ggo_items_' + username) || '[]');
     const equipped = items.filter(it => it.equipped);
-    if(!equipped.length) return;
+    // 누적 EXP 포함 (activity.html 꾸미기 레벨 정확도 향상)
+    const savedExp = parseInt(localStorage.getItem('ggo_deco_exp_' + username) || '0');
+    const EXP_MAP  = {일반:100, 희귀:300, 에픽:500, 전설:1000};
+    const itemExp  = items.reduce((s,it) => s+(EXP_MAP[it.grade]||0), 0);
+    const decoExp  = Math.max(savedExp, itemExp);
     window._bpDB.ref('profiles/' + username).set({
       items: equipped,
+      decoExp: decoExp,
       ts: Date.now()
     }).catch(e => console.warn('프로필 업로드 실패:', e));
   }
