@@ -423,6 +423,22 @@
     z-index: 1;
   }
 </style>
+<!-- Firebase SDK (Realtime Database) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+    authDomain: "ggo-play.firebaseapp.com",
+    databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ggo-play",
+    storageBucket: "ggo-play.firebasestorage.app",
+    messagingSenderId: "645489083721",
+    appId: "1:645489083721:web:30a518e5e03238ea8dc698"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const _fishDB = firebase.database();
+</script>
 </head>
 <body>
 
@@ -1209,27 +1225,60 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   }
 
   // ── 순위: 유저명 없는 공유 키로 저장 (모든 사용자 기록 공유) ──
-  const rankKey = k => 'ggo_fish_' + k; // 공유용 (유저명 없음)
-  const getRankFS  = k => { try{ return JSON.parse(localStorage.getItem(rankKey(k))||'null'); }catch(e){return null;} };
-  const setRankFS  = (k,v) => localStorage.setItem(rankKey(k), JSON.stringify(v));
+  // ── Firebase 기반 순위 저장/조회 ──
+  // 로컬 캐시 (비동기 조회 결과를 임시 보관)
+  const _rankCache = {};
+  const _rankRef = k => _fishDB.ref('fish_rank/' + k);
+
+  // Firebase에서 읽기 (Promise 기반)
+  function getRankFS(k) {
+    return _rankCache[k] ?? null; // 캐시 우선
+  }
+  function loadRankFS(k) {
+    return _rankRef(k).get().then(snap => {
+      const val = snap.exists() ? snap.val() : null;
+      _rankCache[k] = val;
+      return val;
+    }).catch(() => null);
+  }
+  function setRankFS(k, v) {
+    _rankCache[k] = v;
+    return _rankRef(k).set(v).catch(e => console.warn('Firebase 저장 실패:', e));
+  }
 
   function updateRankData(fish) {
-    const cycleKey  = 'c' + getRankCycleStart();
-    const rankData  = getRankFS('rank_' + cycleKey) || {};
-    const username  = un();
-    // 현재 유저 기록 갱신
+    const cycleKey   = 'c' + getRankCycleStart();
+    const username   = un();
     const gradeOrder = ['일반','희귀','레어','에픽','전설','신화','레전더리'];
-    const prev = rankData[username];
     const curr = { name:fish.name, grade:fish.grade, sizeCm:fish.sizeCm, user:username };
-    if(!prev ||
-       gradeOrder.indexOf(fish.grade) > gradeOrder.indexOf(prev.grade) ||
-       (fish.grade===prev.grade && fish.sizeCm > prev.sizeCm)){
-      rankData[username] = curr;
-      setRankFS('rank_' + cycleKey, rankData);
-    }
+    // Firebase에서 해당 유저 기록만 직접 비교 후 저장
+    const userRef = _fishDB.ref('fish_rank/rank_' + cycleKey + '/' + username);
+    userRef.get().then(snap => {
+      const prev = snap.exists() ? snap.val() : null;
+      if(!prev ||
+         gradeOrder.indexOf(fish.grade) > gradeOrder.indexOf(prev.grade) ||
+         (fish.grade===prev.grade && fish.sizeCm > prev.sizeCm)){
+        userRef.set(curr).catch(e => console.warn('Firebase 저장 실패:', e));
+        // 로컬 캐시도 업데이트
+        const key = 'rank_' + cycleKey;
+        if(!_rankCache[key]) _rankCache[key] = {};
+        _rankCache[key][username] = curr;
+      }
+    }).catch(() => {
+      // Firebase 실패 시 로컬 캐시로 폴백
+      const key = 'rank_' + cycleKey;
+      if(!_rankCache[key]) _rankCache[key] = {};
+      const prev = _rankCache[key][username];
+      if(!prev ||
+         gradeOrder.indexOf(fish.grade) > gradeOrder.indexOf(prev.grade) ||
+         (fish.grade===prev.grade && fish.sizeCm > prev.sizeCm)){
+        _rankCache[key][username] = curr;
+      }
+    });
   }
 
   function getRankList() {
+    // 로컬 캐시에서 반환 (비동기 로드 후 갱신됨)
     const cycleKey = 'c' + getRankCycleStart();
     const rankData = getRankFS('rank_' + cycleKey) || {};
     const gradeOrder = ['일반','희귀','레어','에픽','전설','신화','레전더리'];
@@ -1254,48 +1303,54 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     const username = un();
     if(!username) return;
 
-    // 지난 사이클 체크 (현재 사이클 시작 = 직전 사이클 끝)
-    const EPOCH = new Date('2025-01-01').getTime();
-    const now   = Date.now();
-    const elapsed = now - EPOCH;
-    const cycleN  = Math.floor(elapsed / RANK_CYCLE_MS);
-    if(cycleN < 1) return; // 첫 사이클이면 이전 사이클 없음
+    const EPOCH  = new Date('2025-01-01').getTime();
+    const now    = Date.now();
+    const cycleN = Math.floor((now - EPOCH) / RANK_CYCLE_MS);
+    if(cycleN < 1) return;
 
-    // 직전 사이클 키
     const prevCycleStart = EPOCH + (cycleN - 1) * RANK_CYCLE_MS;
     const prevCycleKey   = 'c' + prevCycleStart;
-
-    // 이미 자동 지급했으면 스킵
-    const autoClaimKey = 'ggo_fish_rank_auto_' + prevCycleKey + '_' + username;
+    const autoClaimKey   = 'ggo_fish_rank_auto_' + prevCycleKey + '_' + username;
     if(localStorage.getItem(autoClaimKey)) return;
 
-    // 직전 사이클 순위 데이터
-    const prevRankData = getRankFS('rank_' + prevCycleKey) || {};
-    const rankList     = Object.values(prevRankData).sort((a,b)=>{
+    // Firebase에서 지난 사이클 데이터 읽기
+    _fishDB.ref('fish_rank/rank_' + prevCycleKey).get().then(snap => {
+      const prevRankData = snap.exists() ? snap.val() : {};
       const go = ['일반','희귀','레어','에픽','전설','신화','레전더리'];
-      const gd = go.indexOf(b.grade) - go.indexOf(a.grade);
-      return gd !== 0 ? gd : b.sizeCm - a.sizeCm;
-    });
-
-    // 이 사용자의 순위 찾기
-    const myRank = rankList.findIndex(r => r.user === username);
-    if(myRank === -1) {
-      // 순위 없어도 자동 지급 처리 완료 표시
+      const rankList = Object.values(prevRankData).sort((a,b)=>{
+        const gd = go.indexOf(b.grade) - go.indexOf(a.grade);
+        return gd !== 0 ? gd : b.sizeCm - a.sizeCm;
+      });
+      const myRank = rankList.findIndex(r => r.user === username);
       localStorage.setItem(autoClaimKey, '1');
-      return;
-    }
+      if(myRank === -1) return;
 
-    const rank = myRank + 1;
-    const fp   = getRankGP(rank); // 보상량 (GP로 지급)
-    addGP(fp);
-    updateGPBadge();
-    localStorage.setItem(autoClaimKey, '1');
-
-    // 알림 토스트
-    setTimeout(() => {
-      showFishToast(`🏆 지난 시즌 ${rank}위 보상! +${fp.toLocaleString()} GP 자동 지급`);
-    }, 1500);
+      const rank = myRank + 1;
+      const fp   = getRankGP(rank);
+      addGP(fp);
+      updateGPBadge();
+      setTimeout(() => {
+        showFishToast(`🏆 지난 시즌 ${rank}위 보상! +${fp.toLocaleString()} GP 자동 지급`);
+      }, 1500);
+    }).catch(() => {
+      // Firebase 실패 시 로컬 캐시 폴백
+      const prevRankData = _rankCache['rank_' + prevCycleKey] || {};
+      const go = ['일반','희귀','레어','에픽','전설','신화','레전더리'];
+      const rankList = Object.values(prevRankData).sort((a,b)=>{
+        const gd = go.indexOf(b.grade) - go.indexOf(a.grade);
+        return gd !== 0 ? gd : b.sizeCm - a.sizeCm;
+      });
+      const myRank = rankList.findIndex(r => r.user === username);
+      localStorage.setItem(autoClaimKey, '1');
+      if(myRank === -1) return;
+      const rank = myRank+1, fp = getRankGP(rank);
+      addGP(fp); updateGPBadge();
+      setTimeout(()=>showFishToast(`🏆 지난 시즌 ${rank}위 보상! +${fp.toLocaleString()} GP 자동 지급`), 1500);
+    });
   }
+
+  // 순위 탭 Firebase 구독 핸들 (중복 구독 방지)
+  let _rankListener = null;
 
   function renderRankTab() {
     const daysLeft = getRankDaysLeft();
@@ -1304,7 +1359,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
 
     document.getElementById('rank-timer-val').textContent = daysLeft + '일 남음';
 
-    // 자동 지급 여부 확인 (현재 사이클 기준 이전 사이클)
+    // 자동 지급 여부 확인
     const EPOCH = new Date('2025-01-01').getTime();
     const now   = Date.now();
     const cycleN = Math.floor((now - EPOCH) / RANK_CYCLE_MS);
@@ -1315,37 +1370,76 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
       : false;
 
     const notice = document.getElementById('rank-reward-notice');
-    if(autoReceived) {
-      notice.className = 'rank-reward-notice';
-      notice.innerHTML = '✅ 지난 시즌 보상이 자동으로 지급되었습니다.';
-    } else {
-      notice.className = 'rank-reward-notice';
-      notice.innerHTML = '📌 순위 기록은 25일마다 초기화됩니다.<br>시즌 종료 시 순위에 따라 <b>GP</b>가 자동으로 지급됩니다.';
+    notice.className = 'rank-reward-notice';
+    notice.innerHTML = autoReceived
+      ? '✅ 지난 시즌 보상이 자동으로 지급되었습니다.'
+      : '📌 순위 기록은 25일마다 초기화됩니다.<br>시즌 종료 시 순위에 따라 <b>GP</b>가 자동으로 지급됩니다.';
+
+    // 로딩 표시
+    const list = document.getElementById('rank-list');
+    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-dim);font-size:12px;">🔄 순위 불러오는 중...</div>';
+
+    // 기존 구독 해제 후 새로 구독
+    if(_rankListener) {
+      _fishDB.ref('fish_rank/rank_' + cycleKey).off('value', _rankListener);
+      _rankListener = null;
     }
 
-    const rankList = getRankList();
-    const myUser   = un();
-    const list     = document.getElementById('rank-list');
-    if(!rankList.length){
-      list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-family:\'Noto Sans KR\',sans-serif;">아직 등록된 순위가 없습니다<br>낚시를 시작해 기록을 등록하세요!</div>';
-      return;
-    }
-    list.innerHTML = rankList.map((r,i) => {
-      const rank = i+1;
-      const fp   = getRankGP(rank);
-      const gi   = FISH_GRADE_INFO[r.grade];
-      const numCls = rank<=3 ? 'r'+rank : '';
-      const isMine = r.user === myUser;
-      const crownIco = rank===1?'👑':rank===2?'🥈':rank===3?'🥉':'';
-      return `<div class="rank-item ${isMine?'my-rank':''}">
-        <div class="rank-num ${numCls}">${crownIco||rank}</div>
-        <div class="rank-info">
-          <div class="rank-user">${r.user}${isMine?' (나)':''}</div>
-          <div class="rank-fish-detail" style="color:${gi.color}">${r.grade} · ${r.name} · ${r.sizeCm}cm</div>
-        </div>
-        <div class="rank-gp-reward">+${fp.toLocaleString()} GP</div>
-      </div>`;
-    }).join('');
+    _rankListener = _fishDB.ref('fish_rank/rank_' + cycleKey)
+      .on('value', snap => {
+        const rankData = snap.exists() ? snap.val() : {};
+        // 로컬 캐시 업데이트
+        _rankCache['rank_' + cycleKey] = rankData;
+
+        const gradeOrder = ['일반','희귀','레어','에픽','전설','신화','레전더리'];
+        const rankList = Object.values(rankData).sort((a,b)=>{
+          const gd = gradeOrder.indexOf(b.grade) - gradeOrder.indexOf(a.grade);
+          return gd !== 0 ? gd : b.sizeCm - a.sizeCm;
+        });
+        const myUser = un();
+
+        if(!rankList.length){
+          list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-family:\'Noto Sans KR\',sans-serif;">아직 등록된 순위가 없습니다<br>낚시를 시작해 기록을 등록하세요!</div>';
+          return;
+        }
+        list.innerHTML = rankList.map((r,i) => {
+          const rank = i+1;
+          const fp   = getRankGP(rank);
+          const gi   = FISH_GRADE_INFO[r.grade];
+          const numCls = rank<=3 ? 'r'+rank : '';
+          const isMine = r.user === myUser;
+          const crownIco = rank===1?'👑':rank===2?'🥈':rank===3?'🥉':'';
+          return `<div class="rank-item ${isMine?'my-rank':''}">
+            <div class="rank-num ${numCls}">${crownIco||rank}</div>
+            <div class="rank-info">
+              <div class="rank-user">${r.user}${isMine?' (나)':''}</div>
+              <div class="rank-fish-detail" style="color:${gi.color}">${r.grade} · ${r.name} · ${r.sizeCm}cm</div>
+            </div>
+            <div class="rank-gp-reward">+${fp.toLocaleString()} GP</div>
+          </div>`;
+        }).join('');
+      }, err => {
+        // Firebase 실패 시 로컬 캐시로 폴백
+        console.warn('Firebase 순위 읽기 실패, 로컬 캐시 사용:', err);
+        const rankList = getRankList();
+        const myUser = un();
+        if(!rankList.length){
+          list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">아직 등록된 순위가 없습니다</div>';
+          return;
+        }
+        list.innerHTML = rankList.map((r,i) => {
+          const rank=i+1, fp=getRankGP(rank), gi=FISH_GRADE_INFO[r.grade];
+          const isMine=r.user===myUser;
+          return `<div class="rank-item ${isMine?'my-rank':''}">
+            <div class="rank-num ${rank<=3?'r'+rank:''}">${rank===1?'👑':rank===2?'🥈':rank===3?'🥉':rank}</div>
+            <div class="rank-info">
+              <div class="rank-user">${r.user}${isMine?' (나)':''}</div>
+              <div class="rank-fish-detail" style="color:${gi.color}">${r.grade} · ${r.name} · ${r.sizeCm}cm</div>
+            </div>
+            <div class="rank-gp-reward">+${fp.toLocaleString()} GP</div>
+          </div>`;
+        }).join('');
+      });
   }
 
   function claimRankReward(rank, gp) {
