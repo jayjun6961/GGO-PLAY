@@ -500,18 +500,25 @@
       const bpRows = resBP.ok ? parseCSV(await resBP.text()) : [];
       // 닉네임 → 서버 맵 생성
       const serverMap = {};
+      // 1차: 배틀패스 시트 (A=닉네임, B=배틀패스점수, C=서버)
       bpRows.forEach(r => {
         const n = (r[0]||'').trim();
         if(n) serverMap[n] = (r[2]||'').trim();
+      });
+      // 2차: 활동 시트 r[1] (서버 컬럼) - 배틀패스 시트에 없는 유저 보완
+      rows.forEach(r => {
+        const n = (r[0]||'').trim();
+        if(n && !serverMap[n]) serverMap[n] = (r[1]||'').trim();
       });
 
       // 데이터 파싱 (이름/점수 추출)
       const rawPlayers = rows.map(r => {
         const name=(r[0]||'').trim();
         if(!name) return null;
+        // 활동 시트 컬럼: A=닉네임, B=서버, C=배틀패스점수, D=친선대회점수
+        const server = serverMap[name] || (r[1]||'').trim();
         const bp=parseFloat(r[2])||0;
         const ts=parseFloat(r[3])||0;
-        const server = serverMap[name] || '';
         return {name, server, bp, ts};
       }).filter(p=>p&&p.name);
 
