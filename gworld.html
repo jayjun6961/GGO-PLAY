@@ -4685,13 +4685,13 @@ async function renderWbJoinSection(username, wb=WB_LIST[0]) {
   const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
   let html = '';
 
-  // Firebase에서 오늘 파티 목록 읽기 (실시간 구독 → on value)
+  // Firebase에서 오늘 파티 목록 읽기
   const parties = [];
   for(let i = 0; i < 20; i++) {
     const snap = await window._gwDB.ref(wb.fbPath+'/party_' + today + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) break;
     const p = snap.val();
-    _wbCache[wb.fbPath+'_party_' + today + '_' + i] = p; // fbPath 포함해 보스별 캐시 분리
+    _wbCache[wb.fbPath+'_party_' + today + '_' + i] = p;
     if(!p.members || p.members.length < wb.maxParty) parties.push({p, i});
   }
 
@@ -4800,7 +4800,11 @@ async function wbJoinParty(partyIdx, wbId) {
 
   if(!party.members) party.members = [];
   if(party.members.length >= wb.maxParty) { gwT('파티 정원이 가득 찼습니다.'); return; }
-  if(party.members.some(m=>m.user===username)) { gwT('이미 이 파티에 참가중입니다.'); return; }
+  // 이미 이 파티 멤버에 있으면 이전 버그로 잘못 저장된 데이터 → 자동 제거 후 재참가 허용
+  if(party.members.some(m=>m.user===username)) {
+    party.members = party.members.filter(m=>m.user!==username);
+    console.warn('[WB] 오염 데이터 제거:', wb.fbPath, idx, username);
+  }
 
   party.members.push({ user:username, job:G.job, lv:G.lv, joinAt:Date.now() });
   await window._gwDB.ref(partyPath).set(party).catch(e => {
