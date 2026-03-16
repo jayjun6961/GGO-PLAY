@@ -1095,7 +1095,7 @@ const DROPS = [
 ];
 
 
-function expNeed(lv){ return Math.floor(50*Math.pow(lv,1.5)); }
+function expNeed(lv){ return Math.floor(60*Math.pow(lv,1.65)); }
 
 // 스토리지
 const gwUN = ()=>sessionStorage.getItem('ggo_username')||'_g';
@@ -2231,8 +2231,19 @@ function equipBonus(){
   });
   return {atk,def,spd,critRate,critDmg,expBonus};
 }
-// 경험치 획득 배율 (1 + expBonus%)
-function tExpRate(){ return 1 + (equipBonus().expBonus||0)/100; }
+// 경험치 획득 배율 (1 + expBonus%) × 구간별 효율
+function tExpRate(){
+  const bonus = 1 + (equipBonus().expBonus||0)/100;
+  // 구간별 경험치 효율 감소 (고레벨일수록 천천히 성장)
+  const lv = G.lv;
+  let eff;
+  if(lv <= 30)      eff = 1.00;
+  else if(lv <= 50) eff = 0.85;
+  else if(lv <= 70) eff = 0.65;
+  else if(lv <= 85) eff = 0.45;
+  else               eff = 0.30;
+  return bonus * eff;
+}
 function recalcStats(){
   const b=cBase(G.job,G.lv);const eq=equipBonus();
   G.atk=b.atk+eq.atk;G.def=b.def+eq.def;
@@ -2676,7 +2687,7 @@ function renderStat(){
       <div class="gw-stat-row"><span class="gw-stat-l">공격 속도</span><span class="gw-stat-v">${(spd/1000).toFixed(2)}초 <span style="color:#34d399;font-size:10px">${eq.spd>0?'(-'+eq.spd+'ms)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">치명타 확률</span><span class="gw-stat-v">${cr}% <span style="color:#f97316;font-size:10px">${eq.critRate>0?'(+'+eq.critRate+'%)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">치명타 대미지</span><span class="gw-stat-v">${cd}% <span style="color:#f97316;font-size:10px">${eq.critDmg>0?'(+'+eq.critDmg+'%)':''}</span></span></div>
-      <div class="gw-stat-row"><span class="gw-stat-l">경험치 획득량</span><span class="gw-stat-v" style="color:#34d399">×${tExpRate().toFixed(2)} <span style="color:#34d399;font-size:10px">${eq.expBonus>0?'(+'+eq.expBonus+'%)':''}</span></span></div>
+      <div class="gw-stat-row"><span class="gw-stat-l">경험치 획득량</span><span class="gw-stat-v" style="color:#34d399">×${tExpRate().toFixed(2)} <span style="color:#34d399;font-size:10px">${eq.expBonus>0?'(반지+'+eq.expBonus+'%)':''}</span>${G.lv>30?`<span style="color:#f87171;font-size:10px"> 효율${G.lv<=50?85:G.lv<=70?65:G.lv<=85?45:30}%</span>`:''}</span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">골드</span><span class="gw-stat-v" style="color:#fbbf24">${G.gold.toLocaleString()}G</span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">EXP</span><span class="gw-stat-v">${G.exp}/${expNeed(G.lv)}</span></div>
     </div>`;
