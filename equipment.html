@@ -429,16 +429,7 @@
     <!-- STEP 3: 결과 -->
     <div class="result-section" id="result-sec" style="display:none">
       <div class="result-title">⚡ 합산 능력치</div>
-      <div class="result-grid">
-        <div class="result-card">
-          <div class="rc-head"><span>📈</span><span class="rc-title" style="color:var(--stat-up)">능력치 증가</span><span class="rc-cnt" id="up-cnt" style="color:var(--stat-up)"></span></div>
-          <div class="rc-body" id="up-list"><div class="empty-r">증가 능력치 없음</div></div>
-        </div>
-        <div class="result-card">
-          <div class="rc-head"><span>📉</span><span class="rc-title" style="color:var(--stat-down)">능력치 감소</span><span class="rc-cnt" id="dn-cnt" style="color:var(--stat-down)"></span></div>
-          <div class="rc-body" id="dn-list"><div class="empty-r">감소 능력치 없음</div></div>
-        </div>
-      </div>
+      <div id="effect-list"></div>
     </div>
 
     <!-- 예상 전투력 섹션 -->
@@ -1008,31 +999,78 @@
   }
 
   function updateResult(){
-    const up=[],dn=[];
+    // 장비별 효과 수집 (슬롯 → 아이템명, 등급, 효과텍스트)
+    const items = [];
     EQUIP_SLOTS.forEach(s=>{
       const sel=esSel[s]; if(!sel?.grade||!sel.item) return;
       const g=sel.item.gr[sel.grade]; if(!g?.eff) return;
-      collectFx({text:g.eff,source:`${sel.item.name}(${sel.grade})`,type:g.type},up,dn);
+      items.push({
+        icon: SLOT_ICONS[s]||'📦',
+        slot: s,
+        name: sel.item.name,
+        grade: sel.grade,
+        eff: g.eff,
+        type: g.type,
+      });
     });
     WEAPON_SLOTS.forEach(s=>{
       const sel=wsSel[s]; if(!sel?.grade||!sel.item) return;
       const g=sel.item.gr[sel.grade]; if(!g?.eff) return;
-      collectFx({text:g.eff,source:`${sel.item.name}(${sel.grade})`,type:g.type},up,dn);
+      items.push({
+        icon: WEAPON_ICONS[s]||'🔫',
+        slot: s,
+        name: sel.item.name,
+        grade: sel.grade,
+        eff: g.eff,
+        type: g.type,
+      });
     });
 
-    const hasAny=up.length>0||dn.length>0;
-    document.getElementById('result-sec').style.display=hasAny?'block':'none';
-    if(!hasAny) return;
+    const hasAny = items.length > 0;
+    document.getElementById('result-sec').style.display = hasAny ? 'block' : 'none';
+    if(!hasAny){ renderCombatPower(); return; }
 
-    document.getElementById('up-cnt').textContent=up.length+'개';
-    document.getElementById('up-list').innerHTML=up.length
-      ?up.map(it=>`<div class="si up"><div class="si-dot"></div><div><div class="si-txt">${it.text}</div><div class="si-src">${it.source}</div></div></div>`).join('')
-      :'<div class="empty-r">증가 능력치 없음</div>';
+    // 장비별 카드 렌더링
+    const gc = (grade) => GC[grade] || '#94a3b8';
+    document.getElementById('effect-list').innerHTML = items.map(it => {
+      // 효과 텍스트 파싱 - 혼합이면 줄 분리, 아니면 단일
+      let effectLines = [];
+      if(it.type === '혼합') {
+        effectLines = it.eff.split(',').map(s=>s.trim()).filter(Boolean);
+      } else {
+        effectLines = [it.eff];
+      }
 
-    document.getElementById('dn-cnt').textContent=dn.length+'개';
-    document.getElementById('dn-list').innerHTML=dn.length
-      ?dn.map(it=>`<div class="si dn"><div class="si-dot"></div><div><div class="si-txt">${it.text}</div><div class="si-src">${it.source}</div></div></div>`).join('')
-      :'<div class="empty-r">감소 능력치 없음</div>';
+      const isDown = it.type === '감소';
+      const col = gc(it.grade);
+
+      const effectHtml = effectLines.map(line => {
+        const isLineDn = line.includes('-') && !line.startsWith('+');
+        const lineColor = isLineDn ? 'var(--stat-down)' : 'var(--stat-up)';
+        return `<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;
+          background:${isLineDn ? 'rgba(239,68,68,.1)' : 'rgba(52,211,153,.1)'};
+          border:1px solid ${isLineDn ? 'rgba(239,68,68,.25)' : 'rgba(52,211,153,.25)'};
+          border-radius:6px;font-size:11px;color:${lineColor};font-weight:600;
+          font-family:'Noto Sans KR',sans-serif;">${line}</span>`;
+      }).join('');
+
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;
+        background:rgba(124,58,237,.05);border:1px solid rgba(124,58,237,.12);
+        border-left:3px solid ${col};border-radius:10px;margin-bottom:8px;">
+        <div style="font-size:18px;flex-shrink:0;line-height:1.3;">${it.icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap;">
+            <span style="font-size:12px;font-weight:700;color:var(--text-main);
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.name}</span>
+            <span style="font-size:9px;padding:1px 6px;border-radius:5px;
+              background:${col}22;color:${col};border:1px solid ${col}44;
+              font-family:'Orbitron',sans-serif;flex-shrink:0;">${it.grade}</span>
+          </div>
+          <div>${effectHtml}</div>
+        </div>
+      </div>`;
+    }).join('');
+
     // 전투력 계산 업데이트
     renderCombatPower();
   }
