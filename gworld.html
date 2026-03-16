@@ -4174,9 +4174,9 @@ const CASH_ITEMS = [
     type:'gold',     value:2000 },
   { id:'magicstone', name:'마법석 100개',    e:'💎', desc:'인벤토리에 마법석 100개 지급', gpCost:100,
     type:'mat',      value:100 },
-  { id:'hp_pot_100', name:'HP포션 100개',    e:'🧪', desc:'소형 HP 포션 100개 지급', gpCost:50,
+  { id:'hp_pot_100', name:'HP포션 100개',    e:'🔴', desc:'대형 HP 포션 100개 지급', gpCost:50,
     type:'hppot',    value:100 },
-  { id:'mp_pot_100', name:'MP포션 100개',    e:'💧', desc:'소형 MP 포션 100개 지급', gpCost:50,
+  { id:'mp_pot_100', name:'MP포션 100개',    e:'🔵', desc:'대형 MP 포션 100개 지급', gpCost:50,
     type:'mppot',    value:100 },
 ];
 
@@ -4273,26 +4273,26 @@ function buyCashItem(itemId) {
     }
 
     case 'hppot': {
-      // 소형 HP 포션 추가
-      const exist = G.inv.find(i => i.id === 'hp_s');
+      // 대형 HP 포션 추가
+      const exist = G.inv.find(i => i.id === 'hp_l');
       if(exist) exist.qty = (exist.qty||1) + item.value;
-      else G.inv.push({ id:'hp_s', n:'소형 HP 포션', e:'🧪', type:'pot',
-                        eff:'hp', val:30, price:30, grade:'일반',
+      else G.inv.push({ id:'hp_l', n:'대형 HP 포션', e:'🔴', type:'pot',
+                        eff:'hp', val:180, price:180, grade:'에픽',
                         qty:item.value, _id:Date.now() });
       saveG(); renderInv();
-      gwT(`🧪 소형 HP 포션 ×${item.value} 지급! (-${item.gpCost} GP)`);
+      gwT(`🔴 대형 HP 포션 ×${item.value} 지급! (-${item.gpCost} GP)`);
       break;
     }
 
     case 'mppot': {
-      // 소형 MP 포션 추가
-      const exist = G.inv.find(i => i.id === 'mp_s');
+      // 대형 MP 포션 추가
+      const exist = G.inv.find(i => i.id === 'mp_l');
       if(exist) exist.qty = (exist.qty||1) + item.value;
-      else G.inv.push({ id:'mp_s', n:'소형 MP 포션', e:'💧', type:'pot',
-                        eff:'mp', val:20, price:20, grade:'일반',
+      else G.inv.push({ id:'mp_l', n:'대형 MP 포션', e:'🔵', type:'pot',
+                        eff:'mp', val:120, price:120, grade:'에픽',
                         qty:item.value, _id:Date.now() });
       saveG(); renderInv();
-      gwT(`💧 소형 MP 포션 ×${item.value} 지급! (-${item.gpCost} GP)`);
+      gwT(`🔵 대형 MP 포션 ×${item.value} 지급! (-${item.gpCost} GP)`);
       break;
     }
   }
