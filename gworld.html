@@ -2387,6 +2387,44 @@ function renderQ(){
 
   const TYPE_ICON = {kill:'⚔️', zone:'🗺️', dojo:'🎯', dungeon:'🏯', worldboss:'👻'};
 
+  // 몬스터 → 출현 사냥터 매핑 (ZONES에서 자동 생성)
+  const MOB_ZONE_MAP = {};
+  ZONES.forEach(z => {
+    z.mobs.forEach(m => {
+      if(!MOB_ZONE_MAP[m.n]) MOB_ZONE_MAP[m.n] = [];
+      MOB_ZONE_MAP[m.n].push({name:z.name, emoji:z.emoji, min:z.min, max:z.max});
+    });
+  });
+
+  // 퀘스트 위치 힌트 생성
+  function getLocationHint(q) {
+    if(q.type === 'kill') {
+      if(q.target === '*') return `<span style="color:#64748b;font-size:9px;">📍 모든 사냥터</span>`;
+      const zones = MOB_ZONE_MAP[q.target];
+      if(!zones) return '';
+      return zones.map(z =>
+        `<span style="display:inline-flex;align-items:center;gap:2px;font-size:9px;
+          padding:1px 6px;border-radius:5px;background:rgba(124,58,237,.1);
+          border:1px solid rgba(124,58,237,.2);color:#a78bfa;">
+          ${z.emoji} ${z.name} <span style="color:#64748b">Lv.${z.min}~${z.max}</span>
+        </span>`
+      ).join(' ');
+    }
+    if(q.type === 'zone') {
+      const z = ZONES.find(z => z.id === q.target);
+      if(!z) return '';
+      return `<span style="display:inline-flex;align-items:center;gap:2px;font-size:9px;
+        padding:1px 6px;border-radius:5px;background:rgba(124,58,237,.1);
+        border:1px solid rgba(124,58,237,.2);color:#a78bfa;">
+        ${z.emoji} ${z.name} <span style="color:#64748b">Lv.${z.min}~${z.max}</span>
+      </span>`;
+    }
+    if(q.type === 'dungeon') return `<span style="font-size:9px;color:#64748b;">📍 마을 → 던전</span>`;
+    if(q.type === 'dojo')    return `<span style="font-size:9px;color:#64748b;">📍 마을 → 도장</span>`;
+    if(q.type === 'worldboss') return `<span style="font-size:9px;color:#64748b;">📍 마을 → 월드보스</span>`;
+    return '';
+  }
+
   const body = document.getElementById('gw-qbody');
   if(!body) return;
   body.innerHTML =
@@ -2403,9 +2441,11 @@ function renderQ(){
       const statusIcon=cl?'✅':done?'🎁':icon;
       const bgColor=cl?'rgba(52,211,153,.06)':done?'rgba(251,191,36,.06)':'rgba(124,58,237,.04)';
       const borderColor=cl?'rgba(52,211,153,.2)':done?'rgba(251,191,36,.2)':'rgba(124,58,237,.1)';
+      const locationHint = getLocationHint(q);
       return`<div class="gw-qi" style="background:${bgColor};border-color:${borderColor}">
         <div class="gw-qi-t">${statusIcon} ${q.title}</div>
         <div class="gw-qi-d">${q.desc}</div>
+        ${locationHint ? `<div style="margin:4px 0 2px;">${locationHint}</div>` : ''}
         <div style="display:flex;align-items:center;gap:7px;">
           <div class="gw-qi-bar"><div class="gw-qi-f" style="width:${pct}%"></div></div>
           <span class="gw-qi-cnt">${Math.min(p,q.need)}/${q.need}</span>
