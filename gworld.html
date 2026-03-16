@@ -4780,10 +4780,10 @@ function renderWbClaimSection(username, partyInfo, wb=WB_LIST[0]) {
 async function wbJoinParty(partyIdx, wb=WB_LIST[_wbTabIdx]) {
   const username = gwUN();
   if(!username || username==='_g') { gwT('로그인이 필요합니다.'); return; }
-  if(G.lv < curWbMinLv) { gwT(`🔒 Lv.${curWbMinLv} 이상부터 참가 가능합니다.`); return; }
+  if(G.lv < wb.minLv) { gwT(`🔒 Lv.${wb.minLv} 이상부터 참가 가능합니다.`); return; }
 
   const today = wbTodayKey();
-  const already = await wbGetMyParty(username);
+  const already = await wbGetMyParty(username, wb.fbPath);
   if(already) { gwT('오늘 이미 파견에 참가했습니다.'); return; }
 
   let idx = partyIdx;
