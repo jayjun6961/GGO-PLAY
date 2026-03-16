@@ -2817,6 +2817,7 @@ function renderShop() {
   POTIONS.filter(p=>p.eff==='hp').forEach(p=>{
     const gc=GRADE_COL[p.grade]||'#94a3b8';
     const cnt=G.inv.filter(i=>i.id===p.id).reduce((s,i)=>s+(i.qty||1),0);
+    const price100=(p.price*100).toLocaleString();
     html+=`<div style="display:flex;align-items:center;gap:8px;background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.12);border-radius:10px;padding:8px 11px;">
       <span style="font-size:20px">${p.e}</span>
       <div style="flex:1;min-width:0;">
@@ -2824,7 +2825,8 @@ function renderShop() {
         <div style="font-size:9px;color:var(--text-dim)">HP +${p.val} · 보유 ${cnt}개</div>
       </div>
       <span style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-right:4px">${p.price}G</span>
-      <button onclick="buyPotion('${p.id}')" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:5px 12px;border-radius:8px;font-size:10px;cursor:pointer;font-family:'Orbitron',sans-serif;white-space:nowrap">구매</button>
+      <button onclick="buyPotion('${p.id}',1)" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:5px 12px;border-radius:8px;font-size:10px;cursor:pointer;font-family:'Orbitron',sans-serif;white-space:nowrap">×1</button>
+      <button onclick="buyPotion('${p.id}',100)" style="background:linear-gradient(135deg,#b45309,#92400e);border:1px solid #fbbf24;color:#fbbf24;padding:5px 10px;border-radius:8px;font-size:10px;cursor:pointer;font-family:'Orbitron',sans-serif;white-space:nowrap" title="${price100}G">×100</button>
     </div>`;
   });
   html += '</div>';
@@ -2834,6 +2836,7 @@ function renderShop() {
   POTIONS.filter(p=>p.eff==='mp').forEach(p=>{
     const gc=GRADE_COL[p.grade]||'#94a3b8';
     const cnt=G.inv.filter(i=>i.id===p.id).reduce((s,i)=>s+(i.qty||1),0);
+    const price100=(p.price*100).toLocaleString();
     html+=`<div style="display:flex;align-items:center;gap:8px;background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.12);border-radius:10px;padding:8px 11px;">
       <span style="font-size:20px">${p.e}</span>
       <div style="flex:1;min-width:0;">
@@ -2841,23 +2844,25 @@ function renderShop() {
         <div style="font-size:9px;color:var(--text-dim)">MP +${p.val} · 보유 ${cnt}개</div>
       </div>
       <span style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-right:4px">${p.price}G</span>
-      <button onclick="buyPotion('${p.id}')" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:5px 12px;border-radius:8px;font-size:10px;cursor:pointer;font-family:'Orbitron',sans-serif;white-space:nowrap">구매</button>
+      <button onclick="buyPotion('${p.id}',1)" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:5px 12px;border-radius:8px;font-size:10px;cursor:pointer;font-family:'Orbitron',sans-serif;white-space:nowrap">×1</button>
+      <button onclick="buyPotion('${p.id}',100)" style="background:linear-gradient(135deg,#b45309,#92400e);border:1px solid #fbbf24;color:#fbbf24;padding:5px 10px;border-radius:8px;font-size:10px;cursor:pointer;font-family:'Orbitron',sans-serif;white-space:nowrap" title="${price100}G">×100</button>
     </div>`;
   });
   html += '</div>';
   el.innerHTML = html;
 }
 
-function buyPotion(id) {
+function buyPotion(id, qty=1) {
   const pot = POTIONS.find(p=>p.id===id);
   if(!pot) return;
-  if(G.gold < pot.price){ gwT('💰 골드 부족!'); return; }
-  G.gold -= pot.price;
+  const totalPrice = pot.price * qty;
+  if(G.gold < totalPrice){ gwT(`💰 골드 부족! (필요: ${totalPrice.toLocaleString()}G)`); return; }
+  G.gold -= totalPrice;
   // 인벤에 같은 포션 있으면 수량 증가
   const exist = G.inv.find(i=>i.id===pot.id);
-  if(exist) exist.qty=(exist.qty||1)+1;
-  else G.inv.push({...pot, type:'pot', slot:null, qty:1, _id:Date.now()});
-  gwT(`${pot.e} ${pot.name} 구매! (-${pot.price}G)`);
+  if(exist) exist.qty=(exist.qty||1)+qty;
+  else G.inv.push({...pot, type:'pot', slot:null, qty:qty, _id:Date.now()});
+  gwT(`${pot.e} ${pot.name} ×${qty} 구매! (-${totalPrice.toLocaleString()}G)`);
   hud(); saveG(); renderShop();
 }
 
