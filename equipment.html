@@ -794,12 +794,12 @@
       const name = (r[0]||'').trim();
       if(!name) return;
       charStatData[name] = {
-        hp:     parseFloat(r[1])||0,
-        atk:    parseFloat(r[2])||0,
-        def:    parseFloat(r[3])||0,
-        spd:    parseFloat(r[4])||0,
-        range:  parseFloat(r[5])||0,
-        resist: parseFloat(r[6])||0,
+        hp:        parseFloat(r[1])||0,
+        atk:       parseFloat(r[2])||0,
+        def:       parseFloat(r[3])||0,
+        fire_rate: parseFloat(r[4])||0,  // 발사속도 (이동속도 → 발사속도로 변경)
+        range:     parseFloat(r[5])||0,
+        resist:    parseFloat(r[6])||0,
       };
     });
   }
@@ -853,18 +853,18 @@
     if(!base) return null; // 스탯 시트에 없으면 계산 불가
 
     // 2. 장비 버프 합산
-    let flat = { hp:0, atk:0, def:0, spd:0 };
-    let pct  = { hp:0, atk:0, def:0, spd:0 };
+    let flat = { hp:0, atk:0, def:0, fire_rate:0 };
+    let pct  = { hp:0, atk:0, def:0, fire_rate:0 };
     EQUIP_SLOTS.forEach(slot => {
       const sel = esSel[slot];
       if(!sel?.grade || !sel.item) return;
       const key = sel.item.name + '_' + sel.grade;
       const stat = equipStatData[key];
       if(!stat) return;
-      flat.hp  += stat.hp;     pct.hp  += stat.hp_p;
-      flat.atk += stat.atk;    pct.atk += stat.atk_p;
-      flat.def += stat.def;    pct.def += stat.def_p;
-      flat.spd += stat.spd;    pct.spd += stat.spd_p;
+      flat.hp        += stat.hp;     pct.hp        += stat.hp_p;
+      flat.atk       += stat.atk;    pct.atk       += stat.atk_p;
+      flat.def       += stat.def;    pct.def       += stat.def_p;
+      flat.fire_rate += stat.spd;    pct.fire_rate += stat.spd_p; // 장비 spd → 발사속도 버프
     });
 
     // 3. 무기 버프 합산
@@ -887,16 +887,15 @@
 
     // 4. 최종 스탯 계산 (flat 먼저, % 나중)
     const final = {
-      hp:  Math.round((base.hp  + flat.hp)  * (1 + pct.hp  / 100)),
-      atk: Math.round((base.atk + flat.atk) * (1 + pct.atk / 100)),
-      def: Math.round((base.def + flat.def) * (1 + pct.def / 100)),
-      spd: Math.round((base.spd + flat.spd) * (1 + pct.spd / 100)),
-      fire:        Math.round(wFlat.fire       * (1 + wPct.fire        / 100)),
+      hp:        Math.round((base.hp        + flat.hp)        * (1 + pct.hp        / 100)),
+      atk:       Math.round((base.atk       + flat.atk)       * (1 + pct.atk       / 100)),
+      def:       Math.round((base.def       + flat.def)       * (1 + pct.def       / 100)),
+      fire_rate: Math.round(((base.fire_rate + flat.fire_rate) * (1 + pct.fire_rate / 100) + wFlat.fire_rate * (1 + wPct.fire_rate / 100)) * 10) / 10,
+      fire:      Math.round(wFlat.fire       * (1 + wPct.fire        / 100)),
       armor_break: Math.round(wFlat.armor_break* (1 + wPct.armor_break / 100)),
-      fire_rate:   Math.round((wFlat.fire_rate) * (1 + wPct.fire_rate  / 100) * 10) / 10,
-      ammo:        wFlat.ammo,
-      range:       Math.round(base.range + wFlat.range),
-      accuracy:    wFlat.accuracy,
+      ammo:      wFlat.ammo,
+      range:     Math.round(base.range + wFlat.range),
+      accuracy:  wFlat.accuracy,
     };
 
     // 5. 전투력 점수 계산
@@ -948,12 +947,12 @@
       <!-- 최종 스탯 그리드 -->
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
         ${[
-          ['❤️','체력',   final.hp,   base.hp],
-          ['⚔️','대미지', final.atk,  base.atk],
-          ['🛡️','방어력', final.def,  base.def],
-          ['💨','이동속도',final.spd, base.spd],
-          ['🔥','화력',   final.fire, 0],
-          ['📏','유효거리',final.range, base.range],
+          ['❤️','체력',    final.hp,        base.hp],
+          ['⚔️','대미지',  final.atk,       base.atk],
+          ['🛡️','방어력',  final.def,       base.def],
+          ['⚡','발사속도', final.fire_rate, base.fire_rate],
+          ['🔥','화력',    final.fire,      0],
+          ['📏','유효거리', final.range,    base.range],
         ].map(([ic,nm,val,bv]) => {
           const diff = val - bv;
           const diffHtml = diff > 0
@@ -976,8 +975,8 @@
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
           ${[
             ['화력',     final.fire],
-            ['방파',     final.armor_break + '%'],
-            ['발사속도', final.fire_rate + '초'],
+            ['방어구파괴', final.armor_break + '%'],
+            ['발사속도', final.fire_rate ? final.fire_rate + '초' : '–'],
             ['탄약',     final.ammo || '–'],
             ['정밀도',   final.accuracy || '–'],
             ['DPS',      Math.round(dps).toLocaleString()],
