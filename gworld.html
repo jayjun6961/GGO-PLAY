@@ -3378,27 +3378,98 @@ function useDunSkill(skId){
   const skLv = G.sk[skId]?.lv||0;
   const skBoostDmg = sk.dmg + skLv*0.1;
   G.mp = Math.max(0, G.mp-sk.mp);
-  // 쿨다운 설정 (사냥터 방식: 사용 시각 저장)
+  // 쿨다운 설정
   if(!G.sk[skId]) G.sk[skId]={lv:0};
   G.sk[skId].t = now;
 
-  if(sk.eff==='single'||sk.eff==='aoe'||sk.eff==='multi'){
-    const isCrit = Math.random()*100 < tCritRate();
-    let dmg = Math.max(1, Math.floor(tAtk()*skBoostDmg) - (_dun.dungeon.boss.def||0));
-    if(isCrit) dmg = Math.floor(dmg * tCritDmg()/100);
-    _dun.bossHp = Math.max(0, _dun.bossHp - dmg);
-    // 배틀 로그
-    dunBlog(`<span style="color:#a855f7">✨ ${isCrit?'<span style="color:#f97316;font-weight:700">💥 치명타!</span> ':''}${sk.name}! <b style="color:#c084fc">${_dun.dungeon.boss.n}에게 ${dmg.toLocaleString()} 피해!</b> (HP ${_dun.bossHp.toLocaleString()}/${_dun.bossMhp.toLocaleString()})</span>`);
-    // 대미지 팝업 (캔버스 위에 표시)
-    showDunDmgPop(dmg, isCrit);
-  } else if(sk.eff==='def_buff'){
-    G.buffs.def_buff={t:5};
-    dunBlog(`<span style="color:#60a5fa">🛡️ ${sk.name}! 5초간 방어력 강화!</span>`);
-  } else if(sk.eff==='heal'){
-    const h = Math.min(Math.floor(G.mHP*skBoostDmg), G.mHP-G.hp);
-    G.hp += h;
-    dunBlog(`<span style="color:#4ade80">💚 ${sk.name}! HP +${h}</span>`);
+  const bdef = _dun.dungeon.boss.def||0;
+  const atk  = tAtk();
+  let totalDmg = 0;
+
+  switch(sk.eff){
+    case 'single':
+    case 'aoe':
+    case 'chain':
+    case 'multi': {
+      const isCrit = Math.random()*100 < tCritRate();
+      let dmg = Math.max(1, Math.floor(atk*skBoostDmg) - bdef);
+      if(isCrit) dmg = Math.floor(dmg*tCritDmg()/100);
+      totalDmg = dmg;
+      _dun.bossHp = Math.max(0, _dun.bossHp - dmg);
+      dunBlog(`<span style="color:#a855f7">✨ ${isCrit?'<span style="color:#f97316;font-weight:700">💥 치명타!</span> ':''}${sk.name}! <b style="color:#c084fc">${_dun.dungeon.boss.n}에게 ${dmg.toLocaleString()} 피해!</b> (HP ${_dun.bossHp.toLocaleString()}/${_dun.bossMhp.toLocaleString()})</span>`);
+      showDunDmgPop(dmg, isCrit);
+      break;
+    }
+    case 'crit': {
+      const isCrit = Math.random()*100 < tCritRate();
+      let dmg = Math.max(1, Math.floor(atk*skBoostDmg) - bdef);
+      if(isCrit || Math.random()<0.2) dmg = Math.floor(dmg*1.5); // 치명타 확률 추가
+      totalDmg = dmg;
+      _dun.bossHp = Math.max(0, _dun.bossHp - dmg);
+      dunBlog(`<span style="color:#a855f7">✨ ${sk.name}! <b style="color:#c084fc">${_dun.dungeon.boss.n}에게 ${dmg.toLocaleString()} 피해!</b> (HP ${_dun.bossHp.toLocaleString()}/${_dun.bossMhp.toLocaleString()})</span>`);
+      showDunDmgPop(dmg, true);
+      break;
+    }
+    case 'triple': {
+      let t=0;
+      for(let i=0;i<3;i++){
+        const dmg = Math.max(1, Math.floor(atk*skBoostDmg) - bdef);
+        _dun.bossHp = Math.max(0, _dun.bossHp - dmg);
+        t += dmg;
+        if(_dun.bossHp<=0) break;
+      }
+      totalDmg = t;
+      dunBlog(`<span style="color:#a855f7">✨ ${sk.name}! <b style="color:#c084fc">${_dun.dungeon.boss.n}에게 ${t.toLocaleString()} 피해! (3연타)</b> (HP ${_dun.bossHp.toLocaleString()}/${_dun.bossMhp.toLocaleString()})</span>`);
+      showDunDmgPop(t, false);
+      break;
+    }
+    case 'boss': {
+      const isCrit = Math.random()*100 < tCritRate();
+      let dmg = Math.max(1, Math.floor(atk*skBoostDmg) - bdef);
+      if(isCrit) dmg = Math.floor(dmg*tCritDmg()/100);
+      totalDmg = dmg;
+      _dun.bossHp = Math.max(0, _dun.bossHp - dmg);
+      dunBlog(`<span style="color:#a855f7">✨ ${isCrit?'<span style="color:#f97316;font-weight:700">💥 치명타!</span> ':''}${sk.name}! <b style="color:#c084fc">${_dun.dungeon.boss.n}에게 ${dmg.toLocaleString()} 피해! (보스 특화)</b> (HP ${_dun.bossHp.toLocaleString()}/${_dun.bossMhp.toLocaleString()})</span>`);
+      showDunDmgPop(dmg, isCrit);
+      break;
+    }
+    case 'shield_atk': {
+      const isCrit = Math.random()*100 < tCritRate();
+      let dmg = Math.max(1, Math.floor(atk*skBoostDmg) - bdef);
+      if(isCrit) dmg = Math.floor(dmg*tCritDmg()/100);
+      totalDmg = dmg;
+      _dun.bossHp = Math.max(0, _dun.bossHp - dmg);
+      G.buffs.def_buff={t:10};
+      dunBlog(`<span style="color:#a855f7">✨ ${sk.name}! <b style="color:#c084fc">${_dun.dungeon.boss.n}에게 ${dmg.toLocaleString()} 피해!</b> + 방어 강화! (HP ${_dun.bossHp.toLocaleString()}/${_dun.bossMhp.toLocaleString()})</span>`);
+      showDunDmgPop(dmg, isCrit);
+      break;
+    }
+    case 'psn5':
+    case 'psn6': {
+      const mx = sk.eff==='psn6'?6:5;
+      G.buffs.psn={max:mx,t:0};
+      dunBlog(`<span style="color:#a855f7">✨ ${sk.name}! ☠️ 독 부여! (${mx}턴)</span>`);
+      break;
+    }
+    case 'def_buff': {
+      G.buffs.def_buff={t:5};
+      dunBlog(`<span style="color:#60a5fa">🛡️ ${sk.name}! 5초간 방어력 강화!</span>`);
+      break;
+    }
+    case 'heal30': {
+      const h = Math.min(Math.floor(G.mHP*0.3), G.mHP-G.hp);
+      G.hp += h;
+      dunBlog(`<span style="color:#4ade80">💚 ${sk.name}! HP +${h.toLocaleString()}</span>`);
+      break;
+    }
+    case 'heal': {
+      const h = Math.min(Math.floor(G.mHP*skBoostDmg), G.mHP-G.hp);
+      G.hp += h;
+      dunBlog(`<span style="color:#4ade80">💚 ${sk.name}! HP +${h.toLocaleString()}</span>`);
+      break;
+    }
   }
+
   dunHud();
   renderDunSkills();
   saveG();
