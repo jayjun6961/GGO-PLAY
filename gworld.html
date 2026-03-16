@@ -4705,7 +4705,7 @@ async function renderWbJoinSection(username, wb=WB_LIST[0]) {
             ${p.members.map(m=>`<span style="font-size:10px;background:rgba(124,58,237,.15);border-radius:6px;padding:2px 6px;color:#c084fc;">${JOB_EMOJI[m.job]||'?'} ${m.user}</span>`).join('')}
           </div>
         </div>
-        <button onclick="wbJoinParty(${i})"
+        <button onclick="wbJoinParty(${i}, '${wb.id}')"
           style="flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;
             color:#fff;padding:6px 14px;border-radius:8px;font-size:11px;font-family:'Orbitron',sans-serif;cursor:pointer;white-space:nowrap;">
           참가
@@ -4714,7 +4714,7 @@ async function renderWbJoinSection(username, wb=WB_LIST[0]) {
     });
   }
 
-  html += `<button onclick="wbJoinParty(-1)"
+  html += `<button onclick="wbJoinParty(-1, '${wb.id}')"
     style="width:100%;margin-top:8px;background:linear-gradient(135deg,#ef4444,#dc2626);
       border:1px solid #f87171;color:#fff;padding:13px;border-radius:12px;
       font-size:13px;font-weight:700;font-family:'Orbitron',sans-serif;cursor:pointer;">
@@ -4777,14 +4777,17 @@ function renderWbClaimSection(username, partyInfo, wb=WB_LIST[0]) {
 }
 
 /* ── 파티 참가 ── */
-async function wbJoinParty(partyIdx, wb=WB_LIST[_wbTabIdx]) {
+async function wbJoinParty(partyIdx, wbId) {
+  // wbId(문자열)로 명시적으로 보스를 특정 — 탭 인덱스에 의존하지 않음
+  const wb = WB_LIST.find(w => w.id === wbId) || WB_LIST[_wbTabIdx];
   const username = gwUN();
   if(!username || username==='_g') { gwT('로그인이 필요합니다.'); return; }
   if(G.lv < wb.minLv) { gwT(`🔒 Lv.${wb.minLv} 이상부터 참가 가능합니다.`); return; }
 
   const today = wbTodayKey();
+  // 해당 보스 경로만 독립적으로 체크 — 다른 보스 참가 여부는 무관
   const already = await wbGetMyParty(username, wb.fbPath);
-  if(already) { gwT('오늘 이미 파견에 참가했습니다.'); return; }
+  if(already) { gwT(`오늘 이미 ${wb.name} 파견에 참가했습니다.`); return; }
 
   let idx = partyIdx;
   if(idx < 0) idx = await wbFindOpenParty(wb);
