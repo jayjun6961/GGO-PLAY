@@ -2953,6 +2953,20 @@ function dunHud() {
   document.getElementById('dh-barf').style.width=pct+'%';
 }
 
+/* ── 던전 대미지 팝업 ── */
+let _dunDmgPops = [];
+function showDunDmgPop(dmg, isCrit) {
+  const cv = document.getElementById('dh-cv');
+  if(!cv) return;
+  _dunDmgPops.push({
+    dmg: dmg,
+    crit: isCrit,
+    x: cv.width * (0.5 + (Math.random()-0.5)*0.2),
+    y: cv.height * 0.35,
+    life: 1.0,
+  });
+}
+
 /* ── 던전 배틀 로그 ── */
 function dunBlog(html) {
   const el=document.getElementById('dh-blog');
@@ -3149,56 +3163,60 @@ function renderDunSkills(){
   const now=Date.now();
   el.innerHTML=skList.map(sk=>{
     const skData=G.sk[sk.id]||{};
-    const cdLeft=skData.t ? Math.max(0, Math.ceil((skData.t-now)/1000)) : 0;
+    const cdLeft=Math.max(0, sk.cd-(now-(skData.t||0))/1000);
     const onCd=cdLeft>0;
     const noMp=G.mp<sk.mp;
-    const disabled=onCd||noMp;
     const skLv=skData.lv||0;
-    return `<button class="gw-sk-btn" id="dsk-${sk.id}"
+    return `<button class="gw-sk" id="dsk-${sk.id}"
       onclick="useDunSkill('${sk.id}')"
-      style="opacity:${disabled?0.45:1};position:relative;min-width:52px;">
+      ${onCd||noMp?'disabled':''}>
+      ${sk.name}<br>
+      <span style="font-size:8px;opacity:.7;color:${noMp?'#ef4444':'inherit'}">${sk.mp}MP</span>
+      ${onCd?`<div class="gw-sk-cd">${Math.ceil(cdLeft)}s</div>`:''}
       ${skLv>0?`<div style="position:absolute;top:2px;right:3px;font-size:7px;color:#fbbf24;font-family:'Orbitron',sans-serif;">+${skLv}</div>`:''}
-      <div style="font-size:9px;font-weight:700;color:${onCd?'#64748b':'#e2e8f0'}">${sk.name}</div>
-      <div style="font-size:8px;color:${noMp?'#ef4444':'#94a3b8'}">${sk.mp}MP</div>
-      ${onCd?`<div style="font-size:8px;color:#fbbf24;font-weight:700">⏳${cdLeft}s</div>`:''}
     </button>`;
   }).join('');
 }
+// 던전 스킬 쿨다운 자동 갱신 (0.5초마다)
+setInterval(()=>{if(G.sc==='dungeon') renderDunSkills();},500);
 
 function useDunSkill(skId){
   if(!_dun.dungeon || _dun.bossHp<=0 || _dun.dead) return;
   const job=JOBS[G.job];
   const sk=job?.skills.find(s=>s.id===skId);
   if(!sk) return;
-  // 쿨다운 체크
+  // 쿨다운 체크 (사냥터와 동일: t = 사용 시각)
   const now=Date.now();
-  if(G.sk[skId]?.t && now < G.sk[skId].t){ gwT(`⏳ ${sk.name} 재사용 대기 중`); return; }
+  const cdLeft = sk.cd - (now - (G.sk[skId]?.t||0))/1000;
+  if(cdLeft > 0){ gwT(`⏳ ${sk.name} ${Math.ceil(cdLeft)}초 후 사용 가능`); return; }
   if(G.mp<sk.mp){ gwT('💧 MP 부족!'); return; }
-  const skBoostDmg=sk.dmg+(G.sk[skId]?.lv||0)*0.1;
-  G.mp=Math.max(0,G.mp-sk.mp);
-  // 쿨다운 설정
+  const skLv = G.sk[skId]?.lv||0;
+  const skBoostDmg = sk.dmg + skLv*0.1;
+  G.mp = Math.max(0, G.mp-sk.mp);
+  // 쿨다운 설정 (사냥터 방식: 사용 시각 저장)
   if(!G.sk[skId]) G.sk[skId]={lv:0};
-  G.sk[skId].t = now + sk.cd*1000;
-  if(sk.eff==='single'){
-    const isCrit=Math.random()*100<tCritRate();
-    let dmg=Math.max(1,Math.floor(tAtk()*skBoostDmg)-_dun.dungeon.boss.def);
-    if(isCrit) dmg=Math.floor(dmg*tCritDmg()/100);
-    _dun.bossHp=Math.max(0,_dun.bossHp-dmg);
-    dunBlog(`<span style="color:#a855f7">✨ ${isCrit?'<span style="color:#f97316">💥치명타!</span> ':''}${sk.name}! ${_dun.dungeon.boss.n}에게 ${dmg} 피해!</span>`);
-  } else if(sk.eff==='aoe'||sk.eff==='multi'){
-    const isCrit=Math.random()*100<tCritRate();
-    let dmg=Math.max(1,Math.floor(tAtk()*skBoostDmg)-_dun.dungeon.boss.def);
-    if(isCrit) dmg=Math.floor(dmg*tCritDmg()/100);
-    _dun.bossHp=Math.max(0,_dun.bossHp-dmg);
-    dunBlog(`<span style="color:#a855f7">✨ ${sk.name}! ${dmg} 피해!</span>`);
+  G.sk[skId].t = now;
+
+  if(sk.eff==='single'||sk.eff==='aoe'||sk.eff==='multi'){
+    const isCrit = Math.random()*100 < tCritRate();
+    let dmg = Math.max(1, Math.floor(tAtk()*skBoostDmg) - (_dun.dungeon.boss.def||0));
+    if(isCrit) dmg = Math.floor(dmg * tCritDmg()/100);
+    _dun.bossHp = Math.max(0, _dun.bossHp - dmg);
+    // 배틀 로그
+    dunBlog(`<span style="color:#a855f7">✨ ${isCrit?'<span style="color:#f97316;font-weight:700">💥 치명타!</span> ':''}${sk.name}! <b style="color:#c084fc">${_dun.dungeon.boss.n}에게 ${dmg.toLocaleString()} 피해!</b> (HP ${_dun.bossHp.toLocaleString()}/${_dun.bossMhp.toLocaleString()})</span>`);
+    // 대미지 팝업 (캔버스 위에 표시)
+    showDunDmgPop(dmg, isCrit);
   } else if(sk.eff==='def_buff'){
     G.buffs.def_buff={t:5};
     dunBlog(`<span style="color:#60a5fa">🛡️ ${sk.name}! 5초간 방어력 강화!</span>`);
   } else if(sk.eff==='heal'){
-    const h=Math.min(Math.floor(G.mHP*skBoostDmg),G.mHP-G.hp);G.hp+=h;
+    const h = Math.min(Math.floor(G.mHP*skBoostDmg), G.mHP-G.hp);
+    G.hp += h;
     dunBlog(`<span style="color:#4ade80">💚 ${sk.name}! HP +${h}</span>`);
   }
-  dunHud(); renderDunSkills(); saveG();
+  dunHud();
+  renderDunSkills();
+  saveG();
   if(_dun.bossHp<=0){ dunBossDead(); }
 }
 
@@ -3288,6 +3306,28 @@ function drawBossBattle(cv){
     ctx.font='11px serif';
     ctx.fillText(j.emoji, plX, plY-S*37);
   }
+  // ── 대미지 팝업 ──
+  _dunDmgPops = _dunDmgPops.filter(p=>p.life>0);
+  _dunDmgPops.forEach(p=>{
+    const alpha = Math.min(1, p.life*2);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    if(p.crit){
+      ctx.font=`bold ${Math.floor(H*.09)}px 'Orbitron',sans-serif`;
+      ctx.fillStyle='#f97316';
+      ctx.shadowColor='#f97316'; ctx.shadowBlur=12;
+      ctx.fillText('💥'+p.dmg.toLocaleString(), p.x, p.y);
+    } else {
+      ctx.font=`bold ${Math.floor(H*.07)}px 'Orbitron',sans-serif`;
+      ctx.fillStyle='#c084fc';
+      ctx.shadowColor='#a855f7'; ctx.shadowBlur=8;
+      ctx.fillText(p.dmg.toLocaleString(), p.x, p.y);
+    }
+    ctx.restore();
+    p.y -= 0.8;
+    p.life -= 0.025;
+  });
 }
 // ════ 던전 시스템 끝 ════
 
