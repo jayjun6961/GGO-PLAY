@@ -2157,7 +2157,7 @@ function useSkill(sid){
   const now=Date.now();
   if(now-(G.sk[sid]?.t||0)<sk.cd*1000){gwT('쿨타임 중...');return;}
   if(G.mp<sk.mp){gwT('MP 부족!');return;}
-  G.mp-=sk.mp;G.sk[sid]={t:now};
+  G.mp-=sk.mp;G.sk[sid]={...G.sk[sid]||{}, t:now};
   const a=tAtk();
   // 강화 레벨 반영 dmg
   const skBoostDmg = sk.dmg + (G.sk[sid]?.lv||0)*0.1;
