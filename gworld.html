@@ -2933,6 +2933,46 @@ const DUNGEONS = [
     boss:{ n:'타락한 다크오크', e:'🧟', hp:14000, atk:65, def:18, exp:2800, g:2000 },
     rewards:{ g:[1500,2500], exp:[2000,3500] },
   },
+  {
+    id:'lizard',
+    name:'리자드 던전',
+    icon:'🦎',
+    minLv:60,
+    desc:'고대 파충류의 성역. 리자드킹이 군림한다.',
+    boss:{ n:'리자드킹', e:'🦎', hp:28000, atk:120, def:35, exp:6000, g:5000 },
+    rewards:{ g:[4000,7000], exp:[5000,9000] },
+    dropBonus:{ rareChance:0.45, epicChance:0.80, legendChance:0.95, extraDropChance:0.65, maxDrops:3 },
+  },
+  {
+    id:'undead',
+    name:'언데드 던전',
+    icon:'💀',
+    minLv:70,
+    desc:'저주받은 망자들의 무덤. 공포의 리치가 깨어난다.',
+    boss:{ n:'리치', e:'💀', hp:45000, atk:180, def:55, exp:11000, g:9000 },
+    rewards:{ g:[7000,13000], exp:[9000,16000] },
+    dropBonus:{ rareChance:0.30, epicChance:0.65, legendChance:0.90, extraDropChance:0.75, maxDrops:3 },
+  },
+  {
+    id:'abyss',
+    name:'심해 던전',
+    icon:'🌊',
+    minLv:80,
+    desc:'심해의 어둠 속. 거대한 피아누스가 기다린다.',
+    boss:{ n:'피아누스', e:'🌊', hp:70000, atk:260, def:80, exp:19000, g:16000 },
+    rewards:{ g:[13000,22000], exp:[16000,28000] },
+    dropBonus:{ rareChance:0.20, epicChance:0.50, legendChance:0.85, extraDropChance:0.85, maxDrops:4 },
+  },
+  {
+    id:'dragon',
+    name:'드래곤 던전',
+    icon:'🐲',
+    minLv:90,
+    desc:'화염의 심연. 레드 드래곤의 분노가 타오른다.',
+    boss:{ n:'레드 드래곤', e:'🐲', hp:110000, atk:380, def:120, exp:32000, g:28000 },
+    rewards:{ g:[22000,40000], exp:[28000,50000] },
+    dropBonus:{ rareChance:0.10, epicChance:0.35, legendChance:0.75, extraDropChance:0.95, maxDrops:5 },
+  },
 ];
 
 // 던전 전용 상태
@@ -3151,9 +3191,13 @@ function dunBossDead() {
     return d.type!=='pot'&&d.type!=='mat';
   });
   // 던전 마법석 드롭 (보스 처치 시 항상 지급) - 10~100개 랜덤
-  const stoneAmt = dun.id==='orc'
-    ? Math.floor(Math.random()*71)+30   // 오크(고난이도): 30~100개
-    : Math.floor(Math.random()*21)+10;  // 고블린(기본): 10~30개
+  // 던전별 마법석 드롭 (난이도에 따라 증가)
+  const stoneAmt = dun.id==='dragon'  ? Math.floor(Math.random()*51)+50   // 드래곤:  50~100개
+    : dun.id==='abyss'                ? Math.floor(Math.random()*41)+40   // 심해:    40~80개
+    : dun.id==='undead'               ? Math.floor(Math.random()*31)+30   // 언데드:  30~60개
+    : dun.id==='lizard'               ? Math.floor(Math.random()*21)+20   // 리자드:  20~40개
+    : dun.id==='orc'                  ? Math.floor(Math.random()*21)+10   // 오크:    10~30개
+    :                                   Math.floor(Math.random()*11)+5;   // 고블린:   5~15개
   const stoneEx = G.inv.find(i=>i.n==='마법석');
   if(stoneEx) stoneEx.qty=(stoneEx.qty||1)+stoneAmt;
   else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:stoneAmt,_id:Date.now()-10});
@@ -3161,27 +3205,55 @@ function dunBossDead() {
   dunBlog(`<span style="color:#34d399">💎 마법석 ×${stoneAmt} 획득!</span>`);
 
   // 던전 드롭: 희귀60% 레어30% 에픽10% (최소 1개 보장)
-  const dunDropR = Math.random();
-  let dunGrade;
-  if(dunDropR < 0.60)      dunGrade='희귀';
-  else if(dunDropR < 0.90) dunGrade='레어';
-  else                      dunGrade='에픽';
-  const gradePool1=validDrops.filter(d=>d.grade===dunGrade);
-  if(gradePool1.length){
-    const it={...gradePool1[Math.floor(Math.random()*gradePool1.length)],qty:1,_id:Date.now()};
-    G.inv.push(it);droppedItems.push(it);
+  // ── 던전별 드롭 설정 ──
+  const db = dun.dropBonus || { rareChance:0.60, epicChance:0.90, legendChance:1.01, extraDropChance:0.50, maxDrops:2 };
+
+  // 등급 결정 함수
+  function rollGrade() {
+    const r = Math.random();
+    if(r < 1 - db.rareChance)    return '에픽';    // 희귀→에픽→전설 순서로 역산
+    if(r < db.rareChance - (db.rareChance - db.epicChance)) {
+      // 재계산: r < rareChance면 희귀 이상
+      const r2 = Math.random();
+      if(r2 < 1 - (db.epicChance / db.rareChance))  return '전설';
+      if(r2 < 1 - (db.legendChance / db.rareChance)) return '에픽';
+      return '희귀';
+    }
+    return '일반';
   }
-  // 추가 드롭 기회 (50%)
-  if(Math.random()<0.5){
-    const dunDropR2=Math.random();
-    let dunGrade2;
-    if(dunDropR2<0.60)      dunGrade2='희귀';
-    else if(dunDropR2<0.90) dunGrade2='레어';
-    else                     dunGrade2='에픽';
-    const gradePool2=validDrops.filter(d=>d.grade===dunGrade2);
-    if(gradePool2.length){
-      const it2={...gradePool2[Math.floor(Math.random()*gradePool2.length)],qty:1,_id:Date.now()+1};
-      G.inv.push(it2);droppedItems.push(it2);
+
+  // 단순 명확한 등급 결정 (확률 직접 적용)
+  function pickGrade() {
+    const r = Math.random();
+    if(db.legendChance < 1 && r > db.legendChance)    return '전설';
+    if(r > db.epicChance)    return '에픽';
+    if(r > db.rareChance)    return '레어';
+    return '희귀';
+  }
+
+  // 드롭 아이템 추가 함수
+  function addDrop(seed) {
+    const grade = pickGrade();
+    const pool  = validDrops.filter(d=>d.grade===grade);
+    if(!pool.length) {
+      // 해당 등급 없으면 희귀로 폴백
+      const fb = validDrops.filter(d=>d.grade==='희귀');
+      if(!fb.length) return;
+      const it = {...fb[Math.floor(Math.random()*fb.length)], qty:1, _id:Date.now()+seed};
+      G.inv.push(it); droppedItems.push(it);
+      return;
+    }
+    const it = {...pool[Math.floor(Math.random()*pool.length)], qty:1, _id:Date.now()+seed};
+    G.inv.push(it); droppedItems.push(it);
+  }
+
+  // 1번째 드롭 (항상 지급)
+  addDrop(0);
+
+  // 추가 드롭 (maxDrops-1 회 시도)
+  for(let di=1; di<(db.maxDrops||2); di++){
+    if(Math.random() < (db.extraDropChance||0.50)) {
+      addDrop(di * 100);
     }
   }
 
