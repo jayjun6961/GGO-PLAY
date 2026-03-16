@@ -2849,6 +2849,10 @@ function renderDungeonSelect() {
     const col = locked ? '#475569' : '#e2e8f0';
     const bg  = locked ? 'rgba(71,85,105,.08)' : 'rgba(124,58,237,.08)';
     const bd  = locked ? 'rgba(71,85,105,.2)'  : 'rgba(124,58,237,.25)';
+    const cnt = getDunCount(d.id);
+    const full = cnt >= DUN_DAILY_LIMIT;
+    const btnDisabled = locked || full;
+    const cntColor = full ? '#ef4444' : cnt>0 ? '#fbbf24' : '#34d399';
     html += `<div style="border:1px solid ${bd};border-radius:14px;padding:14px 16px;margin-bottom:10px;background:${bg};">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
         <span style="font-size:28px">${d.icon}</span>
@@ -2856,20 +2860,24 @@ function renderDungeonSelect() {
           <div style="font-size:13px;font-weight:700;color:${col};font-family:'Orbitron',sans-serif;">${d.name}</div>
           <div style="font-size:10px;color:#64748b;margin-top:2px;">${d.desc}</div>
         </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:10px;color:${cntColor};font-family:'Orbitron',sans-serif;font-weight:700;">${cnt}/${DUN_DAILY_LIMIT}</div>
+          <div style="font-size:9px;color:#475569;">오늘 입장</div>
+        </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
-        <div style="font-size:10px;color:${locked?'#ef4444':'#34d399'};">
-          ${locked ? `🔒 ${d.minLv}레벨 이상 입장 가능 (현재 ${G.lv}레벨)` : `✅ 입장 가능 (Lv.${G.lv})`}
+        <div style="font-size:10px;color:${locked?'#ef4444':full?'#ef4444':'#34d399'};">
+          ${locked ? `🔒 ${d.minLv}레벨 이상 입장 가능` : full ? `⛔ 오늘 입장 횟수 소진 (${DUN_DAILY_LIMIT}/${DUN_DAILY_LIMIT})` : `✅ 입장 가능 (Lv.${G.lv})`}
         </div>
         <button onclick="enterDungeon('${d.id}')"
-          ${locked?'disabled':''}
-          style="background:${locked?'rgba(71,85,105,.2)':'linear-gradient(135deg,#7c3aed,#5b21b6)'};
-            border:1px solid ${locked?'#374151':'#a855f7'};
-            color:${locked?'#475569':'#fff'};
+          ${btnDisabled?'disabled':''}
+          style="background:${btnDisabled?'rgba(71,85,105,.2)':'linear-gradient(135deg,#7c3aed,#5b21b6)'};
+            border:1px solid ${btnDisabled?'#374151':'#a855f7'};
+            color:${btnDisabled?'#475569':'#fff'};
             padding:6px 16px;border-radius:8px;font-size:11px;
-            font-family:'Orbitron',sans-serif;cursor:${locked?'not-allowed':'pointer'};
+            font-family:'Orbitron',sans-serif;cursor:${btnDisabled?'not-allowed':'pointer'};
             white-space:nowrap;">
-          ${locked?'잠금':'입장 ▶'}
+          ${locked?'잠금':full?'소진':'입장 ▶'}
         </button>
       </div>
     </div>`;
@@ -2878,9 +2886,22 @@ function renderDungeonSelect() {
 }
 
 /* ── 던전 입장 ── */
+function getDunDailyKey(dunId) {
+  const d=new Date();
+  const date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return 'gwo_dun_count_'+dunId+'_'+date+'_'+gwUN();
+}
+function getDunCount(dunId) {
+  return parseInt(localStorage.getItem(getDunDailyKey(dunId))||'0');
+}
+const DUN_DAILY_LIMIT = 5;
+
 function enterDungeon(id) {
   const dun = DUNGEONS.find(d=>d.id===id);
   if(!dun || G.lv < dun.minLv) { gwT('🔒 레벨이 부족합니다!'); return; }
+  // 일일 입장 횟수 체크
+  const cnt = getDunCount(id);
+  if(cnt >= DUN_DAILY_LIMIT) { gwT(`⛔ 오늘 ${dun.name} 입장 횟수를 모두 사용했습니다. (${DUN_DAILY_LIMIT}회/${DUN_DAILY_LIMIT}회)`); return; }
   closeP('gw-pdungeon');
   _dun.dungeon = dun;
   _dun.bossHp  = dun.boss.hp;
@@ -2956,10 +2977,15 @@ function dunFight() {
   const md = Math.max(1, boss.atk-tDef()+Math.floor(Math.random()*5)-2);
   G.hp = Math.max(0, G.hp-md);
   dunBlog(`<span class="ld">${boss.n}의 공격! -${md} HP</span>`);
-  dunHud();
+  dunHud(); renderDunSkills();
   if(G.hp<=0){
     _dun.dead=true;
     clearInterval(_dun.tick); clearInterval(_dun.timerInt);
+    // 패배 시에도 입장 횟수 차감
+    if(_dun.dungeon) {
+      const key = getDunDailyKey(_dun.dungeon.id);
+      localStorage.setItem(key, String(getDunCount(_dun.dungeon.id)+1));
+    }
     dunBlog(`<span style="color:#ef4444">💀 ${boss.n}에게 쓰러졌습니다... 마을로 귀환합니다.</span>`);
     saveG();
     setTimeout(()=>{ G.hp=Math.floor(G.mHP*0.1); saveG(); goTown(); gwT('💀 던전에서 패배...'); },2200);
@@ -2970,6 +2996,11 @@ function dunFight() {
 function dunBossDead() {
   clearInterval(_dun.tick);
   clearInterval(_dun.timerInt);
+  // 클리어 시 입장 횟수 카운트 증가
+  if(_dun.dungeon) {
+    const key = getDunDailyKey(_dun.dungeon.id);
+    localStorage.setItem(key, String(getDunCount(_dun.dungeon.id)+1));
+  }
   const dun = _dun.dungeon;
   const m=Math.floor(_dun.timerSec/60), s=_dun.timerSec%60;
   dunBlog(`<span style="color:#fbbf24;font-weight:700">👑 ${dun.boss.n} 처치! 클리어 시간: ${m}:${String(s).padStart(2,'0')}</span>`);
@@ -3115,25 +3146,51 @@ function renderDunSkills(){
   if(!el)return;
   const job=JOBS[G.job];if(!job)return;
   const skList=job.skills.filter(s=>G.lv>=s.lv);
-  el.innerHTML=skList.map(sk=>`
-    <button class="gw-sk-btn" id="dsk-${sk.id}"
+  const now=Date.now();
+  el.innerHTML=skList.map(sk=>{
+    const skData=G.sk[sk.id]||{};
+    const cdLeft=skData.t ? Math.max(0, Math.ceil((skData.t-now)/1000)) : 0;
+    const onCd=cdLeft>0;
+    const noMp=G.mp<sk.mp;
+    const disabled=onCd||noMp;
+    const skLv=skData.lv||0;
+    return `<button class="gw-sk-btn" id="dsk-${sk.id}"
       onclick="useDunSkill('${sk.id}')"
-      style="opacity:1">
-      <div style="font-size:9px;font-weight:700">${sk.name}</div>
-      <div style="font-size:8px;color:#94a3b8">${sk.mp}MP</div>
-    </button>`).join('');
+      style="opacity:${disabled?0.45:1};position:relative;min-width:52px;">
+      ${skLv>0?`<div style="position:absolute;top:2px;right:3px;font-size:7px;color:#fbbf24;font-family:'Orbitron',sans-serif;">+${skLv}</div>`:''}
+      <div style="font-size:9px;font-weight:700;color:${onCd?'#64748b':'#e2e8f0'}">${sk.name}</div>
+      <div style="font-size:8px;color:${noMp?'#ef4444':'#94a3b8'}">${sk.mp}MP</div>
+      ${onCd?`<div style="font-size:8px;color:#fbbf24;font-weight:700">⏳${cdLeft}s</div>`:''}
+    </button>`;
+  }).join('');
 }
 
 function useDunSkill(skId){
+  if(!_dun.dungeon || _dun.bossHp<=0 || _dun.dead) return;
   const job=JOBS[G.job];
   const sk=job?.skills.find(s=>s.id===skId);
-  if(!sk||G.mp<sk.mp){gwT('MP 부족!');return;}
+  if(!sk) return;
+  // 쿨다운 체크
+  const now=Date.now();
+  if(G.sk[skId]?.t && now < G.sk[skId].t){ gwT(`⏳ ${sk.name} 재사용 대기 중`); return; }
+  if(G.mp<sk.mp){ gwT('💧 MP 부족!'); return; }
   const skBoostDmg=sk.dmg+(G.sk[skId]?.lv||0)*0.1;
   G.mp=Math.max(0,G.mp-sk.mp);
+  // 쿨다운 설정
+  if(!G.sk[skId]) G.sk[skId]={lv:0};
+  G.sk[skId].t = now + sk.cd*1000;
   if(sk.eff==='single'){
-    const dmg=Math.max(1,Math.floor(tAtk()*skBoostDmg)-_dun.dungeon.boss.def);
+    const isCrit=Math.random()*100<tCritRate();
+    let dmg=Math.max(1,Math.floor(tAtk()*skBoostDmg)-_dun.dungeon.boss.def);
+    if(isCrit) dmg=Math.floor(dmg*tCritDmg()/100);
     _dun.bossHp=Math.max(0,_dun.bossHp-dmg);
-    dunBlog(`<span style="color:#a855f7">✨ ${sk.name}! ${_dun.dungeon.boss.n}에게 ${dmg} 피해!</span>`);
+    dunBlog(`<span style="color:#a855f7">✨ ${isCrit?'<span style="color:#f97316">💥치명타!</span> ':''}${sk.name}! ${_dun.dungeon.boss.n}에게 ${dmg} 피해!</span>`);
+  } else if(sk.eff==='aoe'||sk.eff==='multi'){
+    const isCrit=Math.random()*100<tCritRate();
+    let dmg=Math.max(1,Math.floor(tAtk()*skBoostDmg)-_dun.dungeon.boss.def);
+    if(isCrit) dmg=Math.floor(dmg*tCritDmg()/100);
+    _dun.bossHp=Math.max(0,_dun.bossHp-dmg);
+    dunBlog(`<span style="color:#a855f7">✨ ${sk.name}! ${dmg} 피해!</span>`);
   } else if(sk.eff==='def_buff'){
     G.buffs.def_buff={t:5};
     dunBlog(`<span style="color:#60a5fa">🛡️ ${sk.name}! 5초간 방어력 강화!</span>`);
@@ -3141,8 +3198,8 @@ function useDunSkill(skId){
     const h=Math.min(Math.floor(G.mHP*skBoostDmg),G.mHP-G.hp);G.hp+=h;
     dunBlog(`<span style="color:#4ade80">💚 ${sk.name}! HP +${h}</span>`);
   }
-  dunHud();saveG();
-  if(_dun.bossHp<=0){dunBossDead();}
+  dunHud(); renderDunSkills(); saveG();
+  if(_dun.bossHp<=0){ dunBossDead(); }
 }
 
 /* ── 던전 캔버스 애니메이션 ── */
@@ -3185,12 +3242,52 @@ function drawBossBattle(cv){
     ctx.fillText(_dun.dungeon.boss.e,bossX,bossY);
     ctx.shadowBlur=0;
   }
-  // 플레이어 그리기 (작게, 왼쪽)
-  const plX=W*0.22,plY=H*0.55;
-  const psz=Math.floor(H*0.28);
-  ctx.font=`${psz}px serif`;
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(JOBS[G.job]?.emoji||'⚔️',plX,plY);
+  // ── 플레이어 (pxCharBig 스타일) ──
+  const plX=Math.floor(W*0.22), plY=Math.floor(H*0.70);
+  const color=JOBS[G.job]?.color||'#7c3aed';
+  const S=2;
+
+  // 그림자
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath();ctx.ellipse(plX,plY,18,5,0,0,Math.PI*2);ctx.fill();
+
+  // 다리
+  ctx.fillStyle=color;
+  ctx.fillRect(plX-S*4,plY-S*8,S*3,S*8);
+  ctx.fillRect(plX+S*1,plY-S*8,S*3,S*8);
+  // 신발
+  ctx.fillStyle='#3e2a10';
+  ctx.fillRect(plX-S*5,plY-S*2,S*4,S*2);
+  ctx.fillRect(plX,plY-S*2,S*4,S*2);
+  // 몸통
+  ctx.fillStyle=color;ctx.fillRect(plX-S*5,plY-S*22,S*10,S*14);
+  // 팔
+  ctx.fillStyle=color;
+  ctx.fillRect(plX-S*8,plY-S*20,S*3,S*10);
+  ctx.fillRect(plX+S*5,plY-S*20,S*3,S*10);
+  // 손
+  ctx.fillStyle='#fcd9b0';
+  ctx.fillRect(plX-S*8,plY-S*11,S*3,S*3);
+  ctx.fillRect(plX+S*5,plY-S*11,S*3,S*3);
+  // 머리
+  ctx.fillStyle='#fcd9b0';ctx.fillRect(plX-S*5,plY-S*34,S*10,S*12);
+  // 눈
+  ctx.fillStyle='#333';
+  ctx.fillRect(plX-S*3,plY-S*29,S*2,S*2);
+  ctx.fillRect(plX+S*1,plY-S*29,S*2,S*2);
+  // 머리카락
+  ctx.fillStyle='#5c3d1e';ctx.fillRect(plX-S*5,plY-S*34,S*10,S*3);
+  // 무기 이모지
+  if(G.job){
+    const j=JOBS[G.job];
+    const wpn=G.equip?.weapon||j.weapon;
+    if(wpn){
+      ctx.font='16px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(wpn.e||wpn.emoji||'⚔️', plX+20, plY-S*14);
+    }
+    ctx.font='11px serif';
+    ctx.fillText(j.emoji, plX, plY-S*37);
+  }
 }
 // ════ 던전 시스템 끝 ════
 
