@@ -3367,7 +3367,14 @@
 
     // 수령 여부 저장소 키
     const claimKey = 'ggo_bp_claimed_' + username;
-    const claimed  = JSON.parse(localStorage.getItem(claimKey)||'[]'); // [step, ...]
+    let claimed = JSON.parse(localStorage.getItem(claimKey)||'[]'); // [step, ...]
+
+    // ── 시즌 초기화: 점수가 0이면 claimed 리셋 ──
+    // 시트에서 점수를 0으로 입력하면 자동 초기화
+    if(isLoggedIn && username && myScore === 0 && claimed.length > 0) {
+      claimed = [];
+      localStorage.setItem(claimKey, '[]');
+    }
 
     // 안내 텍스트
     if(isLoggedIn && username) {
@@ -3467,7 +3474,10 @@
 
     // 수령 처리
     const claimKey = 'ggo_bp_claimed_' + username;
-    const claimed  = JSON.parse(localStorage.getItem(claimKey)||'[]');
+    let claimed  = JSON.parse(localStorage.getItem(claimKey)||'[]');
+    // 점수가 0이면 수령 내역 초기화 후 진행
+    const myScore = window._bpScoreCache?.[username] || 0;
+    if(myScore === 0) { claimed = []; }
     if(claimed.includes(step)) return;
     claimed.push(step);
     localStorage.setItem(claimKey, JSON.stringify(claimed));
