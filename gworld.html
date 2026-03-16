@@ -3138,8 +3138,12 @@ function dunFight() {
   dunBlog(`<span class="ld">⚔️ ${isCrit?'<span style="color:#f97316">💥치명타! </span>':''}${boss.n}에게 ${dmg} 데미지! (HP ${_dun.bossHp}/${_dun.bossMhp})</span>`);
   dunHud();
   if(_dun.bossHp<=0){ dunBossDead(); return; }
-  // 보스 공격
-  const md = Math.max(1, boss.atk-tDef()+Math.floor(Math.random()*5)-2);
+  // 보스 공격 (방어 관통 공식: 60%는 방어 무시, 40%는 방어 절반만 적용)
+  // → 아무리 방어가 높아도 보스 공격의 60%는 반드시 들어옴
+  const bPenetrate = Math.floor(boss.atk * 0.6);
+  const bResisted  = Math.max(0, Math.floor(boss.atk * 0.4) - Math.floor(tDef() * 0.5));
+  const bVariance  = Math.floor(Math.random() * Math.max(2, Math.floor(boss.atk * 0.05)));
+  const md = Math.max(1, bPenetrate + bResisted + bVariance);
   G.hp = Math.max(0, G.hp-md);
   dunBlog(`<span class="ld">${boss.n}의 공격! -${md} HP</span>`);
   dunHud(); renderDunSkills();
