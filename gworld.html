@@ -898,7 +898,7 @@ const JOBS = {
     ]},
   archer:{ id:'archer',name:'궁수',emoji:'🏹',color:'#34d399',
     desc:'빠른 공격 · 원거리 · 높은 회피',
-    bHP:90, bATK:14,bDEF:6, bMP:80, hLv:5,aLv:2.5,dLv:1.0,mLv:5,
+    bHP:90, bATK:14,bDEF:6, bMP:80, hLv:6.5,aLv:2.5,dLv:1.5,mLv:5,
     weapon:{name:'단궁',emoji:'🏹',atk:7}, armor:null,
     skills:[
       {id:'rapid',  name:'연속 화살',lv:10,mp:12,cd:4, dmg:0.8,eff:'triple',  desc:'3번 연속 공격력 80%'},
@@ -907,7 +907,7 @@ const JOBS = {
     ]},
   mage:{ id:'mage',name:'마법사',emoji:'🔮',color:'#a855f7',
     desc:'강한 스킬 · 광역 사냥 · 낮은 HP',
-    bHP:70, bATK:20,bDEF:4, bMP:110,hLv:3,aLv:3.0,dLv:0.5,mLv:8,
+    bHP:70, bATK:20,bDEF:4, bMP:110,hLv:5.0,aLv:3.0,dLv:0.9,mLv:8,
     weapon:{name:'초급 지팡이',emoji:'🪄',atk:10}, armor:null,
     skills:[
       {id:'fire',   name:'파이어볼',  lv:10,mp:15,cd:4, dmg:1.8,eff:'single', desc:'공격력 180% 마법 공격'},
@@ -916,7 +916,7 @@ const JOBS = {
     ]},
   rogue:{ id:'rogue',name:'도적',emoji:'🗡️',color:'#94a3b8',
     desc:'치명타 · 독 · 암살',
-    bHP:85, bATK:16,bDEF:6, bMP:70, hLv:4,aLv:2.8,dLv:1.0,mLv:4,
+    bHP:85, bATK:16,bDEF:6, bMP:70, hLv:5.5,aLv:2.8,dLv:1.4,mLv:4,
     weapon:{name:'단검',emoji:'🗡️',atk:8}, armor:null,
     skills:[
       {id:'rush',   name:'급습',    lv:10,mp:10,cd:5, dmg:1.4,eff:'crit',    desc:'공격력 140% + 치명타 +20%'},
@@ -1971,7 +1971,13 @@ function enterZone(zid){
 
 function spawnMob(){
   const pool=G.zone.mobs,m={...pool[Math.floor(Math.random()*pool.length)]};
-  const sc=1+Math.max(0,G.lv-G.zone.min)*.1;
+  // 스케일 기준: zone.max 대비 플레이어 레벨
+  // 고레벨 → 저레벨 존: sc 감소 (쉬워짐, 최소 0.2배)
+  // 저레벨 → 고레벨 존: sc 증가 (어려워짐, 최대 2.0배)
+  const diff = G.lv - G.zone.max;
+  const sc = diff >= 0
+    ? Math.max(0.2, 1.0 - diff * 0.03)   // 고레벨: 레벨 초과마다 3% 감소
+    : Math.min(2.0, 1.0 + Math.abs(diff) * 0.03); // 저레벨: 레벨 부족마다 3% 증가
   m.hp=Math.floor(m.hp*sc);m.atk=Math.floor(m.atk*sc);m.def=Math.floor(m.def*sc);
   m.exp=Math.floor(m.exp*sc);m.g=Math.floor(m.g*sc);
   G.mob=m;G.mhp=m.hp;G.mmhp=m.hp;
@@ -2071,7 +2077,9 @@ function autoFight(){
   updMobBar();
   if(G.mhp<=0){mobDead();return;}
   // 몬스터 공격 → 돌진 모션 + 플레이어 피격
-  const md=Math.max(1,G.mob.atk-tDef()+Math.floor(Math.random()*3)-1);
+  const mdRaw=Math.max(1,G.mob.atk-tDef()+Math.floor(Math.random()*3)-1);
+  const mdCap=Math.floor(G.mHP*0.6); // 즉사 방지 캡: 최대 HP의 60%
+  const md=Math.min(mdRaw, mdCap);
   _anim.mobX=-38;          // 플레이어 방향으로 돌진
   _anim.mobAttacking=true;
   setTimeout(()=>{_anim.mobAttacking=false;},220);
@@ -3143,7 +3151,9 @@ function dunFight() {
   const bPenetrate = Math.floor(boss.atk * 0.6);
   const bResisted  = Math.max(0, Math.floor(boss.atk * 0.4) - Math.floor(tDef() * 0.5));
   const bVariance  = Math.floor(Math.random() * Math.max(2, Math.floor(boss.atk * 0.05)));
-  const md = Math.max(1, bPenetrate + bResisted + bVariance);
+  const mdRaw2 = Math.max(1, bPenetrate + bResisted + bVariance);
+  const mdCap2 = Math.floor(G.mHP * 0.6); // 즉사 방지 캡: 최대 HP의 60%
+  const md = Math.min(mdRaw2, mdCap2);
   G.hp = Math.max(0, G.hp-md);
   dunBlog(`<span class="ld">${boss.n}의 공격! -${md} HP</span>`);
   dunHud(); renderDunSkills();
