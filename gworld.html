@@ -4557,7 +4557,7 @@ async function wbGetMyParty(username, fbPath='world_boss') {
     const snap = await window._gwDB.ref(fbPath+'/party_' + today + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) break;
     const party = snap.val();
-    _wbCache['party_' + today + '_' + i] = party;
+    _wbCache[fbPath+'_party_' + today + '_' + i] = party; // fbPath 포함해 보스별 캐시 분리
     if(party.members && party.members.some(m => m.user === username))
       return { party, idx: i, date: today };
   }
@@ -4573,7 +4573,7 @@ async function wbGetYesterdayParty(username, fbPath='world_boss') {
     const snap = await window._gwDB.ref(fbPath+'/party_' + yesterday + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) break;
     const party = snap.val();
-    _wbCache['party_' + yesterday + '_' + i] = party;
+    _wbCache[fbPath+'_party_' + yesterday + '_' + i] = party; // fbPath 포함해 보스별 캐시 분리
     if(party.members && party.members.some(m => m.user === username))
       return { party, idx: i, date: yesterday };
   }
@@ -4588,7 +4588,7 @@ async function wbFindOpenParty(wb=WB_LIST[_wbTabIdx]) {
     const snap = await window._gwDB.ref(wb.fbPath+'/party_' + today + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) return i;        // 빈 파티 슬롯
     const party = snap.val();
-    _wbCache['party_' + today + '_' + i] = party;
+    _wbCache[wb.fbPath+'_party_' + today + '_' + i] = party; // fbPath 포함해 보스별 캐시 분리
     if(!party.members || party.members.length < wb.maxParty) return i;
   }
   return -1;
@@ -4691,7 +4691,7 @@ async function renderWbJoinSection(username, wb=WB_LIST[0]) {
     const snap = await window._gwDB.ref(wb.fbPath+'/party_' + today + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) break;
     const p = snap.val();
-    _wbCache['party_' + today + '_' + i] = p;
+    _wbCache[wb.fbPath+'_party_' + today + '_' + i] = p; // fbPath 포함해 보스별 캐시 분리
     if(!p.members || p.members.length < wb.maxParty) parties.push({p, i});
   }
 
@@ -4806,7 +4806,7 @@ async function wbJoinParty(partyIdx, wbId) {
   await window._gwDB.ref(partyPath).set(party).catch(e => {
     gwT('파티 참가 중 오류가 발생했습니다.'); console.warn(e); return;
   });
-  _wbCache['party_' + today + '_' + idx] = party;
+  _wbCache[wb.fbPath+'_party_' + today + '_' + idx] = party; // fbPath 포함해 보스별 캐시 분리
 
   gwT(`👻 파티 ${idx+1}에 참가! 자정 이후 보상 수령 가능합니다.`);
   questProgress('worldboss', 'wb'); // 월드보스 파견 퀘스트
