@@ -2248,8 +2248,18 @@ let _modalIdx=-1;
 function showItemModal(idx,it){
   _modalIdx=idx;
   const gc=GRADE_COLOR[it.grade||'일반'];
-  const sl=SLOT_INFO[it.slot||'weapon'];
-  const curEq=(G.equip||{})[it.slot||'weapon'];
+
+  // 반지 슬롯 처리: slot='ring' → 비어있는 ring1/ring2/ring3 중 하나 선택
+  let targetSlot = it.slot||'weapon';
+  if(it.subType==='ring' || it.slot==='ring') {
+    const eq = G.equip||{};
+    // 비어있는 슬롯 우선, 없으면 ring1
+    targetSlot = ['ring1','ring2','ring3'].find(s=>!eq[s]) || 'ring1';
+    it = {...it, slot: targetSlot}; // 슬롯 덮어쓰기
+  }
+
+  const sl=SLOT_INFO[targetSlot]||{label:targetSlot,emoji:'💍'};
+  const curEq=(G.equip||{})[targetSlot];
   const sp=it.sellPrice||Math.floor((it.atk||0)*8+(it.def||0)*8+10);
   const statParts=[];
   if(it.atk)       statParts.push(`ATK +${it.atk}`);
