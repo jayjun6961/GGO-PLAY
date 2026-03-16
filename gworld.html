@@ -587,8 +587,21 @@
 <div class="gw-pov" id="gw-pwb" onclick="if(event.target===this)closeP('gw-pwb')">
   <div class="gw-pbox" style="max-width:420px;width:100%">
     <div class="gw-phdr">
-      <div class="gw-pttl">👻 월드 보스</div>
+      <div class="gw-pttl">⚔️ 월드 보스</div>
       <button class="gw-px" onclick="closeP('gw-pwb')">✕</button>
+    </div>
+    <!-- 보스 선택 탭 -->
+    <div id="gw-wb-tabs" style="display:flex;gap:6px;padding:8px 14px 0;border-bottom:1px solid rgba(124,58,237,.15);">
+      <button id="wb-tab-0" onclick="selectWbTab(0)"
+        style="flex:1;padding:6px 0;border-radius:8px 8px 0 0;border:1px solid rgba(124,58,237,.3);border-bottom:none;
+          background:rgba(124,58,237,.15);color:#a78bfa;font-size:10px;font-family:'Orbitron',sans-serif;cursor:pointer;">
+        👻 발드릭스
+      </button>
+      <button id="wb-tab-1" onclick="selectWbTab(1)"
+        style="flex:1;padding:6px 0;border-radius:8px 8px 0 0;border:1px solid rgba(124,58,237,.1);border-bottom:none;
+          background:transparent;color:#475569;font-size:10px;font-family:'Orbitron',sans-serif;cursor:pointer;">
+        🌀 차원의 문
+      </button>
     </div>
     <div class="gw-pbdy" id="gw-wbbody" style="padding:14px;max-height:500px;overflow-y:auto;"></div>
   </div>
@@ -4489,10 +4502,17 @@ function buyCashItem(itemId) {
 // ════════════════════════════════════════
 // 월드 보스 시스템
 // ════════════════════════════════════════
-const WB_NAME       = '유령기사 발드릭스';
-const WB_EMOJI      = '👻';
-const WB_MIN_LV     = 50;
-const WB_MAX_PARTY  = 5;
+// ── 월드보스 목록 ──
+const WB_LIST = [
+  { id:'baldrix',   name:'유령기사 발드릭스', emoji:'👻', minLv:50,  maxParty:5,  fbPath:'world_boss' },
+  { id:'dimension', name:'차원의 문',          emoji:'🌀', minLv:90,  maxParty:10, fbPath:'world_boss_2' },
+];
+
+// 하위 호환용 (기존 코드가 WB_NAME 등을 직접 참조하므로 유지)
+const WB_NAME       = WB_LIST[0].name;
+const WB_EMOJI      = WB_LIST[0].emoji;
+const WB_MIN_LV     = WB_LIST[0].minLv;
+const WB_MAX_PARTY  = WB_LIST[0].maxParty;
 
 // 공유 저장소 키 (날짜+파티번호 기반)
 // ── 월드보스: Firebase 기반 ──
@@ -4530,11 +4550,11 @@ function wbCanClaim(joinDate) {
 }
 
 // 이 유저가 오늘 참가한 파티 정보 반환
-async function wbGetMyParty(username) {
+async function wbGetMyParty(username, fbPath='world_boss') {
   if(!window._gwDB) return null;
   const today = wbTodayKey();
   for(let i = 0; i < 20; i++) {
-    const snap = await window._gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
+    const snap = await window._gwDB.ref(fbPath+'/party_' + today + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) break;
     const party = snap.val();
     _wbCache['party_' + today + '_' + i] = party;
@@ -4545,12 +4565,12 @@ async function wbGetMyParty(username) {
 }
 
 // 어제 참가한 파티 (보상 수령용)
-async function wbGetYesterdayParty(username) {
+async function wbGetYesterdayParty(username, fbPath='world_boss') {
   if(!window._gwDB) return null;
   const d = new Date(Date.now() - 86400000);
   const yesterday = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   for(let i = 0; i < 20; i++) {
-    const snap = await window._gwDB.ref('world_boss/party_' + yesterday + '_' + i).get().catch(()=>null);
+    const snap = await window._gwDB.ref(fbPath+'/party_' + yesterday + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) break;
     const party = snap.val();
     _wbCache['party_' + yesterday + '_' + i] = party;
@@ -4561,15 +4581,15 @@ async function wbGetYesterdayParty(username) {
 }
 
 // 오늘 참가 가능한 빈 파티 찾기 (5인 미만)
-async function wbFindOpenParty() {
+async function wbFindOpenParty(wb=WB_LIST[_wbTabIdx]) {
   if(!window._gwDB) return 0; // Firebase 없으면 파티0 사용
   const today = wbTodayKey();
   for(let i = 0; i < 20; i++) {
-    const snap = await window._gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
+    const snap = await window._gwDB.ref(wb.fbPath+'/party_' + today + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) return i;        // 빈 파티 슬롯
     const party = snap.val();
     _wbCache['party_' + today + '_' + i] = party;
-    if(!party.members || party.members.length < WB_MAX_PARTY) return i;
+    if(!party.members || party.members.length < wb.maxParty) return i;
   }
   return -1;
 }
@@ -4581,6 +4601,28 @@ function openWorldBoss() {
 }
 
 /* ── 월드 보스 패널 렌더 ── */
+// ── 월드보스 탭 선택 ──
+let _wbTabIdx = 0; // 현재 선택된 보스 인덱스
+
+function selectWbTab(idx) {
+  _wbTabIdx = idx;
+  // 탭 스타일 업데이트
+  WB_LIST.forEach((_, i) => {
+    const tab = document.getElementById('wb-tab-' + i);
+    if(!tab) return;
+    if(i === idx) {
+      tab.style.background = 'rgba(124,58,237,.15)';
+      tab.style.color = '#a78bfa';
+      tab.style.borderColor = 'rgba(124,58,237,.3)';
+    } else {
+      tab.style.background = 'transparent';
+      tab.style.color = '#475569';
+      tab.style.borderColor = 'rgba(124,58,237,.1)';
+    }
+  });
+  renderWorldBoss();
+}
+
 async function renderWorldBoss() {
   const el = document.getElementById('gw-wbbody');
   if(!el) return;
@@ -4589,18 +4631,26 @@ async function renderWorldBoss() {
   const today    = wbTodayKey();
   const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
 
+  // 현재 선택된 보스
+  const wb = WB_LIST[_wbTabIdx] || WB_LIST[0];
+  const curWbName     = wb.name;
+  const curWbEmoji    = wb.emoji;
+  const curWbMinLv    = wb.minLv;
+  const curWbMaxParty = wb.maxParty;
+  const curWbFbPath   = wb.fbPath;
+
   let html = `
     <div style="text-align:center;margin-bottom:14px;">
-      <div style="font-size:44px;line-height:1;margin-bottom:6px;">${WB_EMOJI}</div>
-      <div style="font-family:'Orbitron',sans-serif;font-size:15px;font-weight:900;color:#ef4444;">${WB_NAME}</div>
+      <div style="font-size:44px;line-height:1;margin-bottom:6px;">${curWbEmoji}</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:15px;font-weight:900;color:#ef4444;">${curWbName}</div>
       <div style="font-size:10px;color:#64748b;margin-top:4px;font-family:'Noto Sans KR',sans-serif;">
-        최대 ${WB_MAX_PARTY}인 파티 · 입장 제한 Lv.${WB_MIN_LV} · 하루 1회
+        최대 ${curWbMaxParty}인 파티 · 입장 제한 Lv.${curWbMinLv} · 하루 1회
       </div>
     </div>`;
 
-  if(G.lv < WB_MIN_LV) {
+  if(G.lv < curWbMinLv) {
     html += `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px;text-align:center;color:#f87171;font-size:12px;font-family:'Noto Sans KR',sans-serif;">
-      🔒 Lv.${WB_MIN_LV} 이상부터 참가 가능합니다.<br>
+      🔒 Lv.${curWbMinLv} 이상부터 참가 가능합니다.<br>
       <span style="font-size:10px;color:#64748b">(현재 레벨: ${G.lv})</span>
     </div>`;
     el.innerHTML = html;
@@ -4611,26 +4661,26 @@ async function renderWorldBoss() {
   el.innerHTML = html + '<div style="text-align:center;padding:20px;color:#475569;font-size:11px;">🔄 파티 정보 불러오는 중...</div>';
 
   // Firebase에서 비동기로 데이터 읽기
-  const yestParty   = await wbGetYesterdayParty(username);
+  const yestParty   = await wbGetYesterdayParty(username, curWbFbPath);
   const claimKey    = _wbKey('claimed_' + (yestParty?.date||'') + '_' + username);
   if(yestParty && !localStorage.getItem(claimKey)) {
-    el.innerHTML = html + renderWbClaimSection(username, yestParty);
+    el.innerHTML = html + renderWbClaimSection(username, yestParty, wb);
     return;
   }
 
-  const myParty = await wbGetMyParty(username);
+  const myParty = await wbGetMyParty(username, curWbFbPath);
   if(myParty) {
-    el.innerHTML = html + renderWbPartyStatus(myParty.party, myParty.idx, username);
+    el.innerHTML = html + renderWbPartyStatus(myParty.party, myParty.idx, username, wb);
     return;
   }
 
-  el.innerHTML = html + await renderWbJoinSection(username);
+  el.innerHTML = html + await renderWbJoinSection(username, wb);
   } catch(e) {
     console.warn('renderWorldBoss 오류:', e);
     if(el) el.innerHTML = '<div style="text-align:center;padding:20px;color:#ef4444;font-size:12px;">⚠️ 불러오기 실패. 다시 시도해주세요.</div>';
   }
 }
-async function renderWbJoinSection(username) {
+async function renderWbJoinSection(username, wb=WB_LIST[0]) {
   const today = wbTodayKey();
   const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
   let html = '';
@@ -4638,11 +4688,11 @@ async function renderWbJoinSection(username) {
   // Firebase에서 오늘 파티 목록 읽기 (실시간 구독 → on value)
   const parties = [];
   for(let i = 0; i < 20; i++) {
-    const snap = await window._gwDB.ref('world_boss/party_' + today + '_' + i).get().catch(()=>null);
+    const snap = await window._gwDB.ref(wb.fbPath+'/party_' + today + '_' + i).get().catch(()=>null);
     if(!snap || !snap.exists()) break;
     const p = snap.val();
     _wbCache['party_' + today + '_' + i] = p;
-    if(!p.members || p.members.length < WB_MAX_PARTY) parties.push({p, i});
+    if(!p.members || p.members.length < wb.maxParty) parties.push({p, i});
   }
 
   if(parties.length > 0) {
@@ -4650,7 +4700,7 @@ async function renderWbJoinSection(username) {
     parties.forEach(({p, i}) => {
       html += `<div style="background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.18);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div style="flex:1;">
-          <div style="font-size:10px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:4px;">파티 ${i+1} · ${p.members.length}/${WB_MAX_PARTY}명</div>
+          <div style="font-size:10px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:4px;">파티 ${i+1} · ${p.members.length}/${wb.maxParty}명</div>
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
             ${p.members.map(m=>`<span style="font-size:10px;background:rgba(124,58,237,.15);border-radius:6px;padding:2px 6px;color:#c084fc;">${JOB_EMOJI[m.job]||'?'} ${m.user}</span>`).join('')}
           </div>
@@ -4673,7 +4723,7 @@ async function renderWbJoinSection(username) {
   return html;
 }
 
-function renderWbPartyStatus(party, idx, username) {
+function renderWbPartyStatus(party, idx, username, wb=WB_LIST[0]) {
   const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
   const joinTime  = new Date(party.createdAt||Date.now()).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
   let html = `
@@ -4694,7 +4744,7 @@ function renderWbPartyStatus(party, idx, username) {
             </div>
             <span style="font-size:9px;color:#34d399">Lv.${m.lv||'?'}</span>
           </div>`).join('')}
-        ${Array(WB_MAX_PARTY-party.members.length).fill(0).map(()=>`
+        ${Array(wb.maxParty-party.members.length).fill(0).map(()=>`
           <div style="display:flex;align-items:center;gap:8px;background:rgba(71,85,105,.06);border:1px dashed #374151;border-radius:8px;padding:7px 10px;">
             <span style="font-size:14px;color:#374151">👤</span>
             <span style="font-size:10px;color:#374151">빈 자리</span>
@@ -4708,12 +4758,12 @@ function renderWbPartyStatus(party, idx, username) {
 }
 
 /* ── 보상 수령 섹션 ── */
-function renderWbClaimSection(username, partyInfo) {
+function renderWbClaimSection(username, partyInfo, wb=WB_LIST[0]) {
   const JOB_EMOJI = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
   return `
     <div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.3);border-radius:14px;padding:16px;text-align:center;margin-bottom:12px;">
       <div style="font-size:28px;margin-bottom:6px;">🏆</div>
-      <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:4px;">${WB_NAME} 토벌 완료!</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:4px;">${wb.name} 토벌 완료!</div>
       <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:12px;">
         파티원 ${partyInfo.party.members.length}명이 토벌에 참여했습니다.
       </div>
@@ -4727,26 +4777,26 @@ function renderWbClaimSection(username, partyInfo) {
 }
 
 /* ── 파티 참가 ── */
-async function wbJoinParty(partyIdx) {
+async function wbJoinParty(partyIdx, wb=WB_LIST[_wbTabIdx]) {
   const username = gwUN();
   if(!username || username==='_g') { gwT('로그인이 필요합니다.'); return; }
-  if(G.lv < WB_MIN_LV) { gwT(`🔒 Lv.${WB_MIN_LV} 이상부터 참가 가능합니다.`); return; }
+  if(G.lv < curWbMinLv) { gwT(`🔒 Lv.${curWbMinLv} 이상부터 참가 가능합니다.`); return; }
 
   const today = wbTodayKey();
   const already = await wbGetMyParty(username);
   if(already) { gwT('오늘 이미 파견에 참가했습니다.'); return; }
 
   let idx = partyIdx;
-  if(idx < 0) idx = await wbFindOpenParty();
+  if(idx < 0) idx = await wbFindOpenParty(wb);
   if(idx < 0) { gwT('참가 가능한 파티가 없습니다.'); return; }
 
-  const partyPath = 'world_boss/party_' + today + '_' + idx;
+  const partyPath = wb.fbPath+'/party_' + today + '_' + idx;
   if(!window._gwDB){gwT('⚠️ 네트워크 연결 오류');return;}
   const snap = await window._gwDB.ref(partyPath).get().catch(()=>null);
   const party = (snap && snap.exists()) ? snap.val() : { members: [], createdAt: Date.now() };
 
   if(!party.members) party.members = [];
-  if(party.members.length >= WB_MAX_PARTY) { gwT('파티 정원이 가득 찼습니다.'); return; }
+  if(party.members.length >= wb.maxParty) { gwT('파티 정원이 가득 찼습니다.'); return; }
   if(party.members.some(m=>m.user===username)) { gwT('이미 이 파티에 참가중입니다.'); return; }
 
   party.members.push({ user:username, job:G.job, lv:G.lv, joinAt:Date.now() });
@@ -4760,7 +4810,7 @@ async function wbJoinParty(partyIdx) {
   renderWorldBoss();
 }
 
-function wbClaimReward(date) {
+function wbClaimReward(date, wb=WB_LIST[_wbTabIdx]) {
   const username = gwUN();
   if(!username||username==='_g') return;
 
