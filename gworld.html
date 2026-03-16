@@ -2594,7 +2594,19 @@ function questProgress(type, target) {
 }
 
 
-function enhCost(enh){return 50+Math.floor((enh||0)*25);}
+// 등급별 강화 비용 설정 (시작 비용 + 강화단계당 상승)
+const ENH_COST_TABLE = {
+  '기본': {base:   30, step:   15},
+  '일반': {base:   50, step:   25},
+  '희귀': {base:  150, step:   80},
+  '레어': {base:  400, step:  200},
+  '에픽': {base: 1000, step:  500},
+  '전설': {base: 3000, step: 1500},
+};
+function enhCost(enh, grade){
+  const cfg = ENH_COST_TABLE[grade] || ENH_COST_TABLE['일반'];
+  return cfg.base + Math.floor((enh||0) * cfg.step);
+}
 function renderEnh(){
   const eq=G.equip||{};
   const SLOT_LABEL={weapon:'무기',shield:'방패',armor:'방어구',boots:'신발',gloves:'장갑',accessory:'장신구'};
@@ -2602,7 +2614,7 @@ function renderEnh(){
     .filter(([,it])=>it!=null)
     .map(([slot,it])=>{
       const enh=it.enh||0;
-      const cost=enhCost(enh);
+            const cost=enhCost(enh, it.grade);
       let stat='',nextStat='';
       if(it.type==='weapon'||it.slot==='weapon'){
         stat=`ATK +${it.atk||0}`; nextStat=`ATK +${(it.atk||0)+2}`;
@@ -2626,6 +2638,8 @@ function renderEnh(){
       } else {
         stat=`DEF +${it.def||0}`; nextStat=`DEF +${(it.def||0)+2}`;
       }
+      const GRADE_COL2={'기본':'#94a3b8','일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24'};
+      const gc2 = GRADE_COL2[it.grade||'일반']||'#94a3b8';
       const enhBadge=enh>0?`<span style="font-size:9px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-left:4px">+${enh}</span>`:'';
       return `<div class="gw-ei">
         <div class="gw-ei-ico">${it.e||'🔧'}</div>
@@ -2633,7 +2647,7 @@ function renderEnh(){
           <div class="gw-ei-nm">${it.n}${enhBadge} <span style="font-size:9px;color:var(--text-dim)">[${SLOT_LABEL[slot]||slot}]</span></div>
           <div class="gw-ei-st">${stat} → 강화 후 ${nextStat}</div>
         </div>
-        <button class="gw-enh-btn" onclick="enhSlot('${slot}')">강화 (${cost}G)</button>
+        <button class="gw-enh-btn" onclick="enhSlot('${slot}')" style="background:linear-gradient(135deg,${gc2},${gc2}99);border:1px solid ${gc2};color:#000;">강화 (${cost.toLocaleString()}G)</button>
       </div>`;
     });
   const emptyMsg=rows.length===0
@@ -2647,7 +2661,7 @@ function enhSlot(slot){
   const it=(G.equip||{})[slot];
   if(!it){gwT('해당 슬롯에 장비 없음');return;}
   const enh=it.enh||0;
-  const cost=enhCost(enh);
+  const cost=enhCost(enh, it.grade);
   if(G.gold<cost){gwT(`골드 부족 (${cost}G 필요)`);return;}
   G.gold-=cost;
   it.enh=(it.enh||0)+1;
@@ -2675,7 +2689,7 @@ function enhSlot(slot){
     it.def=(it.def||0)+2;
   }
   recalcStats();hud();saveG();renderEnh();
-  gwT(`⚒️ ${it.n} +${it.enh} 강화 완료! (다음 비용: ${enhCost(it.enh)}G)`);
+  gwT(`⚒️ ${it.n} +${it.enh} 강화 완료! (다음 비용: ${enhCost(it.enh, it.grade).toLocaleString()}G)`);
 }
 function enhItem(i){/* deprecated - 하위 호환용 */const it=G.inv[i];if(!it)return;}
 
