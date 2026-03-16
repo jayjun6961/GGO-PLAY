@@ -733,6 +733,12 @@
       </div>
       <div class="gw-sk-bar">
         <div id="gw-skbtns" style="display:flex;gap:5px;flex-wrap:wrap;flex:1;"></div>
+        <button id="gw-auto-sk-btn"
+          onclick="toggleAutoSkill()"
+          style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);
+            color:#7c3aed;padding:5px 10px;border-radius:8px;font-size:9px;
+            font-family:'Orbitron',sans-serif;cursor:pointer;white-space:nowrap;
+            transition:all .15s;flex-shrink:0;">✨ 스킬 자동</button>
         <button class="gw-retreat" onclick="retreatToTown()">🏃 마을로</button>
       </div>
     </div>
@@ -1978,8 +1984,82 @@ function updMobBar(){const f=document.getElementById('gw-mbf');if(f)f.style.widt
 function startAuto(){stopAuto();G.tick=setInterval(autoFight,tSpd());startBattleAnim();}
 function stopAuto(){if(G.tick){clearInterval(G.tick);G.tick=null;}stopBattleAnim();}
 
+// ── 스킬 자동 사용 토글 ──
+window._autoSkillOn = false;
+
+function toggleAutoSkill(){
+  window._autoSkillOn = !window._autoSkillOn;
+  if(window._autoSkillOn){
+    // MP가 0이면 켜지지 않음
+    if(G.mp<=0){
+      window._autoSkillOn=false;
+      gwT('💧 MP가 없어 스킬 자동 사용을 켤 수 없습니다!');
+      return;
+    }
+    // 사용 가능한 스킬이 없으면 켜지지 않음
+    const job=JOBS[G.job];
+    const hasSkill=job&&job.skills.some(sk=>G.lv>=sk.lv);
+    if(!hasSkill){
+      window._autoSkillOn=false;
+      gwT('⚠️ 사용 가능한 스킬이 없습니다!');
+      return;
+    }
+    gwT('✨ 스킬 자동 사용 ON');
+  } else {
+    gwT('🔇 스킬 자동 사용 OFF');
+  }
+  updateAutoSkillBtn();
+}
+
+function updateAutoSkillBtn(){
+  const btn=document.getElementById('gw-auto-sk-btn');
+  if(!btn) return;
+  if(window._autoSkillOn){
+    btn.textContent='✨ 스킬 자동 ON';
+    btn.style.background='linear-gradient(135deg,#7c3aed,#5b21b6)';
+    btn.style.border='1px solid #a855f7';
+    btn.style.color='#fff';
+    btn.style.boxShadow='0 0 8px rgba(168,85,247,.5)';
+  } else {
+    btn.textContent='✨ 스킬 자동';
+    btn.style.background='rgba(124,58,237,.1)';
+    btn.style.border='1px solid rgba(124,58,237,.25)';
+    btn.style.color='#7c3aed';
+    btn.style.boxShadow='none';
+  }
+}
+
 function autoFight(){
   if(!G.mob||G.mhp<=0)return;
+
+  // ── 스킬 자동 사용 ──
+  if(window._autoSkillOn){
+    const job=JOBS[G.job];
+    if(job){
+      const now=Date.now();
+      // 쿨다운 끝난 스킬 중 MP 있는 것 찾기 (공격형 우선)
+      const attackEffs=['single','crit','triple','aoe','chain','boss','shield_atk'];
+      const available=job.skills.filter(sk=>{
+        if(G.lv<sk.lv) return false;
+        if(G.mp<sk.mp) return false;
+        const cdLeft=sk.cd-(now-(G.sk[sk.id]?.t||0))/1000;
+        return cdLeft<=0;
+      });
+      const attackSk=available.find(sk=>attackEffs.includes(sk.eff));
+      const anySk=attackSk||available[0];
+      if(anySk){
+        useSkill(anySk.id);
+        // MP 전량 소진 시 자동 OFF
+        if(G.mp<=0){
+          window._autoSkillOn=false;
+          updateAutoSkillBtn();
+          gwT('💧 MP 소진! 스킬 자동 사용 OFF');
+        }
+        return; // 스킬 사용한 턴은 일반 공격 생략
+      }
+    }
+  }
+
   // 플레이어 공격 → 치명타 판정 포함
   let dmg=Math.max(1,tAtk()-G.mob.def+Math.floor(Math.random()*4)-1);
   const isCrit = Math.random()*100 < tCritRate();
@@ -2057,7 +2137,7 @@ function mobDead(){
 }
 
 function playerDead(){
-  stopAuto();blog('<span class="ld">💀 사망!</span>');
+  stopAuto();window._autoSkillOn=false;blog('<span class="ld">💀 사망!</span>');
   G.gold=Math.floor(G.gold*.9);G.hp=Math.floor(G.mHP*.3);saveG();
   document.getElementById('gw-dead').classList.add('on');
 }
@@ -2666,7 +2746,7 @@ function renderSkList(){
   }).join('');
 }
 
-function retreatToTown(){stopAuto();G.buffs={};G.mob=null;saveG();goTown();}
+function retreatToTown(){stopAuto();G.buffs={};G.mob=null;window._autoSkillOn=false;saveG();goTown();}
 
 // ═══ 직업 선택 ═══
 function showJobSel(){
