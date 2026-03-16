@@ -2341,6 +2341,8 @@ function showItemModal(idx,it){
   const sl=SLOT_INFO[targetSlot]||{label:targetSlot,emoji:'💍'};
   const curEq=(G.equip||{})[targetSlot];
   const sp=it.sellPrice||Math.floor((it.atk||0)*8+(it.def||0)*8+10);
+  const qty=it.qty||1;
+  const totalSp=sp*qty;
   const statParts=[];
   if(it.atk)       statParts.push(`ATK +${it.atk}`);
   if(it.def)       statParts.push(`DEF +${it.def}`);
@@ -2390,7 +2392,7 @@ function showItemModal(idx,it){
       ${jobWarnHtml}
       <div style="display:flex;gap:8px;margin-top:14px;justify-content:center">
         <button onclick="doEquip()" style="${equipBtnStyle}padding:8px 18px;border-radius:8px;font-size:12px;font-family:'Orbitron',sans-serif">장착</button>
-        <button onclick="doSell()" style="background:linear-gradient(135deg,#b45309,#92400e);border:1px solid #fbbf24;color:#fbbf24;padding:8px 18px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Orbitron',sans-serif">판매 +${sp}G</button>
+        <button onclick="doSell()" style="background:linear-gradient(135deg,#b45309,#92400e);border:1px solid #fbbf24;color:#fbbf24;padding:8px 18px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Orbitron',sans-serif">판매 +${totalSp.toLocaleString()}G${qty>1?` (${sp}×${qty})`:""}</button>
         <button onclick="closeItemModal()" style="background:#1e1b2e;border:1px solid #374151;color:#94a3b8;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer">취소</button>
       </div>
     </div>`;
@@ -2450,9 +2452,12 @@ function doEquip(){
 function doSell(){
   const it=G.inv[_modalIdx];if(!it)return closeItemModal();
   const sp=it.sellPrice||Math.floor((it.atk||0)*8+(it.def||0)*8+10);
-  G.gold+=sp;G.inv.splice(_modalIdx,1);
+  const qty=it.qty||1;
+  const totalSp=sp*qty;
+  G.gold+=totalSp;
+  G.inv.splice(_modalIdx,1);
   hud();saveG();renderInv();
-  gwT(`${it.n} 판매! +${sp}G`);
+  gwT(`${it.n}${qty>1?` ×${qty}`:''} 판매! +${totalSp.toLocaleString()}G`);
   closeItemModal();
 }
 
