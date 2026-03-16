@@ -441,11 +441,17 @@
       </div>
     </div>
 
+    <!-- 예상 전투력 섹션 -->
+    <div id="combat-power-sec" style="display:none;margin-top:12px;background:var(--bg-card);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:16px;"></div>
+
   </div>
 </main>
 
 <script>
-  const CSV_CHAR   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=599911059&single=true&output=csv';
+  const CSV_CHAR        = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=599911059&single=true&output=csv';
+  const CSV_CHAR_STAT   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?single=true&output=csv&gid=1439071389'; // 캐릭터스탯 (체력,대미지,방어력,이동속도,사거리,관통저항)
+  const CSV_EQUIP_STAT  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?single=true&output=csv&gid=985704413';  // 장비스탯  (장비명,등급,각 스탯 flat/%))
+  const CSV_WEAPON_STAT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?single=true&output=csv&gid=1764430604'; // 무기스탯  (무기명,등급,각 스탯 flat/%)
   const CSV_EQUIP  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1255169524&single=true&output=csv';
   const CSV_WEAPON = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=2117031065&single=true&output=csv';
 
@@ -461,6 +467,10 @@
   const CAT_LABEL = {'c':'공통','j':'직업','p':'개인'};
 
   let charData=[], equipData=[], weaponData=[];
+  // 전투력 계산용 스탯 DB
+  let charStatData={};   // {캐릭터명: {hp,atk,def,spd,range,resist}}
+  let equipStatData={};  // {'장비명_등급': {hp,hp_p,atk,atk_p,def,def_p,spd,spd_p,armor_break,armor_break_p,...}}
+  let weaponStatData={}; // {'무기명_등급': {fire,fire_p,armor_break,armor_break_p,fire_rate,ammo,range,accuracy,...}}
   let selChar=null;
   const esSel={}, wsSel={};   // 장비슬롯 선택, 무기슬롯 선택
 
@@ -481,14 +491,21 @@
     document.getElementById('loading-state').style.display='block';
     document.getElementById('content-wrap').style.display='none';
     try{
-      const [rc,re,rw]=await Promise.all([
-        fetch(CSV_CHAR +'&t='+Date.now(),{cache:'no-store'}),
-        fetch(CSV_EQUIP+'&t='+Date.now(),{cache:'no-store'}),
-        fetch(CSV_WEAPON+'&t='+Date.now(),{cache:'no-store'}),
+      const [rc,re,rw,rcs,res2,rws]=await Promise.all([
+        fetch(CSV_CHAR        +'&t='+Date.now(),{cache:'no-store'}),
+        fetch(CSV_EQUIP       +'&t='+Date.now(),{cache:'no-store'}),
+        fetch(CSV_WEAPON      +'&t='+Date.now(),{cache:'no-store'}),
+        fetch(CSV_CHAR_STAT   +'&t='+Date.now(),{cache:'no-store'}),
+        fetch(CSV_EQUIP_STAT  +'&t='+Date.now(),{cache:'no-store'}),
+        fetch(CSV_WEAPON_STAT +'&t='+Date.now(),{cache:'no-store'}),
       ]);
       const cR=parseCSV(await rc.text());
       const eR=parseCSV(await re.text());
       const wR=parseCSV(await rw.text());
+      // 스탯 시트 파싱 (실패해도 기본 기능 유지)
+      try { parseCharStatSheet(parseCSV(await rcs.text())); } catch(e){ console.warn('캐릭터스탯 로드 실패',e); }
+      try { parseEquipStatSheet(parseCSV(await res2.text())); } catch(e){ console.warn('장비스탯 로드 실패',e); }
+      try { parseWeaponStatSheet(parseCSV(await rws.text())); } catch(e){ console.warn('무기스탯 로드 실패',e); }
 
       // 캐릭터: A=이름 B=직업 C=이미지
       const VALID_CHARS=new Set(['스크래치','파이어플라이','허리케인','셴지','고스트','엔젤','미라지','사토시','아니','사이클롭스','스파클','몰리','프레디','레이븐','앨리스','트윙클','블로트','슬레이어','링스','블리자드','스모그','드라군','베스천','베르타','레비아탄','램지','스토커','닥','레비','테스','비','그라비엘','알터']);
@@ -765,6 +782,220 @@
     document.getElementById('weapon-cnt').textContent=`${WEAPON_SLOTS.filter(s=>wsSel[s]?.grade).length} / 4`;
   }
 
+
+  /* ══════════════════════════════════════
+     스탯 시트 파싱
+  ══════════════════════════════════════ */
+
+  // 캐릭터스탯 시트: A=캐릭터명, B=체력, C=대미지, D=방어력, E=이동속도, F=사거리, G=관통저항
+  function parseCharStatSheet(rows) {
+    charStatData = {};
+    rows.forEach(r => {
+      const name = (r[0]||'').trim();
+      if(!name) return;
+      charStatData[name] = {
+        hp:     parseFloat(r[1])||0,
+        atk:    parseFloat(r[2])||0,
+        def:    parseFloat(r[3])||0,
+        spd:    parseFloat(r[4])||0,
+        range:  parseFloat(r[5])||0,
+        resist: parseFloat(r[6])||0,
+      };
+    });
+  }
+
+  // 장비스탯 시트: A=장비명, B=등급, C=체력, D=체력%, E=대미지, F=대미지%, G=방어력, H=방어력%, I=이동속도, J=이동속도%
+  function parseEquipStatSheet(rows) {
+    equipStatData = {};
+    rows.forEach(r => {
+      const name  = (r[0]||'').trim();
+      const grade = (r[1]||'').trim();
+      if(!name||!grade) return;
+      const key = name + '_' + grade;
+      equipStatData[key] = {
+        hp:     parseFloat(r[2])||0,  hp_p:     parseFloat(r[3])||0,
+        atk:    parseFloat(r[4])||0,  atk_p:    parseFloat(r[5])||0,
+        def:    parseFloat(r[6])||0,  def_p:    parseFloat(r[7])||0,
+        spd:    parseFloat(r[8])||0,  spd_p:    parseFloat(r[9])||0,
+      };
+    });
+  }
+
+  // 무기스탯 시트: A=무기명, B=등급, C=화력, D=화력%, E=방어구파괴, F=방어구파괴%, G=발사속도, H=발사속도%, I=탄약용량, J=유효거리, K=조준안정성, L=발사범위%
+  function parseWeaponStatSheet(rows) {
+    weaponStatData = {};
+    rows.forEach(r => {
+      const name  = (r[0]||'').trim();
+      const grade = (r[1]||'').trim();
+      if(!name||!grade) return;
+      const key = name + '_' + grade;
+      weaponStatData[key] = {
+        fire:         parseFloat(r[2])||0,  fire_p:         parseFloat(r[3])||0,
+        armor_break:  parseFloat(r[4])||0,  armor_break_p:  parseFloat(r[5])||0,
+        fire_rate:    parseFloat(r[6])||0,  fire_rate_p:    parseFloat(r[7])||0,
+        ammo:         parseFloat(r[8])||0,
+        range:        parseFloat(r[9])||0,
+        accuracy:     parseFloat(r[10])||0,
+        fire_range_p: parseFloat(r[11])||0,
+      };
+    });
+  }
+
+  /* ══════════════════════════════════════
+     전투력 계산 엔진
+  ══════════════════════════════════════ */
+
+  function calcCombatPower() {
+    if(!selChar) return null;
+
+    // 1. 캐릭터 기본 스탯
+    const base = charStatData[selChar.name];
+    if(!base) return null; // 스탯 시트에 없으면 계산 불가
+
+    // 2. 장비 버프 합산
+    let flat = { hp:0, atk:0, def:0, spd:0 };
+    let pct  = { hp:0, atk:0, def:0, spd:0 };
+    EQUIP_SLOTS.forEach(slot => {
+      const sel = esSel[slot];
+      if(!sel?.grade || !sel.item) return;
+      const key = sel.item.name + '_' + sel.grade;
+      const stat = equipStatData[key];
+      if(!stat) return;
+      flat.hp  += stat.hp;     pct.hp  += stat.hp_p;
+      flat.atk += stat.atk;    pct.atk += stat.atk_p;
+      flat.def += stat.def;    pct.def += stat.def_p;
+      flat.spd += stat.spd;    pct.spd += stat.spd_p;
+    });
+
+    // 3. 무기 버프 합산
+    let wFlat = { fire:0, armor_break:0, fire_rate:0, ammo:0, range:0, accuracy:0 };
+    let wPct  = { fire:0, armor_break:0, fire_rate:0, fire_range:0 };
+    WEAPON_SLOTS.forEach(slot => {
+      const sel = wsSel[slot];
+      if(!sel?.grade || !sel.item) return;
+      const key = sel.item.name + '_' + sel.grade;
+      const stat = weaponStatData[key];
+      if(!stat) return;
+      wFlat.fire        += stat.fire;       wPct.fire        += stat.fire_p;
+      wFlat.armor_break += stat.armor_break; wPct.armor_break += stat.armor_break_p;
+      wFlat.fire_rate   += stat.fire_rate;   wPct.fire_rate   += stat.fire_rate_p;
+      wFlat.ammo        += stat.ammo;
+      wFlat.range       += stat.range;
+      wFlat.accuracy    += stat.accuracy;
+      wPct.fire_range   += stat.fire_range_p;
+    });
+
+    // 4. 최종 스탯 계산 (flat 먼저, % 나중)
+    const final = {
+      hp:  Math.round((base.hp  + flat.hp)  * (1 + pct.hp  / 100)),
+      atk: Math.round((base.atk + flat.atk) * (1 + pct.atk / 100)),
+      def: Math.round((base.def + flat.def) * (1 + pct.def / 100)),
+      spd: Math.round((base.spd + flat.spd) * (1 + pct.spd / 100)),
+      fire:        Math.round(wFlat.fire       * (1 + wPct.fire        / 100)),
+      armor_break: Math.round(wFlat.armor_break* (1 + wPct.armor_break / 100)),
+      fire_rate:   Math.round((wFlat.fire_rate) * (1 + wPct.fire_rate  / 100) * 10) / 10,
+      ammo:        wFlat.ammo,
+      range:       Math.round(base.range + wFlat.range),
+      accuracy:    wFlat.accuracy,
+    };
+
+    // 5. 전투력 점수 계산
+    // DPS = 화력(fire) × 발사속도(fire_rate) / 10
+    const dps  = final.fire > 0 ? final.fire * (final.fire_rate || 1) / 10 : final.atk;
+    const power = Math.round(
+      dps           * 1.0
+    + final.hp      * 0.3
+    + final.def     * 0.5
+    + final.range   * 0.2
+    + final.armor_break * 0.4
+    );
+
+    return { base, flat, pct, wFlat, wPct, final, dps, power };
+  }
+
+  /* ══════════════════════════════════════
+     전투력 UI 렌더링
+  ══════════════════════════════════════ */
+
+  function renderCombatPower() {
+    const el = document.getElementById('combat-power-sec');
+    if(!el) return;
+
+    const result = calcCombatPower();
+    if(!result) {
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = 'block';
+
+    const { base, final, dps, power } = result;
+    const powerColor = power >= 5000 ? '#fbbf24' : power >= 2000 ? '#a855f7' : power >= 1000 ? '#60a5fa' : '#94a3b8';
+
+    el.innerHTML = `
+      <div class="result-title">⚔️ 예상 전투력</div>
+
+      <!-- 전투력 점수 (핵심) -->
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-family:'Orbitron',sans-serif;font-size:36px;font-weight:900;
+          color:${powerColor};text-shadow:0 0 20px ${powerColor}66;line-height:1.1;">
+          ${power.toLocaleString()}
+        </div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:4px;font-family:'Noto Sans KR',sans-serif;">
+          예상 전투력 지수
+        </div>
+      </div>
+
+      <!-- 최종 스탯 그리드 -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+        ${[
+          ['❤️','체력',   final.hp,   base.hp],
+          ['⚔️','대미지', final.atk,  base.atk],
+          ['🛡️','방어력', final.def,  base.def],
+          ['💨','이동속도',final.spd, base.spd],
+          ['🔥','화력',   final.fire, 0],
+          ['📏','유효거리',final.range, base.range],
+        ].map(([ic,nm,val,bv]) => {
+          const diff = val - bv;
+          const diffHtml = diff > 0
+            ? `<span style="color:#34d399;font-size:9px"> +${diff.toLocaleString()}</span>`
+            : diff < 0
+            ? `<span style="color:#f87171;font-size:9px"> ${diff.toLocaleString()}</span>`
+            : '';
+          return `<div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.15);border-radius:8px;padding:8px;text-align:center;">
+            <div style="font-size:14px;margin-bottom:2px;">${ic}</div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--text-main);">${val.toLocaleString()}${diffHtml}</div>
+            <div style="font-size:9px;color:var(--text-dim);margin-top:1px;">${nm}</div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- 무기 스탯 (있을 때만) -->
+      ${final.fire > 0 ? `
+      <div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+        <div style="font-size:10px;color:#f87171;font-family:'Orbitron',sans-serif;margin-bottom:6px;">🔫 무기 스탯</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+          ${[
+            ['화력',     final.fire],
+            ['방파',     final.armor_break + '%'],
+            ['발사속도', final.fire_rate + '초'],
+            ['탄약',     final.ammo || '–'],
+            ['정밀도',   final.accuracy || '–'],
+            ['DPS',      Math.round(dps).toLocaleString()],
+          ].map(([nm,val]) => `
+            <div style="text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:#fca5a5;">${val}</div>
+              <div style="font-size:9px;color:var(--text-dim);">${nm}</div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- 계산 공식 안내 -->
+      <div style="font-size:9px;color:var(--text-dim);text-align:center;line-height:1.6;font-family:'Noto Sans KR',sans-serif;">
+        전투력 = DPS × 1.0 + 체력 × 0.3 + 방어력 × 0.5 + 거리 × 0.2 + 방어구파괴 × 0.4
+      </div>
+    `;
+  }
+
   /* ── 결과 ── */
   function collectFx(entry,up,dn){
     if(entry.type==='감소'){dn.push(entry);return;}
@@ -803,6 +1034,8 @@
     document.getElementById('dn-list').innerHTML=dn.length
       ?dn.map(it=>`<div class="si dn"><div class="si-dot"></div><div><div class="si-txt">${it.text}</div><div class="si-src">${it.source}</div></div></div>`).join('')
       :'<div class="empty-r">감소 능력치 없음</div>';
+    // 전투력 계산 업데이트
+    renderCombatPower();
   }
 
   /* ── 요약 바 ── */
