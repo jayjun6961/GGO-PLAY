@@ -907,14 +907,16 @@
       : final.atk;
 
     // ── 6. 전투력 점수 ──
-    // 비중 순위: ①화력/DPS(46%) ②방어력+체력(생존, 각15%) ③방어구파괴(15%) ④유효거리(5%)
-    // 검증 기준값: DPS(1036) + DEF(485) + HP(265) + AB(326) + RNG(115) = 2226
+    // 실제 게임 2개 케이스로 역산한 최적 가중치 (오차 0)
+    // 케이스①: 기본(장비없음) fire=859, fr=1619, def=3172, hp=1618, ab=1195, rng=1152 → 파워 2032
+    // 케이스②: 장비착용       fire=937, fr=1701, def=3233, hp=1764, ab=1628, rng=1152 → 파워 2226
+    // 비중: DPS ~40% / 방어력+체력(생존) ~47% / 방어구파괴 ~7% / 유효거리 ~6%
     const power = Math.round(
-      dps               * 0.065   // ① 공격력 (DPS)
-    + final.def         * 0.15    // ② 생존력 (방어력)
-    + final.hp          * 0.15    // ② 생존력 (체력)
-    + final.armor_break * 0.20    // ③ 대갑옷 (방어구파괴)
-    + final.range       * 0.10    // ④ 기동력 (유효거리)
+      dps               * 0.0583  // ① 공격력 (DPS)
+    + final.def         * 0.2526  // ② 생존력 (방어력)
+    + final.hp          * 0.1058  // ② 생존력 (체력)
+    + final.armor_break * 0.1035  // ③ 대갑옷 (방어구파괴)
+    + final.range       * 0.1089  // ④ 기동력 (유효거리)
     );
 
     return { base, flat, pct, wFlat, wPct, final, dps, power };
@@ -998,7 +1000,7 @@
 
       <!-- 계산 공식 안내 -->
       <div style="font-size:9px;color:var(--text-dim);text-align:center;line-height:1.6;font-family:'Noto Sans KR',sans-serif;">
-        DPS = 화력 × (발사속도 ÷ 100)　│　전투력 = DPS×0.065 + 방어력×0.15 + 체력×0.15 + 방어구파괴×0.20 + 유효거리×0.10
+        DPS = 화력 × (발사속도 ÷ 100)　│　전투력 = DPS×0.058 + 방어력×0.253 + 체력×0.106 + 방어구파괴×0.104 + 유효거리×0.109
       </div>
     `;
   }
