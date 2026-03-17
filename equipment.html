@@ -841,9 +841,9 @@
 
     // 1. 캐릭터 기본 스탯
     const base = charStatData[selChar.name];
-    if(!base) return null; // 스탯 시트에 없으면 계산 불가
+    if(!base) return null;
 
-    // 2. 장비 버프 합산
+    // ── 2. 장비 버프 합산 (flat + %) ──
     let flat = { hp:0, atk:0, def:0, fire_rate:0 };
     let pct  = { hp:0, atk:0, def:0, fire_rate:0 };
     EQUIP_SLOTS.forEach(slot => {
@@ -852,13 +852,13 @@
       const key = sel.item.name + '_' + sel.grade;
       const stat = equipStatData[key];
       if(!stat) return;
-      flat.hp        += stat.hp;     pct.hp        += stat.hp_p;
-      flat.atk       += stat.atk;    pct.atk       += stat.atk_p;
-      flat.def       += stat.def;    pct.def       += stat.def_p;
-      flat.fire_rate += stat.spd;    pct.fire_rate += stat.spd_p; // 장비 spd → 발사속도 버프
+      flat.hp        += stat.hp;    pct.hp        += stat.hp_p;
+      flat.atk       += stat.atk;   pct.atk       += stat.atk_p;
+      flat.def       += stat.def;   pct.def       += stat.def_p;
+      flat.fire_rate += stat.spd;   pct.fire_rate += stat.spd_p;
     });
 
-    // 3. 무기 버프 합산
+    // ── 3. 무기 튜닝 버프 합산 (flat + %) ──
     let wFlat = { fire:0, armor_break:0, fire_rate:0, ammo:0, range:0, accuracy:0 };
     let wPct  = { fire:0, armor_break:0, fire_rate:0, fire_range:0 };
     WEAPON_SLOTS.forEach(slot => {
@@ -867,7 +867,7 @@
       const key = sel.item.name + '_' + sel.grade;
       const stat = weaponStatData[key];
       if(!stat) return;
-      wFlat.fire        += stat.fire;       wPct.fire        += stat.fire_p;
+      wFlat.fire        += stat.fire;        wPct.fire        += stat.fire_p;
       wFlat.armor_break += stat.armor_break; wPct.armor_break += stat.armor_break_p;
       wFlat.fire_rate   += stat.fire_rate;   wPct.fire_rate   += stat.fire_rate_p;
       wFlat.ammo        += stat.ammo;
@@ -876,28 +876,45 @@
       wPct.fire_range   += stat.fire_range_p;
     });
 
-    // 4. 최종 스탯 계산 (flat 먼저, % 나중)
+    // ── 4. 최종 스탯 계산 (flat 먼저 → % 배율 적용) ──
     const final = {
-      hp:        Math.round((base.hp        + flat.hp)        * (1 + pct.hp        / 100)),
-      atk:       Math.round((base.atk       + flat.atk)       * (1 + pct.atk       / 100)),
-      def:       Math.round((base.def       + flat.def)       * (1 + pct.def       / 100)),
-      fire_rate: Math.round(((base.fire_rate + flat.fire_rate) * (1 + pct.fire_rate / 100) + wFlat.fire_rate * (1 + wPct.fire_rate / 100)) * 10) / 10,
-      fire:      Math.round(wFlat.fire       * (1 + wPct.fire        / 100)),
-      armor_break: Math.round(wFlat.armor_break* (1 + wPct.armor_break / 100)),
-      ammo:      wFlat.ammo,
-      range:     Math.round(base.range + wFlat.range),
-      accuracy:  wFlat.accuracy,
+      hp:          Math.round((base.hp  + flat.hp)  * (1 + pct.hp  / 100)),
+      atk:         Math.round((base.atk + flat.atk) * (1 + pct.atk / 100)),
+      def:         Math.round((base.def + flat.def) * (1 + pct.def / 100)),
+      // 발사속도: 캐릭터 기본 + 장비 보정 + 무기 튜닝 (각각 % 적용 후 합산)
+      fire_rate:   Math.round(
+                     (base.fire_rate + flat.fire_rate) * (1 + pct.fire_rate / 100)
+                   + wFlat.fire_rate * (1 + wPct.fire_rate / 100)
+                   ),
+      // 화력: 무기 튜닝 flat × % 배율
+      fire:        Math.round(wFlat.fire * (1 + wPct.fire / 100)),
+      // 방어구파괴: 무기 튜닝 flat × % 배율
+      armor_break: Math.round(wFlat.armor_break * (1 + wPct.armor_break / 100)),
+      ammo:        wFlat.ammo,
+      // 유효거리: 캐릭터 기본 사거리 + 무기 튜닝 거리
+      range:       Math.round(base.range + wFlat.range),
+      accuracy:    wFlat.accuracy,
     };
 
-    // 5. 전투력 점수 계산
-    // DPS = 화력(fire) × 발사속도(fire_rate) / 10
-    const dps  = final.fire > 0 ? final.fire * (final.fire_rate || 1) / 10 : final.atk;
+    // ── 5. DPS 계산 ──
+    // 화력이 있으면: DPS = 화력 × (발사속도스탯 ÷ 100)
+    // 화력이 없으면: DPS = 캐릭터 기본 대미지 (무기 미장착 fallback)
+    // * 발사속도 스탯 1701 → ÷100 = 17.01 (스케일 정규화)
+    // * 실제 게임 검증: fire=937, fire_rate=1701, armor_break=1628,
+    //                   hp=1764, def=3233, range=1152 → 파워 2226
+    const dps = final.fire > 0
+      ? final.fire * (final.fire_rate / 100)
+      : final.atk;
+
+    // ── 6. 전투력 점수 ──
+    // 비중 순위: ①화력/DPS(46%) ②방어력+체력(생존, 각15%) ③방어구파괴(15%) ④유효거리(5%)
+    // 검증 기준값: DPS(1036) + DEF(485) + HP(265) + AB(326) + RNG(115) = 2226
     const power = Math.round(
-      dps           * 1.0
-    + final.hp      * 0.3
-    + final.def     * 0.5
-    + final.range   * 0.2
-    + final.armor_break * 0.4
+      dps               * 0.065   // ① 공격력 (DPS)
+    + final.def         * 0.15    // ② 생존력 (방어력)
+    + final.hp          * 0.15    // ② 생존력 (체력)
+    + final.armor_break * 0.20    // ③ 대갑옷 (방어구파괴)
+    + final.range       * 0.10    // ④ 기동력 (유효거리)
     );
 
     return { base, flat, pct, wFlat, wPct, final, dps, power };
@@ -965,12 +982,12 @@
         <div style="font-size:10px;color:#f87171;font-family:'Orbitron',sans-serif;margin-bottom:6px;">🔫 무기 스탯</div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
           ${[
-            ['화력',     final.fire],
-            ['방어구파괴', final.armor_break + '%'],
-            ['발사속도', final.fire_rate ? final.fire_rate + '초' : '–'],
-            ['탄약',     final.ammo || '–'],
-            ['정밀도',   final.accuracy || '–'],
-            ['DPS',      Math.round(dps).toLocaleString()],
+            ['화력',       final.fire],
+            ['방어구파괴',  final.armor_break],
+            ['발사속도',   final.fire_rate || '–'],
+            ['탄약용량',   final.ammo || '–'],
+            ['유효거리',   final.range || '–'],
+            ['DPS',        Math.round(dps).toLocaleString()],
           ].map(([nm,val]) => `
             <div style="text-align:center;">
               <div style="font-size:11px;font-weight:700;color:#fca5a5;">${val}</div>
@@ -981,7 +998,7 @@
 
       <!-- 계산 공식 안내 -->
       <div style="font-size:9px;color:var(--text-dim);text-align:center;line-height:1.6;font-family:'Noto Sans KR',sans-serif;">
-        전투력 = DPS × 1.0 + 체력 × 0.3 + 방어력 × 0.5 + 거리 × 0.2 + 방어구파괴 × 0.4
+        DPS = 화력 × (발사속도 ÷ 100)　│　전투력 = DPS×0.065 + 방어력×0.15 + 체력×0.15 + 방어구파괴×0.20 + 유효거리×0.10
       </div>
     `;
   }
