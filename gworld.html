@@ -4662,7 +4662,7 @@ async function renderWorldBoss() {
 
   // Firebase에서 비동기로 데이터 읽기
   const yestParty   = await wbGetYesterdayParty(username, curWbFbPath);
-  const claimKey    = _wbKey('claimed_' + (yestParty?.date||'') + '_' + username);
+  const claimKey    = _wbKey('claimed_' + wb.id + '_' + (yestParty?.date||'') + '_' + username);
   if(yestParty && !localStorage.getItem(claimKey)) {
     el.innerHTML = html + renderWbClaimSection(username, yestParty, wb);
     return;
@@ -4767,7 +4767,7 @@ function renderWbClaimSection(username, partyInfo, wb=WB_LIST[0]) {
       <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:12px;">
         파티원 ${partyInfo.party.members.length}명이 토벌에 참여했습니다.
       </div>
-      <button onclick="wbClaimReward('${partyInfo.date}')"
+      <button onclick="wbClaimReward('${partyInfo.date}', '${wb.id}')"
         style="background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;color:#000;
           padding:12px 32px;border-radius:10px;font-size:13px;font-weight:700;
           font-family:'Orbitron',sans-serif;cursor:pointer;">
@@ -4817,11 +4817,14 @@ async function wbJoinParty(partyIdx, wbId) {
   renderWorldBoss();
 }
 
-function wbClaimReward(date, wb=WB_LIST[_wbTabIdx]) {
+function wbClaimReward(date, wbId) {
+  // wbId로 명시적으로 보스 특정 — 탭 인덱스에 의존하지 않음
+  const wb = WB_LIST.find(w => w.id === wbId) || WB_LIST[_wbTabIdx];
   const username = gwUN();
   if(!username||username==='_g') return;
 
-  const claimKey = _wbKey('claimed_' + date + '_' + username);
+  // claimKey에 보스ID 포함 → 보스별 독립 보상 수령
+  const claimKey = _wbKey('claimed_' + wb.id + '_' + date + '_' + username);
   if(localStorage.getItem(claimKey)) { gwT('이미 보상을 수령했습니다.'); return; }
   localStorage.setItem(claimKey, '1');
 
