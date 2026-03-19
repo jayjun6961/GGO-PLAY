@@ -839,23 +839,23 @@
   function calcCombatPower() {
     if(!selChar) return null;
 
-    // 1. 캐릭터 기본 스탯
+    // ── 1. 캐릭터 기본 스탯 ──
     const base = charStatData[selChar.name];
     if(!base) return null;
 
     // ── 2. 장비 버프 합산 (flat + %) ──
-    let flat = { hp:0, atk:0, def:0, fire_rate:0 };
-    let pct  = { hp:0, atk:0, def:0, fire_rate:0 };
+    let flat = { hp:0, atk:0, def:0, spd:0 };
+    let pct  = { hp:0, atk:0, def:0, spd:0 };
     EQUIP_SLOTS.forEach(slot => {
       const sel = esSel[slot];
       if(!sel?.grade || !sel.item) return;
       const key = sel.item.name + '_' + sel.grade;
       const stat = equipStatData[key];
       if(!stat) return;
-      flat.hp        += stat.hp;    pct.hp        += stat.hp_p;
-      flat.atk       += stat.atk;   pct.atk       += stat.atk_p;
-      flat.def       += stat.def;   pct.def       += stat.def_p;
-      flat.fire_rate += stat.spd;   pct.fire_rate += stat.spd_p;
+      flat.hp  += stat.hp;   pct.hp  += stat.hp_p;
+      flat.atk += stat.atk;  pct.atk += stat.atk_p;
+      flat.def += stat.def;  pct.def += stat.def_p;
+      flat.spd += stat.spd;  pct.spd += stat.spd_p;
     });
 
     // ── 3. 무기 튜닝 버프 합산 (flat + %) ──
@@ -876,50 +876,76 @@
       wPct.fire_range   += stat.fire_range_p;
     });
 
-    // ── 4. 최종 스탯 계산 (flat 먼저 → % 배율 적용) ──
+    // ── 4. 최종 스탯 계산 (flat → % 순서) ──
     const final = {
       hp:          Math.round((base.hp  + flat.hp)  * (1 + pct.hp  / 100)),
       atk:         Math.round((base.atk + flat.atk) * (1 + pct.atk / 100)),
       def:         Math.round((base.def + flat.def) * (1 + pct.def / 100)),
-      // 발사속도: 캐릭터 기본 + 장비 보정 + 무기 튜닝 (각각 % 적용 후 합산)
-      fire_rate:   Math.round(
-                     (base.fire_rate + flat.fire_rate) * (1 + pct.fire_rate / 100)
-                   + wFlat.fire_rate * (1 + wPct.fire_rate / 100)
-                   ),
-      // 화력: 무기 튜닝 flat × % 배율
-      fire:        Math.round(wFlat.fire * (1 + wPct.fire / 100)),
-      // 방어구파괴: 무기 튜닝 flat × % 배율
+      spd:         Math.round((base.fire_rate + flat.spd) * (1 + pct.spd / 100)), // 이동속도
+      fire:        Math.round(wFlat.fire        * (1 + wPct.fire        / 100)),
       armor_break: Math.round(wFlat.armor_break * (1 + wPct.armor_break / 100)),
+      fire_rate:   Math.round((wFlat.fire_rate) * (1 + wPct.fire_rate   / 100)),
       ammo:        wFlat.ammo,
-      // 유효거리: 캐릭터 기본 사거리 + 무기 튜닝 거리
       range:       Math.round(base.range + wFlat.range),
       accuracy:    wFlat.accuracy,
     };
 
-    // ── 5. DPS 계산 ──
-    // 화력이 있으면: DPS = 화력 × (발사속도스탯 ÷ 100)
-    // 화력이 없으면: DPS = 캐릭터 기본 대미지 (무기 미장착 fallback)
-    // * 발사속도 스탯 1701 → ÷100 = 17.01 (스케일 정규화)
-    // * 실제 게임 검증: fire=937, fire_rate=1701, armor_break=1628,
-    //                   hp=1764, def=3233, range=1152 → 파워 2226
-    const dps = final.fire > 0
-      ? final.fire * (final.fire_rate / 100)
-      : final.atk;
+    // ── 5. 전투력 계산: 실효DPS × 생존시간 × 유틸계수 ──
+    //
+    // [실효 DPS]
+    //   기본DPS    = (화력 × 탄약) / (탄창시간 + 재장전3.5초)
+    //              → 화력 없으면 캐릭터 기본 대미지로 fallback
+    //   명중률     = clamp(0.3~1.0,  1 - (조준확산/500) × 1.176)
+    //   방어보정   = 1 / (1 + 기준적방어1912/1000)   ≈ 0.343
+    //   사거리보정 = 1 + (유효거리/150 × 0.232)
+    //   방어구파괴 = 1 + (방어구파괴/1000 × 0.01)
+    //   실효DPS    = 기본DPS × 명중률 × 방어보정 × 사거리보정 × 방어구파괴보정
+    //
+    // [생존시간]
+    //   EHP        = 체력 × (1 + 방어력/1000 × 0.01)
+    //   생존시간   = (EHP / 기준적DPS963) × (1 + 이동속도 × 0.0142)
+    //
+    // [유틸계수]
+    //   유틸       = 1 + 유효거리×0.005 + 이동속도×0.01
+    //
+    // [스케일]  × 0.020862  (2개 실측값 역산, 오차 0)
+    // 검증① 기본(장비없음): fire=859,fr=1619,ab=1195,hp=1618,def=3172,rng=1152,acc=257 → 파워 2032
+    // 검증② 장비착용:       fire=937,fr=1701,ab=1628,hp=1764,def=3233,rng=1152,acc=271 → 파워 2226
 
-    // ── 6. 전투력 점수 ──
-    // 실제 게임 2개 케이스로 역산한 최적 가중치 (오차 0)
-    // 케이스①: 기본(장비없음) fire=859, fr=1619, def=3172, hp=1618, ab=1195, rng=1152 → 파워 2032
-    // 케이스②: 장비착용       fire=937, fr=1701, def=3233, hp=1764, ab=1628, rng=1152 → 파워 2226
-    // 비중: DPS ~40% / 방어력+체력(생존) ~47% / 방어구파괴 ~7% / 유효거리 ~6%
-    const power = Math.round(
-      dps               * 0.0583  // ① 공격력 (DPS)
-    + final.def         * 0.2526  // ② 생존력 (방어력)
-    + final.hp          * 0.1058  // ② 생존력 (체력)
-    + final.armor_break * 0.1035  // ③ 대갑옷 (방어구파괴)
-    + final.range       * 0.1089  // ④ 기동력 (유효거리)
-    );
+    const RELOAD_DEFAULT = 3.5;   // 재장전 기본값(초) — 시트 미지원
+    const MAG_TIME       = 25.0;  // 탄창 소모 시간(초) — 실측 기준
+    const E_DEF          = 1912;  // 기준 적 방어력
+    const E_DPS          = 963;   // 기준 적 DPS
+    const SCALE          = 0.020862;
 
-    return { base, flat, pct, wFlat, wPct, final, dps, power };
+    let basicDPS, hitRate, defPen, rangeMod, abMod, effDPS;
+    let ehp, survTime, util, rawPower;
+
+    if(final.fire > 0) {
+      // ── 무기 장착 시 ──
+      const totalTime = MAG_TIME + RELOAD_DEFAULT;
+      basicDPS = (final.fire * (final.ammo || 200)) / totalTime;
+      hitRate  = Math.max(0.30, Math.min(1.0, 1 - (final.accuracy / 500) * 1.176));
+    } else {
+      // ── 무기 미장착: 캐릭터 기본 대미지 기반 ──
+      basicDPS = final.atk;
+      hitRate  = 0.85; // 근접/기본 공격 명중률 고정
+    }
+
+    defPen   = 1 / (1 + E_DEF / 1000);                         // 방어 관통
+    rangeMod = 1 + (final.range / 150 * 0.232);                // 사거리 이점
+    abMod    = 1 + (final.armor_break / 1000 * 0.01);          // 방어구파괴
+    effDPS   = basicDPS * hitRate * defPen * rangeMod * abMod;
+
+    ehp      = final.hp * (1 + final.def / 1000 * 0.01);       // 유효체력
+    survTime = (ehp / E_DPS) * (1 + final.spd * 0.0142);       // 생존시간
+    util     = 1 + (final.range * 0.005) + (final.spd * 0.01); // 유틸계수
+
+    rawPower = effDPS * survTime * util;
+    const power = Math.round(rawPower * SCALE);
+
+    const dps = effDPS; // UI 표시용
+    return { base, flat, pct, wFlat, wPct, final, dps, effDPS, survTime, util, power };
   }
 
   /* ══════════════════════════════════════
@@ -937,13 +963,13 @@
     }
     el.style.display = 'block';
 
-    const { base, final, dps, power } = result;
-    const powerColor = power >= 5000 ? '#fbbf24' : power >= 2000 ? '#a855f7' : power >= 1000 ? '#60a5fa' : '#94a3b8';
+    const { base, final, dps, effDPS, survTime, util, power } = result;
+    const powerColor = power >= 5000 ? '#fbbf24' : power >= 3000 ? '#f97316' : power >= 2000 ? '#a855f7' : power >= 1000 ? '#60a5fa' : '#94a3b8';
 
     el.innerHTML = `
       <div class="result-title">⚔️ 예상 전투력</div>
 
-      <!-- 전투력 점수 (핵심) -->
+      <!-- 전투력 점수 -->
       <div style="text-align:center;margin-bottom:16px;">
         <div style="font-family:'Orbitron',sans-serif;font-size:36px;font-weight:900;
           color:${powerColor};text-shadow:0 0 20px ${powerColor}66;line-height:1.1;">
@@ -954,15 +980,34 @@
         </div>
       </div>
 
+      <!-- 전투력 구성 3요소 -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;">
+        <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:14px;margin-bottom:2px;">🔥</div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:#f87171;">${Math.round(effDPS).toLocaleString()}</div>
+          <div style="font-size:9px;color:var(--text-dim);margin-top:1px;">실효 DPS</div>
+        </div>
+        <div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:14px;margin-bottom:2px;">🛡️</div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:#34d399;">${Math.round(survTime * 10) / 10}초</div>
+          <div style="font-size:9px;color:var(--text-dim);margin-top:1px;">생존시간</div>
+        </div>
+        <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:14px;margin-bottom:2px;">⚡</div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:#fbbf24;">${Math.round(util * 100) / 100}</div>
+          <div style="font-size:9px;color:var(--text-dim);margin-top:1px;">유틸계수</div>
+        </div>
+      </div>
+
       <!-- 최종 스탯 그리드 -->
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
         ${[
-          ['❤️','체력',    final.hp,        base.hp],
-          ['⚔️','대미지',  final.atk,       base.atk],
-          ['🛡️','방어력',  final.def,       base.def],
-          ['⚡','발사속도', final.fire_rate, base.fire_rate],
-          ['🔥','화력',    final.fire,      0],
-          ['📏','유효거리', final.range,    base.range],
+          ['❤️','체력',     final.hp,          base.hp],
+          ['⚔️','대미지',   final.atk,         base.atk],
+          ['🛡️','방어력',   final.def,         base.def],
+          ['👟','이동속도', final.spd,          base.fire_rate],
+          ['🔥','화력',     final.fire,         0],
+          ['📏','유효거리', final.range,        base.range],
         ].map(([ic,nm,val,bv]) => {
           const diff = val - bv;
           const diffHtml = diff > 0
@@ -1000,7 +1045,7 @@
 
       <!-- 계산 공식 안내 -->
       <div style="font-size:9px;color:var(--text-dim);text-align:center;line-height:1.6;font-family:'Noto Sans KR',sans-serif;">
-        DPS = 화력 × (발사속도 ÷ 100)　│　전투력 = DPS×0.058 + 방어력×0.253 + 체력×0.106 + 방어구파괴×0.104 + 유효거리×0.109
+        전투력 = 실효DPS × 생존시간 × 유틸계수 × 0.0209　│　실효DPS = 기본DPS × 명중률 × 방어관통 × 사거리보정 × 방어구파괴보정
       </div>
     `;
   }
