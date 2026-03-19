@@ -4807,9 +4807,20 @@ async function wbJoinParty(partyIdx, wbId) {
   }
 
   party.members.push({ user:username, job:G.job, lv:G.lv, joinAt:Date.now() });
+
+  // Firebase 저장 — 실패 시 함수 중단 (catch 안의 return은 콜백만 종료하므로 변수로 처리)
+  let saveFailed = false;
   await window._gwDB.ref(partyPath).set(party).catch(e => {
-    gwT('파티 참가 중 오류가 발생했습니다.'); console.warn(e); return;
+    console.warn('[WB] Firebase 저장 실패:', wb.fbPath, e.code, e.message);
+    if(e.code === 'PERMISSION_DENIED') {
+      gwT('⚠️ Firebase 권한 오류 — DB 규칙에서 ' + wb.fbPath + ' 경로를 허용해주세요.');
+    } else {
+      gwT('⚠️ 파티 참가 중 오류: ' + (e.message||e.code||'알 수 없는 오류'));
+    }
+    saveFailed = true;
   });
+  if(saveFailed) return; // 저장 실패 시 이후 로직 중단
+
   _wbCache[wb.fbPath+'_party_' + today + '_' + idx] = party; // fbPath 포함해 보스별 캐시 분리
 
   gwT(`👻 파티 ${idx+1}에 참가! 자정 이후 보상 수령 가능합니다.`);
