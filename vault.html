@@ -100,6 +100,22 @@
   .reward-box-desc{font-size:13px;color:var(--text-main);margin-bottom:20px;line-height:1.6;}
   .reward-box-btn{width:100%;padding:13px;background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;border-radius:12px;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}
 
+  /* ── 빙고/전체 보상 섹션 ── */
+  .bonus-section{margin-bottom:20px;}
+  .bonus-section-title{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--purple-3);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .bonus-list{display:flex;flex-direction:column;gap:6px;}
+  .bonus-item{background:var(--bg-card);border:1px solid rgba(124,58,237,.15);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;transition:all .2s;}
+  .bonus-item.claimed{border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.06);}
+  .bonus-item.locked{opacity:.5;}
+  .bonus-item-icon{font-size:22px;flex-shrink:0;}
+  .bonus-item-info{flex:1;}
+  .bonus-item-name{font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:2px;}
+  .bonus-item-reward{font-size:11px;color:#94a3b8;}
+  .bonus-item-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-family:'Orbitron',sans-serif;font-weight:700;flex-shrink:0;}
+  .bonus-item-badge.done{background:rgba(52,211,153,.2);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+  .bonus-item-badge.ready{background:rgba(251,191,36,.2);color:#fbbf24;border:1px solid rgba(251,191,36,.3);cursor:pointer;}
+  .bonus-item-badge.locked{background:rgba(71,85,105,.2);color:#64748b;border:1px solid rgba(71,85,105,.2);}
+
   /* ── 로딩 ── */
   .loading-state{text-align:center;padding:48px 20px;color:#475569;font-size:13px;}
   .loading-spin{width:28px;height:28px;border:3px solid rgba(124,58,237,.2);border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
@@ -222,16 +238,19 @@
 const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub';
 // 금고 승리 횟수 시트: A=유저명, B=승리횟수
 const CSV_VAULT_WINS   = SHEET_BASE + '?gid=VAULT_WINS_GID&single=true&output=csv';
-// 빙고 보상 시트: A=칸번호(1~25), B=보상종류(GP/루비/크리스탈/FP/G골드/칭호), C=보상값
+// 빙고 보상 시트 (칸 + 빙고완성 + 전체완주 통합):
+//   A=타입(칸/빙고/전체), B=키(1~25 / 가로1~가로5·세로1~세로5·대각1·대각2 / 완주), C=보상종류, D=보상값
 const CSV_BINGO_REWARDS = SHEET_BASE + '?gid=BINGO_REWARDS_GID&single=true&output=csv';
 
-// ── 상수 ──
+// ── 빙고 라인 정의 ──
 const BINGO_LINES = [
   [1,2,3,4,5],[6,7,8,9,10],[11,12,13,14,15],[16,17,18,19,20],[21,22,23,24,25], // 가로
   [1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],[5,10,15,20,25], // 세로
   [1,7,13,19,25],[5,9,13,17,21]  // 대각선
 ];
-const LINE_LABELS = ['가로1','가로2','가로3','가로4','가로5','세로1','세로2','세로3','세로4','세로5','↘대각','↙대각'];
+const LINE_LABELS  = ['가로1','가로2','가로3','가로4','가로5','세로1','세로2','세로3','세로4','세로5','대각1','대각2'];
+const LINE_ICONS   = ['➡','➡','➡','➡','➡','⬇','⬇','⬇','⬇','⬇','↘','↙'];
+const LINE_KEYS    = ['가로1','가로2','가로3','가로4','가로5','세로1','세로2','세로3','세로4','세로5','대각1','대각2'];
 
 // ── 재화 이모지/색상 맵 ──
 const REWARD_MAP = {
@@ -246,10 +265,10 @@ const REWARD_MAP = {
 // ── 상태 ──
 let username = '';
 let isLoggedIn = false;
-let wins = 0;           // 이 유저의 금고 승리 횟수
-let rewards = {};       // {칸번호: {type, value}}
-let openedCells = [];   // 오픈한 칸 목록 (localStorage)
-let pendingCell = null; // 오픈 대기 칸
+let wins = 0;
+let rewards = {};      // {칸번호: {type, value}}
+let bingoRewards = {}; // {'가로1': {type, value}, ...}
+let fullRewards = [];  // [{type, value}] — 완주 보상(여러 개 가능)
 
 function toast(msg) {
   const t = document.getElementById('toast');
@@ -269,51 +288,55 @@ function parseCSV(txt) {
   }).filter(r=>r[0]);
 }
 
-// localStorage 키
-const winsKey   = () => `ggo_vault_opened_${username}`;   // 오픈한 칸 목록
-const usedKey   = () => `ggo_vault_usedwins_${username}`; // 사용한 승리 횟수
+// ── localStorage 키 ──
+const openedKey     = () => `ggo_vault_opened_${username}`;      // 오픈한 칸 배열
+const bingoClaimKey = () => `ggo_vault_bingo_${username}`;       // 빙고 보상 수령 배열
+const fullClaimKey  = () => `ggo_vault_full_${username}`;        // 완주 보상 수령 여부
 
-function getOpened() {
-  try { return JSON.parse(localStorage.getItem(winsKey())||'[]'); } catch { return []; }
-}
-function getUsedWins() {
-  return parseInt(localStorage.getItem(usedKey())||'0', 10);
-}
-function saveOpened(arr) {
-  localStorage.setItem(winsKey(), JSON.stringify(arr));
-  localStorage.setItem(usedKey(), String(arr.length));
-}
+function getOpened()     { try{return JSON.parse(localStorage.getItem(openedKey())||'[]');}catch{return [];} }
+function getBingoClaim() { try{return JSON.parse(localStorage.getItem(bingoClaimKey())||'[]');}catch{return [];} }
+function getFullClaim()  { return localStorage.getItem(fullClaimKey())==='1'; }
+function saveOpened(arr) { localStorage.setItem(openedKey(), JSON.stringify(arr)); }
+function saveBingoClaim(arr) { localStorage.setItem(bingoClaimKey(), JSON.stringify(arr)); }
+function saveFullClaim() { localStorage.setItem(fullClaimKey(), '1'); }
 
-// ── 남은 오픈 가능 횟수 ──
-function remainingOpens() {
-  return Math.max(0, wins - getOpened().length);
-}
+function remainingOpens() { return Math.max(0, wins - getOpened().length); }
 
 async function loadAll() {
-  username = sessionStorage.getItem('ggo_username') || '';
+  username  = sessionStorage.getItem('ggo_username') || '';
   isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
 
   try {
-    // 빙고 보상 시트 로드
     const [rw, rb] = await Promise.all([
       fetch(CSV_VAULT_WINS    + '&t=' + Date.now(), {cache:'no-store'}),
       fetch(CSV_BINGO_REWARDS + '&t=' + Date.now(), {cache:'no-store'}),
     ]);
 
-    // 승리 횟수 파싱
+    // 승리 횟수
     const wRows = parseCSV(await rw.text());
     if(isLoggedIn && username) {
       const row = wRows.find(r => (r[0]||'').trim().toLowerCase() === username.toLowerCase());
       wins = row ? (parseInt(row[1])||0) : 0;
     }
 
-    // 빙고 보상 파싱
+    // 보상 시트 파싱 — A=타입, B=키, C=보상종류, D=보상값
     const bRows = parseCSV(await rb.text());
-    rewards = {};
+    rewards = {}; bingoRewards = {}; fullRewards = [];
     bRows.forEach(r => {
-      const num = parseInt(r[0]);
-      if(num >= 1 && num <= 25) {
-        rewards[num] = { type: (r[1]||'').trim(), value: (r[2]||'').trim() };
+      const type  = (r[0]||'').trim();  // 칸 / 빙고 / 전체
+      const key   = (r[1]||'').trim();  // 숫자 or 가로1 or 완주
+      const rType = (r[2]||'').trim();  // GP / 루비 / ...
+      const rVal  = (r[3]||'').trim();  // 숫자 or 칭호명
+
+      if(type === '칸') {
+        const num = parseInt(key);
+        if(num >= 1 && num <= 25) rewards[num] = {type:rType, value:rVal};
+      } else if(type === '빙고') {
+        // key: 가로1~가로5, 세로1~세로5, 대각1, 대각2
+        bingoRewards[key] = {type:rType, value:rVal};
+      } else if(type === '전체') {
+        // 완주 보상 — 여러 행 가능
+        if(rType) fullRewards.push({type:rType, value:rVal});
       }
     });
   } catch(e) {
@@ -329,6 +352,8 @@ function render() {
   renderWins();
   renderGrid();
   renderLines();
+  renderBingoBonus();
+  renderFullClear();
 }
 
 function renderWins() {
@@ -337,8 +362,8 @@ function renderWins() {
     area.innerHTML = `<div class="login-notice">🔒 금고 승리 횟수 및 빙고 오픈은 로그인 후 이용 가능합니다.</div>`;
     return;
   }
-  const opened  = getOpened();
-  const remain  = remainingOpens();
+  const opened = getOpened();
+  const remain = remainingOpens();
   area.innerHTML = `
     <div class="wins-card">
       <div class="wins-icon">🏆</div>
@@ -355,40 +380,33 @@ function renderWins() {
 }
 
 function renderGrid() {
-  const grid = document.getElementById('bingo-grid');
+  const grid   = document.getElementById('bingo-grid');
   const opened = getOpened();
   const remain = remainingOpens();
   let html = '';
   for(let i = 1; i <= 25; i++) {
-    const isOpened  = opened.includes(i);
-    const reward    = rewards[i] || null;
-    const rm        = reward ? (REWARD_MAP[reward.type] || {emoji:'🎁',color:'#c084fc',label:reward.type}) : null;
-    const canOpen   = isLoggedIn && !isOpened && remain > 0;
+    const isOpened = opened.includes(i);
+    const reward   = rewards[i] || null;
+    const rm       = reward ? (REWARD_MAP[reward.type] || {emoji:'🎁',color:'#c084fc',label:reward.type}) : null;
+    const canOpen  = isLoggedIn && !isOpened && remain > 0 && reward;
 
     if(isOpened && reward) {
-      html += `
-        <div class="bingo-cell opened">
+      html += `<div class="bingo-cell opened">
           <span class="cell-num">${i}</span>
           <span class="cell-emoji">${rm.emoji}</span>
           <span class="cell-val" style="color:${rm.color};">${reward.type==='칭호'?reward.value:(reward.value+' '+rm.label)}</span>
         </div>`;
     } else if(isOpened) {
-      html += `
-        <div class="bingo-cell opened">
-          <span class="cell-num">${i}</span>
-          <span class="cell-emoji">✅</span>
+      html += `<div class="bingo-cell opened">
+          <span class="cell-num">${i}</span><span class="cell-emoji">✅</span>
         </div>`;
     } else if(!reward) {
-      // 보상 미설정 칸
-      html += `
-        <div class="bingo-cell disabled">
-          <span class="cell-num">${i}</span>
-          <span class="cell-lock">🔒</span>
+      html += `<div class="bingo-cell disabled">
+          <span class="cell-num">${i}</span><span class="cell-lock">🔒</span>
         </div>`;
     } else {
       const cls = canOpen ? '' : 'disabled';
-      html += `
-        <div class="bingo-cell ${cls}" onclick="${canOpen?`openCell(${i})`:''}">
+      html += `<div class="bingo-cell ${cls}" onclick="${canOpen?`openCell(${i})`:''}">
           <span class="cell-num">${i}</span>
           <span class="cell-lock">${!isLoggedIn?'🔒':'❓'}</span>
         </div>`;
@@ -399,7 +417,7 @@ function renderGrid() {
 
 function renderLines() {
   const opened = getOpened();
-  const row = document.getElementById('bingo-lines-row');
+  const row    = document.getElementById('bingo-lines-row');
   let html = '';
   let completeCount = 0;
   BINGO_LINES.forEach((line, idx) => {
@@ -408,10 +426,122 @@ function renderLines() {
     html += `<span class="bingo-line-chip ${complete?'complete':''}">${LINE_LABELS[idx]}${complete?' ✓':''}</span>`;
   });
   row.innerHTML = html;
-  if(completeCount > 0) {
-    const sec = document.querySelector('.bingo-lines-title');
-    if(sec) sec.textContent = `🎯 빙고 완성 현황 — ${completeCount}줄 완성!`;
+  const title = document.querySelector('.bingo-lines-title');
+  if(title) title.textContent = completeCount > 0 ? `🎯 빙고 완성 현황 — ${completeCount}줄 완성!` : '🎯 빙고 완성 현황';
+}
+
+// ── 빙고 완성 보상 섹션 ──
+function renderBingoBonus() {
+  if(Object.keys(bingoRewards).length === 0) {
+    document.getElementById('bingo-bonus-section').style.display = 'none';
+    return;
   }
+  document.getElementById('bingo-bonus-section').style.display = 'block';
+  const opened  = getOpened();
+  const claimed = getBingoClaim();
+  let html = '';
+  LINE_KEYS.forEach((key, idx) => {
+    const line    = BINGO_LINES[idx];
+    const reward  = bingoRewards[key];
+    if(!reward) return;
+    const rm       = REWARD_MAP[reward.type] || {emoji:'🎁',color:'#c084fc',label:reward.type};
+    const complete = line.every(n => opened.includes(n));
+    const isClaimed = claimed.includes(key);
+    const rewardTxt = reward.type==='칭호' ? reward.value : (reward.value+' '+rm.label);
+    let badgeHtml = '';
+    if(isClaimed) {
+      badgeHtml = `<span class="bonus-item-badge done">수령완료</span>`;
+    } else if(complete && isLoggedIn) {
+      badgeHtml = `<span class="bonus-item-badge ready" onclick="claimBingoBonus('${key}')">수령하기</span>`;
+    } else {
+      badgeHtml = `<span class="bonus-item-badge locked">${complete?'로그인 필요':'미완성'}</span>`;
+    }
+    html += `<div class="bonus-item ${isClaimed?'claimed':complete?'':'locked'}">
+      <div class="bonus-item-icon">${LINE_ICONS[idx]}</div>
+      <div class="bonus-item-info">
+        <div class="bonus-item-name">${LINE_LABELS[idx]} 완성</div>
+        <div class="bonus-item-reward" style="color:${rm.color};">${rm.emoji} ${rewardTxt}</div>
+      </div>
+      ${badgeHtml}
+    </div>`;
+  });
+  document.getElementById('bingo-bonus-list').innerHTML = html;
+}
+
+function claimBingoBonus(key) {
+  if(!isLoggedIn) { toast('로그인이 필요합니다.'); return; }
+  const opened  = getOpened();
+  const claimed = getBingoClaim();
+  if(claimed.includes(key)) { toast('이미 수령한 보상입니다.'); return; }
+  const idx    = LINE_KEYS.indexOf(key);
+  if(idx < 0) return;
+  const line   = BINGO_LINES[idx];
+  if(!line.every(n => opened.includes(n))) { toast('아직 빙고가 완성되지 않았습니다.'); return; }
+  const reward = bingoRewards[key];
+  if(!reward) return;
+
+  giveReward(reward.type, reward.value);
+  claimed.push(key);
+  saveBingoClaim(claimed);
+
+  const rm = REWARD_MAP[reward.type] || {emoji:'🎁',color:'#c084fc',label:reward.type};
+  const rewardTxt = reward.type==='칭호' ? reward.value : (reward.value+' '+rm.label);
+  showRewardPopup(rm.emoji, `${LINE_LABELS[idx]} 빙고 보상!`, `<span style="font-size:22px;font-weight:700;color:${rm.color};">${rm.emoji} ${rewardTxt}</span><br><span style="font-size:12px;color:#94a3b8;">보상이 지급되었습니다!</span>`);
+  renderBingoBonus();
+}
+
+// ── 25칸 완주 보상 섹션 ──
+function renderFullClear() {
+  if(fullRewards.length === 0) {
+    document.getElementById('fullclear-section').style.display = 'none';
+    return;
+  }
+  document.getElementById('fullclear-section').style.display = 'block';
+  const opened    = getOpened();
+  const isAllDone = opened.length >= 25;
+  const isClaimed = getFullClaim();
+
+  let rewardListHtml = fullRewards.map(r => {
+    const rm = REWARD_MAP[r.type] || {emoji:'🎁',color:'#c084fc',label:r.type};
+    const txt = r.type==='칭호' ? r.value : (r.value+' '+rm.label);
+    return `<span style="color:${rm.color};">${rm.emoji} ${txt}</span>`;
+  }).join(' &nbsp;+&nbsp; ');
+
+  let badgeHtml = '';
+  if(isClaimed) {
+    badgeHtml = `<span class="bonus-item-badge done">수령완료</span>`;
+  } else if(isAllDone && isLoggedIn) {
+    badgeHtml = `<span class="bonus-item-badge ready" onclick="claimFullClear()">수령하기</span>`;
+  } else {
+    badgeHtml = `<span class="bonus-item-badge locked">${isAllDone?'로그인 필요':'미완성'}</span>`;
+  }
+
+  document.getElementById('fullclear-list').innerHTML = `
+    <div class="bonus-item ${isClaimed?'claimed':isAllDone?'':'locked'}">
+      <div class="bonus-item-icon">🏆</div>
+      <div class="bonus-item-info">
+        <div class="bonus-item-name">25칸 전체 완주</div>
+        <div class="bonus-item-reward">${rewardListHtml}</div>
+      </div>
+      ${badgeHtml}
+    </div>`;
+}
+
+function claimFullClear() {
+  if(!isLoggedIn) { toast('로그인이 필요합니다.'); return; }
+  if(getFullClaim()) { toast('이미 수령한 보상입니다.'); return; }
+  if(getOpened().length < 25) { toast('아직 25칸을 모두 열지 않았습니다.'); return; }
+
+  fullRewards.forEach(r => giveReward(r.type, r.value));
+  saveFullClaim();
+
+  const rewardLines = fullRewards.map(r => {
+    const rm = REWARD_MAP[r.type] || {emoji:'🎁',color:'#c084fc',label:r.type};
+    const txt = r.type==='칭호' ? r.value : (r.value+' '+rm.label);
+    return `<div style="font-size:18px;font-weight:700;color:${rm.color};">${rm.emoji} ${txt}</div>`;
+  }).join('');
+  showRewardPopup('🏆', '25칸 완주 달성!', rewardLines + '<div style="font-size:12px;color:#94a3b8;margin-top:8px;">모든 보상이 지급되었습니다!</div>');
+  renderFullClear();
 }
 
 function openCell(num) {
@@ -422,23 +552,26 @@ function openCell(num) {
   const reward = rewards[num];
   if(!reward) { toast('보상이 설정되지 않은 칸입니다.'); return; }
 
-  // 칸 오픈 저장
   opened.push(num);
   saveOpened(opened);
-
-  // 보상 지급
   giveReward(reward.type, reward.value);
 
-  // 팝업
-  showReward(reward, num);
+  const rm = REWARD_MAP[reward.type] || {emoji:'🎁',color:'#c084fc',label:reward.type};
+  const rewardTxt = reward.type==='칭호' ? reward.value : (reward.value+' '+rm.label);
+  showRewardPopup(rm.emoji, `${num}번 칸 오픈!`,
+    `<span style="font-size:22px;font-weight:700;color:${rm.color};">${rm.emoji} ${rewardTxt}</span><br>
+     <span style="font-size:12px;color:#94a3b8;">보상이 지급되었습니다!</span>`);
+
   renderGrid();
   renderWins();
   renderLines();
+  renderBingoBonus();
+  renderFullClear();
 }
 
 function giveReward(type, value) {
   const num = parseInt(value) || 0;
-  if(type === 'GP' || type === '루비' || type === '크리스탈') {
+  if(['GP','루비','크리스탈'].includes(type)) {
     const currKey = 'ggo_currency_' + username;
     const curr = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
     if(type === 'GP')       curr['GP']       = (curr['GP']||0) + num;
@@ -447,46 +580,29 @@ function giveReward(type, value) {
     localStorage.setItem(currKey, JSON.stringify(curr));
   } else if(type === 'FP') {
     const fpKey = 'ggo_fp_' + username;
-    const cur = parseInt(localStorage.getItem(fpKey)||'0');
-    localStorage.setItem(fpKey, String(cur + num));
+    localStorage.setItem(fpKey, String((parseInt(localStorage.getItem(fpKey)||'0')) + num));
   } else if(type === 'G골드') {
-    // GWORLD 골드: gwo_save_유저명
     try {
       const saveKey = 'gwo_save_' + username;
       const save = JSON.parse(localStorage.getItem(saveKey)||'null');
-      if(save) {
-        save.gold = (save.gold||0) + num;
-        localStorage.setItem(saveKey, JSON.stringify(save));
-      }
+      if(save) { save.gold = (save.gold||0) + num; localStorage.setItem(saveKey, JSON.stringify(save)); }
     } catch(e) { console.warn('G골드 지급 실패:', e); }
   } else if(type === '칭호') {
-    // 칭호: ggo_items_유저명 에 추가
     try {
       const itemKey = 'ggo_items_' + username;
       const items = JSON.parse(localStorage.getItem(itemKey)||'[]');
-      const already = items.find(it => it.name === value && it.type === '칭호');
-      if(!already) {
-        items.push({
-          _id: Date.now(),
-          type: '칭호',
-          name: value,
-          equipped: false,
-          from: '금고이벤트'
-        });
+      if(!items.find(it => it.name === value && it.type === '칭호')) {
+        items.push({_id:Date.now(), type:'칭호', name:value, equipped:false, from:'금고이벤트'});
         localStorage.setItem(itemKey, JSON.stringify(items));
       }
     } catch(e) { console.warn('칭호 지급 실패:', e); }
   }
 }
 
-function showReward(reward, cellNum) {
-  const rm = REWARD_MAP[reward.type] || {emoji:'🎁', color:'#c084fc', label:reward.type};
-  document.getElementById('reward-icon').textContent  = rm.emoji;
-  document.getElementById('reward-title').textContent = `${cellNum}번 칸 오픈!`;
-  const isTitle = reward.type === '칭호';
-  document.getElementById('reward-desc').innerHTML =
-    `<span style="font-size:22px;font-weight:700;color:${rm.color};">${isTitle?reward.value:(reward.value+' '+rm.label)}</span><br>
-     <span style="font-size:12px;color:#94a3b8;">보상이 지급되었습니다!</span>`;
+function showRewardPopup(icon, title, descHtml) {
+  document.getElementById('reward-icon').textContent  = icon;
+  document.getElementById('reward-title').textContent = title;
+  document.getElementById('reward-desc').innerHTML    = descHtml;
   document.getElementById('reward-overlay').classList.add('on');
 }
 
