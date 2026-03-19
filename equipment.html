@@ -463,7 +463,7 @@
   let charData=[], equipData=[], weaponData=[];
   // 전투력 계산용 스탯 DB
   let charStatData={};   // {캐릭터명: {hp,atk,def,spd,range,resist,fire_rate}}
-  let equipStatData={};  // {'장비명_등급': {hp,hp_p,atk,atk_p,def,def_p,spd,spd_p,armor_break,armor_break_p,...}}
+  let equipStatData={};  // {'장비명_등급': {hp,hp_p,atk,atk_p,def,def_p,spd,spd_p,armor_break,armor_break_p}}
   let weaponStatData={}; // {'무기명_등급': {fire,fire_p,armor_break,armor_break_p,fire_rate,ammo,range,accuracy,...}}
   let selChar=null;
   const esSel={}, wsSel={};   // 장비슬롯 선택, 무기슬롯 선택
@@ -800,7 +800,7 @@
     });
   }
 
-  // 장비스탯 시트: A=장비명, B=등급, C=체력, D=체력%, E=대미지, F=대미지%, G=방어력, H=방어력%, I=이동속도, J=이동속도%
+  // 장비스탯 시트: A=장비명, B=등급, C=체력, D=체력%, E=대미지, F=대미지%, G=방어력, H=방어력%, I=이동속도, J=이동속도%, K=방어구파괴, L=방어구파괴%, M=방어력관통, N=방어력관통%
   function parseEquipStatSheet(rows) {
     equipStatData = {};
     rows.forEach(r => {
@@ -809,15 +809,18 @@
       if(!name||!grade) return;
       const key = name + '_' + grade;
       equipStatData[key] = {
-        hp:     parseFloat(r[2])||0,  hp_p:     parseFloat(r[3])||0,
-        atk:    parseFloat(r[4])||0,  atk_p:    parseFloat(r[5])||0,
-        def:    parseFloat(r[6])||0,  def_p:    parseFloat(r[7])||0,
-        spd:    parseFloat(r[8])||0,  spd_p:    parseFloat(r[9])||0,
+        hp:          parseFloat(r[2])||0,  hp_p:          parseFloat(r[3])||0,
+        atk:         parseFloat(r[4])||0,  atk_p:         parseFloat(r[5])||0,
+        def:         parseFloat(r[6])||0,  def_p:         parseFloat(r[7])||0,
+        spd:         parseFloat(r[8])||0,  spd_p:         parseFloat(r[9])||0,
+        armor_break:   parseFloat(r[10])||0, armor_break_p:   parseFloat(r[11])||0, // K·L열
+        armor_pen:     parseFloat(r[12])||0, armor_pen_p:     parseFloat(r[13])||0, // M·N열 신규
       };
     });
   }
 
-  // 무기스탯 시트: A=무기명, B=등급, C=화력, D=화력%, E=방어구파괴, F=방어구파괴%, G=발사속도, H=발사속도%, I=탄약용량, J=유효거리, K=조준안정성, L=발사범위%
+  // 무기스탯 시트: A=무기명, B=등급, C=화력, D=화력%, E=방어구파괴, F=방어구파괴%,
+  //               G=발사속도, H=탄약용량, I=유효거리, J=조준안정성, K=발사범위, L=방어력관통, M=방어력관통%
   function parseWeaponStatSheet(rows) {
     weaponStatData = {};
     rows.forEach(r => {
@@ -826,13 +829,14 @@
       if(!name||!grade) return;
       const key = name + '_' + grade;
       weaponStatData[key] = {
-        fire:         parseFloat(r[2])||0,  fire_p:         parseFloat(r[3])||0,
-        armor_break:  parseFloat(r[4])||0,  armor_break_p:  parseFloat(r[5])||0,
-        fire_rate:    parseFloat(r[6])||0,  fire_rate_p:    parseFloat(r[7])||0,
-        ammo:         parseFloat(r[8])||0,
-        range:        parseFloat(r[9])||0,
-        accuracy:     parseFloat(r[10])||0,
-        fire_range_p: parseFloat(r[11])||0,
+        fire:         parseFloat(r[2])||0,  fire_p:        parseFloat(r[3])||0,  // C·D
+        armor_break:  parseFloat(r[4])||0,  armor_break_p: parseFloat(r[5])||0,  // E·F
+        fire_rate:    parseFloat(r[6])||0,                                        // G (발사속도, % 없음)
+        ammo:         parseFloat(r[7])||0,                                        // H
+        range:        parseFloat(r[8])||0,                                        // I
+        accuracy:     parseFloat(r[9])||0,                                        // J
+        fire_range_p: parseFloat(r[10])||0,                                       // K (발사범위)
+        armor_pen:    parseFloat(r[11])||0, armor_pen_p:   parseFloat(r[12])||0, // L·M
       };
     });
   }
@@ -849,23 +853,25 @@
     if(!base) return null;
 
     // ── 2. 장비 버프 합산 (flat + %) ──
-    let flat = { hp:0, atk:0, def:0, spd:0 };
-    let pct  = { hp:0, atk:0, def:0, spd:0 };
+    let flat = { hp:0, atk:0, def:0, spd:0, armor_break:0, armor_pen:0 };
+    let pct  = { hp:0, atk:0, def:0, spd:0, armor_break:0, armor_pen:0 };
     EQUIP_SLOTS.forEach(slot => {
       const sel = esSel[slot];
       if(!sel?.grade || !sel.item) return;
       const key = sel.item.name + '_' + sel.grade;
       const stat = equipStatData[key];
       if(!stat) return;
-      flat.hp  += stat.hp;   pct.hp  += stat.hp_p;
-      flat.atk += stat.atk;  pct.atk += stat.atk_p;
-      flat.def += stat.def;  pct.def += stat.def_p;
-      flat.spd += stat.spd;  pct.spd += stat.spd_p;
+      flat.hp          += stat.hp;          pct.hp          += stat.hp_p;
+      flat.atk         += stat.atk;         pct.atk         += stat.atk_p;
+      flat.def         += stat.def;         pct.def         += stat.def_p;
+      flat.spd         += stat.spd;         pct.spd         += stat.spd_p;
+      flat.armor_break += stat.armor_break; pct.armor_break += stat.armor_break_p; // 장비 방어구파괴
+      flat.armor_pen   += (stat.armor_pen||0);  pct.armor_pen   += (stat.armor_pen_p||0);  // 장비 방어력관통
     });
 
     // ── 3. 무기 튜닝 버프 합산 (flat + %) ──
-    let wFlat = { fire:0, armor_break:0, fire_rate:0, ammo:0, range:0, accuracy:0 };
-    let wPct  = { fire:0, armor_break:0, fire_rate:0, fire_range:0 };
+    let wFlat = { fire:0, armor_break:0, fire_rate:0, ammo:0, range:0, accuracy:0, armor_pen:0 };
+    let wPct  = { fire:0, armor_break:0, fire_rate:0, fire_range:0, armor_pen:0 };
     WEAPON_SLOTS.forEach(slot => {
       const sel = wsSel[slot];
       if(!sel?.grade || !sel.item) return;
@@ -874,6 +880,7 @@
       if(!stat) return;
       wFlat.fire        += stat.fire;        wPct.fire        += stat.fire_p;
       wFlat.armor_break += stat.armor_break; wPct.armor_break += stat.armor_break_p;
+      wFlat.armor_pen   += (stat.armor_pen||0);  wPct.armor_pen   += (stat.armor_pen_p||0);
       wFlat.fire_rate   += stat.fire_rate;   wPct.fire_rate   += stat.fire_rate_p;
       wFlat.ammo        += stat.ammo;
       wFlat.range       += stat.range;
@@ -888,7 +895,16 @@
       def:         Math.round((base.def + flat.def) * (1 + pct.def / 100)),
       spd:         Math.round((base.spd + flat.spd) * (1 + pct.spd / 100)),       // 이동속도 (E열)
       fire:        Math.round(wFlat.fire        * (1 + wPct.fire        / 100)),
-      armor_break: Math.round(wFlat.armor_break * (1 + wPct.armor_break / 100)),
+      // 방어구파괴: 무기 튜닝 + 장비 방어구파괴 합산
+      armor_break: Math.round(
+                     wFlat.armor_break * (1 + wPct.armor_break / 100)
+                   + flat.armor_break  * (1 + pct.armor_break  / 100)
+                   ),
+      // 방어력관통: 장비+무기 flat × % 배율 합산
+      armor_pen:   Math.round(
+                     wFlat.armor_pen * (1 + wPct.armor_pen / 100)
+                   + flat.armor_pen  * (1 + pct.armor_pen  / 100)
+                   ),
       fire_rate:   Math.round((wFlat.fire_rate) * (1 + wPct.fire_rate   / 100)),
       ammo:        wFlat.ammo,
       range:       Math.round(base.range + wFlat.range),
@@ -937,7 +953,9 @@
       hitRate  = 0.85; // 근접/기본 공격 명중률 고정
     }
 
-    defPen   = 1 / (1 + E_DEF / 1000);                         // 방어 관통
+    // 방어력관통: 기준 적 방어력에서 내 관통 수치만큼 차감 (최소 0)
+    const effectiveDef = Math.max(0, E_DEF - final.armor_pen);
+    defPen   = 1 / (1 + effectiveDef / 1000);                  // 방어 관통 (관통 높을수록 defPen 상승)
     rangeMod = 1 + (final.range / 150 * 0.232);                // 사거리 이점
     abMod    = 1 + (final.armor_break / 1000 * 0.01);          // 방어구파괴
     effDPS   = basicDPS * hitRate * defPen * rangeMod * abMod;
@@ -1068,7 +1086,7 @@
 
     const E_DEF=1912, E_DPS=963, SCALE=0.020862, MAG_TIME=25.0, RELOAD=3.5;
 
-    let flat={hp:0,atk:0,def:0,spd:0}, pct={hp:0,atk:0,def:0,spd:0};
+    let flat={hp:0,atk:0,def:0,spd:0,armor_break:0,armor_pen:0}, pct={hp:0,atk:0,def:0,spd:0,armor_break:0,armor_pen:0};
     EQUIP_SLOTS.forEach(slot=>{
       const sel=equipSet[slot]; if(!sel?.grade||!sel.item) return;
       const stat=equipStatData[sel.item.name+'_'+sel.grade]; if(!stat) return;
@@ -1076,15 +1094,18 @@
       flat.atk+=stat.atk; pct.atk+=stat.atk_p;
       flat.def+=stat.def; pct.def+=stat.def_p;
       flat.spd+=stat.spd; pct.spd+=stat.spd_p;
+      flat.armor_break+=(stat.armor_break||0); pct.armor_break+=(stat.armor_break_p||0);
+      flat.armor_pen  +=(stat.armor_pen||0);   pct.armor_pen  +=(stat.armor_pen_p||0);
     });
 
-    let wF={fire:0,armor_break:0,fire_rate:0,ammo:0,range:0,accuracy:0};
-    let wP={fire:0,armor_break:0,fire_rate:0};
+    let wF={fire:0,armor_break:0,fire_rate:0,ammo:0,range:0,accuracy:0,armor_pen:0};
+    let wP={fire:0,armor_break:0,fire_rate:0,armor_pen:0};
     WEAPON_SLOTS.forEach(slot=>{
       const sel=weaponSet[slot]; if(!sel?.grade||!sel.item) return;
       const stat=weaponStatData[sel.item.name+'_'+sel.grade]; if(!stat) return;
       wF.fire+=stat.fire; wP.fire+=stat.fire_p;
       wF.armor_break+=stat.armor_break; wP.armor_break+=stat.armor_break_p;
+      wF.armor_pen  +=(stat.armor_pen||0);  wP.armor_pen  +=(stat.armor_pen_p||0);
       wF.fire_rate+=stat.fire_rate; wP.fire_rate+=stat.fire_rate_p;
       wF.ammo+=stat.ammo; wF.range+=stat.range; wF.accuracy+=stat.accuracy;
     });
@@ -1095,7 +1116,8 @@
       def:  Math.round((base.def +flat.def) *(1+pct.def/100)),
       spd:  Math.round((base.spd +flat.spd) *(1+pct.spd/100)),
       fire: Math.round(wF.fire*(1+wP.fire/100)),
-      armor_break: Math.round(wF.armor_break*(1+wP.armor_break/100)),
+      armor_break: Math.round((wF.armor_break*(1+wP.armor_break/100)) + (flat.armor_break*(1+pct.armor_break/100))),
+      armor_pen:   Math.round((wF.armor_pen*(1+wP.armor_pen/100)) + (flat.armor_pen*(1+pct.armor_pen/100))),
       ammo: wF.ammo, range: Math.round(base.range+wF.range), accuracy: wF.accuracy,
       fire_rate: Math.round(wF.fire_rate*(1+wP.fire_rate/100)),
     };
@@ -1107,7 +1129,8 @@
     } else {
       basicDPS=f.atk; hitRate=0.85;
     }
-    const defPen=1/(1+E_DEF/1000);
+    const effectiveDef2=Math.max(0, E_DEF - (f.armor_pen||0));
+    const defPen=1/(1+effectiveDef2/1000);
     const rangeMod=1+(f.range/150*0.232);
     const abMod=1+(f.armor_break/1000*0.01);
     const effDPS=basicDPS*hitRate*defPen*rangeMod*abMod;
@@ -1180,21 +1203,21 @@
 
     // ① 최고 전투력: 전투력 기여 종합 점수
     const {eSet:eB, wSet:wB} = greedyBuild((type,stat)=>{
-      if(type==='equip')  return (stat.hp||0)*0.15+(stat.def||0)*0.25+(stat.atk||0)*0.1+(stat.hp_p||0)*30+(stat.def_p||0)*50;
+      if(type==='equip')  return (stat.hp||0)*0.15+(stat.def||0)*0.25+(stat.atk||0)*0.1+(stat.hp_p||0)*30+(stat.def_p||0)*50+(stat.armor_break||0)*0.2+(stat.armor_pen||0)*0.3;
       if(type==='weapon') return (stat.fire||0)*0.5+(stat.armor_break||0)*0.2+(stat.fire_rate||0)*0.3;
       return 0;
     });
 
     // ② 최고 공격력: DPS 기여 점수
     const {eSet:eA, wSet:wA} = greedyBuild((type,stat)=>{
-      if(type==='equip')  return (stat.atk||0)+(stat.atk_p||0)*10;
+      if(type==='equip')  return (stat.atk||0)+(stat.atk_p||0)*10+(stat.armor_break||0)*0.3+(stat.armor_pen||0)*0.5;
       if(type==='weapon') return (stat.fire||0)*0.6+(stat.fire_p||0)*50+(stat.fire_rate||0)*0.4;
       return 0;
     });
 
     // ③ 최고 생존력: EHP 기여 점수
     const {eSet:eS, wSet:wS} = greedyBuild((type,stat)=>{
-      if(type==='equip')  return (stat.hp||0)*0.15+(stat.hp_p||0)*30+(stat.def||0)*0.25+(stat.def_p||0)*50;
+      if(type==='equip')  return (stat.hp||0)*0.15+(stat.hp_p||0)*30+(stat.def||0)*0.25+(stat.def_p||0)*50+(stat.armor_break||0)*0.1;
       if(type==='weapon') return (stat.armor_break||0)*0.3+(stat.range||0)*0.1;
       return 0;
     });
@@ -1271,6 +1294,8 @@
                   if(stat.hp||stat.hp_p) hints.push(`HP+${stat.hp||''}${stat.hp_p?'('+stat.hp_p+'%)':''}`);
                   if(stat.def||stat.def_p) hints.push(`DEF+${stat.def||''}${stat.def_p?'('+stat.def_p+'%)':''}`);
                   if(stat.atk||stat.atk_p) hints.push(`ATK+${stat.atk||''}${stat.atk_p?'('+stat.atk_p+'%)':''}`);
+                  if(stat.armor_break||stat.armor_break_p) hints.push(`방어구파괴+${stat.armor_break||''}${stat.armor_break_p?'('+stat.armor_break_p+'%)':''}`);
+                  if(stat.armor_pen||stat.armor_pen_p) hints.push(`방어관통+${stat.armor_pen||''}${stat.armor_pen_p?'('+stat.armor_pen_p+'%)':''}`);
                   return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;
                     background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.15);border-radius:7px;">
                     <span style="font-size:13px;">${SLOT_ICONS[slot]}</span>
@@ -1306,6 +1331,7 @@
                   const hints=[];
                   if(stat.fire||stat.fire_p) hints.push(`화력+${stat.fire||''}${stat.fire_p?'('+stat.fire_p+'%)':''}`);
                   if(stat.armor_break) hints.push(`방어구파괴+${stat.armor_break}`);
+                  if(stat.armor_pen||stat.armor_pen_p) hints.push(`방어관통+${stat.armor_pen||''}${stat.armor_pen_p?'('+stat.armor_pen_p+'%)':''}`);
                   if(stat.fire_rate) hints.push(`발사속도+${stat.fire_rate}`);
                   return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;
                     background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:7px;">
