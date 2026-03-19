@@ -237,10 +237,10 @@
 // ── 구글시트 CSV URL (gid는 새 탭 추가 후 실제 gid로 교체해주세요) ──
 const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub';
 // 금고 승리 횟수 시트: A=유저명, B=승리횟수
-const CSV_VAULT_WINS   = SHEET_BASE + '?gid=VAULT_WINS_GID&single=true&output=csv';
+const CSV_VAULT_WINS   = SHEET_BASE + '?gid=1617306718&single=true&output=csv';
 // 빙고 보상 시트 (칸 + 빙고완성 + 전체완주 통합):
 //   A=타입(칸/빙고/전체), B=키(1~25 / 가로1~가로5·세로1~세로5·대각1·대각2 / 완주), C=보상종류, D=보상값
-const CSV_BINGO_REWARDS = SHEET_BASE + '?gid=BINGO_REWARDS_GID&single=true&output=csv';
+const CSV_BINGO_REWARDS = SHEET_BASE + '?gid=1655145276&single=true&output=csv';
 
 // ── 빙고 라인 정의 ──
 const BINGO_LINES = [
@@ -313,10 +313,22 @@ async function loadAll() {
     ]);
 
     // 승리 횟수
-    const wRows = parseCSV(await rw.text());
+    const wText = await rw.text();
+    console.log('[금고] 승리횟수 CSV 원문:', wText.substring(0, 300));
+    // 헤더 유무 관계없이 전체 행 파싱 (slice 없음)
+    const wAllRows = wText.trim().split('\n').map(line => {
+      const cols=[]; let cur='',inQ=false;
+      for(let c of line){if(c==='"'){inQ=!inQ;continue;}if(c===','&&!inQ){cols.push(cur.trim());cur='';}else cur+=c;}
+      cols.push(cur.trim());
+      return cols;
+    }).filter(r => r[0]);
+    console.log('[금고] 파싱된 전체 행:', wAllRows);
     if(isLoggedIn && username) {
-      const row = wRows.find(r => (r[0]||'').trim().toLowerCase() === username.toLowerCase());
+      console.log('[금고] 찾는 유저명:', username);
+      const row = wAllRows.find(r => (r[0]||'').trim().toLowerCase() === username.toLowerCase());
+      console.log('[금고] 매칭된 행:', row);
       wins = row ? (parseInt(row[1])||0) : 0;
+      console.log('[금고] 최종 wins:', wins);
     }
 
     // 보상 시트 파싱 — A=타입, B=키, C=보상종류, D=보상값
