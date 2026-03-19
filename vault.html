@@ -556,6 +556,22 @@ function claimFullClear() {
   renderFullClear();
 }
 
+// ── 팝업 큐 — 여러 보상을 순서대로 표시 ──
+let _popupQueue = [];
+let _popupBusy  = false;
+
+function queuePopup(icon, title, descHtml) {
+  _popupQueue.push({ icon, title, descHtml });
+  if(!_popupBusy) _showNextPopup();
+}
+
+function _showNextPopup() {
+  if(_popupQueue.length === 0) { _popupBusy = false; return; }
+  _popupBusy = true;
+  const { icon, title, descHtml } = _popupQueue.shift();
+  showRewardPopup(icon, title, descHtml);
+}
+
 function openCell(num) {
   if(!isLoggedIn) { toast('로그인이 필요합니다.'); return; }
   if(remainingOpens() <= 0) { toast('오픈 가능한 횟수가 없습니다.'); return; }
@@ -568,11 +584,44 @@ function openCell(num) {
   saveOpened(opened);
   giveReward(reward.type, reward.value, `빙고판 ${num}번 칸 오픈`);
 
+  // ① 칸 보상 팝업
   const rm = REWARD_MAP[reward.type] || {emoji:'🎁',color:'#c084fc',label:reward.type};
   const rewardTxt = reward.type==='칭호' ? reward.value : (reward.value+' '+rm.label);
-  showRewardPopup(rm.emoji, `${num}번 칸 오픈!`,
+  queuePopup(rm.emoji, `${num}번 칸 오픈!`,
     `<span style="font-size:22px;font-weight:700;color:${rm.color};">${rm.emoji} ${rewardTxt}</span><br>
      <span style="font-size:12px;color:#94a3b8;">보상이 지급되었습니다!</span>`);
+
+  // ② 새로 완성된 빙고 라인 감지 → 자동 지급 + 팝업 큐
+  const claimed = getBingoClaim();
+  BINGO_LINES.forEach((line, idx) => {
+    const key = LINE_KEYS[idx];
+    if(claimed.includes(key)) return;                // 이미 수령
+    if(!bingoRewards[key]) return;                   // 보상 미설정
+    if(!line.every(n => opened.includes(n))) return; // 미완성
+
+    const br  = bingoRewards[key];
+    const brm = REWARD_MAP[br.type] || {emoji:'🎁',color:'#c084fc',label:br.type};
+    const btxt = br.type==='칭호' ? br.value : (br.value+' '+brm.label);
+    giveReward(br.type, br.value, `${LINE_LABELS[idx]} 빙고 완성 보상`);
+    claimed.push(key);
+    saveBingoClaim(claimed);
+    queuePopup('🎊', `${LINE_LABELS[idx]} 빙고 완성!`,
+      `<span style="font-size:22px;font-weight:700;color:${brm.color};">${brm.emoji} ${btxt}</span><br>
+       <span style="font-size:12px;color:#94a3b8;">빙고 완성 보상이 지급되었습니다!</span>`);
+  });
+
+  // ③ 25칸 완주 감지 → 자동 지급 + 팝업 큐
+  if(opened.length >= 25 && !getFullClaim() && fullRewards.length > 0) {
+    fullRewards.forEach(r => giveReward(r.type, r.value, '25칸 완주 보상'));
+    saveFullClaim();
+    const rewardLines = fullRewards.map(r => {
+      const frm = REWARD_MAP[r.type] || {emoji:'🎁',color:'#c084fc',label:r.type};
+      const txt = r.type==='칭호' ? r.value : (r.value+' '+frm.label);
+      return `<div style="font-size:18px;font-weight:700;color:${frm.color};">${frm.emoji} ${txt}</div>`;
+    }).join('');
+    queuePopup('🏆', '25칸 완주 달성!',
+      rewardLines + '<div style="font-size:12px;color:#94a3b8;margin-top:8px;">완주 보상이 모두 지급되었습니다!</div>');
+  }
 
   renderGrid();
   renderWins();
@@ -644,6 +693,12 @@ function showRewardPopup(icon, title, descHtml) {
 
 function closeReward() {
   document.getElementById('reward-overlay').classList.remove('on');
+  // 큐에 다음 팝업이 있으면 200ms 후 표시
+  if(_popupQueue.length > 0) {
+    setTimeout(_showNextPopup, 200);
+  } else {
+    _popupBusy = false;
+  }
 }
 
 loadAll();
