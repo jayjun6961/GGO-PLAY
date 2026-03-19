@@ -435,6 +435,9 @@
     <!-- 예상 전투력 섹션 -->
     <div id="combat-power-sec" style="display:none;margin-top:12px;background:var(--bg-card);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:16px;"></div>
 
+    <!-- 추천 장비 조합 섹션 -->
+    <div id="recommend-sec" style="display:none;margin-top:12px;"></div>
+
   </div>
 </main>
 
@@ -565,6 +568,7 @@
     renderWeaponSlots();
     updateResult();
     updateCounts();
+    renderRecommendations();
   }
 
   function resetChar(){
@@ -1051,6 +1055,344 @@
     `;
   }
 
+  /* ══════════════════════════════════════
+     추천 장비 조합 엔진
+  ══════════════════════════════════════ */
+
+  // 특정 슬롯+아이템+등급 조합으로 스탯 계산 (calcCombatPower 로직 재사용)
+  function calcPowerWithSets(equipSet, weaponSet) {
+    // equipSet: {슬롯: {item, grade}}, weaponSet: {슬롯: {item, grade}}
+    if(!selChar) return null;
+    const base = charStatData[selChar.name];
+    if(!base) return null;
+
+    const E_DEF=1912, E_DPS=963, SCALE=0.020862, MAG_TIME=25.0, RELOAD=3.5;
+
+    let flat={hp:0,atk:0,def:0,spd:0}, pct={hp:0,atk:0,def:0,spd:0};
+    EQUIP_SLOTS.forEach(slot=>{
+      const sel=equipSet[slot]; if(!sel?.grade||!sel.item) return;
+      const stat=equipStatData[sel.item.name+'_'+sel.grade]; if(!stat) return;
+      flat.hp+=stat.hp; pct.hp+=stat.hp_p;
+      flat.atk+=stat.atk; pct.atk+=stat.atk_p;
+      flat.def+=stat.def; pct.def+=stat.def_p;
+      flat.spd+=stat.spd; pct.spd+=stat.spd_p;
+    });
+
+    let wF={fire:0,armor_break:0,fire_rate:0,ammo:0,range:0,accuracy:0};
+    let wP={fire:0,armor_break:0,fire_rate:0};
+    WEAPON_SLOTS.forEach(slot=>{
+      const sel=weaponSet[slot]; if(!sel?.grade||!sel.item) return;
+      const stat=weaponStatData[sel.item.name+'_'+sel.grade]; if(!stat) return;
+      wF.fire+=stat.fire; wP.fire+=stat.fire_p;
+      wF.armor_break+=stat.armor_break; wP.armor_break+=stat.armor_break_p;
+      wF.fire_rate+=stat.fire_rate; wP.fire_rate+=stat.fire_rate_p;
+      wF.ammo+=stat.ammo; wF.range+=stat.range; wF.accuracy+=stat.accuracy;
+    });
+
+    const f={
+      hp:   Math.round((base.hp  +flat.hp)  *(1+pct.hp /100)),
+      atk:  Math.round((base.atk +flat.atk) *(1+pct.atk/100)),
+      def:  Math.round((base.def +flat.def) *(1+pct.def/100)),
+      spd:  Math.round((base.spd +flat.spd) *(1+pct.spd/100)),
+      fire: Math.round(wF.fire*(1+wP.fire/100)),
+      armor_break: Math.round(wF.armor_break*(1+wP.armor_break/100)),
+      ammo: wF.ammo, range: Math.round(base.range+wF.range), accuracy: wF.accuracy,
+      fire_rate: Math.round(wF.fire_rate*(1+wP.fire_rate/100)),
+    };
+
+    let basicDPS, hitRate;
+    if(f.fire>0){
+      basicDPS=(f.fire*(f.ammo||200))/(MAG_TIME+RELOAD);
+      hitRate=Math.max(0.3,Math.min(1.0,1-(f.accuracy/500)*1.176));
+    } else {
+      basicDPS=f.atk; hitRate=0.85;
+    }
+    const defPen=1/(1+E_DEF/1000);
+    const rangeMod=1+(f.range/150*0.232);
+    const abMod=1+(f.armor_break/1000*0.01);
+    const effDPS=basicDPS*hitRate*defPen*rangeMod*abMod;
+    const ehp=f.hp*(1+f.def/1000*0.01);
+    const survTime=(ehp/E_DPS)*(1+f.spd*0.0142);
+    const util=1+(f.range*0.005)+(f.spd*0.01);
+
+    return {
+      power: Math.round(effDPS*survTime*util*SCALE),
+      effDPS, ehp, survTime, util, final:f,
+    };
+  }
+
+  // 슬롯별 최고 등급 아이템 선택 (등급 우선순위 내림차순)
+  function getBestGrade(item, gradeList) {
+    for(const g of [...gradeList].reverse()) {
+      if(item.gr[g]) return g;
+    }
+    return Object.keys(item.gr)[0] || null;
+  }
+
+  // 추천 계산 메인 함수
+  function calcRecommendations() {
+    if(!selChar) return null;
+
+    // 각 슬롯별 사용 가능한 아이템 목록
+    const availEquip = {};
+    EQUIP_SLOTS.forEach(slot => { availEquip[slot] = getEquipItems(slot); });
+    const availWeapon = {};
+    WEAPON_SLOTS.forEach(slot => {
+      availWeapon[slot] = weaponData.filter(w=>w.slot===slot&&w.target===selChar.name);
+    });
+
+    // 슬롯별 아이템이 하나도 없으면 null (추천 불가)
+    const hasAnyEquip  = EQUIP_SLOTS.some(s=>availEquip[s].length>0);
+    const hasAnyWeapon = WEAPON_SLOTS.some(s=>availWeapon[s].length>0);
+    if(!hasAnyEquip && !hasAnyWeapon) return null;
+
+    // ── 슬롯별 단일 최적 아이템 선택 (탐욕 알고리즘) ──
+    // 각 슬롯에서 해당 스탯을 가장 높이는 아이템+등급 하나씩 선택
+
+    function greedyBuild(scoreFn) {
+      const eSet={}, wSet={};
+      // 장비 슬롯
+      EQUIP_SLOTS.forEach(slot=>{
+        const items=availEquip[slot]; if(!items.length) return;
+        let best=null, bestScore=-Infinity;
+        items.forEach(item=>{
+          const grade=getBestGrade(item,EQ_GRADES); if(!grade) return;
+          const stat=equipStatData[item.name+'_'+grade]||{};
+          const score=scoreFn('equip',stat,null);
+          if(score>bestScore){bestScore=score;best={item,grade};}
+        });
+        if(best) eSet[slot]=best;
+      });
+      // 무기 슬롯
+      WEAPON_SLOTS.forEach(slot=>{
+        const items=availWeapon[slot]; if(!items.length) return;
+        let best=null, bestScore=-Infinity;
+        items.forEach(item=>{
+          const grade=getBestGrade(item,WP_GRADES); if(!grade) return;
+          const stat=weaponStatData[item.name+'_'+grade]||{};
+          const score=scoreFn('weapon',stat,null);
+          if(score>bestScore){bestScore=score;best={item,grade};}
+        });
+        if(best) wSet[slot]=best;
+      });
+      return {eSet,wSet};
+    }
+
+    // ① 최고 전투력: 전투력 기여 종합 점수
+    const {eSet:eB, wSet:wB} = greedyBuild((type,stat)=>{
+      if(type==='equip')  return (stat.hp||0)*0.15+(stat.def||0)*0.25+(stat.atk||0)*0.1+(stat.hp_p||0)*30+(stat.def_p||0)*50;
+      if(type==='weapon') return (stat.fire||0)*0.5+(stat.armor_break||0)*0.2+(stat.fire_rate||0)*0.3;
+      return 0;
+    });
+
+    // ② 최고 공격력: DPS 기여 점수
+    const {eSet:eA, wSet:wA} = greedyBuild((type,stat)=>{
+      if(type==='equip')  return (stat.atk||0)+(stat.atk_p||0)*10;
+      if(type==='weapon') return (stat.fire||0)*0.6+(stat.fire_p||0)*50+(stat.fire_rate||0)*0.4;
+      return 0;
+    });
+
+    // ③ 최고 생존력: EHP 기여 점수
+    const {eSet:eS, wSet:wS} = greedyBuild((type,stat)=>{
+      if(type==='equip')  return (stat.hp||0)*0.15+(stat.hp_p||0)*30+(stat.def||0)*0.25+(stat.def_p||0)*50;
+      if(type==='weapon') return (stat.armor_break||0)*0.3+(stat.range||0)*0.1;
+      return 0;
+    });
+
+    return [
+      { label:'최고 전투력',   icon:'⚔️', color:'#fbbf24', eSet:eB, wSet:wB, result:calcPowerWithSets(eB,wB) },
+      { label:'최고 공격력',   icon:'🔥', color:'#f87171', eSet:eA, wSet:wA, result:calcPowerWithSets(eA,wA) },
+      { label:'최고 생존력',   icon:'🛡️', color:'#34d399', eSet:eS, wSet:wS, result:calcPowerWithSets(eS,wS) },
+    ].filter(r=>r.result);
+  }
+
+  // 추천 섹션 렌더링
+  function renderRecommendations() {
+    const el = document.getElementById('recommend-sec');
+    if(!el||!selChar) return;
+
+    const recs = calcRecommendations();
+    if(!recs||!recs.length){ el.style.display='none'; return; }
+    el.style.display='block';
+
+    const GCsafe = g => GC[g]||'#94a3b8';
+    const GRADE_ORDER = [...EQ_GRADES, ...WP_GRADES];
+
+    el.innerHTML = `
+      <div style="background:var(--bg-card);border:1px solid rgba(124,58,237,.2);border-radius:12px;padding:16px;">
+        <div class="result-title" style="margin-bottom:14px;">💡 추천 장비 조합</div>
+        <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:14px;">
+          ${selChar.name}의 스탯과 착용 가능한 장비를 분석한 추천 조합입니다.
+        </div>
+
+        <!-- 탭 -->
+        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+          ${recs.map((r,i)=>`
+            <button id="rec-tab-${i}" onclick="switchRecTab(${i})"
+              style="padding:6px 14px;border-radius:20px;font-size:11px;font-family:'Orbitron',sans-serif;
+                cursor:pointer;transition:all .2s;border:1px solid ${r.color}44;
+                ${i===0?`background:${r.color}22;color:${r.color};`:'background:transparent;color:#475569;'}">
+              ${r.icon} ${r.label}
+            </button>`).join('')}
+        </div>
+
+        <!-- 탭 콘텐츠 -->
+        ${recs.map((r,i)=>`
+          <div id="rec-content-${i}" style="display:${i===0?'block':'none'};">
+            <!-- 전투력 요약 -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+              <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:10px;color:#f87171;margin-bottom:3px;">🔥 실효DPS</div>
+                <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#fca5a5;">${Math.round(r.result.effDPS).toLocaleString()}</div>
+              </div>
+              <div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:10px;color:#34d399;margin-bottom:3px;">🛡️ 유효체력</div>
+                <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#6ee7b7;">${Math.round(r.result.ehp).toLocaleString()}</div>
+              </div>
+              <div style="background:rgba(${r.color.startsWith('#f')&&r.color.length===7?'251,191,36':'124,58,237'},.08);border:1px solid ${r.color}33;border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:10px;color:${r.color};margin-bottom:3px;">${r.icon} 전투력</div>
+                <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;color:${r.color};">${r.result.power.toLocaleString()}</div>
+              </div>
+            </div>
+
+            <!-- 장비 목록 -->
+            <div style="margin-bottom:10px;">
+              <div style="font-size:10px;color:#94a3b8;font-family:'Orbitron',sans-serif;margin-bottom:6px;">🛡️ 장비</div>
+              <div style="display:grid;gap:4px;">
+                ${EQUIP_SLOTS.map(slot=>{
+                  const sel=r.eSet[slot];
+                  if(!sel) return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(71,85,105,.06);border:1px dashed #374151;border-radius:7px;">
+                    <span style="font-size:13px;">${SLOT_ICONS[slot]}</span>
+                    <span style="font-size:10px;color:#374151;">${slot} — 해당 없음</span>
+                  </div>`;
+                  const gc=GCsafe(sel.grade);
+                  const stat=equipStatData[sel.item.name+'_'+sel.grade]||{};
+                  const hints=[];
+                  if(stat.hp||stat.hp_p) hints.push(`HP+${stat.hp||''}${stat.hp_p?'('+stat.hp_p+'%)':''}`);
+                  if(stat.def||stat.def_p) hints.push(`DEF+${stat.def||''}${stat.def_p?'('+stat.def_p+'%)':''}`);
+                  if(stat.atk||stat.atk_p) hints.push(`ATK+${stat.atk||''}${stat.atk_p?'('+stat.atk_p+'%)':''}`);
+                  return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;
+                    background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.15);border-radius:7px;">
+                    <span style="font-size:13px;">${SLOT_ICONS[slot]}</span>
+                    <div style="flex:1;min-width:0;">
+                      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                        <span style="font-size:11px;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sel.item.name}</span>
+                        <span style="font-size:9px;padding:1px 5px;border-radius:4px;background:${gc}22;color:${gc};border:1px solid ${gc}44;font-family:'Orbitron',sans-serif;flex-shrink:0;">${sel.grade}</span>
+                      </div>
+                      ${hints.length?`<div style="font-size:9px;color:#64748b;margin-top:2px;">${hints.join('  ')}</div>`:''}
+                    </div>
+                    <button onclick="applyRecItem('equip','${slot}','${sel.item.name.replace(/'/g,"\'")}','${sel.grade}')"
+                      style="flex-shrink:0;padding:4px 10px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.35);
+                        color:#c084fc;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Orbitron',sans-serif;white-space:nowrap;">
+                      적용
+                    </button>
+                  </div>`;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- 무기 목록 -->
+            <div>
+              <div style="font-size:10px;color:#94a3b8;font-family:'Orbitron',sans-serif;margin-bottom:6px;">🔫 무기 튜닝</div>
+              <div style="display:grid;gap:4px;">
+                ${WEAPON_SLOTS.map(slot=>{
+                  const sel=r.wSet[slot];
+                  if(!sel) return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(71,85,105,.06);border:1px dashed #374151;border-radius:7px;">
+                    <span style="font-size:13px;">${WEAPON_ICONS[slot]}</span>
+                    <span style="font-size:10px;color:#374151;">${slot} — 해당 없음</span>
+                  </div>`;
+                  const gc=GCsafe(sel.grade);
+                  const stat=weaponStatData[sel.item.name+'_'+sel.grade]||{};
+                  const hints=[];
+                  if(stat.fire||stat.fire_p) hints.push(`화력+${stat.fire||''}${stat.fire_p?'('+stat.fire_p+'%)':''}`);
+                  if(stat.armor_break) hints.push(`방어구파괴+${stat.armor_break}`);
+                  if(stat.fire_rate) hints.push(`발사속도+${stat.fire_rate}`);
+                  return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;
+                    background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:7px;">
+                    <span style="font-size:13px;">${WEAPON_ICONS[slot]}</span>
+                    <div style="flex:1;min-width:0;">
+                      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                        <span style="font-size:11px;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sel.item.name}</span>
+                        <span style="font-size:9px;padding:1px 5px;border-radius:4px;background:${gc}22;color:${gc};border:1px solid ${gc}44;font-family:'Orbitron',sans-serif;flex-shrink:0;">${sel.grade}</span>
+                      </div>
+                      ${hints.length?`<div style="font-size:9px;color:#64748b;margin-top:2px;">${hints.join('  ')}</div>`:''}
+                    </div>
+                    <button onclick="applyRecItem('weapon','${slot}','${sel.item.name.replace(/'/g,"\'")}','${sel.grade}')"
+                      style="flex-shrink:0;padding:4px 10px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);
+                        color:#fca5a5;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Orbitron',sans-serif;white-space:nowrap;">
+                      적용
+                    </button>
+                  </div>`;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- 전체 적용 버튼 -->
+            <button onclick="applyAllRec(${i})"
+              style="width:100%;margin-top:12px;padding:11px;background:linear-gradient(135deg,${r.color}22,${r.color}11);
+                border:1px solid ${r.color}44;color:${r.color};border-radius:10px;font-size:12px;font-weight:700;
+                font-family:'Orbitron',sans-serif;cursor:pointer;">
+              ${r.icon} ${r.label} 조합 전체 적용
+            </button>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  // 추천 탭 전환
+  function switchRecTab(idx) {
+    const recs = calcRecommendations();
+    if(!recs) return;
+    recs.forEach((_,i)=>{
+      const tab=document.getElementById(`rec-tab-${i}`);
+      const content=document.getElementById(`rec-content-${i}`);
+      if(!tab||!content) return;
+      const r=recs[i];
+      if(i===idx){
+        tab.style.background=`${r.color}22`;
+        tab.style.color=r.color;
+        tab.style.borderColor=`${r.color}44`;
+        content.style.display='block';
+      } else {
+        tab.style.background='transparent';
+        tab.style.color='#475569';
+        content.style.display='none';
+      }
+    });
+  }
+
+  // 단일 아이템 적용
+  function applyRecItem(type, slot, name, grade) {
+    if(type==='equip') {
+      selectEquip(slot, name);
+      setTimeout(()=>selectEquipGrade(slot, grade), 50);
+    } else {
+      selectWeapon(slot, name);
+      setTimeout(()=>selectWeaponGrade(slot, grade), 50);
+    }
+  }
+
+  // 추천 조합 전체 적용
+  function applyAllRec(idx) {
+    const recs = calcRecommendations();
+    if(!recs||!recs[idx]) return;
+    const {eSet, wSet} = recs[idx];
+    // 기존 선택 초기화
+    EQUIP_SLOTS.forEach(s=>clearEquipSlot({stopPropagation:()=>{}},s));
+    WEAPON_SLOTS.forEach(s=>clearWeaponSlot({stopPropagation:()=>{}},s));
+    // 장비 적용
+    let delay=0;
+    EQUIP_SLOTS.forEach(slot=>{
+      const sel=eSet[slot]; if(!sel) return;
+      setTimeout(()=>applyRecItem('equip',slot,sel.item.name,sel.grade), delay);
+      delay+=80;
+    });
+    WEAPON_SLOTS.forEach(slot=>{
+      const sel=wSet[slot]; if(!sel) return;
+      setTimeout(()=>applyRecItem('weapon',slot,sel.item.name,sel.grade), delay);
+      delay+=80;
+    });
+  }
+
   /* ── 결과 ── */
   function collectFx(entry,up,dn){
     if(entry.type==='감소'){dn.push(entry);return;}
@@ -1093,7 +1435,7 @@
 
     const hasAny = items.length > 0;
     document.getElementById('result-sec').style.display = hasAny ? 'block' : 'none';
-    if(!hasAny){ renderCombatPower(); return; }
+    if(!hasAny){ renderCombatPower(); renderRecommendations(); return; }
 
     // 장비별 카드 렌더링
     const gc = (grade) => GC[grade] || '#94a3b8';
@@ -1133,6 +1475,7 @@
 
     // 전투력 계산 업데이트
     renderCombatPower();
+    renderRecommendations();
   }
 
   /* ── 요약 바 ── */
