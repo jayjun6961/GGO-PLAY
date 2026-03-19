@@ -196,6 +196,7 @@
       <div class="vault-header">
         <div class="vault-icon">🔐</div>
         <div class="vault-title">금고 이벤트</div>
+        <div id="vault-season-badge" style="display:inline-block;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.35);border-radius:20px;padding:3px 12px;font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:#fbbf24;margin:6px 0 4px;">SEASON 1</div>
         <div class="vault-desc">금고 승리 1회당 빙고 1칸 오픈 가능<br>25칸 모두 오픈하면 특별 보상 획득!</div>
       </div>
 
@@ -289,6 +290,7 @@ function parseCSV(txt) {
 }
 
 // ── localStorage 키 ──
+const seasonKey     = () => `ggo_vault_season_${username}`;      // 현재 시즌 번호
 const openedKey     = () => `ggo_vault_opened_${username}`;      // 오픈한 칸 배열
 const bingoClaimKey = () => `ggo_vault_bingo_${username}`;       // 빙고 보상 수령 배열
 const fullClaimKey  = () => `ggo_vault_full_${username}`;        // 완주 보상 수령 여부
@@ -299,6 +301,23 @@ function getFullClaim()  { return localStorage.getItem(fullClaimKey())==='1'; }
 function saveOpened(arr) { localStorage.setItem(openedKey(), JSON.stringify(arr)); }
 function saveBingoClaim(arr) { localStorage.setItem(bingoClaimKey(), JSON.stringify(arr)); }
 function saveFullClaim() { localStorage.setItem(fullClaimKey(), '1'); }
+
+// ── 시즌 체크 — 시즌이 바뀌면 빙고판 전체 초기화 ──
+let currentSeason = 1; // 시트에서 읽어온 현재 시즌
+
+function checkAndResetSeason(newSeason) {
+  const saved = localStorage.getItem(seasonKey()) || '';
+  if(String(newSeason) !== saved) {
+    // 시즌 변경 감지 → 빙고판 초기화
+    localStorage.removeItem(openedKey());
+    localStorage.removeItem(bingoClaimKey());
+    localStorage.removeItem(fullClaimKey());
+    localStorage.setItem(seasonKey(), String(newSeason));
+    console.log(`[금고] 시즌 ${saved} → ${newSeason} 변경, 빙고판 초기화`);
+    return true; // 초기화 발생
+  }
+  return false;
+}
 
 function remainingOpens() { return Math.max(0, wins - getOpened().length); }
 
@@ -312,23 +331,22 @@ async function loadAll() {
       fetch(CSV_BINGO_REWARDS + '&t=' + Date.now(), {cache:'no-store'}),
     ]);
 
-    // 승리 횟수
+    // 승리 횟수 + 시즌 파싱 — A=유저명, B=시즌, C=승리횟수
     const wText = await rw.text();
-    console.log('[금고] 승리횟수 CSV 원문:', wText.substring(0, 300));
-    // 헤더 유무 관계없이 전체 행 파싱 (slice 없음)
+    // 헤더 유무 관계없이 전체 행 파싱
     const wAllRows = wText.trim().split('\n').map(line => {
       const cols=[]; let cur='',inQ=false;
       for(let c of line){if(c==='"'){inQ=!inQ;continue;}if(c===','&&!inQ){cols.push(cur.trim());cur='';}else cur+=c;}
       cols.push(cur.trim());
       return cols;
     }).filter(r => r[0]);
-    console.log('[금고] 파싱된 전체 행:', wAllRows);
     if(isLoggedIn && username) {
-      console.log('[금고] 찾는 유저명:', username);
       const row = wAllRows.find(r => (r[0]||'').trim().toLowerCase() === username.toLowerCase());
-      console.log('[금고] 매칭된 행:', row);
-      wins = row ? (parseInt(row[1])||0) : 0;
-      console.log('[금고] 최종 wins:', wins);
+      if(row) {
+        currentSeason = parseInt(row[1]) || 1;  // B열: 시즌 번호
+        wins          = parseInt(row[2]) || 0;  // C열: 승리 횟수
+        checkAndResetSeason(currentSeason);     // 시즌 변경 시 자동 초기화
+      }
     }
 
     // 보상 시트 파싱 — A=타입, B=키, C=보상종류, D=보상값
@@ -369,6 +387,10 @@ function render() {
 }
 
 function renderWins() {
+  // 시즌 배지 업데이트
+  const badge = document.getElementById('vault-season-badge');
+  if(badge) badge.textContent = `SEASON ${currentSeason}`;
+
   const area = document.getElementById('wins-area');
   if(!isLoggedIn || !username) {
     area.innerHTML = `<div class="login-notice">🔒 금고 승리 횟수 및 빙고 오픈은 로그인 후 이용 가능합니다.</div>`;
