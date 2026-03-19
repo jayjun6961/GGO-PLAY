@@ -440,7 +440,7 @@
 
 <script>
   const CSV_CHAR        = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=599911059&single=true&output=csv';
-  const CSV_CHAR_STAT   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?single=true&output=csv&gid=1439071389'; // 캐릭터스탯 (체력,대미지,방어력,이동속도,사거리,관통저항)
+  const CSV_CHAR_STAT   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?single=true&output=csv&gid=1439071389'; // 캐릭터스탯 (체력,대미지,방어력,이동속도,사거리,관통저항,발사속도)
   const CSV_EQUIP_STAT  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?single=true&output=csv&gid=985704413';  // 장비스탯  (장비명,등급,각 스탯 flat/%))
   const CSV_WEAPON_STAT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?single=true&output=csv&gid=1764430604'; // 무기스탯  (무기명,등급,각 스탯 flat/%)
   const CSV_EQUIP  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1255169524&single=true&output=csv';
@@ -459,7 +459,7 @@
 
   let charData=[], equipData=[], weaponData=[];
   // 전투력 계산용 스탯 DB
-  let charStatData={};   // {캐릭터명: {hp,atk,def,spd,range,resist}}
+  let charStatData={};   // {캐릭터명: {hp,atk,def,spd,range,resist,fire_rate}}
   let equipStatData={};  // {'장비명_등급': {hp,hp_p,atk,atk_p,def,def_p,spd,spd_p,armor_break,armor_break_p,...}}
   let weaponStatData={}; // {'무기명_등급': {fire,fire_p,armor_break,armor_break_p,fire_rate,ammo,range,accuracy,...}}
   let selChar=null;
@@ -778,7 +778,7 @@
      스탯 시트 파싱
   ══════════════════════════════════════ */
 
-  // 캐릭터스탯 시트: A=캐릭터명, B=체력, C=대미지, D=방어력, E=이동속도, F=사거리, G=관통저항
+  // 캐릭터스탯 시트: A=캐릭터명, B=체력, C=대미지, D=방어력, E=이동속도, F=사거리, G=관통저항, H=발사속도
   function parseCharStatSheet(rows) {
     charStatData = {};
     rows.forEach(r => {
@@ -788,9 +788,10 @@
         hp:        parseFloat(r[1])||0,
         atk:       parseFloat(r[2])||0,
         def:       parseFloat(r[3])||0,
-        fire_rate: parseFloat(r[4])||0,  // 발사속도 (이동속도 → 발사속도로 변경)
-        range:     parseFloat(r[5])||0,
-        resist:    parseFloat(r[6])||0,
+        spd:       parseFloat(r[4])||0,   // E열: 이동속도
+        range:     parseFloat(r[5])||0,   // F열: 사거리
+        resist:    parseFloat(r[6])||0,   // G열: 관통저항
+        fire_rate: parseFloat(r[7])||0,   // H열: 발사속도 (신규)
       };
     });
   }
@@ -881,7 +882,7 @@
       hp:          Math.round((base.hp  + flat.hp)  * (1 + pct.hp  / 100)),
       atk:         Math.round((base.atk + flat.atk) * (1 + pct.atk / 100)),
       def:         Math.round((base.def + flat.def) * (1 + pct.def / 100)),
-      spd:         Math.round((base.fire_rate + flat.spd) * (1 + pct.spd / 100)), // 이동속도
+      spd:         Math.round((base.spd + flat.spd) * (1 + pct.spd / 100)),       // 이동속도 (E열)
       fire:        Math.round(wFlat.fire        * (1 + wPct.fire        / 100)),
       armor_break: Math.round(wFlat.armor_break * (1 + wPct.armor_break / 100)),
       fire_rate:   Math.round((wFlat.fire_rate) * (1 + wPct.fire_rate   / 100)),
@@ -1005,7 +1006,7 @@
           ['❤️','체력',     final.hp,          base.hp],
           ['⚔️','대미지',   final.atk,         base.atk],
           ['🛡️','방어력',   final.def,         base.def],
-          ['👟','이동속도', final.spd,          base.fire_rate],
+          ['👟','이동속도', final.spd,          base.spd],
           ['🔥','화력',     final.fire,         0],
           ['📏','유효거리', final.range,        base.range],
         ].map(([ic,nm,val,bv]) => {
