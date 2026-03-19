@@ -4989,7 +4989,58 @@ function initGW(){
 window.addEventListener('DOMContentLoaded', () => {
   initSidebarProfile();
   initGW();
+  // 월드보스 보상 수령 가능 여부 체크 → 메인페이지 알림 등록
+  wbCheckRewardNotif();
 });
+
+// ── 월드보스 보상 수령 가능 알림 ──
+async function wbCheckRewardNotif() {
+  const username = gwUN();
+  if(!username || username === '_g') return;
+  if(!window._gwDB) {
+    // Firebase 아직 미준비면 1초 후 재시도
+    setTimeout(wbCheckRewardNotif, 1000);
+    return;
+  }
+
+  const claimableBosses = [];
+
+  for(const wb of WB_LIST) {
+    const yestParty = await wbGetYesterdayParty(username, wb.fbPath).catch(() => null);
+    if(!yestParty) continue;
+
+    // 이미 수령했는지 확인
+    const claimKey = _wbKey('claimed_' + wb.id + '_' + yestParty.date + '_' + username);
+    if(localStorage.getItem(claimKey)) continue;
+
+    // 알림 중복 방지 — 오늘 이미 같은 알림 등록했으면 스킵
+    const notifKey = 'gwo_wb_notif_' + wb.id + '_' + yestParty.date + '_' + username;
+    if(localStorage.getItem(notifKey)) continue;
+
+    claimableBosses.push(wb);
+    localStorage.setItem(notifKey, '1');
+  }
+
+  if(claimableBosses.length === 0) return;
+
+  // 메인페이지 알림 등록
+  const notifStoreKey = 'ggo_notifs_' + username;
+  try {
+    const arr = JSON.parse(localStorage.getItem(notifStoreKey) || '[]');
+    claimableBosses.forEach(wb => {
+      arr.unshift({
+        id: Date.now() + Math.random(),
+        type: 'wb_reward',
+        msg: `⚔️ ${wb.emoji} ${wb.name} — 보상 수령 가능!`,
+        extra: 'G월드 → 월드 보스에서 수령하세요',
+        time: new Date().toISOString(),
+        read: false,
+      });
+    });
+    if(arr.length > 50) arr.splice(50);
+    localStorage.setItem(notifStoreKey, JSON.stringify(arr));
+  } catch(e) { console.warn('[WB] 알림 등록 실패:', e); }
+}
 
 window.addEventListener('resize', () => {
   if(G.sc==='town'){const cv=document.getElementById('gw-tcv');if(cv){cv.width=cv.offsetWidth;cv.height=cv.offsetHeight;drawTown(cv);}}
