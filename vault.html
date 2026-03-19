@@ -492,7 +492,7 @@ function claimBingoBonus(key) {
   const reward = bingoRewards[key];
   if(!reward) return;
 
-  giveReward(reward.type, reward.value);
+  giveReward(reward.type, reward.value, `${LINE_LABELS[idx]} 빙고 완성 보상`);
   claimed.push(key);
   saveBingoClaim(claimed);
 
@@ -544,7 +544,7 @@ function claimFullClear() {
   if(getFullClaim()) { toast('이미 수령한 보상입니다.'); return; }
   if(getOpened().length < 25) { toast('아직 25칸을 모두 열지 않았습니다.'); return; }
 
-  fullRewards.forEach(r => giveReward(r.type, r.value));
+  fullRewards.forEach(r => giveReward(r.type, r.value, '25칸 완주 보상'));
   saveFullClaim();
 
   const rewardLines = fullRewards.map(r => {
@@ -566,7 +566,7 @@ function openCell(num) {
 
   opened.push(num);
   saveOpened(opened);
-  giveReward(reward.type, reward.value);
+  giveReward(reward.type, reward.value, `빙고판 ${num}번 칸 오픈`);
 
   const rm = REWARD_MAP[reward.type] || {emoji:'🎁',color:'#c084fc',label:reward.type};
   const rewardTxt = reward.type==='칭호' ? reward.value : (reward.value+' '+rm.label);
@@ -581,8 +581,32 @@ function openCell(num) {
   renderFullClear();
 }
 
-function giveReward(type, value) {
+// ── 메인페이지 알림 등록 ──
+function pushNotif(msg, extra) {
+  if(!username) return;
+  const key = 'ggo_notifs_' + username;
+  try {
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr.unshift({
+      id: Date.now() + Math.random(),
+      type: 'vault',
+      msg,
+      extra: extra || '',
+      time: new Date().toISOString(),
+      read: false,
+    });
+    if(arr.length > 50) arr.splice(50);
+    localStorage.setItem(key, JSON.stringify(arr));
+  } catch(e) { console.warn('알림 등록 실패:', e); }
+}
+
+function giveReward(type, value, source) {
   const num = parseInt(value) || 0;
+  const rm  = REWARD_MAP[type] || {emoji:'🎁', label:type};
+  const rewardTxt = type==='칭호' ? value : (value + ' ' + rm.label);
+  // 메인페이지 알림 등록
+  pushNotif(`🔐 금고 보상 획득: ${rm.emoji} ${rewardTxt}`, source || '금고 이벤트');
+
   if(['GP','루비','크리스탈'].includes(type)) {
     const currKey = 'ggo_currency_' + username;
     const curr = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
