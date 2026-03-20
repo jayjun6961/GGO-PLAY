@@ -1351,7 +1351,28 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   }
 
   // 순위 탭 Firebase 구독 핸들 (중복 구독 방지)
-  let _rankListener = null;
+  let _rankListener    = null;
+  let _rankListenerKey = null; // 리스너가 걸린 정확한 경로 키 보관
+
+  function _detachRankListener() {
+    if(_rankListener && _rankListenerKey) {
+      _fishDB.ref('fish_rank/rank_' + _rankListenerKey).off('value', _rankListener);
+      _rankListener    = null;
+      _rankListenerKey = null;
+    }
+  }
+
+  // 페이지 숨김/복귀 시 리스너 재구독 (모바일 백그라운드 대응)
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'hidden') {
+      _detachRankListener();
+    } else if(document.visibilityState === 'visible') {
+      const rankContent = document.getElementById('fcontent-rank');
+      if(rankContent && rankContent.classList.contains('active')) {
+        renderRankTab();
+      }
+    }
+  });
 
   function renderRankTab() {
     const daysLeft = getRankDaysLeft();
@@ -1380,11 +1401,9 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     const list = document.getElementById('rank-list');
     list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-dim);font-size:12px;">🔄 순위 불러오는 중...</div>';
 
-    // 기존 구독 해제 후 새로 구독
-    if(_rankListener) {
-      _fishDB.ref('fish_rank/rank_' + cycleKey).off('value', _rankListener);
-      _rankListener = null;
-    }
+    // 기존 구독 정확하게 해제 후 새로 구독
+    _detachRankListener();
+    _rankListenerKey = cycleKey;
 
     _rankListener = _fishDB.ref('fish_rank/rank_' + cycleKey)
       .on('value', snap => {
