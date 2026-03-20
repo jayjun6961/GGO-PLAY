@@ -3826,6 +3826,34 @@ function renderDojoEnter() {
     </button>`;
 }
 
+/* ── 순위 탭 리스너 관리 ── */
+let _dojoRankListener    = null;
+let _dojoRankListenerKey = null;
+
+function _detachDojoRankListener() {
+  if(_dojoRankListener && _dojoRankListenerKey) {
+    if(window._gwDB) {
+      window._gwDB.ref('dojo_rank/rank_' + _dojoRankListenerKey).off('value', _dojoRankListener);
+    }
+    _dojoRankListener    = null;
+    _dojoRankListenerKey = null;
+  }
+}
+
+// 모바일 백그라운드 복귀 시 도장 순위 리스너 재구독
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'hidden') {
+    _detachDojoRankListener();
+  } else if(document.visibilityState === 'visible') {
+    const dojoPanel = document.getElementById('gw-pdojo');
+    const rankBtn   = document.getElementById('dojo-tab-rank');
+    if(dojoPanel && dojoPanel.style.display !== 'none' &&
+       rankBtn   && rankBtn.style.color === 'rgb(192, 132, 252)') {
+      renderDojoRank();
+    }
+  }
+});
+
 /* ── 순위 탭 렌더 ── */
 function renderDojoRank() {
   const el = document.getElementById('gw-dojobody');
@@ -3845,7 +3873,12 @@ function renderDojoRank() {
     el.innerHTML='<div style="text-align:center;padding:20px;color:#ef4444;font-size:11px;">⚠️ 네트워크 연결 필요</div>';
     return;
   }
-  window._gwDB.ref('dojo_rank/rank_' + cycleKey).on('value', snap => {
+
+  // 기존 리스너 정확하게 해제 후 새로 구독
+  _detachDojoRankListener();
+  _dojoRankListenerKey = cycleKey;
+
+  _dojoRankListener = window._gwDB.ref('dojo_rank/rank_' + cycleKey).on('value', snap => {
     const rankData = snap.exists() ? snap.val() : {};
     _dojoCache['rank_' + cycleKey] = rankData;
     const rankList = Object.values(rankData).sort((a,b) => b.dmg - a.dmg);
