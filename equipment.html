@@ -802,7 +802,8 @@
     });
   }
 
-  // 장비스탯 시트: A=장비명, B=등급, C=체력, D=체력%, E=대미지, F=대미지%, G=방어력, H=방어력%, I=이동속도, J=이동속도%, K=방어구파괴, L=방어구파괴%, M=방어력관통, N=방어력관통%
+  // 장비스탯 시트: A=장비명, B=등급, C=체력, D=체력%, E=대미지, F=대미지%, G=방어력, H=방어력%, I=이동속도, J=이동속도%,
+  //               K=방어구파괴, L=방어구파괴%, M=방어력관통, N=방어력관통%, O=체력대미지모디파이어%, P=방어구대미지모디파이어%
   function parseEquipStatSheet(rows) {
     equipStatData = {};
     rows.forEach(r => {
@@ -816,7 +817,9 @@
         def:         parseFloat(r[6])||0,  def_p:         parseFloat(r[7])||0,
         spd:         parseFloat(r[8])||0,  spd_p:         parseFloat(r[9])||0,
         armor_break:   parseFloat(r[10])||0, armor_break_p:   parseFloat(r[11])||0, // K·L열
-        armor_pen:     parseFloat(r[12])||0, armor_pen_p:     parseFloat(r[13])||0, // M·N열 신규
+        armor_pen:     parseFloat(r[12])||0, armor_pen_p:     parseFloat(r[13])||0, // M·N열
+        hp_dmg_p:      parseFloat(r[14])||0,                                        // O열 체력대미지모디파이어%
+        armor_dmg_p:   parseFloat(r[15])||0,                                        // P열 방어구대미지모디파이어%
       };
     });
   }
@@ -859,7 +862,7 @@
     if(!base) return null;
 
     // ── 2. 장비 버프 합산 (flat + %) ──
-    let flat = { hp:0, atk:0, def:0, spd:0, armor_break:0, armor_pen:0 };
+    let flat = { hp:0, atk:0, def:0, spd:0, armor_break:0, armor_pen:0, hp_dmg:0, armor_dmg:0 };
     let pct  = { hp:0, atk:0, def:0, spd:0, armor_break:0, armor_pen:0 };
     EQUIP_SLOTS.forEach(slot => {
       const sel = esSel[slot];
@@ -871,8 +874,10 @@
       flat.atk         += stat.atk;         pct.atk         += stat.atk_p;
       flat.def         += stat.def;         pct.def         += stat.def_p;
       flat.spd         += stat.spd;         pct.spd         += stat.spd_p;
-      flat.armor_break += stat.armor_break; pct.armor_break += stat.armor_break_p; // 장비 방어구파괴
-      flat.armor_pen   += (stat.armor_pen||0);  pct.armor_pen   += (stat.armor_pen_p||0);  // 장비 방어력관통
+      flat.armor_break += stat.armor_break; pct.armor_break += stat.armor_break_p;
+      flat.armor_pen   += (stat.armor_pen||0);  pct.armor_pen   += (stat.armor_pen_p||0);
+      flat.hp_dmg      += (stat.hp_dmg_p||0);    // 장비 체력대미지모디파이어%
+      flat.armor_dmg   += (stat.armor_dmg_p||0); // 장비 방어구대미지모디파이어%
     });
 
     // ── 3. 무기 튜닝 버프 합산 (flat + %) ──
@@ -959,8 +964,8 @@
       // ── 무기 장착 시 ──
       const totalTime = MAG_TIME + RELOAD_DEFAULT;
       const rawDPS = (final.fire * (final.ammo || 200)) / totalTime;
-      // 체력 대미지 모디파이어: 기본DPS에 직접 배율 적용 (+4% → ×1.04)
-      basicDPS = rawDPS * (1 + (wPct.hp_dmg / 100));
+      // 체력 대미지 모디파이어: 무기 + 장비 합산 후 basicDPS에 직접 배율 적용
+      basicDPS = rawDPS * (1 + ((wPct.hp_dmg + flat.hp_dmg) / 100));
       hitRate  = Math.max(0.30, Math.min(1.0, 1 - (final.accuracy / 500) * 1.176));
     } else {
       // ── 무기 미장착: 캐릭터 기본 대미지 기반 ──
@@ -1103,7 +1108,7 @@
 
     const E_DEF=1912, E_DPS=963, SCALE=0.020862, MAG_TIME=25.0, RELOAD=3.5;
 
-    let flat={hp:0,atk:0,def:0,spd:0,armor_break:0,armor_pen:0}, pct={hp:0,atk:0,def:0,spd:0,armor_break:0,armor_pen:0};
+    let flat={hp:0,atk:0,def:0,spd:0,armor_break:0,armor_pen:0,hp_dmg:0,armor_dmg:0}, pct={hp:0,atk:0,def:0,spd:0,armor_break:0,armor_pen:0};
     EQUIP_SLOTS.forEach(slot=>{
       const sel=equipSet[slot]; if(!sel?.grade||!sel.item) return;
       const stat=equipStatData[sel.item.name+'_'+sel.grade]; if(!stat) return;
@@ -1113,6 +1118,8 @@
       flat.spd+=stat.spd; pct.spd+=stat.spd_p;
       flat.armor_break+=(stat.armor_break||0); pct.armor_break+=(stat.armor_break_p||0);
       flat.armor_pen  +=(stat.armor_pen||0);   pct.armor_pen  +=(stat.armor_pen_p||0);
+      flat.hp_dmg     +=(stat.hp_dmg_p||0);    // 장비 체력대미지모디파이어%
+      flat.armor_dmg  +=(stat.armor_dmg_p||0); // 장비 방어구대미지모디파이어%
     });
 
     let wF={fire:0,armor_break:0,fire_rate:0,ammo:0,range:0,accuracy:0,armor_pen:0,fire_dist:0};
@@ -1146,7 +1153,7 @@
     let basicDPS, hitRate;
     if(f.fire>0){
       const rawDPS=(f.fire*(f.ammo||200))/(MAG_TIME+RELOAD);
-      basicDPS=rawDPS*(1+(wP.hp_dmg/100));  // 체력 대미지 모디파이어 반영
+      basicDPS=rawDPS*(1+((wP.hp_dmg+flat.hp_dmg)/100));  // 무기+장비 체력대미지모디파이어 합산
       hitRate=Math.max(0.3,Math.min(1.0,1-(f.accuracy/500)*1.176));
     } else {
       basicDPS=f.atk; hitRate=0.85;
