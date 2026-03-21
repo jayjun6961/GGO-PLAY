@@ -445,11 +445,10 @@
 
 <script>
   const CSV_CHAR        = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=599911059&single=true&output=csv';
-  const CSV_CHAR_STAT   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?single=true&output=csv&gid=1439071389';
-  // 통합 시트: 목록(이름/부위/분류/대상/이미지/등급쌍...) + 스탯 수치 한 행에 모두 입력
-  // 장비 통합 gid — 기존 장비 목록 시트(1255169524)를 확장해서 사용하거나 새 탭으로 교체
+  const CSV_CHAR_STAT   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?single=true&output=csv&gid=1439071389'; // 캐릭터스탯
+  const CSV_EQUIP_STAT  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?single=true&output=csv&gid=985704413';  // 장비스탯 (장비명,등급,각 스탯)
+  const CSV_WEAPON_STAT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?single=true&output=csv&gid=1764430604'; // 무기스탯 (무기명,등급,각 스탯)
   const CSV_EQUIP  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1255169524&single=true&output=csv';
-  // 무기 통합 gid — 기존 무기 목록 시트(2117031065)를 확장해서 사용하거나 새 탭으로 교체
   const CSV_WEAPON = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=2117031065&single=true&output=csv';
 
   const EQUIP_SLOTS  = ['모자','몸통','장갑','신발','반지','장신구'];
@@ -488,90 +487,38 @@
     document.getElementById('loading-state').style.display='block';
     document.getElementById('content-wrap').style.display='none';
     try{
-      // fetch 3개로 축소 — 장비/무기는 통합 시트 1개씩만 읽음
-      const [rc,re,rw,rcs]=await Promise.all([
-        fetch(CSV_CHAR      +'&t='+Date.now(),{cache:'no-store'}),
-        fetch(CSV_EQUIP     +'&t='+Date.now(),{cache:'no-store'}),
-        fetch(CSV_WEAPON    +'&t='+Date.now(),{cache:'no-store'}),
-        fetch(CSV_CHAR_STAT +'&t='+Date.now(),{cache:'no-store'}),
+      const [rc,re,rw,rcs,res2,rws]=await Promise.all([
+        fetch(CSV_CHAR        +'&t='+Date.now(),{cache:'no-store'}),
+        fetch(CSV_EQUIP       +'&t='+Date.now(),{cache:'no-store'}),
+        fetch(CSV_WEAPON      +'&t='+Date.now(),{cache:'no-store'}),
+        fetch(CSV_CHAR_STAT   +'&t='+Date.now(),{cache:'no-store'}),
+        fetch(CSV_EQUIP_STAT  +'&t='+Date.now(),{cache:'no-store'}),
+        fetch(CSV_WEAPON_STAT +'&t='+Date.now(),{cache:'no-store'}),
       ]);
       const cR=parseCSV(await rc.text());
       const eR=parseCSV(await re.text());
       const wR=parseCSV(await rw.text());
-      try { parseCharStatSheet(parseCSV(await rcs.text())); } catch(e){ console.warn('캐릭터스탯 로드 실패',e); }
+      try { parseCharStatSheet(parseCSV(await rcs.text())); }  catch(e){ console.warn('캐릭터스탯 로드 실패',e); }
+      try { parseEquipStatSheet(parseCSV(await res2.text())); } catch(e){ console.warn('장비스탯 로드 실패',e); }
+      try { parseWeaponStatSheet(parseCSV(await rws.text())); } catch(e){ console.warn('무기스탯 로드 실패',e); }
 
       // 캐릭터: A=이름 B=직업 C=이미지
       const VALID_CHARS=new Set(['스크래치','파이어플라이','허리케인','셴지','고스트','엔젤','미라지','사토시','아니','사이클롭스','스파클','몰리','프레디','레이븐','앨리스','트윙클','블로트','슬레이어','링스','블리자드','스모그','드라군','베스천','베르타','레비아탄','램지','스토커','닥','레비','테스','비','그라비엘','알터']);
       charData=cR.map(r=>({name:r[0]||'',job:r[1]||'',img:r[2]||''})).filter(c=>VALID_CHARS.has(c.name));
 
-      // ── 장비 통합 파싱 ──
-      // A=이름 B=부위 C=분류 D=대상 E=이미지 F~AE=등급쌍(11등급×2=22열) AF~=스탯 수치
-      // 등급쌍 끝 인덱스: 5 + 11*2 = 27  → 스탯 시작: 인덱스 27
-      // 스탯열: [27]체력 [28]체력% [29]대미지 [30]대미지% [31]방어력 [32]방어력%
-      //         [33]이동속도 [34]이동속도% [35]방어구파괴 [36]방어구파괴%
-      //         [37]방어력관통 [38]방어력관통% [39]체력대미지모디파이어% [40]방어구대미지모디파이어%
-      const EQ_STAT_OFF = 5 + EQ_GRADES.length * 2; // = 27
-      equipData=[]; equipStatData={};
-      eR.forEach(r=>{
+      // 장비: A=이름 B=부위 C=분류 D=대상 E=이미지 F~=등급쌍
+      equipData=eR.map(r=>{
         const gr={};
         EQ_GRADES.forEach((g,i)=>{const e=r[5+i*2]||'',t=r[6+i*2]||'';if(e)gr[g]={eff:e,type:t};});
-        const item={name:r[0]||'',slot:r[1]||'',cat:r[2]||'',target:r[3]||'',img:r[4]||'',gr};
-        if(!item.name) return;
-        equipData.push(item);
-        // 스탯이 입력된 등급마다 equipStatData에 저장
-        EQ_GRADES.forEach((g,i)=>{
-          if(!item.gr[g]) return; // 해당 등급 없으면 스킵
-          const o = EQ_STAT_OFF + i * 14; // 등급별 스탯 14개 (flat+% × 7항목)
-          // 스탯 방식 A: 등급별로 14열씩 나열
-          // 스탯 방식 B: 공통 수치 1세트만 입력 (모든 등급 동일)
-          // → 방식 B 사용: 등급 구분 없이 EQ_STAT_OFF 위치에 1세트만 입력
-          const s = EQ_STAT_OFF;
-          equipStatData[item.name+'_'+g] = {
-            hp:          parseFloat(r[s   ])||0, hp_p:          parseFloat(r[s+1 ])||0,
-            atk:         parseFloat(r[s+2 ])||0, atk_p:         parseFloat(r[s+3 ])||0,
-            def:         parseFloat(r[s+4 ])||0, def_p:         parseFloat(r[s+5 ])||0,
-            spd:         parseFloat(r[s+6 ])||0, spd_p:         parseFloat(r[s+7 ])||0,
-            armor_break: parseFloat(r[s+8 ])||0, armor_break_p: parseFloat(r[s+9 ])||0,
-            armor_pen:   parseFloat(r[s+10])||0, armor_pen_p:   parseFloat(r[s+11])||0,
-            hp_dmg_p:    parseFloat(r[s+12])||0,
-            armor_dmg_p: parseFloat(r[s+13])||0,
-          };
-        });
-      });
+        return{name:r[0]||'',slot:r[1]||'',cat:r[2]||'',target:r[3]||'',img:r[4]||'',gr};
+      }).filter(e=>e.name);
 
-      // ── 무기 통합 파싱 ──
-      // A=이름 B=부위 C=대상 D=이미지 E~N=등급쌍(5등급×2=10열) O~=스탯 수치
-      // 스탯 시작: 4 + 5*2 = 14
-      // 스탯열: [14]화력 [15]화력% [16]방어구파괴 [17]방어구파괴% [18]발사속도
-      //         [19]탄약용량 [20]유효거리 [21]조준안정성 [22]발사범위%
-      //         [23]방어력관통 [24]방어력관통% [25]체력대미지모디파이어%
-      //         [26]방어구대미지모디파이어% [27]발사거리flat
-      const WP_STAT_OFF = 4 + WP_GRADES.length * 2; // = 14
-      weaponData=[]; weaponStatData={};
-      wR.forEach(r=>{
+      // 무기: A=이름 B=부위 C=대상 D=이미지 E~=등급쌍
+      weaponData=wR.map(r=>{
         const gr={};
         WP_GRADES.forEach((g,i)=>{const e=r[4+i*2]||'',t=r[5+i*2]||'';if(e)gr[g]={eff:e,type:t};});
-        const item={name:r[0]||'',slot:r[1]||'',target:r[2]||'',img:r[3]||'',gr};
-        if(!item.name) return;
-        weaponData.push(item);
-        WP_GRADES.forEach(g=>{
-          if(!item.gr[g]) return;
-          const s = WP_STAT_OFF;
-          weaponStatData[item.name+'_'+g] = {
-            fire:         parseFloat(r[s   ])||0, fire_p:        parseFloat(r[s+1 ])||0,
-            armor_break:  parseFloat(r[s+2 ])||0, armor_break_p: parseFloat(r[s+3 ])||0,
-            fire_rate:    parseFloat(r[s+4 ])||0,
-            ammo:         parseFloat(r[s+5 ])||0,
-            range:        parseFloat(r[s+6 ])||0,
-            accuracy:     parseFloat(r[s+7 ])||0,
-            fire_range_p: parseFloat(r[s+8 ])||0,
-            armor_pen:    parseFloat(r[s+9 ])||0, armor_pen_p:   parseFloat(r[s+10])||0,
-            hp_dmg_p:     parseFloat(r[s+11])||0,
-            armor_dmg_p:  parseFloat(r[s+12])||0,
-            fire_dist:    parseFloat(r[s+13])||0,
-          };
-        });
-      });
+        return{name:r[0]||'',slot:r[1]||'',target:r[2]||'',img:r[3]||'',gr};
+      }).filter(w=>w.name);
 
       document.getElementById('loading-state').style.display='none';
       document.getElementById('content-wrap').style.display='block';
@@ -854,11 +801,53 @@
     });
   }
 
-  // parseEquipStatSheet — 통합 파싱으로 대체됨 (loadAll 내 equipData 파싱 시 equipStatData 동시 생성)
-  function parseEquipStatSheet(rows) { /* 통합 시트로 대체 — 미사용 */ }
+  // 장비스탯 시트: A=장비명, B=등급, C=체력, D=체력%, E=대미지, F=대미지%, G=방어력, H=방어력%,
+  //               I=이동속도, J=이동속도%, K=방어구파괴, L=방어구파괴%, M=방어력관통, N=방어력관통%,
+  //               O=체력대미지모디파이어%, P=방어구대미지모디파이어%
+  function parseEquipStatSheet(rows) {
+    equipStatData = {};
+    rows.forEach(r => {
+      const name  = (r[0]||'').trim();
+      const grade = (r[1]||'').trim();
+      if(!name||!grade) return;
+      equipStatData[name+'_'+grade] = {
+        hp:          parseFloat(r[2])||0,  hp_p:          parseFloat(r[3])||0,
+        atk:         parseFloat(r[4])||0,  atk_p:         parseFloat(r[5])||0,
+        def:         parseFloat(r[6])||0,  def_p:         parseFloat(r[7])||0,
+        spd:         parseFloat(r[8])||0,  spd_p:         parseFloat(r[9])||0,
+        armor_break: parseFloat(r[10])||0, armor_break_p: parseFloat(r[11])||0,
+        armor_pen:   parseFloat(r[12])||0, armor_pen_p:   parseFloat(r[13])||0,
+        hp_dmg_p:    parseFloat(r[14])||0,
+        armor_dmg_p: parseFloat(r[15])||0,
+      };
+    });
+  }
 
-  // parseWeaponStatSheet — 통합 파싱으로 대체됨 (loadAll 내 weaponData 파싱 시 weaponStatData 동시 생성)
-  function parseWeaponStatSheet(rows) { /* 통합 시트로 대체 — 미사용 */ }
+  // 무기스탯 시트: A=무기명, B=등급, C=화력, D=화력%, E=방어구파괴, F=방어구파괴%,
+  //               G=발사속도, H=탄약용량, I=유효거리, J=조준안정성, K=발사범위%,
+  //               L=방어력관통, M=방어력관통%, N=체력대미지모디파이어%,
+  //               O=방어구대미지모디파이어%, P=발사거리flat
+  function parseWeaponStatSheet(rows) {
+    weaponStatData = {};
+    rows.forEach(r => {
+      const name  = (r[0]||'').trim();
+      const grade = (r[1]||'').trim();
+      if(!name||!grade) return;
+      weaponStatData[name+'_'+grade] = {
+        fire:         parseFloat(r[2])||0,  fire_p:        parseFloat(r[3])||0,
+        armor_break:  parseFloat(r[4])||0,  armor_break_p: parseFloat(r[5])||0,
+        fire_rate:    parseFloat(r[6])||0,
+        ammo:         parseFloat(r[7])||0,
+        range:        parseFloat(r[8])||0,
+        accuracy:     parseFloat(r[9])||0,
+        fire_range_p: parseFloat(r[10])||0,
+        armor_pen:    parseFloat(r[11])||0, armor_pen_p:   parseFloat(r[12])||0,
+        hp_dmg_p:     parseFloat(r[13])||0,
+        armor_dmg_p:  parseFloat(r[14])||0,
+        fire_dist:    parseFloat(r[15])||0,
+      };
+    });
+  }
 
   /* ══════════════════════════════════════
      전투력 계산 엔진
@@ -2412,6 +2401,8 @@ function toggleSidebarBox(e) {
 function doSidebarLogout() {
   sessionStorage.removeItem('ggo_logged_in');
   sessionStorage.removeItem('ggo_username');
+  localStorage.removeItem('ggo_logged_in');
+  localStorage.removeItem('ggo_username');
   location.href = 'index.html';
 }
 
