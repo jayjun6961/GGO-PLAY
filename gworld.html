@@ -2704,16 +2704,19 @@ function questProgress(type, target) {
 
 // 등급별 강화 비용 설정 (시작 비용 + 강화단계당 상승)
 const ENH_COST_TABLE = {
-  '기본': {base:   30, step:   15},
-  '일반': {base:   50, step:   25},
-  '희귀': {base:  150, step:   80},
-  '레어': {base:  400, step:  200},
-  '에픽': {base: 1000, step:  500},
-  '전설': {base: 3000, step: 1500},
+  '기본': {base:   30, step:   15, max:  30},
+  '일반': {base:   50, step:   25, max:  50},
+  '희귀': {base:  150, step:   80, max:  80},
+  '레어': {base:  400, step:  200, max: 100},
+  '에픽': {base: 1000, step:  500, max: 120},
+  '전설': {base: 3000, step: 1500, max: 150},
 };
 function enhCost(enh, grade){
   const cfg = ENH_COST_TABLE[grade] || ENH_COST_TABLE['일반'];
   return cfg.base + Math.floor((enh||0) * cfg.step);
+}
+function getEnhMax(grade){
+  return (ENH_COST_TABLE[grade] || ENH_COST_TABLE['일반']).max;
 }
 function renderEnh(){
   const eq=G.equip||{};
@@ -2748,14 +2751,21 @@ function renderEnh(){
       }
       const GRADE_COL2={'기본':'#94a3b8','일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24'};
       const gc2 = GRADE_COL2[it.grade||'일반']||'#94a3b8';
+      const maxEnh = getEnhMax(it.grade);
+      const isMax  = enh >= maxEnh;
       const enhBadge=enh>0?`<span style="font-size:9px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-left:4px">+${enh}</span>`:'';
+      const maxBadge=isMax?`<span style="font-size:9px;color:#f87171;font-family:'Orbitron',sans-serif;margin-left:4px">MAX</span>`:'';
+      const enhProgress=`<span style="font-size:9px;color:#64748b;margin-left:4px">(${enh}/${maxEnh})</span>`;
       return `<div class="gw-ei">
         <div class="gw-ei-ico">${it.e||'🔧'}</div>
         <div class="gw-ei-info">
-          <div class="gw-ei-nm">${it.n}${enhBadge} <span style="font-size:9px;color:var(--text-dim)">[${SLOT_LABEL[slot]||slot}]</span></div>
-          <div class="gw-ei-st">${stat} → 강화 후 ${nextStat}</div>
+          <div class="gw-ei-nm">${it.n}${enhBadge}${maxBadge}${enhProgress} <span style="font-size:9px;color:var(--text-dim)">[${SLOT_LABEL[slot]||slot}]</span></div>
+          <div class="gw-ei-st">${isMax?`<span style="color:#f87171">최대 강화 달성!</span>`:stat+' → 강화 후 '+nextStat}</div>
         </div>
-        <button class="gw-enh-btn" onclick="enhSlot('${slot}')" style="background:linear-gradient(135deg,${gc2},${gc2}99);border:1px solid ${gc2};color:#000;">강화 (${cost.toLocaleString()}G)</button>
+        ${isMax
+          ? `<button class="gw-enh-btn" disabled style="background:rgba(71,85,105,.2);border:1px solid #334155;color:#475569;cursor:not-allowed;">MAX</button>`
+          : `<button class="gw-enh-btn" onclick="enhSlot('${slot}')" style="background:linear-gradient(135deg,${gc2},${gc2}99);border:1px solid ${gc2};color:#000;">강화 (${cost.toLocaleString()}G)</button>`
+        }
       </div>`;
     });
   const emptyMsg=rows.length===0
@@ -2769,6 +2779,8 @@ function enhSlot(slot){
   const it=(G.equip||{})[slot];
   if(!it){gwT('해당 슬롯에 장비 없음');return;}
   const enh=it.enh||0;
+  const maxEnh=getEnhMax(it.grade);
+  if(enh>=maxEnh){gwT(`⚠️ 최대 강화 횟수 도달 (+${maxEnh} / ${it.grade})`);return;}
   const cost=enhCost(enh, it.grade);
   if(G.gold<cost){gwT(`골드 부족 (${cost}G 필요)`);return;}
   G.gold-=cost;
