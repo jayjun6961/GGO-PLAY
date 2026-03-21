@@ -313,7 +313,7 @@
   .gw-hud{gap:6px;padding:6px 9px;}
 
   /* ── 모바일 전투화면: 스크롤 없이 한 화면에 HUD+캔버스+로그+스킬바 표시 ── */
-  #gs-battle, #gs-dungeon, #gs-dojo, #gs-tower {
+  #gs-battle, #gs-dungeon, #gs-dojo, #gs-tower, #gs-rdun {
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
@@ -321,7 +321,8 @@
   #gs-battle .gw-battle,
   #gs-dungeon .gw-battle,
   #gs-dojo .gw-battle,
-  #gs-tower .gw-battle {
+  #gs-tower .gw-battle,
+  #gs-rdun .gw-battle {
     height: 100%;
     overflow: hidden;
   }
@@ -677,6 +678,17 @@
   </div>
 </div>
 
+<!-- 유물 던전 패널 -->
+<div class="gw-pov" id="gw-prdun" onclick="if(event.target===this)closeP('gw-prdun')">
+  <div class="gw-pbox" style="width:min(420px,96vw);max-height:88vh;display:flex;flex-direction:column;">
+    <div class="gw-phdr" style="background:linear-gradient(135deg,rgba(234,179,8,.12),rgba(161,98,7,.06));border-bottom:1px solid rgba(234,179,8,.3);">
+      <div class="gw-pttl" style="color:#fbbf24;">🏺 유물 던전</div>
+      <button class="gw-px" onclick="closeP('gw-prdun')">✕</button>
+    </div>
+    <div class="gw-pbdy" id="gw-rdunbody" style="padding:12px;"></div>
+  </div>
+</div>
+
 <!-- 유물 패널 -->
 <div class="gw-pov" id="gw-prelic" onclick="if(event.target===this)closeP('gw-prelic')">
   <div class="gw-pbox" style="width:min(420px,96vw);max-height:88vh;display:flex;flex-direction:column;">
@@ -786,6 +798,7 @@
         <div class="gw-act" onclick="openPVP()" style="border-color:rgba(239,68,68,.25)"><div class="gw-act-ico">🥊</div><div class="gw-act-lbl">PVP</div></div>
         <div class="gw-act" onclick="openTower()" style="border-color:rgba(251,191,36,.25)"><div class="gw-act-ico">🗼</div><div class="gw-act-lbl">천공의 탑</div></div>
         <div class="gw-act" onclick="openRelics()" style="border-color:rgba(168,85,247,.25)"><div class="gw-act-ico">🔮</div><div class="gw-act-lbl">유물</div></div>
+        <div class="gw-act" onclick="openRelicDungeon()" style="border-color:rgba(234,179,8,.25)"><div class="gw-act-ico">🏺</div><div class="gw-act-lbl">유물 던전</div></div>
         <div class="gw-act" onclick="resetChar()" style="border-color:rgba(239,68,68,.15)"><div class="gw-act-ico">🔄</div><div class="gw-act-lbl">초기화</div></div>
       </div>
     </div>
@@ -888,6 +901,50 @@
       <div id="dr-dunname" style="font-size:12px;color:#a855f7;font-family:'Orbitron',sans-serif;margin-bottom:16px;"></div>
       <div id="dr-body" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:8px;"></div>
       <button onclick="dungeonResultClose()" style="margin-top:20px;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:10px 32px;border-radius:10px;font-size:13px;font-family:'Orbitron',sans-serif;cursor:pointer;">마을로 돌아가기</button>
+    </div>
+  </div>
+
+  <!-- 유물 던전 전투 화면 -->
+  <div class="gw-screen" id="gs-rdun">
+    <div class="gw-battle">
+      <div class="gw-hud">
+        <div class="gw-lv-tag" id="rdh-lv">Lv.1</div>
+        <div class="gw-hud-nm" id="rdh-jnm">전사</div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#ef4444">HP</div><div class="bar-bg"><div class="bar-hp" id="rdh-hpf" style="width:100%"></div></div><div class="bar-v" id="rdh-hpv">-/-</div></div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#3b82f6">MP</div><div class="bar-bg"><div class="bar-mp" id="rdh-mpf" style="width:100%"></div></div><div class="bar-v" id="rdh-mpv">-/-</div></div>
+        <div class="gw-gold" id="rdh-gold">0G</div>
+      </div>
+      <div class="gw-battle-scene" id="rdh-scene" style="min-height:140px;">
+        <canvas id="rdh-cv"></canvas>
+        <div class="gw-mob-hpbar">
+          <div class="gw-mob-nm-lbl" id="rdh-bnm">보스</div>
+          <div class="gw-mob-bar-bg"><div class="gw-mob-bar-f" id="rdh-barf" style="width:100%"></div></div>
+        </div>
+        <div id="rdh-timer" style="position:absolute;top:8px;right:10px;font-family:'Orbitron',sans-serif;font-size:11px;color:#fbbf24;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:6px;">⏱ 0:00</div>
+        <div id="rdh-day-badge" style="position:absolute;top:8px;left:10px;font-family:'Orbitron',sans-serif;font-size:10px;color:#fbbf24;background:rgba(0,0,0,.65);padding:3px 8px;border-radius:6px;">🏺</div>
+      </div>
+      <div class="gw-blog" id="rdh-blog" style="height:130px;"></div>
+      <div style="display:flex;gap:5px;padding:5px 11px;background:rgba(5,3,12,.96);border-top:1px solid rgba(124,58,237,.09);align-items:center;">
+        <span style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;margin-right:3px">포션</span>
+        <button onclick="usePotInRdun('hp')" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💚 HP</button>
+        <button onclick="usePotInRdun('mp')" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:#60a5fa;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💧 MP</button>
+        <span id="rdh-pot-hp" style="font-size:9px;color:#64748b;"></span>
+        <span id="rdh-pot-mp" style="font-size:9px;color:#64748b;"></span>
+      </div>
+      <div class="gw-sk-bar">
+        <div id="rdh-skbtns" style="display:flex;gap:5px;flex-wrap:wrap;flex:1;"></div>
+        <button class="gw-retreat" onclick="rdunRetreat()">🏃 철수</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 유물 던전 결과 화면 -->
+  <div class="gw-screen" id="gs-rdun-result">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;padding:24px 20px;gap:0;overflow-y:auto;">
+      <div style="font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;color:#fbbf24;margin-bottom:4px;text-shadow:0 0 16px #fbbf2488;">🏺 유물 던전 클리어!</div>
+      <div id="rdr-bossname" style="font-size:12px;color:#a855f7;font-family:'Orbitron',sans-serif;margin-bottom:16px;"></div>
+      <div id="rdr-body" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:8px;"></div>
+      <button onclick="rdunResultClose()" style="margin-top:20px;background:linear-gradient(135deg,#ca8a04,#92400e);border:1px solid #fbbf24;color:#fff;padding:10px 32px;border-radius:10px;font-size:13px;font-family:'Orbitron',sans-serif;cursor:pointer;">마을로 돌아가기</button>
     </div>
   </div>
 
@@ -2457,6 +2514,7 @@ function renderP(id){
   if(id==='gw-ppvp')     pvpTab('battle');
   if(id==='gw-ptower')   renderTowerPanel();
   if(id==='gw-prelic')   renderRelicPanel();
+  if(id==='gw-prdun')    renderRelicDungeonPanel();
   if(id==='gw-pcash')    renderCashShop();
   if(id==='gw-pwb')      renderWorldBoss(); // async
 }
@@ -6610,6 +6668,367 @@ function openRelics() { openP('gw-prelic'); }
 // ════════════════════════════════════════════════════════
 //  유물 시스템 끝
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  유물 던전 시스템
+// ════════════════════════════════════════════════════════
+
+const RDUN_MIN_LV    = 100;   // 최소 레벨
+const RDUN_DAILY_MAX = 3;     // 1일 최대 입장 횟수
+
+// 요일별 던전 정의 (0=일, 1=월, ... 6=토)
+const RDUN_LIST = [
+  { day:0, dayName:'일요일', name:'칼리그마의 심연',    boss:{n:'칼리그마',    e:'🌑', hp:130000, atk:420, def:140}, relics:['gucci','approval'] },
+  { day:1, dayName:'월요일', name:'아크라논의 폐허',    boss:{n:'아크라논',    e:'🔥', hp:110000, atk:380, def:120}, relics:['jakchae','churu'] },
+  { day:2, dayName:'화요일', name:'제르바투스의 요새',  boss:{n:'제르바투스',  e:'⚡', hp:115000, atk:390, def:125}, relics:['figure'] },
+  { day:3, dayName:'수요일', name:'드라카엘의 빙원',    boss:{n:'드라카엘',    e:'❄️', hp:112000, atk:385, def:130}, relics:['toy'] },
+  { day:4, dayName:'목요일', name:'벨카로스의 화산',    boss:{n:'벨카로스',    e:'🌋', hp:118000, atk:400, def:122}, relics:['taco'] },
+  { day:5, dayName:'금요일', name:'오르테시온의 탑',    boss:{n:'오르테시온',  e:'🌪️', hp:120000, atk:410, def:128}, relics:['will'] },
+  { day:6, dayName:'토요일', name:'말디온의 심해',      boss:{n:'말디온',      e:'🐙', hp:125000, atk:415, def:135}, relics:['ttunga'] },
+];
+
+// 오늘 요일 기준 던전
+function getTodayRdun() {
+  return RDUN_LIST[new Date().getDay()];
+}
+
+// 일일 입장 횟수 키
+function _rdunDailyKey() {
+  return 'gwo_rdun_daily_' + getTodayKey() + '_' + gwUN();
+}
+function getRdunCount() {
+  return parseInt(localStorage.getItem(_rdunDailyKey())||'0');
+}
+function addRdunCount() {
+  localStorage.setItem(_rdunDailyKey(), String(getRdunCount()+1));
+}
+
+// ── 패널 렌더 ──
+function renderRelicDungeonPanel() {
+  const el = document.getElementById('gw-rdunbody');
+  if(!el) return;
+
+  const rdun  = getTodayRdun();
+  const cnt   = getRdunCount();
+  const left  = Math.max(0, RDUN_DAILY_MAX - cnt);
+  const locked = G.lv < RDUN_MIN_LV;
+  const full   = cnt >= RDUN_DAILY_MAX;
+
+  // 요일 탭
+  const days = ['일','월','화','수','목','금','토'];
+  const today = new Date().getDay();
+  let html = `
+    <div style="display:flex;gap:3px;margin-bottom:12px;overflow-x:auto;">` +
+    RDUN_LIST.map(d => {
+      const isToday = d.day === today;
+      return `<div style="flex:1;min-width:36px;text-align:center;padding:5px 2px;border-radius:6px;
+        background:${isToday?'rgba(234,179,8,.2)':'rgba(255,255,255,.03)'};
+        border:1px solid ${isToday?'rgba(234,179,8,.5)':'rgba(255,255,255,.07)'};
+        font-size:9px;font-family:'Noto Sans KR',sans-serif;color:${isToday?'#fbbf24':'#475569'};">
+        ${days[d.day]}<br><span style="font-size:11px;">${d.boss.e}</span>
+      </div>`;
+    }).join('') +
+    `</div>`;
+
+  // 오늘 던전 카드
+  html += `
+    <div style="background:linear-gradient(135deg,rgba(234,179,8,.08),rgba(161,98,7,.04));
+      border:1px solid rgba(234,179,8,.3);border-radius:14px;padding:14px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div style="font-size:40px;line-height:1;">${rdun.boss.e}</div>
+        <div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#fbbf24;">${rdun.boss.n}</div>
+          <div style="font-size:10px;color:#64748b;margin-top:2px;">${rdun.dayName} 전용 · ${rdun.name}</div>
+          <div style="font-size:9px;color:#475569;margin-top:1px;">HP ${rdun.boss.hp.toLocaleString()} · ATK ${rdun.boss.atk} · DEF ${rdun.boss.def}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        ${rdun.relics.map(rid => {
+          const rd = RELIC_DEFS.find(x=>x.id===rid);
+          return rd ? `<span style="font-size:9px;padding:2px 7px;border-radius:5px;
+            background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);color:#c084fc;">
+            ${rd.e} ${rd.name}</span>` : '';
+        }).join('')}
+        <span style="font-size:9px;padding:2px 7px;border-radius:5px;
+          background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.2);color:#fbbf24;">
+          🧪 연금석 1~10개</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:10px;color:${left>0?'#34d399':'#ef4444'};font-family:'Orbitron',sans-serif;">
+          입장 ${cnt}/${RDUN_DAILY_MAX}회 · 남은 횟수: <strong>${left}</strong>
+        </div>
+        ${locked
+          ? `<div style="font-size:10px;color:#ef4444;font-family:'Noto Sans KR',sans-serif;">🔒 Lv.${RDUN_MIN_LV} 이상 입장 가능<br><small style="color:#475569;">현재 Lv.${G.lv}</small></div>`
+          : full
+          ? `<button disabled style="background:rgba(71,85,105,.3);border:1px solid rgba(71,85,105,.4);color:#475569;padding:8px 16px;border-radius:8px;font-size:11px;font-family:'Orbitron',sans-serif;">오늘 소진</button>`
+          : `<button onclick="enterRelicDungeon();closeP('gw-prdun')"
+              style="background:linear-gradient(135deg,#ca8a04,#92400e);border:1px solid #fbbf24;
+              color:#fff;padding:8px 16px;border-radius:8px;font-size:11px;
+              font-family:'Orbitron',sans-serif;cursor:pointer;font-weight:700;">⚔️ 입장</button>`
+        }
+      </div>
+    </div>
+
+    <div style="padding:8px 12px;background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.15);border-radius:8px;">
+      <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;line-height:1.8;">
+        🎁 <span style="color:#34d399">기본 보상:</span> 대량 골드 + 대량 경험치 + 연금석 1~10개<br>
+        🔮 <span style="color:#c084fc">유물 드롭:</span> ${rdun.relics.map(rid=>{const rd=RELIC_DEFS.find(x=>x.id===rid);return rd?rd.name:'';}).filter(Boolean).join(', ')} (5% 확률 · 일반 등급)
+      </div>
+    </div>`;
+
+  el.innerHTML = html;
+}
+
+// ── 던전 입장 ──
+let _rdun = { boss:null, bossHp:0, bossMhp:0, tick:null, timerSec:0, timerInt:null, dead:false };
+
+function enterRelicDungeon() {
+  if(G.lv < RDUN_MIN_LV) { gwT(`🔒 Lv.${RDUN_MIN_LV} 이상만 입장 가능합니다!`); return; }
+  if(getRdunCount() >= RDUN_DAILY_MAX) { gwT(`⛔ 오늘 유물 던전 입장 횟수를 모두 사용했습니다. (${RDUN_DAILY_MAX}/${RDUN_DAILY_MAX})`); return; }
+
+  const rdun = getTodayRdun();
+  _rdun.boss     = rdun.boss;
+  _rdun.bossHp   = rdun.boss.hp;
+  _rdun.bossMhp  = rdun.boss.hp;
+  _rdun.timerSec = 0;
+  _rdun.dead     = false;
+  _rdunDay       = rdun;
+
+  gwSC('rdun');
+
+  document.getElementById('rdh-lv').textContent   = 'Lv.'+G.lv;
+  document.getElementById('rdh-jnm').textContent  = JOBS[G.job]?.name||'';
+  document.getElementById('rdh-bnm').textContent  = rdun.boss.n;
+  document.getElementById('rdh-blog').innerHTML   = '';
+  document.getElementById('rdh-day-badge').textContent = `🏺 ${rdun.dayName}`;
+
+  setTimeout(()=>{
+    const cv = document.getElementById('rdh-cv');
+    if(cv){ cv.width=cv.offsetWidth||500; cv.height=cv.offsetHeight||140; }
+  }, 30);
+
+  rdunSkills(); rdunPotBar(); rdunHud(); hud();
+
+  if(_rdun.tick)     clearInterval(_rdun.tick);
+  if(_rdun.timerInt) clearInterval(_rdun.timerInt);
+  _rdun.tick = setInterval(rdunFight, tSpd());
+  _rdun.timerInt = setInterval(()=>{
+    _rdun.timerSec++;
+    const m=Math.floor(_rdun.timerSec/60), s=_rdun.timerSec%60;
+    const el=document.getElementById('rdh-timer');
+    if(el) el.textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+
+  rdunBlog(`<span style="color:#fbbf24">🏺 ${rdun.name} 입장! ${rdun.boss.n}이(가) 나타났다!</span>`);
+}
+let _rdunDay = null;
+
+// ── HUD ──
+function rdunHud() {
+  document.getElementById('rdh-hpf').style.width=(G.hp/G.mHP*100)+'%';
+  document.getElementById('rdh-hpv').textContent=G.hp+'/'+G.mHP;
+  document.getElementById('rdh-mpf').style.width=(G.mp/G.mMP*100)+'%';
+  document.getElementById('rdh-mpv').textContent=G.mp+'/'+G.mMP;
+  document.getElementById('rdh-gold').textContent=G.gold.toLocaleString()+'G';
+  const pct = _rdun.bossMhp>0 ? (_rdun.bossHp/_rdun.bossMhp*100) : 0;
+  document.getElementById('rdh-barf').style.width=pct+'%';
+}
+
+// ── 배틀 로그 ──
+function rdunBlog(html) {
+  const el=document.getElementById('rdh-blog');
+  if(!el) return;
+  el.innerHTML+=html+'<br>';
+  el.scrollTop=el.scrollHeight;
+}
+
+// ── 전투 틱 ──
+function rdunFight() {
+  if(!_rdun.boss || _rdun.bossHp<=0 || _rdun.dead) return;
+  const boss = _rdun.boss;
+
+  // 플레이어 공격
+  let dmg = Math.max(1, tAtk()-boss.def+Math.floor(Math.random()*6)-2);
+  const isCrit = Math.random()*100 < tCritRate();
+  if(isCrit) dmg = Math.floor(dmg*tCritDmg()/100);
+  _rdun.bossHp = Math.max(0, _rdun.bossHp-dmg);
+  rdunBlog(`<span class="ld">⚔️ ${isCrit?'<span style="color:#f97316">💥치명타! </span>':''}${boss.n}에게 ${dmg} 대미지! (HP ${_rdun.bossHp.toLocaleString()}/${_rdun.bossMhp.toLocaleString()})</span>`);
+  rdunHud();
+  if(_rdun.bossHp<=0){ rdunBossDead(); return; }
+
+  // 보스 공격 (드래곤 던전과 동일 공식)
+  const bPen  = Math.floor(boss.atk*0.6);
+  const bRes  = Math.max(0, Math.floor(boss.atk*0.4)-Math.floor(tDef()*0.5));
+  const bVar  = Math.floor(Math.random()*Math.max(2,Math.floor(boss.atk*0.05)));
+  const md    = Math.min(Math.max(1,bPen+bRes+bVar), Math.floor(G.mHP*0.6));
+  G.hp = Math.max(0, G.hp-md);
+  rdunBlog(`<span class="ld">${boss.n}의 공격! -${md} HP</span>`);
+  rdunHud(); rdunSkills();
+
+  if(G.hp<=0){
+    _rdun.dead=true;
+    clearInterval(_rdun.tick); clearInterval(_rdun.timerInt);
+    addRdunCount();
+    rdunBlog(`<span style="color:#ef4444">💀 ${boss.n}에게 쓰러졌습니다...</span>`);
+    saveG();
+    setTimeout(()=>{ G.hp=Math.floor(G.mHP*0.1); saveG(); goTown(); gwT('💀 유물 던전에서 패배...'); },2200);
+  }
+}
+
+// ── 보스 처치 ──
+function rdunBossDead() {
+  clearInterval(_rdun.tick); clearInterval(_rdun.timerInt);
+  addRdunCount();
+  const rdun   = _rdunDay || getTodayRdun();
+  const boss   = _rdun.boss;
+  const m=Math.floor(_rdun.timerSec/60), s=_rdun.timerSec%60;
+  rdunBlog(`<span style="color:#fbbf24;font-weight:700">👑 ${boss.n} 처치! 클리어 시간: ${m}:${String(s).padStart(2,'0')}</span>`);
+
+  // 기본 보상: 대량 골드/경험치
+  const goldMult = 1+(equipBonus().goldBonus||0)/100;
+  const goldGain = Math.floor((30000 + Math.floor(Math.random()*20001)) * goldMult);
+  const expGain  = Math.floor((25000 + Math.floor(Math.random()*15001)) * tExpRate());
+  G.gold += goldGain;
+  G.exp  += expGain;
+
+  let lvUp=0;
+  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  if(lvUp>0){ rdunBlog(`<span style="color:#a855f7">🆙 레벨업! Lv.${G.lv}</span>`);
+    const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
+
+  const droppedItems = [];
+
+  // 연금석 1~10개
+  const alchemyAmt = 1 + Math.floor(Math.random()*10);
+  const alcEx = G.inv.find(i=>i.n==='연금석');
+  if(alcEx) alcEx.qty=(alcEx.qty||0)+alchemyAmt;
+  else G.inv.push({n:'연금석',e:'🧪',type:'mat',val:100,grade:'희귀',sellPrice:100,qty:alchemyAmt,_id:Date.now()-5});
+  droppedItems.push({n:'연금석',e:'🧪',grade:'희귀',qty:alchemyAmt,_isMat:true});
+
+  // 유물 드롭 (5% 확률, 일반 등급)
+  if(Math.random() < 0.05 && rdun.relics.length > 0) {
+    const relicId = rdun.relics[Math.floor(Math.random()*rdun.relics.length)];
+    const rd = RELIC_DEFS.find(x=>x.id===relicId);
+    if(rd) {
+      const grade = '일반';
+      const statVal = rd.vals[grade];
+      const relicItem = {
+        n: rd.name, e: rd.e, type:'relic', relicId: rd.id,
+        grade, [rd.stat]: statVal, desc: rd.desc,
+        sellPrice: 200, qty:1, _id: Date.now()
+      };
+      G.inv.push(relicItem);
+      droppedItems.push(relicItem);
+      rdunBlog(`<span style="color:#c084fc">🔮 유물 획득! [${rd.name}] (일반)</span>`);
+    }
+  }
+
+  saveG();
+  setTimeout(()=>showRdunResult(rdun, goldGain, expGain, droppedItems, lvUp, alchemyAmt), 1200);
+}
+
+// ── 결과 화면 ──
+function showRdunResult(rdun, gold, exp, items, lvUp) {
+  gwSC('rdun-result');
+  document.getElementById('rdr-bossname').textContent = rdun.boss.n+' 처치!';
+  const GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316'};
+  let html = `
+    <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:24px">💰</span>
+      <div><div style="font-size:13px;color:#fbbf24;font-family:'Orbitron',sans-serif;font-weight:700">+${gold.toLocaleString()} G</div>
+      <div style="font-size:10px;color:#64748b">골드 획득</div></div>
+    </div>
+    <div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:24px">⭐</span>
+      <div><div style="font-size:13px;color:#a855f7;font-family:'Orbitron',sans-serif;font-weight:700">+${exp.toLocaleString()} EXP</div>
+      <div style="font-size:10px;color:#64748b">경험치 획득${lvUp>0?' · 레벨업 '+lvUp+'회':''}</div></div>
+    </div>`;
+  items.forEach(it=>{
+    const gc = GRADE_COL[it.grade]||'#94a3b8';
+    const sub = it._isMat ? `×${it.qty}개` : `${it.grade} · ${it.desc||''}`;
+    html+=`<div style="background:${gc}11;border:1px solid ${gc}33;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px">${it.e}</span>
+      <div><div style="font-size:12px;font-weight:700;color:${gc}">${it.n}</div>
+      <div style="font-size:9px;color:#64748b">${sub}</div></div>
+    </div>`;
+  });
+  document.getElementById('rdr-body').innerHTML = html;
+  hud();
+}
+
+function rdunResultClose(){ goTown(); }
+
+// ── 철수 ──
+function rdunRetreat() {
+  clearInterval(_rdun.tick); clearInterval(_rdun.timerInt);
+  _rdun.boss=null; G.buffs={}; saveG(); goTown();
+  gwT('🏃 유물 던전에서 철수했습니다.');
+}
+
+// ── 스킬 버튼 ──
+function rdunSkills() {
+  const job=JOBS[G.job]; if(!job) return;
+  const el=document.getElementById('rdh-skbtns'); if(!el) return;
+  const now=Date.now();
+  el.innerHTML=job.skills.filter(s=>G.lv>=s.lv).map(sk=>{
+    const lv=G.sk[sk.id]?.lv||0;
+    const cdLeft=Math.max(0,sk.cd-(now-(G.sk[sk.id]?.t||0))/1000);
+    const ready=cdLeft<=0&&G.mp>=sk.mp;
+    return `<button onclick="useRdunSkill('${sk.id}')"
+      style="padding:5px 9px;border-radius:8px;font-size:9px;font-family:'Orbitron',sans-serif;cursor:pointer;
+        background:${ready?'linear-gradient(135deg,#7c3aed,#5b21b6)':'rgba(71,85,105,.3)'};
+        border:1px solid ${ready?'#a855f7':'rgba(71,85,105,.5)'};color:${ready?'#fff':'#475569'};">
+      ${sk.name}${lv>0?` +${lv}`:''}<br><span style="font-size:8px">${sk.mp}MP${cdLeft>0?' '+cdLeft.toFixed(0)+'s':''}</span>
+    </button>`;
+  }).join('');
+}
+
+function useRdunSkill(skId) {
+  const job=JOBS[G.job];if(!job)return;
+  const sk=job.skills.find(s=>s.id===skId);if(!sk||G.lv<sk.lv)return;
+  const now=Date.now();
+  if(now-(G.sk[skId]?.t||0)<sk.cd*1000){gwT('쿨타임 중...');return;}
+  if(G.mp<sk.mp){gwT('MP 부족!');return;}
+  G.mp-=sk.mp; G.sk[skId]={...G.sk[skId]||{},t:now};
+  const lv=G.sk[skId]?.lv||0;
+  let dmg=Math.max(1,Math.floor(tAtk()*(sk.dmg+lv*0.1))-(_rdun.boss?.def||0)+Math.floor(Math.random()*10)-4);
+  const isCrit=Math.random()*100<tCritRate();
+  if(isCrit)dmg=Math.floor(dmg*tCritDmg()/100);
+  if(sk.eff==='heal30'||sk.eff==='def_buff'){
+    if(sk.eff==='heal30'){const h=Math.floor(G.mHP*0.3);G.hp=Math.min(G.mHP,G.hp+h);rdunBlog(`<span style="color:#34d399">💚 ${sk.name}! HP +${h}</span>`);}
+    else{G.buffs.def=true;rdunBlog(`<span style="color:#60a5fa">🛡️ ${sk.name}! 방어력 강화!</span>`);}
+  } else {
+    _rdun.bossHp=Math.max(0,_rdun.bossHp-dmg);
+    rdunBlog(`<span style="color:#c084fc">✨ ${sk.name}${isCrit?'<span style="color:#f97316">💥치명타!</span>':''} ${dmg} 대미지!</span>`);
+    if(_rdun.bossHp<=0){rdunHud();rdunBossDead();return;}
+  }
+  rdunHud(); rdunSkills(); saveG();
+}
+
+// ── 포션 ──
+function usePotInRdun(eff) {
+  const p=G.inv.find(i=>i.type==='pot'&&i.eff===eff);
+  if(!p){gwT(eff==='hp'?'HP 포션 없음':'MP 포션 없음');return;}
+  if(eff==='hp'){const h=Math.min(p.val,G.mHP-G.hp);G.hp+=h;rdunBlog(`<span style="color:#34d399">💚 HP +${h}</span>`);}
+  else{const m=Math.min(p.val,G.mMP-G.mp);G.mp+=m;rdunBlog(`<span style="color:#60a5fa">💧 MP +${m}</span>`);}
+  p.qty--;if(p.qty<=0)G.inv.splice(G.inv.indexOf(p),1);
+  rdunHud(); rdunPotBar(); saveG();
+}
+function rdunPotBar() {
+  const hp=G.inv.find(i=>i.type==='pot'&&i.eff==='hp');
+  const mp=G.inv.find(i=>i.type==='pot'&&i.eff==='mp');
+  const hEl=document.getElementById('rdh-pot-hp');
+  const mEl=document.getElementById('rdh-pot-mp');
+  if(hEl)hEl.textContent=hp?'×'+hp.qty:'×0';
+  if(mEl)mEl.textContent=mp?'×'+mp.qty:'×0';
+}
+
+// ── 패널 열기 ──
+function openRelicDungeon() { openP('gw-prdun'); }
+
+// ════════════════════════════════════════════════════════
+//  유물 던전 시스템 끝
+// ════════════════════════════════════════════════════════
+
 
 
 
