@@ -656,9 +656,18 @@
 
 <!-- 패널: 장비 강화 -->
 <div class="gw-pov" id="gw-pen" onclick="if(event.target===this)closeP('gw-pen')">
-  <div class="gw-pbox">
-    <div class="gw-phdr"><div class="gw-pttl">⚒️ 장비 강화</div><button class="gw-px" onclick="closeP('gw-pen')">✕</button></div>
-    <div class="gw-pbdy" id="gw-enbody"></div>
+  <div class="gw-pbox" style="width:min(440px,96vw);max-height:88vh;display:flex;flex-direction:column;">
+    <div class="gw-phdr"><div class="gw-pttl">⚒️ 강화</div><button class="gw-px" onclick="closeP('gw-pen')">✕</button></div>
+    <!-- 강화 탭 -->
+    <div style="display:flex;gap:4px;padding:8px 12px 0;background:rgba(5,3,12,.97);">
+      <button id="enh-tab-equip" onclick="enhTab('equip')"
+        style="flex:1;padding:6px;border-radius:8px 8px 0 0;font-size:11px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;border:none;
+               background:rgba(124,58,237,.2);color:#c084fc;border-bottom:2px solid #a855f7;">⚒️ 장비 강화</button>
+      <button id="enh-tab-relic" onclick="enhTab('relic')"
+        style="flex:1;padding:6px;border-radius:8px 8px 0 0;font-size:11px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;border:none;
+               background:rgba(124,58,237,.06);color:#64748b;border-bottom:2px solid transparent;">🔮 유물 강화</button>
+    </div>
+    <div class="gw-pbdy" id="gw-enbody" style="padding:12px;"></div>
   </div>
 </div>
 
@@ -2650,7 +2659,7 @@ function closeP(id){
 function renderP(id){
   if(id==='gw-pi')       renderInv();
   if(id==='gw-pq')       renderQ();
-  if(id==='gw-pen')      renderEnh();
+  if(id==='gw-pen')      { enhTab('equip'); }
   if(id==='gw-pst')      renderStat();
   if(id==='gw-psk')      renderSkList();
   if(id==='gw-pshop')    renderShop();
@@ -6813,6 +6822,250 @@ function openRelics() { openP('gw-prelic'); }
 // ════════════════════════════════════════════════════════
 //  유물 시스템 끝
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  유물 강화 시스템
+// ════════════════════════════════════════════════════════
+
+// 유물 등급별 최대 강화 횟수
+const RELIC_ENH_MAX = { 일반:10, 희귀:20, 레어:30, 에픽:40, 전설:50 };
+
+// 유물 강화 비용 (골드 + 연금석)
+const RELIC_ENH_BASE = {
+  일반: { gold:10000,  alch:10  },
+  희귀: { gold:30000,  alch:20  },
+  레어: { gold:50000,  alch:30  },
+  에픽: { gold:100000, alch:40  },
+  전설: { gold:200000, alch:50  },
+};
+
+// 유물 연마(승급) 비용
+const RELIC_REFINE_COST = {
+  일반: { alch:50,   magic:100   },  // 일반 → 희귀
+  희귀: { alch:100,  magic:500   },  // 희귀 → 레어
+  레어: { alch:500,  magic:1000  },  // 레어 → 에픽
+  에픽: { alch:1000, magic:10000 },  // 에픽 → 전설
+};
+
+const RELIC_GRADE_ORDER = ['일반','희귀','레어','에픽','전설'];
+
+// 유물 강화 비용 계산 (강화 단계마다 증가)
+function relicEnhCost(enh, grade) {
+  const b = RELIC_ENH_BASE[grade] || RELIC_ENH_BASE['일반'];
+  const mult = 1 + (enh||0) * 0.15; // 단계당 15% 증가
+  return {
+    gold: Math.floor(b.gold * mult),
+    alch: Math.floor(b.alch * (1 + (enh||0) * 0.1)),
+  };
+}
+
+// ── 탭 전환 ──
+let _enhTab = 'equip';
+function enhTab(tab) {
+  _enhTab = tab;
+  ['equip','relic'].forEach(t => {
+    const btn = document.getElementById('enh-tab-'+t);
+    if(!btn) return;
+    const active = t === tab;
+    btn.style.background   = active ? 'rgba(124,58,237,.2)'  : 'rgba(124,58,237,.06)';
+    btn.style.color        = active ? '#c084fc'               : '#64748b';
+    btn.style.borderBottom = active ? '2px solid #a855f7'     : '2px solid transparent';
+  });
+  if(tab === 'equip') renderEnh();
+  else                renderRelicEnh();
+}
+
+// ── 유물강화 렌더 ──
+function renderRelicEnh() {
+  const el = document.getElementById('gw-enbody');
+  if(!el) return;
+
+  const relics = (G.relics||[]).filter(r=>r!==null);
+  const GC = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+
+  // 보유 연금석/마법석 수량
+  const alchItem  = G.inv.find(i=>i.n==='연금석');
+  const magicItem = G.inv.find(i=>i.n==='마법석');
+  const alchQty   = alchItem?.qty || 0;
+  const magicQty  = magicItem?.qty || 0;
+
+  let html = `
+    <div style="display:flex;gap:12px;padding:8px 12px;background:rgba(124,58,237,.06);
+      border:1px solid rgba(124,58,237,.15);border-radius:8px;margin-bottom:12px;font-family:'Noto Sans KR',sans-serif;">
+      <span style="font-size:10px;color:#94a3b8;">🧪 연금석 <strong style="color:#34d399;">${alchQty.toLocaleString()}개</strong></span>
+      <span style="font-size:10px;color:#94a3b8;">💎 마법석 <strong style="color:#60a5fa;">${magicQty.toLocaleString()}개</strong></span>
+    </div>`;
+
+  if(relics.length === 0) {
+    html += `<div style="text-align:center;padding:30px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
+      장착 중인 유물이 없습니다.<br><small>유물 패널에서 유물을 장착하세요.</small>
+    </div>`;
+    el.innerHTML = html; return;
+  }
+
+  html += `<div style="font-size:10px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:8px;">🔮 장착 중인 유물만 강화 가능</div>`;
+
+  relics.forEach((r, slotIdx) => {
+    const gc      = GC[r.grade] || '#94a3b8';
+    const enh     = r.enh || 0;
+    const maxEnh  = RELIC_ENH_MAX[r.grade] || 10;
+    const isMax   = enh >= maxEnh;
+    const def     = RELIC_DEFS.find(d=>d.id===r.relicId);
+    const cost    = relicEnhCost(enh, r.grade);
+    const canEnh  = !isMax;
+    const gradeIdx = RELIC_GRADE_ORDER.indexOf(r.grade);
+    const canRefine = isMax && gradeIdx >= 0 && gradeIdx < RELIC_GRADE_ORDER.length-1;
+    const refineCost = RELIC_REFINE_COST[r.grade];
+    const nextGrade  = RELIC_GRADE_ORDER[gradeIdx+1];
+
+    // 현재 스탯값
+    const statKey  = def?.stat;
+    const statVal  = statKey ? (r[statKey]||0) : 0;
+    const statUnit = def?.unit || '';
+    const statNext = (statVal + 0.1).toFixed(1);
+
+    const enhBadge = enh > 0 ? `<span style="font-size:9px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-left:3px">+${enh}</span>` : '';
+    const maxBadge = isMax   ? `<span style="font-size:9px;color:#f87171;font-family:'Orbitron',sans-serif;margin-left:3px">MAX</span>` : '';
+
+    html += `
+    <div style="background:${gc}0d;border:1px solid ${gc}33;border-radius:12px;padding:11px 13px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:24px">${r.e}</span>
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:700;color:${gc};">${r.name}${enhBadge}${maxBadge}</div>
+          <div style="display:flex;gap:5px;align-items:center;margin-top:2px;">
+            <span style="font-size:8px;padding:1px 5px;border-radius:4px;background:${gc}22;color:${gc};border:1px solid ${gc}44;">${r.grade}</span>
+            <span style="font-size:9px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;">${def?.desc||''} ${statVal.toFixed(1)}${statUnit}</span>
+          </div>
+        </div>
+        <div style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;text-align:right;">
+          ${enh}/${maxEnh}
+        </div>
+      </div>
+      <!-- 진행도 바 -->
+      <div style="height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-bottom:8px;overflow:hidden;">
+        <div style="height:100%;width:${enh/maxEnh*100}%;background:${gc};transition:width .3s;"></div>
+      </div>
+      ${canEnh ? `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;">
+          강화 후: ${statNext}${statUnit}
+          <span style="color:#475569;margin-left:4px">💰${cost.gold.toLocaleString()}G · 🧪${cost.alch}개</span>
+        </div>
+        <button onclick="relicEnhSlot(${slotIdx})"
+          style="background:linear-gradient(135deg,${gc},${gc}99);border:1px solid ${gc};
+          color:#000;padding:5px 12px;border-radius:7px;font-size:10px;
+          font-family:'Orbitron',sans-serif;cursor:pointer;font-weight:700;white-space:nowrap;">강화</button>
+      </div>` : ''}
+      ${canRefine ? `
+      <div style="padding:8px 10px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:8px;">
+        <div style="font-size:9px;color:#c084fc;font-family:'Orbitron',sans-serif;margin-bottom:5px;">✨ 연마 가능 → ${nextGrade} 등급 승급</div>
+        <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:6px;">
+          비용: 🧪연금석 ${refineCost.alch.toLocaleString()}개 + 💎마법석 ${refineCost.magic.toLocaleString()}개
+        </div>
+        <button onclick="relicRefineSlot(${slotIdx})"
+          style="width:100%;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;
+          color:#fff;padding:7px;border-radius:8px;font-size:10px;font-family:'Orbitron',sans-serif;cursor:pointer;font-weight:700;">
+          🔮 연마 (${r.grade} → ${nextGrade})
+        </button>
+      </div>` : ''}
+      ${isMax && !canRefine ? `
+      <div style="text-align:center;font-size:10px;color:#fbbf24;font-family:'Noto Sans KR',sans-serif;padding:4px;">
+        🌟 최고 등급 최대 강화 달성!
+      </div>` : ''}
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+// ── 유물 강화 실행 ──
+function relicEnhSlot(slotIdx) {
+  const r = (G.relics||[])[slotIdx];
+  if(!r) return;
+
+  const enh    = r.enh || 0;
+  const maxEnh = RELIC_ENH_MAX[r.grade] || 10;
+  if(enh >= maxEnh) { gwT('⚠️ 최대 강화 횟수 도달'); return; }
+
+  const cost = relicEnhCost(enh, r.grade);
+  if(G.gold < cost.gold) { gwT(`골드 부족! (${cost.gold.toLocaleString()}G 필요)`); return; }
+
+  const alchItem = G.inv.find(i=>i.n==='연금석');
+  const alchQty  = alchItem?.qty || 0;
+  if(alchQty < cost.alch) { gwT(`연금석 부족! (${cost.alch}개 필요)`); return; }
+
+  // 비용 차감
+  G.gold -= cost.gold;
+  if(alchItem) {
+    alchItem.qty -= cost.alch;
+    if(alchItem.qty <= 0) G.inv.splice(G.inv.indexOf(alchItem), 1);
+  }
+
+  // 강화 적용 (+0.1 상승)
+  const def = RELIC_DEFS.find(d=>d.id===r.relicId);
+  if(def?.stat) {
+    const cur = r[def.stat] || 0;
+    r[def.stat] = Math.round((cur + 0.1) * 10) / 10; // 부동소수점 보정
+  }
+  r.enh = enh + 1;
+
+  recalcStats(); hud(); saveG();
+  gwT(`🔮 [${r.name}] +${r.enh} 강화 완료!`);
+  renderRelicEnh();
+}
+
+// ── 유물 연마(승급) 실행 ──
+function relicRefineSlot(slotIdx) {
+  const r = (G.relics||[])[slotIdx];
+  if(!r) return;
+
+  const maxEnh   = RELIC_ENH_MAX[r.grade] || 10;
+  if((r.enh||0) < maxEnh) { gwT(`최대 강화(+${maxEnh}) 후 연마 가능합니다.`); return; }
+
+  const gradeIdx  = RELIC_GRADE_ORDER.indexOf(r.grade);
+  if(gradeIdx < 0 || gradeIdx >= RELIC_GRADE_ORDER.length-1) { gwT('이미 최고 등급입니다.'); return; }
+
+  const cost      = RELIC_REFINE_COST[r.grade];
+  const nextGrade = RELIC_GRADE_ORDER[gradeIdx+1];
+
+  const alchItem  = G.inv.find(i=>i.n==='연금석');
+  const magicItem = G.inv.find(i=>i.n==='마법석');
+  const alchQty   = alchItem?.qty  || 0;
+  const magicQty  = magicItem?.qty || 0;
+
+  if(alchQty  < cost.alch)  { gwT(`연금석 부족! (${cost.alch.toLocaleString()}개 필요)`);  return; }
+  if(magicQty < cost.magic) { gwT(`마법석 부족! (${cost.magic.toLocaleString()}개 필요)`); return; }
+
+  if(!confirm(`[${r.name}] ${r.grade} → ${nextGrade} 연마하시겠습니까?\n비용: 연금석 ${cost.alch}개 + 마법석 ${cost.magic}개`)) return;
+
+  // 비용 차감
+  alchItem.qty  -= cost.alch;
+  if(alchItem.qty  <= 0) G.inv.splice(G.inv.indexOf(alchItem),  1);
+  magicItem.qty -= cost.magic;
+  if(magicItem.qty <= 0) G.inv.splice(G.inv.indexOf(magicItem), 1);
+
+  // 새 등급 유물 생성 (강화 +0 리셋, 스탯은 해당 등급 기본값)
+  const def      = RELIC_DEFS.find(d=>d.id===r.relicId);
+  const baseVal  = def?.vals[nextGrade] || 0;
+  const newRelic = {
+    n: r.name, e: r.e, type:'relic', relicId: r.relicId,
+    grade: nextGrade, [def?.stat]: baseVal,
+    desc: r.desc, sellPrice: r.sellPrice * 3,
+    qty:1, _id: Date.now(), enh: 0,
+  };
+
+  // 기존 유물 삭제 후 새 유물로 교체
+  G.relics[slotIdx] = newRelic;
+
+  recalcStats(); hud(); saveG();
+  gwT(`✨ 연마 성공! [${r.name}] ${r.grade} → ${nextGrade} 승급!`);
+  renderRelicEnh();
+}
+
+// ════════════════════════════════════════════════════════
+//  유물 강화 시스템 끝
+// ════════════════════════════════════════════════════════
+
 // ════════════════════════════════════════════════════════
 //  유물 던전 시스템
 // ════════════════════════════════════════════════════════
