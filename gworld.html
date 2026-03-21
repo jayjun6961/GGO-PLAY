@@ -5400,6 +5400,78 @@ function pvpUploadProfile() {
   _pvpSyncFromWB();
 }
 
+// profiles가 없을 때 WB 파티에서 상대 불러와서 UI 직접 업데이트
+async function _pvpFetchFromWB(oppEl) {
+  if(!window._gwDB) return;
+  const JOB_NAME = {warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'};
+  const JOB_EMO  = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+  const JOB_COL  = {warrior:'#3b82f6',archer:'#22c55e',mage:'#a855f7',rogue:'#f97316',paladin:'#fbbf24'};
+  try {
+    const today = new Date();
+    const dateKey = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+    const wbProfiles = {};
+    for(const path of ['world_boss','world_boss_2']) {
+      for(let i=0;i<10;i++){
+        const ps = await window._gwDB.ref(path+'/party_'+dateKey+'_'+i).get().catch(()=>null);
+        if(!ps || !ps.exists()) break;
+        const party = ps.val();
+        (party.members||[]).forEach(m => {
+          if(m.user && m.user !== gwUN() && (m.lv||0) >= PVP_MIN_LV && !wbProfiles[m.user]) {
+            wbProfiles[m.user] = {
+              user: m.user, job: m.job||'warrior',
+              lv: m.lv||1, power: (m.lv||1)*100,
+              hp: 100, atk: (m.lv||1)*5, def: (m.lv||1)*2, ts: Date.now()
+            };
+          }
+        });
+      }
+    }
+    const wbList = Object.values(wbProfiles);
+    if(!oppEl || !document.getElementById('pvp-opponents')) return; // 패널 닫힘 체크
+
+    if(wbList.length === 0) {
+      oppEl.innerHTML = `<div style="text-align:center;padding:20px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
+        도전 가능한 상대가 없습니다.<br>(Lv.${PVP_MIN_LV} 이상 유저 대기 중)</div>`;
+      return;
+    }
+    // pvp/profiles에 자동 등록
+    wbList.forEach(p => _pvpRef('profiles/'+p.user)?.set(p).catch(()=>{}));
+
+    // UI 업데이트
+    window._pvpOpponents = wbList.slice(0, 3);
+    oppEl.innerHTML =
+      `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:4px;">
+        ⚔️ 상대를 선택하세요 (${wbList.length}명)
+      </div>` +
+      window._pvpOpponents.map((p,i) => {
+        const jc = JOB_COL[p.job]||'#94a3b8';
+        return `<div style="background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.15);border-radius:12px;
+          padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;"
+          onclick="startPVP(${i})"
+          onmouseover="this.style.background='rgba(239,68,68,.1)'"
+          onmouseout="this.style.background='rgba(239,68,68,.04)'">
+          <div style="font-size:28px;line-height:1;">${JOB_EMO[p.job]||'👤'}</div>
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:700;color:#e2e8f0;">${p.user}</div>
+            <div style="display:flex;gap:6px;margin-top:3px;align-items:center;">
+              <span style="font-size:9px;padding:1px 6px;border-radius:4px;background:${jc}22;color:${jc};border:1px solid ${jc}44;">${JOB_NAME[p.job]||p.job}</span>
+              <span style="font-size:9px;color:#94a3b8;font-family:'Orbitron',sans-serif;">Lv.${p.lv}</span>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;">전투력</div>
+            <div style="font-size:13px;font-weight:700;color:#f87171;font-family:'Orbitron',sans-serif;">${(p.power||0).toLocaleString()}</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#ef4444,#dc2626);border:1px solid #f87171;color:#fff;
+            padding:6px 12px;border-radius:8px;font-size:10px;font-family:'Orbitron',sans-serif;white-space:nowrap;">도전</div>
+        </div>`;
+      }).join('');
+  } catch(e) {
+    console.warn('[PVP] WB fallback 실패:', e);
+    if(oppEl) oppEl.innerHTML = `<div style="text-align:center;padding:20px;color:#475569;font-size:11px;">상대를 불러오지 못했습니다.</div>`;
+  }
+}
+
 async function _pvpSyncFromWB() {
   if(!window._gwDB) return;
   try {
@@ -5537,45 +5609,11 @@ async function renderPVPBattle() {
     let all = allProfiles.filter(p => p.user !== gwUN() && p.lv >= PVP_MIN_LV);
     console.log('[PVP] Lv50+ 필터 후:', all.length, '명');
 
-    // profiles가 비어있거나 상대가 없으면 world_boss 파티에서 보완
-    if(all.length === 0 && window._gwDB) {
-      try {
-        const today = new Date();
-        const dateKey = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-        const wbPaths = ['world_boss', 'world_boss_2'];
-        const wbProfiles = {};
-        for(const path of wbPaths) {
-          for(let i=0;i<10;i++){
-            const ps = await window._gwDB.ref(path+'/party_'+dateKey+'_'+i).get().catch(()=>null);
-            if(!ps || !ps.exists()) break;
-            const party = ps.val();
-            (party.members||[]).forEach(m => {
-              if(m.user && m.user !== gwUN() && !wbProfiles[m.user]) {
-                wbProfiles[m.user] = {
-                  user: m.user, job: m.job||'warrior',
-                  lv: m.lv||1, power: m.lv*100,
-                  hp: 100, atk: m.lv*5, def: m.lv*2, ts: Date.now(),
-                  _fromWB: true
-                };
-              }
-            });
-          }
-        }
-        const wbList = Object.values(wbProfiles).filter(p => p.lv >= PVP_MIN_LV);
-        if(wbList.length > 0) {
-          all = wbList;
-          console.log('[PVP] WB fallback 사용:', all.length, '명');
-          // profiles에도 자동 등록
-          wbList.forEach(p => {
-            _pvpRef('profiles/' + p.user)?.set({...p}).catch(()=>{});
-          });
-        }
-      } catch(e) { console.warn('[PVP] WB fallback 실패:', e); }
-    }
-
+    // profiles가 비어있으면 WB 파티에서 보완 (async 별도 함수로 처리)
     if(all.length === 0) {
       oppEl.innerHTML = `<div style="text-align:center;padding:20px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
-        도전 가능한 상대가 없습니다.<br>(Lv.${PVP_MIN_LV} 이상 유저 대기 중)</div>`;
+        🔄 상대를 불러오는 중...</div>`;
+      _pvpFetchFromWB(oppEl);
       return;
     }
 
