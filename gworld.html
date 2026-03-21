@@ -2130,7 +2130,7 @@ function drawJobChar(cv,jid){
 function goTown(){
   if(!window._WB_DROPS) window._WB_DROPS = typeof DROPS !== 'undefined' ? DROPS : [];
   if(G.job) checkDailyQuestReset();
-  if(G.job && G.lv >= 50) pvpUploadProfile(); // PVP 프로필 업로드
+  if(G.job && G.lv >= 1) pvpUploadProfile(); // PVP 프로필 업로드 (표시 필터는 전투화면에서)
   gwSC('town');
   setTimeout(()=>{
     const cv=document.getElementById('gw-tcv');
@@ -5337,7 +5337,11 @@ function myPVPPower() {
 function pvpUploadProfile() {
   if(!window._gwDB || !G.job || G.lv < 1) return;
   const username = gwUN();
-  if(!username || username === '_g') return;
+  // gwUN()이 '_g'를 반환하면 아직 로그인 정보가 없는 것 → 재시도
+  if(!username || username === '_g') {
+    setTimeout(pvpUploadProfile, 800);
+    return;
+  }
   const profile = {
     user:   username,
     job:    G.job,
@@ -5348,7 +5352,9 @@ function pvpUploadProfile() {
     def:    cBase(G.job,G.lv).def + (equipBonus().def||0),
     ts:     Date.now(),
   };
-  _pvpRef('profiles/' + username)?.set(profile).catch(()=>{});
+  _pvpRef('profiles/' + username)?.set(profile)
+    .then(()=>console.log('[PVP] 프로필 업로드:', username, 'Lv.'+G.lv))
+    .catch(e=>console.warn('[PVP] 프로필 업로드 실패:', e.code||e.message));
 }
 
 // ── 탭 전환 ──
@@ -5459,8 +5465,10 @@ async function renderPVPBattle() {
       return;
     }
 
-    const all = Object.values(snap.val() || {})
-      .filter(p => p.user !== gwUN() && p.lv >= PVP_MIN_LV);
+    const allProfiles = Object.values(snap.val() || {});
+    console.log('[PVP] 전체 프로필 수:', allProfiles.length, allProfiles.map(p=>p.user+'(Lv'+p.lv+')'));
+    const all = allProfiles.filter(p => p.user !== gwUN() && p.lv >= PVP_MIN_LV);
+    console.log('[PVP] Lv50+ 필터 후:', all.length, '명');
 
     if(all.length === 0) {
       oppEl.innerHTML = `<div style="text-align:center;padding:20px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
@@ -6236,12 +6244,17 @@ function initGW(){
     li = localStorage.getItem('ggo_logged_in') === 'true';
     un = localStorage.getItem('ggo_username') || '';
     if(li && un) {
+      // sessionStorage 복원을 먼저 완료한 뒤 진행
       sessionStorage.setItem('ggo_logged_in', 'true');
       sessionStorage.setItem('ggo_username', un);
     }
   }
   if(!li || !un){gwSC('login');return;}
-  if(loadG())goTown();
+  if(loadG()){
+    goTown();
+    // 모바일 재접속 시 sessionStorage 복원 완료 후 프로필 재업로드 보장
+    setTimeout(pvpUploadProfile, 1200);
+  }
   else{gwSC('intro');setTimeout(()=>{const cv=document.getElementById('gw-icv');if(cv){cv.width=cv.offsetWidth||320;cv.height=cv.offsetHeight||138;drawIntro(cv);}},40);}
 }
 
