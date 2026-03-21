@@ -4064,7 +4064,7 @@ function useDojoSkill(skId) {
   }
   if(G.mp < sk.mp) { gwT('MP 부족!'); return; }
   G.mp -= sk.mp;
-  G.sk[skId] = { t: now };   // 쿨다운 기록
+  G.sk[skId] = { ...G.sk[skId]||{}, t: now };  // lv(강화레벨) 보존 + 쿨다운 기록
 
   const a = tAtk();
   // 강화 레벨 반영 dmg
