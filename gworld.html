@@ -313,14 +313,15 @@
   .gw-hud{gap:6px;padding:6px 9px;}
 
   /* ── 모바일 전투화면: 스크롤 없이 한 화면에 HUD+캔버스+로그+스킬바 표시 ── */
-  #gs-battle, #gs-dungeon, #gs-dojo {
+  #gs-battle, #gs-dungeon, #gs-dojo, #gs-tower {
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
   }
   #gs-battle .gw-battle,
   #gs-dungeon .gw-battle,
-  #gs-dojo .gw-battle {
+  #gs-dojo .gw-battle,
+  #gs-tower .gw-battle {
     height: 100%;
     overflow: hidden;
   }
@@ -676,6 +677,17 @@
   </div>
 </div>
 
+<!-- 천공의 탑 패널 -->
+<div class="gw-pov" id="gw-ptower" onclick="if(event.target===this)closeP('gw-ptower')">
+  <div class="gw-pbox" style="width:min(440px,96vw);max-height:88vh;display:flex;flex-direction:column;">
+    <div class="gw-phdr" style="background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(245,158,11,.06));border-bottom:1px solid rgba(251,191,36,.25);">
+      <div class="gw-pttl" style="color:#fbbf24;">🗼 천공의 탑</div>
+      <button class="gw-px" onclick="closeP('gw-ptower')">✕</button>
+    </div>
+    <div class="gw-pbdy" id="gw-towerbody" style="padding:12px;"></div>
+  </div>
+</div>
+
 <!-- PVP 패널 -->
 <div class="gw-pov" id="gw-ppvp" onclick="if(event.target===this)closeP('gw-ppvp')">
   <div class="gw-pbox" style="width:min(420px,96vw);max-height:85vh;display:flex;flex-direction:column;">
@@ -761,6 +773,7 @@
         <div class="gw-act" onclick="openCashShop()"><div class="gw-act-ico">💠</div><div class="gw-act-lbl">캐시 상점</div></div>
         <div class="gw-act" onclick="openWorldBoss()"><div class="gw-act-ico">👻</div><div class="gw-act-lbl">월드 보스</div></div>
         <div class="gw-act" onclick="openPVP()" style="border-color:rgba(239,68,68,.25)"><div class="gw-act-ico">🥊</div><div class="gw-act-lbl">PVP</div></div>
+        <div class="gw-act" onclick="openTower()" style="border-color:rgba(251,191,36,.25)"><div class="gw-act-ico">🗼</div><div class="gw-act-lbl">천공의 탑</div></div>
         <div class="gw-act" onclick="resetChar()" style="border-color:rgba(239,68,68,.15)"><div class="gw-act-ico">🔄</div><div class="gw-act-lbl">초기화</div></div>
       </div>
     </div>
@@ -863,6 +876,52 @@
       <div id="dr-dunname" style="font-size:12px;color:#a855f7;font-family:'Orbitron',sans-serif;margin-bottom:16px;"></div>
       <div id="dr-body" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:8px;"></div>
       <button onclick="dungeonResultClose()" style="margin-top:20px;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:10px 32px;border-radius:10px;font-size:13px;font-family:'Orbitron',sans-serif;cursor:pointer;">마을로 돌아가기</button>
+    </div>
+  </div>
+
+  <!-- 천공의 탑 전투 화면 -->
+  <div class="gw-screen" id="gs-tower">
+    <div class="gw-battle">
+      <div class="gw-hud">
+        <div class="gw-lv-tag" id="th-lv">Lv.1</div>
+        <div class="gw-hud-nm" id="th-jnm">전사</div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#ef4444">HP</div><div class="bar-bg"><div class="bar-hp" id="th-hpf" style="width:100%"></div></div><div class="bar-v" id="th-hpv">-/-</div></div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#3b82f6">MP</div><div class="bar-bg"><div class="bar-mp" id="th-mpf" style="width:100%"></div></div><div class="bar-v" id="th-mpv">-/-</div></div>
+        <div class="gw-gold" id="th-gold">0G</div>
+      </div>
+      <div class="gw-battle-scene" id="th-scene" style="min-height:140px;">
+        <canvas id="th-cv"></canvas>
+        <div class="gw-mob-hpbar">
+          <div class="gw-mob-nm-lbl" id="th-bnm">몬스터</div>
+          <div class="gw-mob-bar-bg"><div class="gw-mob-bar-f" id="th-barf" style="width:100%"></div></div>
+        </div>
+        <div id="th-floor-badge" style="position:absolute;top:8px;left:10px;font-family:'Orbitron',sans-serif;font-size:11px;color:#fbbf24;background:rgba(0,0,0,.65);padding:3px 8px;border-radius:6px;">1F</div>
+      </div>
+      <div class="gw-blog" id="th-blog"></div>
+      <div style="display:flex;gap:5px;padding:5px 11px;background:rgba(5,3,12,.96);border-top:1px solid rgba(124,58,237,.09);align-items:center;">
+        <span style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;margin-right:3px">포션</span>
+        <button onclick="usePotInTower('hp')" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💚 HP</button>
+        <button onclick="usePotInTower('mp')" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:#60a5fa;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💧 MP</button>
+        <span id="th-pot-hp-count" style="font-size:9px;color:#64748b;"></span>
+        <span id="th-pot-mp-count" style="font-size:9px;color:#64748b;"></span>
+      </div>
+      <div class="gw-sk-bar">
+        <div id="th-skbtns" style="display:flex;gap:5px;flex-wrap:wrap;flex:1;"></div>
+        <button class="gw-retreat" onclick="towerRetreat()">🏃 철수</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 천공의 탑 층 클리어 결과 -->
+  <div class="gw-screen" id="gs-tower-result">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;padding:24px 20px;gap:0;overflow-y:auto;">
+      <div style="font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;color:#fbbf24;margin-bottom:4px;text-shadow:0 0 16px #fbbf2488;">🗼 층 정복!</div>
+      <div id="tr-floor" style="font-size:14px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-bottom:16px;"></div>
+      <div id="tr-body" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="display:flex;gap:10px;margin-top:20px;width:100%;max-width:340px;">
+        <button id="tr-next-btn" onclick="towerNextFloor()" style="flex:1;background:linear-gradient(135deg,#fbbf24,#f59e0b);border:1px solid #fbbf24;color:#000;padding:10px;border-radius:10px;font-size:12px;font-family:'Orbitron',sans-serif;cursor:pointer;font-weight:700;">다음 층 →</button>
+        <button onclick="towerExit()" style="flex:1;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);color:#c084fc;padding:10px;border-radius:10px;font-size:12px;font-family:'Orbitron',sans-serif;cursor:pointer;">마을로</button>
+      </div>
     </div>
   </div>
 
@@ -2379,6 +2438,7 @@ function renderP(id){
   if(id==='gw-pdungeon') renderDungeonSelect();
   if(id==='gw-pdojo')    renderDojoEnter();
   if(id==='gw-ppvp')     pvpTab('battle');
+  if(id==='gw-ptower')   renderTowerPanel();
   if(id==='gw-pcash')    renderCashShop();
   if(id==='gw-pwb')      renderWorldBoss(); // async
 }
@@ -5666,6 +5726,463 @@ function openPVP() {
 // ════════════════════════════════════════════════════════
 //  PVP 시스템 끝
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  천공의 탑 시스템
+// ════════════════════════════════════════════════════════
+
+// ── 저장 키 ──
+const _towerClaimKey = () => 'gwo_tower_cleared_' + gwUN();   // 클리어한 층 Set
+const _towerCurKey   = () => 'gwo_tower_cur_'     + gwUN();   // 현재 도전 층
+
+function getTowerCleared() {
+  try { return new Set(JSON.parse(localStorage.getItem(_towerClaimKey())||'[]')); }
+  catch { return new Set(); }
+}
+function saveTowerCleared(set) {
+  localStorage.setItem(_towerClaimKey(), JSON.stringify([...set]));
+}
+function getTowerMaxFloor() {
+  const cleared = getTowerCleared();
+  if(cleared.size === 0) return 0;
+  return Math.max(...[...cleared]);
+}
+
+// ── 층별 몬스터 생성 ──
+function towerMobForFloor(floor) {
+  const isBoss = floor % 10 === 0;
+  // 층 기반 레벨 = floor (1F=Lv1, 100F=Lv100)
+  const mobLv = floor;
+  // 레벨 기반 스탯 스케일
+  const hpBase  = isBoss ? 800  + mobLv * 120 : 200  + mobLv * 40;
+  const atkBase = isBoss ? 30   + mobLv * 8   : 15   + mobLv * 4;
+  const defBase = isBoss ? 10   + mobLv * 3   : 5    + mobLv * 1.5;
+  const expBase = isBoss ? 200  + mobLv * 30  : 80   + mobLv * 12;
+  const gBase   = isBoss ? 500  + mobLv * 50  : 100  + mobLv * 15;
+
+  const BOSS_MOBS = ['👑','🐉','💀','👹','🗿','🧟','🔱','⚡','🌑','🔥'];
+  const NORM_MOBS = ['👾','🦹','🧟','💀','🐺','🦎','🕷️','🐲','🦂','🌑'];
+  const bossIdx = Math.floor((floor-1)/10) % BOSS_MOBS.length;
+  const normIdx = (floor-1) % NORM_MOBS.length;
+
+  return {
+    n:    isBoss ? `${floor}층 탑 수호자` : `${floor}층 몬스터`,
+    e:    isBoss ? BOSS_MOBS[bossIdx]     : NORM_MOBS[normIdx],
+    hp:   Math.floor(hpBase),
+    atk:  Math.floor(atkBase),
+    def:  Math.floor(defBase),
+    exp:  Math.floor(expBase),
+    g:    Math.floor(gBase),
+    isBoss,
+    floor,
+  };
+}
+
+// ── 층별 장비 드롭 등급 결정 ──
+function towerPickGrade(floor) {
+  const r = Math.random();
+  if(floor <= 50) {
+    if(r < 0.10) return '에픽';
+    if(r < 0.30) return '레어';
+    if(r < 0.60) return '희귀';
+    return '일반';
+  } else if(floor <= 70) {
+    if(r < 0.05) return '전설';
+    if(r < 0.15) return '에픽';
+    if(r < 0.30) return '레어';
+    if(r < 0.60) return '희귀';
+    return '일반';
+  } else if(floor <= 90) {
+    if(r < 0.10) return '전설';
+    if(r < 0.30) return '에픽';
+    if(r < 0.60) return '레어';
+    return '희귀';
+  } else {
+    if(r < 0.05) return '신화';
+    if(r < 0.15) return '전설';
+    if(r < 0.30) return '에픽';
+    if(r < 0.60) return '레어';
+    return '희귀';
+  }
+}
+
+// ── 층별 마법석 드롭량 ──
+function towerStoneAmt(floor) {
+  if(floor <= 50)  return 10  + Math.floor(Math.random()*41);   // 10~50
+  if(floor <= 70)  return 30  + Math.floor(Math.random()*71);   // 30~100
+  if(floor <= 90)  return 50  + Math.floor(Math.random()*101);  // 50~150
+  return 100 + Math.floor(Math.random()*101);                    // 100~200
+}
+
+// ── 층별 골드/경험치 보상 ──
+function towerGoldExp(floor) {
+  const gold = Math.floor((200 + floor * 80)  * (1 + Math.random()*0.4));
+  const exp  = Math.floor((100 + floor * 50)  * (1 + Math.random()*0.4) * tExpRate());
+  return { gold, exp };
+}
+
+// ── 천공의 탑 패널 렌더 ──
+function renderTowerPanel() {
+  const el = document.getElementById('gw-towerbody');
+  if(!el) return;
+
+  const cleared  = getTowerCleared();
+  const maxFloor = getTowerMaxFloor();
+  const nextFloor = maxFloor + 1;
+  const GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316'};
+
+  // 진행도 바
+  const pct = Math.min(100, (cleared.size / 100 * 100)).toFixed(0);
+
+  let html = `
+    <div style="margin-bottom:12px;padding:12px 14px;background:rgba(251,191,36,.06);
+      border:1px solid rgba(251,191,36,.2);border-radius:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:11px;font-weight:700;color:#fbbf24;font-family:'Orbitron',sans-serif;">진행: ${cleared.size}/100층</span>
+        <span style="font-size:10px;color:#64748b;font-family:'Orbitron',sans-serif;">${pct}%</span>
+      </div>
+      <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#fbbf24,#f59e0b);transition:width .3s;"></div>
+      </div>
+    </div>`;
+
+  if(cleared.size >= 100) {
+    html += `<div style="text-align:center;padding:20px;">
+      <div style="font-size:40px;margin-bottom:8px;">🏆</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:14px;color:#fbbf24;font-weight:900;">천공의 탑 완전 정복!</div>
+    </div>`;
+    el.innerHTML = html; return;
+  }
+
+  // 다음 도전 층 정보
+  const mob = towerMobForFloor(nextFloor);
+  html += `
+    <div style="margin-bottom:12px;padding:12px 14px;background:rgba(124,58,237,.06);
+      border:1px solid rgba(124,58,237,.15);border-radius:12px;">
+      <div style="font-size:10px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:6px;">다음 도전</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:32px;">${mob.isBoss?'👑':'⚔️'}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:${mob.isBoss?'#fbbf24':'#e2e8f0'};font-family:'Orbitron',sans-serif;">
+            ${nextFloor}층 ${mob.isBoss?'🔥 BOSS':''}
+          </div>
+          <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-top:2px;">
+            ${mob.n} · HP ${mob.hp.toLocaleString()} · ATK ${mob.atk}
+          </div>
+        </div>
+        <button onclick="enterTower(${nextFloor})" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);
+          border:none;color:#000;padding:8px 14px;border-radius:8px;font-size:11px;
+          font-family:'Orbitron',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;">
+          ${nextFloor}층 도전
+        </button>
+      </div>
+    </div>`;
+
+  // 드롭률 안내
+  const gradeInfo = nextFloor <= 50
+    ? '일반50% 희귀30% 레어20% 에픽10%'
+    : nextFloor <= 70
+    ? '일반40% 희귀30% 레어15% 에픽10% 전설5%'
+    : nextFloor <= 90
+    ? '희귀50% 레어30% 에픽20% 전설10%'
+    : '희귀40% 레어30% 에픽15% 전설10% 신화5%';
+
+  const stoneInfo = nextFloor <= 50 ? '10~50개'
+    : nextFloor <= 70 ? '30~100개'
+    : nextFloor <= 90 ? '50~150개'
+    : '100~200개';
+
+  html += `<div style="padding:8px 12px;background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.15);border-radius:8px;margin-bottom:12px;">
+    <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;line-height:1.7;">
+      🎁 <span style="color:#34d399">${nextFloor}층 보상:</span> 장비 드롭 (${gradeInfo})<br>
+      💎 <span style="color:#34d399">마법석:</span> ${stoneInfo}
+    </div>
+  </div>`;
+
+  // 클리어 기록 (최근 5개)
+  if(cleared.size > 0) {
+    const recentFloors = [...cleared].sort((a,b)=>b-a).slice(0,5);
+    html += `<div style="font-size:10px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:6px;">✅ 최근 클리어</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;">` +
+    recentFloors.map(f=>`<span style="padding:3px 8px;border-radius:6px;font-size:10px;font-family:'Orbitron',sans-serif;
+      background:${f%10===0?'rgba(251,191,36,.15)':'rgba(52,211,153,.1)'};
+      color:${f%10===0?'#fbbf24':'#34d399'};
+      border:1px solid ${f%10===0?'rgba(251,191,36,.3)':'rgba(52,211,153,.25)'};">
+      ${f}F${f%10===0?' 👑':''}</span>`).join('') + `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// ── 탑 입장 ──
+let _tower = { floor:1, mob:null, mobHp:0, mobMaxHp:0, tick:null, dead:false };
+
+function enterTower(floor) {
+  closeP('gw-ptower');
+  const cleared = getTowerCleared();
+  if(cleared.has(floor)) { gwT('이미 클리어한 층입니다!'); return; }
+  if(floor > getTowerMaxFloor() + 1) { gwT('순서대로 도전해야 합니다!'); return; }
+
+  const mob = towerMobForFloor(floor);
+  _tower.floor   = floor;
+  _tower.mob     = mob;
+  _tower.mobHp   = mob.hp;
+  _tower.mobMaxHp= mob.hp;
+  _tower.dead    = false;
+
+  gwSC('tower');
+
+  // HUD
+  document.getElementById('th-lv').textContent  = 'Lv.'+G.lv;
+  document.getElementById('th-jnm').textContent = JOBS[G.job]?.name||'';
+  document.getElementById('th-blog').innerHTML  = '';
+  document.getElementById('th-bnm').textContent = mob.n;
+  document.getElementById('th-floor-badge').textContent = floor+'F'+(mob.isBoss?' 👑':'');
+  document.getElementById('th-floor-badge').style.color = mob.isBoss ? '#ef4444' : '#fbbf24';
+
+  // 캔버스
+  setTimeout(()=>{
+    const cv=document.getElementById('th-cv');
+    if(cv){cv.width=cv.offsetWidth||500;cv.height=cv.offsetHeight||140;}
+  },30);
+
+  // 스킬 버튼
+  renderTowerSkills();
+  updateTowerPotBar();
+  towerHud();
+  hud();
+
+  if(_tower.tick) clearInterval(_tower.tick);
+  _tower.tick = setInterval(towerFight, tSpd());
+
+  const prefix = mob.isBoss ? `<span style="color:#ef4444">🔥 BOSS </span>` : '';
+  towerBlog(`<span style="color:#fbbf24">🗼 ${floor}층! ${prefix}${mob.n} 등장!</span>`);
+}
+
+// ── 탑 HUD ──
+function towerHud() {
+  document.getElementById('th-hpf').style.width=(G.hp/G.mHP*100)+'%';
+  document.getElementById('th-hpv').textContent=G.hp+'/'+G.mHP;
+  document.getElementById('th-mpf').style.width=(G.mp/G.mMP*100)+'%';
+  document.getElementById('th-mpv').textContent=G.mp+'/'+G.mMP;
+  document.getElementById('th-gold').textContent=G.gold.toLocaleString()+'G';
+  const pct = _tower.mobMaxHp>0 ? (_tower.mobHp/_tower.mobMaxHp*100) : 0;
+  document.getElementById('th-barf').style.width=pct+'%';
+}
+
+// ── 탑 배틀 로그 ──
+function towerBlog(html) {
+  const el=document.getElementById('th-blog');
+  if(!el) return;
+  el.innerHTML+=html+'<br>';
+  el.scrollTop=el.scrollHeight;
+}
+
+// ── 탑 전투 틱 ──
+function towerFight() {
+  if(!_tower.mob || _tower.mobHp<=0 || _tower.dead) return;
+  const mob = _tower.mob;
+
+  // 플레이어 공격
+  let dmg = Math.max(1, tAtk()-mob.def+Math.floor(Math.random()*6)-2);
+  const isCrit = Math.random()*100 < tCritRate();
+  if(isCrit) dmg = Math.floor(dmg*tCritDmg()/100);
+  _tower.mobHp = Math.max(0, _tower.mobHp-dmg);
+  towerBlog(`<span class="ld">⚔️ ${isCrit?'<span style="color:#f97316">💥치명타! </span>':''}${mob.n}에게 ${dmg} 대미지!</span>`);
+  towerHud();
+
+  if(_tower.mobHp<=0){ towerMobDead(); return; }
+
+  // 몬스터 공격
+  const bPen  = Math.floor(mob.atk*0.6);
+  const bRes  = Math.max(0, Math.floor(mob.atk*0.4)-Math.floor(tDef()*0.5));
+  const bVar  = Math.floor(Math.random()*Math.max(2,Math.floor(mob.atk*0.05)));
+  const md    = Math.min(Math.max(1,bPen+bRes+bVar), Math.floor(G.mHP*0.6));
+  G.hp = Math.max(0, G.hp-md);
+  towerBlog(`<span class="ld">${mob.n}의 공격! -${md} HP</span>`);
+  towerHud(); renderTowerSkills();
+
+  if(G.hp<=0) {
+    _tower.dead=true;
+    clearInterval(_tower.tick);
+    towerBlog(`<span style="color:#ef4444">💀 쓰러졌습니다... 탑에서 퇴장합니다.</span>`);
+    saveG();
+    setTimeout(()=>{ G.hp=Math.floor(G.mHP*0.1); saveG(); goTown(); gwT('💀 천공의 탑에서 패배...'); },2200);
+  }
+}
+
+// ── 몬스터 처치 ──
+function towerMobDead() {
+  clearInterval(_tower.tick);
+  const floor = _tower.floor;
+  const mob   = _tower.mob;
+
+  towerBlog(`<span style="color:#fbbf24;font-weight:700">🏆 ${mob.n} 처치!</span>`);
+
+  // 클리어 기록
+  const cleared = getTowerCleared();
+  cleared.add(floor);
+  saveTowerCleared(cleared);
+
+  // 보상 계산
+  const { gold, exp } = towerGoldExp(floor);
+  G.gold += gold;
+  G.exp  += exp;
+
+  let lvUp=0;
+  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  if(lvUp>0){towerBlog(`<span style="color:#a855f7">🆙 레벨업! Lv.${G.lv}</span>`);const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
+
+  // 마법석
+  const stoneAmt = towerStoneAmt(floor);
+  const stoneEx = G.inv.find(i=>i.n==='마법석');
+  if(stoneEx) stoneEx.qty=(stoneEx.qty||0)+stoneAmt;
+  else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:stoneAmt,_id:Date.now()-10});
+
+  // 장비 드롭 (60% 확률)
+  const droppedItems = [];
+  droppedItems.push({n:'마법석',e:'💎',grade:'희귀',qty:stoneAmt,_isMat:true});
+
+  if(Math.random() < 0.60) {
+    const grade = towerPickGrade(floor);
+    const validDrops = DROPS.filter(d=>{
+      if(d.grade !== grade) return false;
+      if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
+      return d.type!=='pot'&&d.type!=='mat';
+    });
+    if(validDrops.length) {
+      const it = {...validDrops[Math.floor(Math.random()*validDrops.length)], qty:1, _id:Date.now()};
+      G.inv.push(it); droppedItems.push(it);
+    }
+  }
+
+  saveG();
+  setTimeout(()=>showTowerResult(floor, gold, exp, droppedItems, lvUp), 1200);
+}
+
+// ── 클리어 결과 화면 ──
+function showTowerResult(floor, gold, exp, items, lvUp) {
+  gwSC('tower-result');
+  const isBoss = floor % 10 === 0;
+  document.getElementById('tr-floor').textContent = floor+'층 정복!' + (isBoss?' 🔥 BOSS 처치!':'');
+
+  const GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316'};
+  let html = `
+    <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:24px">💰</span>
+      <div><div style="font-size:13px;color:#fbbf24;font-family:'Orbitron',sans-serif;font-weight:700">+${gold.toLocaleString()} G</div>
+      <div style="font-size:10px;color:#64748b">골드 획득</div></div>
+    </div>
+    <div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:24px">⭐</span>
+      <div><div style="font-size:13px;color:#a855f7;font-family:'Orbitron',sans-serif;font-weight:700">+${exp.toLocaleString()} EXP</div>
+      <div style="font-size:10px;color:#64748b">경험치 획득${lvUp>0?' · 레벨업 '+lvUp+'회':''}</div></div>
+    </div>`;
+
+  items.forEach(it=>{
+    const gc=GRADE_COL[it.grade]||'#94a3b8';
+    const sub=it._isMat?`×${it.qty}개`:`${it.grade}${it.atk?' · ATK +'+it.atk:''}${it.def?' · DEF +'+it.def:''}`;
+    html+=`<div style="background:${gc}11;border:1px solid ${gc}33;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px">${it.e}</span>
+      <div><div style="font-size:12px;font-weight:700;color:${gc}">${it.n}</div>
+      <div style="font-size:9px;color:#64748b">${sub}</div></div>
+    </div>`;
+  });
+
+  document.getElementById('tr-body').innerHTML = html;
+
+  // 100층이면 다음 층 버튼 숨김
+  const nextBtn = document.getElementById('tr-next-btn');
+  if(nextBtn) nextBtn.style.display = floor >= 100 ? 'none' : '';
+
+  hud();
+}
+
+// ── 다음 층 도전 ──
+function towerNextFloor() {
+  const nextFloor = _tower.floor + 1;
+  if(nextFloor > 100) { towerExit(); return; }
+  enterTower(nextFloor);
+}
+
+// ── 탑 철수 / 나가기 ──
+function towerRetreat() {
+  clearInterval(_tower.tick);
+  _tower.mob = null;
+  G.buffs={};saveG();goTown();
+  gwT('🏃 천공의 탑에서 철수했습니다.');
+}
+function towerExit() { goTown(); }
+
+// ── 탑 스킬 버튼 ──
+function renderTowerSkills() {
+  const job = JOBS[G.job]; if(!job) return;
+  const el  = document.getElementById('th-skbtns'); if(!el) return;
+  const now = Date.now();
+  el.innerHTML = job.skills.filter(s=>G.lv>=s.lv).map(sk=>{
+    const lv=G.sk[sk.id]?.lv||0;
+    const cdLeft=Math.max(0,sk.cd-(now-(G.sk[sk.id]?.t||0))/1000);
+    const ready=cdLeft<=0&&G.mp>=sk.mp;
+    return `<button onclick="useTowerSkill('${sk.id}')"
+      style="padding:5px 9px;border-radius:8px;font-size:9px;font-family:'Orbitron',sans-serif;cursor:pointer;
+        background:${ready?'linear-gradient(135deg,#7c3aed,#5b21b6)':'rgba(71,85,105,.3)'};
+        border:1px solid ${ready?'#a855f7':'rgba(71,85,105,.5)'};color:${ready?'#fff':'#475569'};">
+      ${sk.name}${lv>0?` +${lv}`:''}<br><span style="font-size:8px">${sk.mp}MP${cdLeft>0?' '+cdLeft.toFixed(0)+'s':''}</span>
+    </button>`;
+  }).join('');
+}
+
+function useTowerSkill(skId) {
+  const job = JOBS[G.job]; if(!job) return;
+  const sk  = job.skills.find(s=>s.id===skId); if(!sk||G.lv<sk.lv) return;
+  const now = Date.now();
+  if(now-(G.sk[skId]?.t||0) < sk.cd*1000){ gwT('쿨타임 중...'); return; }
+  if(G.mp<sk.mp){ gwT('MP 부족!'); return; }
+  G.mp-=sk.mp;
+  G.sk[skId]={...G.sk[skId]||{},t:now};
+
+  const lv = G.sk[skId]?.lv||0;
+  const a  = tAtk();
+  const skDmg = sk.dmg+(lv*0.1);
+  let dmg = Math.max(1, Math.floor(a*skDmg)-(_tower.mob?.def||0)+Math.floor(Math.random()*10)-4);
+  const isCrit=Math.random()*100<tCritRate();
+  if(isCrit) dmg=Math.floor(dmg*tCritDmg()/100);
+
+  if(sk.eff==='heal30'||sk.eff==='def_buff'){
+    if(sk.eff==='heal30'){const h=Math.floor(G.mHP*0.3);G.hp=Math.min(G.mHP,G.hp+h);towerBlog(`<span style="color:#34d399">💚 ${sk.name}! HP +${h}</span>`);}
+    else{G.buffs.def=true;towerBlog(`<span style="color:#60a5fa">🛡️ ${sk.name}! 방어력 강화!</span>`);}
+  } else {
+    _tower.mobHp=Math.max(0,_tower.mobHp-dmg);
+    towerBlog(`<span style="color:#c084fc">✨ ${sk.name}${isCrit?'<span style="color:#f97316">💥치명타!</span>':''} ${dmg} 대미지!</span>`);
+    if(_tower.mobHp<=0){ towerHud(); towerMobDead(); return; }
+  }
+  towerHud(); renderTowerSkills(); saveG();
+}
+
+// ── 탑 포션 ──
+function usePotInTower(eff) {
+  const p=G.inv.find(i=>i.type==='pot'&&i.eff===eff);
+  if(!p){gwT(eff==='hp'?'HP 포션 없음':'MP 포션 없음');return;}
+  if(eff==='hp'){const h=Math.min(p.val,G.mHP-G.hp);G.hp+=h;towerBlog(`<span style="color:#34d399">💚 HP +${h}</span>`);}
+  else{const m=Math.min(p.val,G.mMP-G.mp);G.mp+=m;towerBlog(`<span style="color:#60a5fa">💧 MP +${m}</span>`);}
+  p.qty--;if(p.qty<=0)G.inv.splice(G.inv.indexOf(p),1);
+  towerHud(); updateTowerPotBar(); saveG();
+}
+function updateTowerPotBar() {
+  const hp=G.inv.find(i=>i.type==='pot'&&i.eff==='hp');
+  const mp=G.inv.find(i=>i.type==='pot'&&i.eff==='mp');
+  const hEl=document.getElementById('th-pot-hp-count');
+  const mEl=document.getElementById('th-pot-mp-count');
+  if(hEl) hEl.textContent=hp?'×'+hp.qty:'×0';
+  if(mEl) mEl.textContent=mp?'×'+mp.qty:'×0';
+}
+
+// ── 탑 패널 열기 ──
+function openTower() { openP('gw-ptower'); }
+
+// ════════════════════════════════════════════════════════
+//  천공의 탑 시스템 끝
+// ════════════════════════════════════════════════════════
+
 
 
 
