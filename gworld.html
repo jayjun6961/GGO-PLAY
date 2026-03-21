@@ -311,6 +311,44 @@
   .gw-job-grid{grid-template-columns:repeat(2,1fr);}
   .bar-bg{width:52px;} .bar-bg.w{width:72px;}
   .gw-hud{gap:6px;padding:6px 9px;}
+
+  /* ── 모바일 전투화면: 스크롤 없이 한 화면에 HUD+캔버스+로그+스킬바 표시 ── */
+  #gs-battle, #gs-dungeon, #gs-dojo {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+  #gs-battle .gw-battle,
+  #gs-dungeon .gw-battle,
+  #gs-dojo .gw-battle {
+    height: 100%;
+    overflow: hidden;
+  }
+  /* 게임 캔버스: 고정 높이로 축소 — 캐릭터·몬스터 크기는 drawBattle에서 별도 제어 */
+  .gw-battle-scene {
+    flex: none !important;
+    height: 155px !important;
+    min-height: 155px !important;
+  }
+  /* 배틀 로그: 남은 공간 모두 차지, 높이 고정 제거 */
+  .gw-blog {
+    height: auto !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    font-size: 10px !important;
+    line-height: 1.6 !important;
+    padding: 5px 10px !important;
+  }
+  /* 포션바 패딩 최소화 */
+  #gw-pot-bar {
+    padding: 3px 9px !important;
+    gap: 4px !important;
+  }
+  /* 스킬바 패딩 최소화 */
+  .gw-sk-bar {
+    padding: 4px 9px !important;
+    gap: 4px !important;
+  }
 }
 
 
