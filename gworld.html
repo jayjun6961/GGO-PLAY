@@ -2544,21 +2544,43 @@ function mobDead(){
   G.exp+=_gainedExp;G.gold+=_goldGained;
   blog(`<span class="li">💀 ${m.n} 처치! +${_gainedExp}EXP +${_goldGained}G</span>`);
   if(Math.random()<m.drop){
-    // 직업에 맞는 장비 풀 (전설/포션/재료/반지·목걸이 제외 → 일반 장비만)
+    // 사냥터별 드롭 등급 확률 테이블
+    // [일반, 희귀, 레어, 에픽, 전설] 누적 확률 (0~1)
+    const ZONE_DROP_TABLE = {
+      prairie:    [0.55, 0.83, 0.96, 1.00, 1.00], // 일반55 희귀28 레어13 에픽4
+      forest:     [0.50, 0.80, 0.94, 1.00, 1.00], // 일반50 희귀30 레어14 에픽6
+      cave:       [0.45, 0.77, 0.93, 1.00, 1.00], // 일반45 희귀32 레어16 에픽7
+      ruin:       [0.40, 0.73, 0.91, 1.00, 1.00], // 일반40 희귀33 레어18 에픽9
+      volcano:    [0.35, 0.68, 0.89, 1.00, 1.00], // 일반35 희귀33 레어21 에픽11
+      abyss:      [0.30, 0.62, 0.86, 1.00, 1.00], // 일반30 희귀32 레어24 에픽14
+      skytemple:  [0.25, 0.56, 0.83, 1.00, 1.00], // 일반25 희귀31 레어27 에픽17
+      shadowrealm:[0.20, 0.50, 0.79, 1.00, 1.00], // 일반20 희귀30 레어29 에픽21
+      dragonspire:[0.15, 0.44, 0.74, 1.00, 1.00], // 일반15 희귀29 레어30 에픽26
+      // 신들의 영역부터 전설 추가
+      godplane:   [0.10, 0.35, 0.63, 0.92, 1.00], // 일반10 희귀25 레어28 에픽29 전설8
+      voidrift:   [0.08, 0.28, 0.55, 0.87, 1.00], // 일반8  희귀20 레어27 에픽32 전설13
+      abyssgate:  [0.06, 0.22, 0.46, 0.80, 1.00], // 일반6  희귀16 레어24 에픽34 전설20
+      chaosrealm: [0.04, 0.16, 0.37, 0.72, 1.00], // 일반4  희귀12 레어21 에픽35 전설28
+      eternity:   [0.02, 0.10, 0.27, 0.62, 1.00], // 일반2  희귀8  레어17 에픽35 전설38
+    };
+    const zid = G.zone?.id || 'prairie';
+    const thresholds = ZONE_DROP_TABLE[zid] || ZONE_DROP_TABLE['prairie'];
+    const grades = ['일반','희귀','레어','에픽','전설'];
+    const r = Math.random();
+    let gradeFilter = '일반';
+    for(let gi=0; gi<thresholds.length; gi++){
+      if(r < thresholds[gi]){ gradeFilter = grades[gi]; break; }
+    }
+
+    // 직업에 맞는 장비 풀 (포션/재료/장신구/신화 제외)
     const eqPool = DROPS.filter(d => {
       if(d.type==='pot'||d.type==='mat') return false;
-      // 반지·목걸이는 월드보스 전용
-      if(d.type==='accessory') return false;
+      if(d.type==='accessory') return false;  // 반지·목걸이는 월드보스 전용
+      if(d.grade==='신화') return false;
       if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
       return true;
     });
-    // 사냥터 드롭 등급 확률: 일반60% 희귀30% 레어10%
-    const r = Math.random();
-    let gradeFilter;
-    if(r < 0.60)      gradeFilter = '일반';
-    else if(r < 0.90) gradeFilter = '희귀';
-    else               gradeFilter = '레어';
-    const pool = eqPool.filter(d=>d.grade===gradeFilter&&d.grade!=='전설'&&d.grade!=='신화');
+    const pool = eqPool.filter(d => d.grade === gradeFilter);
     if(pool.length){
       const it={...pool[Math.floor(Math.random()*pool.length)],qty:1,_id:Date.now()};
       const ex=G.inv.find(i=>i.n===it.n);
