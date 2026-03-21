@@ -1144,6 +1144,27 @@ const DROPS = [
   {n:'현자의 반지',  e:'💍', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp', expBonus:18, grade:'레어', sellPrice:180},
   {n:'탐구자의 반지',e:'💎', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp', expBonus:28, grade:'에픽', sellPrice:420},
   {n:'신화의 반지',  e:'✨', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp', expBonus:40, grade:'전설', sellPrice:1000},
+
+  // ══════════════════════════════════════
+  // 신화 등급 — 차원의 문(월드보스) 전용 드롭 (5% 확률)
+  // ══════════════════════════════════════
+  // 무기 (직업별)
+  {n:'심판의 패검',    e:'🔥', type:'weapon', slot:'weapon', atk:110,def:15, grade:'신화', sellPrice:5000, jobType:['warrior','paladin']},
+  {n:'천벌의 성검',    e:'⚡', type:'weapon', slot:'weapon', atk:130,def:40, grade:'신화', sellPrice:5500, jobType:['paladin']},
+  {n:'파멸의 신궁',    e:'🌠', type:'weapon', slot:'weapon', atk:115,def:5,  grade:'신화', sellPrice:5000, jobType:['archer']},
+  {n:'영원의 흑도',    e:'🌑', type:'weapon', slot:'weapon', atk:108,def:10, grade:'신화', sellPrice:5000, jobType:['rogue']},
+  {n:'창세의 법장',    e:'🔮', type:'weapon', slot:'weapon', atk:125,def:5,  grade:'신화', sellPrice:5200, jobType:['mage']},
+  // 방어구
+  {n:'창세의 방패',    e:'🔱', type:'shield', slot:'shield', def:100,         grade:'신화', sellPrice:4500, jobType:['warrior','paladin']},
+  {n:'신의 갑주',      e:'🛡️', type:'armor',  slot:'armor',  atk:10,def:90,  grade:'신화', sellPrice:4800},
+  {n:'공허의 발걸음',  e:'👟', type:'boots',  slot:'boots',  spd:380,        grade:'신화', sellPrice:4000},
+  {n:'천공의 장갑',    e:'🧤', type:'gloves', slot:'gloves', atk:28,def:28,  grade:'신화', sellPrice:4200},
+  // 장신구
+  {n:'창세의 목걸이',  e:'💠', type:'accessory', slot:'necklace', subType:'necklace', critRate:35, grade:'신화', sellPrice:4500},
+  {n:'심판의 반지',    e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_crit', critDmg:160, grade:'신화', sellPrice:4500},
+  {n:'천공의 반지',    e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_atk',  atk:45,      grade:'신화', sellPrice:4500},
+  {n:'대지의 반지',    e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_def',  def:45,      grade:'신화', sellPrice:4500},
+  {n:'진화의 반지',    e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp',  expBonus:60, grade:'신화', sellPrice:4500},
 ];
 
 
@@ -2229,7 +2250,7 @@ function mobDead(){
     if(r < 0.60)      gradeFilter = '일반';
     else if(r < 0.90) gradeFilter = '희귀';
     else               gradeFilter = '레어';
-    const pool = eqPool.filter(d=>d.grade===gradeFilter&&d.grade!=='전설');
+    const pool = eqPool.filter(d=>d.grade===gradeFilter&&d.grade!=='전설'&&d.grade!=='신화');
     if(pool.length){
       const it={...pool[Math.floor(Math.random()*pool.length)],qty:1,_id:Date.now()};
       const ex=G.inv.find(i=>i.n===it.n);
@@ -2388,7 +2409,7 @@ const SLOT_INFO={
   ring2:    {label:'반지2',   emoji:'💍'},
   ring3:    {label:'반지3',   emoji:'💍'},
 };
-const GRADE_COLOR={일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+const GRADE_COLOR={일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316'};
 
 function renderInv(){
   // ── 장착 슬롯 6개 ──
@@ -2760,6 +2781,7 @@ const ENH_COST_TABLE = {
   '레어': {base:  400, step:  200, max: 100},
   '에픽': {base: 1000, step:  500, max: 120},
   '전설': {base: 3000, step: 1500, max: 150},
+  '신화': {base: 8000, step: 4000, max: 200},
 };
 function enhCost(enh, grade){
   const cfg = ENH_COST_TABLE[grade] || ENH_COST_TABLE['일반'];
@@ -2799,7 +2821,7 @@ function renderEnh(){
       } else {
         stat=`DEF +${it.def||0}`; nextStat=`DEF +${(it.def||0)+2}`;
       }
-      const GRADE_COL2={'기본':'#94a3b8','일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24'};
+      const GRADE_COL2={'기본':'#94a3b8','일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24','신화':'#f97316'};
       const gc2 = GRADE_COL2[it.grade||'일반']||'#94a3b8';
       const maxEnh = getEnhMax(it.grade);
       const isMax  = enh >= maxEnh;
@@ -5057,19 +5079,41 @@ function wbClaimReward(date, wbId) {
   const WB_ACC   = ['necklace','ring'];
   const JOB_MAP  = {warrior:['warrior','paladin'],archer:['archer'],mage:['mage'],rogue:['rogue'],paladin:['paladin','warrior']};
 
+  // 차원의 문(dimension)에서만 신화 5% 드롭
+  const isDimension = (wbId === 'dimension');
+
   function wbPickGrade(rngN, isAcc) {
     const r = rng(rngN);
-    if(isAcc){
-      if(r<0.35) return '일반';
-      if(r<0.65) return '희귀';
-      if(r<0.85) return '레어';
-      if(r<0.95) return '에픽';
-      return '전설';
+    if(isDimension) {
+      // 신화 5% — 차원의 문 전용
+      if(r < 0.05) return '신화';
+      const r2 = (r - 0.05) / 0.95; // 나머지 95% 재정규화
+      if(isAcc){
+        if(r2<0.35) return '일반';
+        if(r2<0.65) return '희귀';
+        if(r2<0.85) return '레어';
+        if(r2<0.95) return '에픽';
+        return '전설';
+      } else {
+        if(r2<0.50) return '희귀';
+        if(r2<0.80) return '레어';
+        if(r2<0.95) return '에픽';
+        return '전설';
+      }
     } else {
-      if(r<0.50) return '희귀';
-      if(r<0.80) return '레어';
-      if(r<0.95) return '에픽';
-      return '전설';
+      // 일반 월드보스: 신화 없음
+      if(isAcc){
+        if(r<0.35) return '일반';
+        if(r<0.65) return '희귀';
+        if(r<0.85) return '레어';
+        if(r<0.95) return '에픽';
+        return '전설';
+      } else {
+        if(r<0.50) return '희귀';
+        if(r<0.80) return '레어';
+        if(r<0.95) return '에픽';
+        return '전설';
+      }
     }
   }
 
@@ -5108,7 +5152,7 @@ function wbClaimReward(date, wbId) {
 
 /* ── 보상 결과 화면 ── */
 function showWbResult(gold, exp, stones, gear, lvUp) {
-  const GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+  const GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316'};
   const el = document.getElementById('gw-wbbody');
   if(!el) return;
 
