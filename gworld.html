@@ -746,12 +746,12 @@
   <div class="gw-screen" id="gs-town">
     <div class="gw-town">
       <div class="gw-hud">
-        <div class="gw-lv-tag" id="th-lv">Lv.1</div>
+        <div class="gw-lv-tag" id="tw-lv">Lv.1</div>
         <div class="gw-hud-nm" id="gw-jnm">전사</div>
-        <div class="bar-g"><div class="bar-lbl" style="color:#ef4444">HP</div><div class="bar-bg"><div class="bar-hp" id="th-hpf" style="width:100%"></div></div><div class="bar-v" id="th-hpv">120/120</div></div>
-        <div class="bar-g"><div class="bar-lbl" style="color:#3b82f6">MP</div><div class="bar-bg"><div class="bar-mp" id="th-mpf" style="width:100%"></div></div><div class="bar-v" id="th-mpv">60/60</div></div>
-        <div class="bar-g"><div class="bar-lbl" style="color:#fbbf24;font-size:8px">EXP</div><div class="bar-bg w"><div class="bar-exp" id="th-expf" style="width:0%"></div></div></div>
-        <div class="gw-gold" id="th-gold">100G</div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#ef4444">HP</div><div class="bar-bg"><div class="bar-hp" id="tw-hpf" style="width:100%"></div></div><div class="bar-v" id="tw-hpv">120/120</div></div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#3b82f6">MP</div><div class="bar-bg"><div class="bar-mp" id="tw-mpf" style="width:100%"></div></div><div class="bar-v" id="tw-mpv">60/60</div></div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#fbbf24;font-size:8px">EXP</div><div class="bar-bg w"><div class="bar-exp" id="tw-expf" style="width:0%"></div></div></div>
+        <div class="gw-gold" id="tw-gold">100G</div>
       </div>
       <div class="gw-cv-area" onclick="checkNPC(event)">
         <canvas id="gw-tcv"></canvas>
@@ -5939,11 +5939,25 @@ function enterTower(floor) {
   document.getElementById('th-floor-badge').textContent = floor+'F'+(mob.isBoss?' 👑':'');
   document.getElementById('th-floor-badge').style.color = mob.isBoss ? '#ef4444' : '#fbbf24';
 
-  // 캔버스
+  // G.mob / G.zone 임시 세팅 → drawBattle이 캐릭터/몬스터 렌더링에 사용
+  G.mob  = { n: mob.n, e: mob.e, hp: mob.hp, atk: mob.atk, def: mob.def };
+  G.mhp  = mob.hp;
+  G.mmhp = mob.hp;
+  if(!G.zone) G.zone = { id: 'cave' }; // 배경 존재용 fallback
+
+  // 캔버스 초기화 + 전투 화면 그리기 (drawBattle 재사용)
   setTimeout(()=>{
-    const cv=document.getElementById('th-cv');
-    if(cv){cv.width=cv.offsetWidth||500;cv.height=cv.offsetHeight||140;}
-  },30);
+    const cv = document.getElementById('th-cv');
+    if(cv){
+      cv.width  = cv.offsetWidth  || 500;
+      cv.height = cv.offsetHeight || 155;
+      // drawBattle은 gw-bcv를 기준으로 그리므로 th-cv에 직접 그림
+      drawBattle(cv);
+    }
+    // 애니메이션 루프 시작
+    _towerAnimActive = true;
+    _towerAnimLoop();
+  }, 30);
 
   // 스킬 버튼
   renderTowerSkills();
@@ -5956,6 +5970,17 @@ function enterTower(floor) {
 
   const prefix = mob.isBoss ? `<span style="color:#ef4444">🔥 BOSS </span>` : '';
   towerBlog(`<span style="color:#fbbf24">🗼 ${floor}층! ${prefix}${mob.n} 등장!</span>`);
+}
+
+// ── 천공의 탑 애니메이션 루프 ──
+let _towerAnimActive = false;
+function _towerAnimLoop() {
+  if(!_towerAnimActive) return;
+  const cv = document.getElementById('th-cv');
+  if(cv && G.mob) {
+    drawBattle(cv);
+  }
+  requestAnimationFrame(_towerAnimLoop);
 }
 
 // ── 탑 HUD ──
@@ -6006,13 +6031,15 @@ function towerFight() {
     clearInterval(_tower.tick);
     towerBlog(`<span style="color:#ef4444">💀 쓰러졌습니다... 탑에서 퇴장합니다.</span>`);
     saveG();
-    setTimeout(()=>{ G.hp=Math.floor(G.mHP*0.1); saveG(); goTown(); gwT('💀 천공의 탑에서 패배...'); },2200);
+    _towerAnimActive = false;
+    setTimeout(()=>{ G.hp=Math.floor(G.mHP*0.1); G.mob=null; saveG(); goTown(); gwT('💀 천공의 탑에서 패배...'); },2200);
   }
 }
 
 // ── 몬스터 처치 ──
 function towerMobDead() {
   clearInterval(_tower.tick);
+  _towerAnimActive = false;
   const floor = _tower.floor;
   const mob   = _tower.mob;
 
@@ -6107,11 +6134,17 @@ function towerNextFloor() {
 // ── 탑 철수 / 나가기 ──
 function towerRetreat() {
   clearInterval(_tower.tick);
+  _towerAnimActive = false;
   _tower.mob = null;
+  G.mob = null; // drawBattle 캐릭터 전용 mob 초기화
   G.buffs={};saveG();goTown();
   gwT('🏃 천공의 탑에서 철수했습니다.');
 }
-function towerExit() { goTown(); }
+function towerExit() {
+  _towerAnimActive = false;
+  G.mob = null;
+  goTown();
+}
 
 // ── 탑 스킬 버튼 ──
 function renderTowerSkills() {
