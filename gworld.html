@@ -1150,7 +1150,19 @@ const DROPS = [
 function expNeed(lv){ return Math.floor(60*Math.pow(lv,1.65)); }
 
 // 스토리지
-const gwUN = ()=>sessionStorage.getItem('ggo_username')||'_g';
+// sessionStorage가 비어있으면(모바일 재접속 등) localStorage에서 복원
+const gwUN = ()=>{
+  let un = sessionStorage.getItem('ggo_username');
+  if(!un) {
+    un = localStorage.getItem('ggo_username');
+    if(un) {
+      // sessionStorage 복원 (이번 세션에서 계속 사용)
+      sessionStorage.setItem('ggo_username', un);
+      sessionStorage.setItem('ggo_logged_in', localStorage.getItem('ggo_logged_in')||'true');
+    }
+  }
+  return un || '_g';
+};
 const gKey = k=>'gwo_'+k+'_'+gwUN();
 const gGet = k=>{try{return JSON.parse(localStorage.getItem(gKey(k))||'null');}catch{return null;}};
 const gSet = (k,v)=>localStorage.setItem(gKey(k),JSON.stringify(v));
@@ -5157,9 +5169,18 @@ let _gwTt=null;
 function gwT(msg){const t=document.getElementById('gw-toast');if(!t)return;clearTimeout(_gwTt);t.textContent=msg;t.classList.add('on');_gwTt=setTimeout(()=>t.classList.remove('on'),2400);}
 
 function initGW(){
-  const li=sessionStorage.getItem('ggo_logged_in')==='true';
-  const un=sessionStorage.getItem('ggo_username')||'';
-  if(!li||!un){gwSC('login');return;}
+  // sessionStorage 우선, 없으면 localStorage로 fallback (모바일 재접속 대응)
+  let li = sessionStorage.getItem('ggo_logged_in') === 'true';
+  let un = sessionStorage.getItem('ggo_username') || '';
+  if(!li || !un) {
+    li = localStorage.getItem('ggo_logged_in') === 'true';
+    un = localStorage.getItem('ggo_username') || '';
+    if(li && un) {
+      sessionStorage.setItem('ggo_logged_in', 'true');
+      sessionStorage.setItem('ggo_username', un);
+    }
+  }
+  if(!li || !un){gwSC('login');return;}
   if(loadG())goTown();
   else{gwSC('intro');setTimeout(()=>{const cv=document.getElementById('gw-icv');if(cv){cv.width=cv.offsetWidth||320;cv.height=cv.offsetHeight||138;drawIntro(cv);}},40);}
 }
@@ -6178,6 +6199,8 @@ function toggleSidebarBox(e) {
 function doSidebarLogout() {
   sessionStorage.removeItem('ggo_logged_in');
   sessionStorage.removeItem('ggo_username');
+  localStorage.removeItem('ggo_logged_in');
+  localStorage.removeItem('ggo_username');
   location.href = 'index.html';
 }
 
