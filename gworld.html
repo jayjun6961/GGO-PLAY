@@ -677,6 +677,17 @@
   </div>
 </div>
 
+<!-- 유물 패널 -->
+<div class="gw-pov" id="gw-prelic" onclick="if(event.target===this)closeP('gw-prelic')">
+  <div class="gw-pbox" style="width:min(420px,96vw);max-height:88vh;display:flex;flex-direction:column;">
+    <div class="gw-phdr" style="background:linear-gradient(135deg,rgba(168,85,247,.12),rgba(124,58,237,.06));border-bottom:1px solid rgba(168,85,247,.25);">
+      <div class="gw-pttl" style="color:#c084fc;">🔮 유물</div>
+      <button class="gw-px" onclick="closeP('gw-prelic')">✕</button>
+    </div>
+    <div class="gw-pbdy" id="gw-relicbody" style="padding:12px;"></div>
+  </div>
+</div>
+
 <!-- 천공의 탑 패널 -->
 <div class="gw-pov" id="gw-ptower" onclick="if(event.target===this)closeP('gw-ptower')">
   <div class="gw-pbox" style="width:min(440px,96vw);max-height:88vh;display:flex;flex-direction:column;">
@@ -774,6 +785,7 @@
         <div class="gw-act" onclick="openWorldBoss()"><div class="gw-act-ico">👻</div><div class="gw-act-lbl">월드 보스</div></div>
         <div class="gw-act" onclick="openPVP()" style="border-color:rgba(239,68,68,.25)"><div class="gw-act-ico">🥊</div><div class="gw-act-lbl">PVP</div></div>
         <div class="gw-act" onclick="openTower()" style="border-color:rgba(251,191,36,.25)"><div class="gw-act-ico">🗼</div><div class="gw-act-lbl">천공의 탑</div></div>
+        <div class="gw-act" onclick="openRelics()" style="border-color:rgba(168,85,247,.25)"><div class="gw-act-ico">🔮</div><div class="gw-act-lbl">유물</div></div>
         <div class="gw-act" onclick="resetChar()" style="border-color:rgba(239,68,68,.15)"><div class="gw-act-ico">🔄</div><div class="gw-act-lbl">초기화</div></div>
       </div>
     </div>
@@ -1274,6 +1286,7 @@ let G={sc:'intro',job:null,lv:1,hp:0,mHP:0,mp:0,mMP:0,atk:0,def:0,
        wquests:[],wqprog:{},wqclaim:{},  // 주간 퀘스트
        zone:null,mob:null,mhp:0,mmhp:0,buffs:{},defBuff:false,
        tick:null,quests:[],
+       relics:[null,null,null,null,null],  // 유물 슬롯 5개
        equip:{weapon:null,shield:null,armor:null,boots:null,gloves:null,necklace:null,ring1:null,ring2:null,ring3:null}};
 let _selJob=null;
 
@@ -1294,7 +1307,7 @@ function tDef(){
   if(G.defBuff)d=Math.floor(d*1.5);return d;
 }
 
-function saveG(){gSet('save',{job:G.job,lv:G.lv,hp:G.hp,mp:G.mp,exp:G.exp,gold:G.gold,inv:G.inv,qprog:G.qprog,qclaim:G.qclaim,sk:G.sk,quests:G.quests,equip:G.equip||{},wquests:G.wquests,wqprog:G.wqprog,wqclaim:G.wqclaim});}
+function saveG(){gSet('save',{job:G.job,lv:G.lv,hp:G.hp,mp:G.mp,exp:G.exp,gold:G.gold,inv:G.inv,qprog:G.qprog,qclaim:G.qclaim,sk:G.sk,quests:G.quests,equip:G.equip||{},wquests:G.wquests,wqprog:G.wqprog,wqclaim:G.wqclaim,relics:G.relics||[null,null,null,null,null]});}
 
 function loadG(){
   const s=gGet('save');if(!s||!s.job)return false;
@@ -1315,7 +1328,8 @@ function loadG(){
     atk:b.atk+eq.atk,def:b.def+eq.def,
     exp:s.exp||0,gold:s.gold||0,inv:s.inv||[],qprog:s.qprog||{},qclaim:s.qclaim||{},
     sk:s.sk||{},quests:s.quests||makeQ(),
-    wquests:s.wquests||makeWeeklyQ(),wqprog:s.wqprog||{},wqclaim:s.wqclaim||{}});return true;
+    wquests:s.wquests||makeWeeklyQ(),wqprog:s.wqprog||{},wqclaim:s.wqclaim||{},
+    relics:s.relics||[null,null,null,null,null]});return true;
 }
 // ── 일일 퀘스트 풀 (날짜 시드로 매일 4개 랜덤 선택) ──
 // ── 일일 퀘스트 풀 (사냥 / 도장 / 장비강화) ──
@@ -2313,8 +2327,11 @@ function autoFight(){
 
 function mobDead(){
   stopAuto();const m=G.mob;
-  const _gainedExp=Math.floor(m.exp*tExpRate());G.exp+=_gainedExp;G.gold+=m.g;
-  blog(`<span class="li">💀 ${m.n} 처치! +${_gainedExp}EXP +${m.g}G</span>`);
+  const _gainedExp=Math.floor(m.exp*tExpRate());
+  const _goldMult=1+(equipBonus().goldBonus||0)/100;
+  const _goldGained=Math.floor(m.g*_goldMult);
+  G.exp+=_gainedExp;G.gold+=_goldGained;
+  blog(`<span class="li">💀 ${m.n} 처치! +${_gainedExp}EXP +${_goldGained}G</span>`);
   if(Math.random()<m.drop){
     // 직업에 맞는 장비 풀 (전설/포션/재료/반지·목걸이 제외 → 일반 장비만)
     const eqPool = DROPS.filter(d => {
@@ -2439,6 +2456,7 @@ function renderP(id){
   if(id==='gw-pdojo')    renderDojoEnter();
   if(id==='gw-ppvp')     pvpTab('battle');
   if(id==='gw-ptower')   renderTowerPanel();
+  if(id==='gw-prelic')   renderRelicPanel();
   if(id==='gw-pcash')    renderCashShop();
   if(id==='gw-pwb')      renderWorldBoss(); // async
 }
@@ -2457,7 +2475,25 @@ function equipBonus(){
       expBonus +=(it.expBonus||0);
     }
   });
-  return {atk,def,spd,critRate,critDmg,expBonus};
+  // 유물 보너스 합산
+  let relicAtk=0,relicDef=0,relicSpd=0,relicCritRate=0,relicCritDmg=0,relicExpBonus=0,relicGoldBonus=0;
+  let relicHpBonus=0,relicMpBonus=0;
+  (G.relics||[]).forEach(r=>{
+    if(!r) return;
+    relicHpBonus    +=(r.hp_bonus   ||0);
+    relicMpBonus    +=(r.mp_bonus   ||0);
+    relicAtk        +=(r.atk_bonus  ||0);
+    relicDef        +=(r.def_bonus  ||0);
+    relicSpd        +=(r.spd_bonus  ||0);
+    relicCritRate   +=(r.critRate_bonus||0);
+    relicCritDmg    +=(r.critDmg_bonus ||0);
+    relicExpBonus   +=(r.exp_bonus  ||0);
+    relicGoldBonus  +=(r.gold_bonus ||0);
+  });
+  return {atk:atk+relicAtk, def:def+relicDef, spd:spd+relicSpd,
+          critRate:critRate+relicCritRate, critDmg:critDmg+relicCritDmg,
+          expBonus:expBonus+relicExpBonus, goldBonus:relicGoldBonus,
+          relicHpBonus, relicMpBonus};
 }
 // 경험치 획득 배율 (1 + expBonus%) × 구간별 효율
 function tExpRate(){
@@ -2475,6 +2511,11 @@ function tExpRate(){
 function recalcStats(){
   const b=cBase(G.job,G.lv);const eq=equipBonus();
   G.atk=b.atk+eq.atk;G.def=b.def+eq.def;
+  // 유물 HP/MP 보너스 반영
+  G.mHP=b.mHP+Math.floor(b.mHP*(eq.relicHpBonus||0)/100);
+  G.mMP=b.mMP+Math.floor(b.mMP*(eq.relicMpBonus||0)/100);
+  G.hp=Math.min(G.hp,G.mHP);
+  G.mp=Math.min(G.mp,G.mMP);
 }
 // 공격 속도: 기본 1150ms - 신발 spd (최소 400ms)
 function tSpd(){ const base=G.job==='archer'?1300:1500; return Math.max(400, base-(equipBonus().spd||0)); }
@@ -3095,7 +3136,7 @@ function confirmJob(){
   const j=JOBS[_selJob],b=cBase(_selJob,1);
   Object.assign(G,{job:_selJob,lv:1,mHP:b.mHP,mMP:b.mMP,hp:b.mHP,mp:b.mMP,
     atk:b.atk,def:b.def,exp:0,gold:100,inv:[],qprog:{},qclaim:{},
-    sk:{},buffs:{},defBuff:false,quests:makeQ(),wquests:makeWeeklyQ(),wqprog:{},wqclaim:{}});
+    sk:{},buffs:{},defBuff:false,quests:makeQ(),wquests:makeWeeklyQ(),wqprog:{},wqclaim:{},relics:[null,null,null,null,null]});
   // 기본 장비를 equip 슬롯에 장착 (강화 수치 영속 유지)
   G.equip={weapon:null,shield:null,armor:null,boots:null,gloves:null,necklace:null,ring1:null,ring2:null,ring3:null};
   if(j.weapon){G.equip.weapon={n:j.weapon.name,e:j.weapon.emoji||'⚔️',type:'weapon',slot:'weapon',atk:j.weapon.atk||5,def:0,grade:'기본',enh:0,_id:1};}
@@ -6223,6 +6264,227 @@ function openTower() { openP('gw-ptower'); }
 // ════════════════════════════════════════════════════════
 //  천공의 탑 시스템 끝
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  유물 시스템
+// ════════════════════════════════════════════════════════
+
+// 유물 종류 정의 (등급별 수치 차이)
+const RELIC_DEFS = [
+  {
+    id:'jakchae', name:'따끈한 잡채', e:'🥘',
+    desc:'최대 HP 증가',
+    stat:'hp_bonus',   // HP % 증가
+    vals:{일반:5, 희귀:10, 레어:15, 에픽:22, 전설:30},
+    unit:'%',
+  },
+  {
+    id:'churu', name:'호돗의 츄르', e:'🍬',
+    desc:'최대 MP 증가',
+    stat:'mp_bonus',
+    vals:{일반:5, 희귀:10, 레어:15, 에픽:22, 전설:30},
+    unit:'%',
+  },
+  {
+    id:'figure', name:'도플의 피규어', e:'🪆',
+    desc:'공격력 증가',
+    stat:'atk_bonus',
+    vals:{일반:10, 희귀:20, 레어:35, 에픽:55, 전설:80},
+    unit:'',
+  },
+  {
+    id:'toy', name:'꼬마의 장난감', e:'🧸',
+    desc:'방어력 증가',
+    stat:'def_bonus',
+    vals:{일반:10, 희귀:20, 레어:35, 에픽:55, 전설:80},
+    unit:'',
+  },
+  {
+    id:'taco', name:'멕시칸 타코', e:'🌮',
+    desc:'치명타 확률 증가',
+    stat:'critRate_bonus',
+    vals:{일반:3, 희귀:6, 레어:10, 에픽:15, 전설:22},
+    unit:'%',
+  },
+  {
+    id:'will', name:'원의 의지', e:'⚡',
+    desc:'공격 속도 증가',
+    stat:'spd_bonus',   // ms 감소 (빠를수록 높은 수치)
+    vals:{일반:50, 희귀:100, 레어:160, 에픽:230, 전설:320},
+    unit:'ms',
+  },
+  {
+    id:'gucci', name:'명품 구찌', e:'👜',
+    desc:'골드 획득량 증가',
+    stat:'gold_bonus',
+    vals:{일반:5, 희귀:10, 레어:15, 에픽:22, 전설:30},
+    unit:'%',
+  },
+  {
+    id:'ttunga', name:'뚱가사리', e:'🐟',
+    desc:'치명타 대미지 증가',
+    stat:'critDmg_bonus',
+    vals:{일반:15, 희귀:30, 레어:50, 에픽:75, 전설:110},
+    unit:'%',
+  },
+  {
+    id:'approval', name:'최실장의 결재서', e:'📋',
+    desc:'경험치 획득량 증가',
+    stat:'exp_bonus',
+    vals:{일반:5, 희귀:10, 레어:15, 에픽:22, 전설:30},
+    unit:'%',
+  },
+];
+
+const RELIC_GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+const RELIC_MAX_SLOTS = 5;
+
+// ── 유물 패널 렌더 ──
+function renderRelicPanel() {
+  const el = document.getElementById('gw-relicbody');
+  if(!el) return;
+
+  const relics  = G.relics || [null,null,null,null,null];
+  const inInv   = (G.inv||[]).filter(i=>i.type==='relic');
+  const equipped = relics.filter(r=>r!==null).length;
+
+  // 장착 슬롯
+  let html = `
+    <div style="font-size:10px;color:#94a3b8;font-family:'Orbitron',sans-serif;margin-bottom:8px;">
+      🔮 장착된 유물 (${equipped}/${RELIC_MAX_SLOTS})
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:16px;">`;
+
+  for(let i=0;i<RELIC_MAX_SLOTS;i++){
+    const r = relics[i];
+    if(r){
+      const gc = RELIC_GRADE_COL[r.grade]||'#94a3b8';
+      const def = RELIC_DEFS.find(d=>d.id===r.relicId);
+      html += `<div onclick="unequipRelic(${i})"
+        title="${r.name} (해제하려면 클릭)"
+        style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+          background:${gc}18;border:2px solid ${gc}66;border-radius:10px;cursor:pointer;
+          transition:all .15s;position:relative;"
+        onmouseover="this.style.background='${gc}33'" onmouseout="this.style.background='${gc}18'">
+        <span style="font-size:22px">${r.e}</span>
+        <span style="font-size:7px;color:${gc};font-family:'Orbitron',sans-serif;white-space:nowrap;overflow:hidden;max-width:100%;text-align:center;padding:0 2px;">${r.grade}</span>
+        <div style="position:absolute;top:2px;right:3px;font-size:8px;color:#64748b;">✕</div>
+      </div>`;
+    } else {
+      html += `<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+        background:rgba(124,58,237,.05);border:2px dashed rgba(124,58,237,.2);border-radius:10px;">
+        <span style="font-size:18px;opacity:.3;">🔮</span>
+      </div>`;
+    }
+  }
+  html += `</div>`;
+
+  // 장착 유물 스탯 요약
+  const eq = equipBonus();
+  const statLines = [
+    eq.relicHpBonus   ? `❤️ 최대 HP +${eq.relicHpBonus}%`               : '',
+    eq.relicMpBonus   ? `💧 최대 MP +${eq.relicMpBonus}%`               : '',
+    eq.atk > 0 && (G.relics||[]).some(r=>r?.stat==='atk_bonus')
+                      ? `⚔️ 공격력 +${(G.relics||[]).reduce((s,r)=>s+(r?.atk_bonus||0),0)}` : '',
+    eq.def > 0 && (G.relics||[]).some(r=>r?.stat==='def_bonus')
+                      ? `🛡️ 방어력 +${(G.relics||[]).reduce((s,r)=>s+(r?.def_bonus||0),0)}` : '',
+    (G.relics||[]).some(r=>r?.critRate_bonus)
+                      ? `🎯 치명타 확률 +${(G.relics||[]).reduce((s,r)=>s+(r?.critRate_bonus||0),0)}%` : '',
+    (G.relics||[]).some(r=>r?.spd_bonus)
+                      ? `⚡ 공격속도 +${(G.relics||[]).reduce((s,r)=>s+(r?.spd_bonus||0),0)}ms` : '',
+    eq.goldBonus      ? `💰 골드 획득 +${eq.goldBonus}%`                 : '',
+    (G.relics||[]).some(r=>r?.critDmg_bonus)
+                      ? `💥 치명타 대미지 +${(G.relics||[]).reduce((s,r)=>s+(r?.critDmg_bonus||0),0)}%` : '',
+    eq.expBonus > 0 && (G.relics||[]).some(r=>r?.exp_bonus)
+                      ? `⭐ 경험치 +${(G.relics||[]).reduce((s,r)=>s+(r?.exp_bonus||0),0)}%` : '',
+  ].filter(Boolean);
+
+  if(statLines.length){
+    html += `<div style="padding:8px 12px;background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.18);
+      border-radius:8px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:6px;">
+      ${statLines.map(s=>`<span style="font-size:10px;color:#c084fc;font-family:'Noto Sans KR',sans-serif;">${s}</span>`).join('')}
+    </div>`;
+  }
+
+  // 보관 중인 유물
+  html += `<div style="font-size:10px;color:#94a3b8;font-family:'Orbitron',sans-serif;margin-bottom:8px;">
+    📦 보관 중인 유물 (${inInv.length}개)
+  </div>`;
+
+  if(inInv.length === 0){
+    html += `<div style="text-align:center;padding:20px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
+      보관 중인 유물이 없습니다.<br><span style="font-size:10px;color:#334155;">유물 던전에서 획득 가능합니다.</span>
+    </div>`;
+  } else {
+    html += `<div style="display:flex;flex-direction:column;gap:6px;">`;
+    inInv.forEach((r, idx) => {
+      const gc  = RELIC_GRADE_COL[r.grade]||'#94a3b8';
+      const def = RELIC_DEFS.find(d=>d.id===r.relicId);
+      const statVal = def ? (r[def.stat]||0) : 0;
+      const statLabel = def ? `${def.desc} +${statVal}${def.unit}` : '';
+      const canEquip  = equipped < RELIC_MAX_SLOTS;
+      const invIdx    = G.inv.indexOf(r);
+
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;
+        background:${gc}0d;border:1px solid ${gc}33;border-radius:10px;">
+        <span style="font-size:24px">${r.e}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;font-weight:700;color:${gc};">${r.name}</div>
+          <div style="display:flex;gap:5px;align-items:center;margin-top:2px;">
+            <span style="font-size:8px;padding:1px 5px;border-radius:4px;background:${gc}22;color:${gc};border:1px solid ${gc}44;">${r.grade}</span>
+            <span style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;">${statLabel}</span>
+          </div>
+        </div>
+        ${canEquip
+          ? `<button onclick="equipRelic(${invIdx})"
+              style="background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;
+              color:#fff;padding:5px 10px;border-radius:7px;font-size:10px;font-family:'Orbitron',sans-serif;cursor:pointer;white-space:nowrap;">장착</button>`
+          : `<span style="font-size:9px;color:#475569;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;">슬롯 가득</span>`
+        }
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// ── 유물 장착 ──
+function equipRelic(invIdx) {
+  const r = G.inv[invIdx];
+  if(!r || r.type !== 'relic') return;
+
+  const relics = G.relics || [null,null,null,null,null];
+  const emptySlot = relics.findIndex(s => s === null);
+  if(emptySlot < 0){ gwT('유물 슬롯이 가득 찼습니다! (최대 5개)'); return; }
+
+  // 인벤토리에서 제거 후 슬롯에 장착
+  G.inv.splice(invIdx, 1);
+  G.relics[emptySlot] = r;
+  recalcStats(); hud(); saveG();
+  gwT(`🔮 [${r.name}] 장착!`);
+  renderRelicPanel();
+}
+
+// ── 유물 해제 (슬롯 클릭) ──
+function unequipRelic(slotIdx) {
+  const r = (G.relics||[])[slotIdx];
+  if(!r) return;
+  if(!confirm(`[${r.name}] 해제하고 인벤토리로 이동할까요?`)) return;
+
+  G.relics[slotIdx] = null;
+  G.inv.push(r);
+  recalcStats(); hud(); saveG();
+  gwT(`🔮 [${r.name}] 해제됨`);
+  renderRelicPanel();
+}
+
+// ── 유물 패널 열기 ──
+function openRelics() { openP('gw-prelic'); }
+
+// ════════════════════════════════════════════════════════
+//  유물 시스템 끝
+// ════════════════════════════════════════════════════════
+
 
 
 
