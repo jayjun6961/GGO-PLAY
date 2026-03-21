@@ -2352,11 +2352,41 @@ function showHunt(){
   const list=document.getElementById('gw-zlist');
   list.innerHTML=ZONES.map(z=>{
     const locked=G.lv<z.min;
+
+    // 권장 스탯 계산 (몬스터 평균값 기준)
+    const avgHp  = Math.round(z.mobs.reduce((s,m)=>s+m.hp, 0)  / z.mobs.length);
+    const avgAtk = Math.round(z.mobs.reduce((s,m)=>s+m.atk,0)  / z.mobs.length);
+    const avgDef = Math.round(z.mobs.reduce((s,m)=>s+m.def,0)  / z.mobs.length);
+    // 권장 공격력: 10틱(10초)내 처치 기준 — 몬스터 HP를 10으로 나누고 방어력의 50% 합산
+    const recAtk = Math.round(avgHp / 10 + avgDef * 0.5);
+    // 권장 방어력: 몬스터 ATK의 60% 수준으로 피해 경감 — avgAtk의 0.6배 이상의 방어력 권장
+    const recDef = Math.round(avgAtk * 0.6);
+
+    // 현재 내 스탯 대비 충족 여부 (색상 피드백)
+    const myAtk  = tAtk ? tAtk() : (G.atk||0);
+    const myDef  = tDef ? tDef() : (G.def||0);
+    const atkOk  = myAtk >= recAtk;
+    const defOk  = myDef >= recDef;
+
+    const fmtNum = n => n >= 10000 ? (n/10000).toFixed(1)+'만' : n.toLocaleString();
+
     return`<div class="gw-zone-card${locked?' locked':''}"${!locked?` onclick="enterZone('${z.id}')"`:''}> 
       <div class="gw-zone-em">${z.emoji}</div>
-      <div class="gw-zone-info">
+      <div class="gw-zone-info" style="flex:1;">
         <div class="gw-zone-nm">${z.name}</div>
         <div class="gw-zone-rng">권장 Lv ${z.min}~${z.max}${locked?' 🔒':''}</div>
+        ${!locked ? `<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+          <span style="font-size:9px;padding:1px 6px;border-radius:4px;
+            background:${atkOk?'rgba(52,211,153,.12)':'rgba(239,68,68,.1)'};
+            border:1px solid ${atkOk?'rgba(52,211,153,.3)':'rgba(239,68,68,.3)'};
+            color:${atkOk?'#34d399':'#f87171'};font-family:'Orbitron',sans-serif;">
+            ⚔️ ATK ${fmtNum(recAtk)}+</span>
+          <span style="font-size:9px;padding:1px 6px;border-radius:4px;
+            background:${defOk?'rgba(52,211,153,.12)':'rgba(239,68,68,.1)'};
+            border:1px solid ${defOk?'rgba(52,211,153,.3)':'rgba(239,68,68,.3)'};
+            color:${defOk?'#34d399':'#f87171'};font-family:'Orbitron',sans-serif;">
+            🛡️ DEF ${fmtNum(recDef)}+</span>
+        </div>` : ''}
       </div>
       ${!locked?`<button class="gw-zone-enter" onclick="event.stopPropagation();enterZone('${z.id}')">입장</button>`:''}
     </div>`;
