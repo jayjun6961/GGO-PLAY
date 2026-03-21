@@ -5815,12 +5815,14 @@ async function renderPVPRank() {
         </div>`;
       }).join('');
 
-    // 보상 수령 버튼
+    // 보상 수령 버튼 — 시즌 종료(남은 일수 0) 후에만 수령 가능
     const myRankIdx = rankList.findIndex(r => r.user === username);
     if(myRankIdx >= 0) {
-      const myRank = myRankIdx + 1;
+      const myRank   = myRankIdx + 1;
       const claimKey = 'gwo_pvp_reward_' + seasonKey + '_' + username;
       const claimed  = !!localStorage.getItem(claimKey);
+      const daysLeft = getPVPDaysLeft();
+      const seasonEnded = daysLeft <= 0;
       let gold=0, stones=0;
       if(myRank===1){gold=50000;stones=100;}
       else if(myRank===2){gold=30000;stones=70;}
@@ -5828,13 +5830,25 @@ async function renderPVPRank() {
       else if(myRank<=10){gold=5000;stones=30;}
       else{gold=3000;stones=10;}
 
-      document.getElementById('pvp-reward-btn').innerHTML = claimed
-        ? `<div style="text-align:center;padding:10px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);border-radius:10px;font-size:11px;color:#34d399;font-family:'Noto Sans KR',sans-serif;">✅ 이번 시즌 보상 수령 완료</div>`
-        : `<button onclick="claimPVPReward(${myRank},'${seasonKey}')"
-            style="width:100%;background:linear-gradient(135deg,#ef4444,#dc2626);border:1px solid #f87171;
-            color:#fff;padding:11px;border-radius:10px;font-size:12px;font-family:'Orbitron',sans-serif;cursor:pointer;">
-            🎁 ${myRank}위 보상 수령 (${gold.toLocaleString()}G + 마법석 ${stones}개)
-          </button>`;
+      let btnHtml = '';
+      if(claimed) {
+        btnHtml = `<div style="text-align:center;padding:10px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);border-radius:10px;font-size:11px;color:#34d399;font-family:'Noto Sans KR',sans-serif;">✅ 이번 시즌 보상 수령 완료</div>`;
+      } else if(!seasonEnded) {
+        // 시즌 진행 중 — 수령 불가, 남은 기간 표시
+        btnHtml = `<div style="text-align:center;padding:10px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:10px;">
+          <div style="font-size:11px;color:#fbbf24;font-family:'Orbitron',sans-serif;font-weight:700;">🔒 ${myRank}위 보상 대기 중</div>
+          <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-top:4px;">시즌 종료 후 수령 가능 · <span style="color:#fbbf24;">${daysLeft}일</span> 남음</div>
+          <div style="font-size:9px;color:#475569;margin-top:2px;font-family:'Noto Sans KR',sans-serif;">예정 보상: ${gold.toLocaleString()}G + 마법석 ${stones}개</div>
+        </div>`;
+      } else {
+        // 시즌 종료 — 수령 가능
+        btnHtml = `<button onclick="claimPVPReward(${myRank},'${seasonKey}')"
+          style="width:100%;background:linear-gradient(135deg,#ef4444,#dc2626);border:1px solid #f87171;
+          color:#fff;padding:11px;border-radius:10px;font-size:12px;font-family:'Orbitron',sans-serif;cursor:pointer;">
+          🎁 ${myRank}위 보상 수령 (${gold.toLocaleString()}G + 마법석 ${stones}개)
+        </button>`;
+      }
+      document.getElementById('pvp-reward-btn').innerHTML = btnHtml;
     }
 
   } catch(e) {
@@ -5845,6 +5859,8 @@ async function renderPVPRank() {
 
 // ── 보상 수령 ──
 function claimPVPReward(rank, seasonKey) {
+  // 시즌 종료 여부 재확인 (버튼 우회 방지)
+  if(getPVPDaysLeft() > 0) { gwT('⏳ 시즌이 아직 진행 중입니다. 종료 후 수령 가능합니다.'); return; }
   const claimKey = 'gwo_pvp_reward_' + seasonKey + '_' + gwUN();
   if(localStorage.getItem(claimKey)) { gwT('이미 수령한 보상입니다.'); return; }
 
