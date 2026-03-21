@@ -1120,6 +1120,7 @@ const gSet = (k,v)=>localStorage.setItem(gKey(k),JSON.stringify(v));
 // 게임 상태
 let G={sc:'intro',job:null,lv:1,hp:0,mHP:0,mp:0,mMP:0,atk:0,def:0,
        exp:0,gold:0,inv:[],qprog:{},qclaim:{},sk:{},
+       wquests:[],wqprog:{},wqclaim:{},  // 주간 퀘스트
        zone:null,mob:null,mhp:0,mmhp:0,buffs:{},defBuff:false,
        tick:null,quests:[],
        equip:{weapon:null,shield:null,armor:null,boots:null,gloves:null,necklace:null,ring1:null,ring2:null,ring3:null}};
@@ -1142,7 +1143,7 @@ function tDef(){
   if(G.defBuff)d=Math.floor(d*1.5);return d;
 }
 
-function saveG(){gSet('save',{job:G.job,lv:G.lv,hp:G.hp,mp:G.mp,exp:G.exp,gold:G.gold,inv:G.inv,qprog:G.qprog,qclaim:G.qclaim,sk:G.sk,quests:G.quests,equip:G.equip||{}});}
+function saveG(){gSet('save',{job:G.job,lv:G.lv,hp:G.hp,mp:G.mp,exp:G.exp,gold:G.gold,inv:G.inv,qprog:G.qprog,qclaim:G.qclaim,sk:G.sk,quests:G.quests,equip:G.equip||{},wquests:G.wquests,wqprog:G.wqprog,wqclaim:G.wqclaim});}
 
 function loadG(){
   const s=gGet('save');if(!s||!s.job)return false;
@@ -1162,29 +1163,43 @@ function loadG(){
   Object.assign(G,{job:s.job,lv:s.lv,hp:s.hp??b.mHP,mp:s.mp??b.mMP,mHP:b.mHP,mMP:b.mMP,
     atk:b.atk+eq.atk,def:b.def+eq.def,
     exp:s.exp||0,gold:s.gold||0,inv:s.inv||[],qprog:s.qprog||{},qclaim:s.qclaim||{},
-    sk:s.sk||{},quests:s.quests||makeQ()});return true;
+    sk:s.sk||{},quests:s.quests||makeQ(),
+    wquests:s.wquests||makeWeeklyQ(),wqprog:s.wqprog||{},wqclaim:s.wqclaim||{}});return true;
 }
 // ── 일일 퀘스트 풀 (날짜 시드로 매일 4개 랜덤 선택) ──
+// ── 일일 퀘스트 풀 (사냥 / 도장 / 장비강화) ──
 const QUEST_POOL = [
-  // 몬스터 사냥 퀘스트
-  {id:'qs1', title:'슬라임 퇴치',      desc:'슬라임 10마리 처치',        type:'kill',  target:'슬라임',    need:10, eR:200,  gR:100},
-  {id:'qs2', title:'고블린 토벌',      desc:'고블린 5마리 처치',          type:'kill',  target:'고블린',    need:5,  eR:300,  gR:150},
-  {id:'qs3', title:'오크 정벌',        desc:'오크 5마리 처치',            type:'kill',  target:'오크',      need:5,  eR:500,  gR:200},
-  {id:'qs4', title:'스켈레톤 처리',    desc:'스켈레톤 8마리 처치',        type:'kill',  target:'스켈레톤',  need:8,  eR:350,  gR:160},
-  {id:'qs5', title:'드래곤 알 파괴',   desc:'드래곤을 10마리 처치',       type:'kill',  target:'드래곤',    need:10, eR:600,  gR:300},
-  {id:'qs6', title:'마수 토벌',        desc:'강력한 마수 3마리 처치',     type:'kill',  target:'마수',      need:3,  eR:400,  gR:200},
-  {id:'qs7', title:'몬스터 헌터',      desc:'어떤 몬스터든 20마리 처치',  type:'kill',  target:'*',         need:20, eR:400,  gR:180},
-  {id:'qs8', title:'대규모 토벌',      desc:'몬스터 30마리 처치',         type:'kill',  target:'*',         need:30, eR:600,  gR:250},
-  {id:'qs9', title:'초원의 위협',      desc:'초원 사냥터에서 15마리 처치',type:'zone',  target:'prairie',   need:15, eR:350,  gR:150},
-  {id:'qs10',title:'숲속 탐험',        desc:'숲 사냥터에서 10마리 처치',  type:'zone',  target:'forest',    need:10, eR:400,  gR:180},
-  {id:'qs11',title:'동굴 탐사',        desc:'동굴 사냥터에서 8마리 처치', type:'zone',  target:'cave',      need:8,  eR:450,  gR:200},
-  {id:'qs12',title:'폐허 조사',        desc:'폐허 사냥터에서 8마리 처치', type:'zone',  target:'ruin',      need:8,  eR:500,  gR:220},
-  {id:'qs13',title:'화산 도전',        desc:'화산 사냥터에서 5마리 처치', type:'zone',  target:'volcano',   need:5,  eR:600,  gR:280},
-  // 특수 활동 퀘스트
-  {id:'qs14',title:'도장 수련',        desc:'도장에 1회 입장하기',        type:'dojo',  target:'dojo',      need:1,  eR:500,  gR:200},
-  {id:'qs15',title:'고블린 던전 도전', desc:'고블린 던전 1회 클리어',     type:'dungeon',target:'goblin',   need:1,  eR:800,  gR:400},
-  {id:'qs16',title:'오크 던전 도전',   desc:'오크 던전 1회 클리어',       type:'dungeon',target:'orc',      need:1,  eR:1200, gR:600},
-  {id:'qs17',title:'월드보스 파견',    desc:'월드보스에 1회 파견 참가',   type:'worldboss',target:'wb',     need:1,  eR:1000, gR:500},
+  // 몬스터 사냥
+  {id:'qs1', title:'슬라임 퇴치',      desc:'슬라임 10마리 처치',         type:'kill',    target:'슬라임',  need:10, eR:200,  gR:100},
+  {id:'qs2', title:'고블린 토벌',      desc:'고블린 5마리 처치',           type:'kill',    target:'고블린',  need:5,  eR:300,  gR:150},
+  {id:'qs3', title:'오크 정벌',        desc:'오크 5마리 처치',             type:'kill',    target:'오크',    need:5,  eR:500,  gR:200},
+  {id:'qs4', title:'스켈레톤 처리',    desc:'스켈레톤 8마리 처치',         type:'kill',    target:'스켈레톤',need:8,  eR:350,  gR:160},
+  {id:'qs5', title:'드래곤 알 파괴',   desc:'드래곤을 10마리 처치',        type:'kill',    target:'드래곤',  need:10, eR:600,  gR:300},
+  {id:'qs6', title:'마수 토벌',        desc:'강력한 마수 3마리 처치',      type:'kill',    target:'마수',    need:3,  eR:400,  gR:200},
+  {id:'qs7', title:'몬스터 헌터',      desc:'어떤 몬스터든 20마리 처치',   type:'kill',    target:'*',       need:20, eR:400,  gR:180},
+  {id:'qs8', title:'대규모 토벌',      desc:'몬스터 30마리 처치',          type:'kill',    target:'*',       need:30, eR:600,  gR:250},
+  {id:'qs9', title:'초원의 위협',      desc:'초원 사냥터에서 15마리 처치', type:'zone',    target:'prairie', need:15, eR:350,  gR:150},
+  {id:'qs10',title:'숲속 탐험',        desc:'숲 사냥터에서 10마리 처치',   type:'zone',    target:'forest',  need:10, eR:400,  gR:180},
+  {id:'qs11',title:'동굴 탐사',        desc:'동굴 사냥터에서 8마리 처치',  type:'zone',    target:'cave',    need:8,  eR:450,  gR:200},
+  {id:'qs12',title:'폐허 조사',        desc:'폐허 사냥터에서 8마리 처치',  type:'zone',    target:'ruin',    need:8,  eR:500,  gR:220},
+  {id:'qs13',title:'화산 도전',        desc:'화산 사냥터에서 5마리 처치',  type:'zone',    target:'volcano', need:5,  eR:600,  gR:280},
+  // 도장
+  {id:'qs14',title:'도장 수련',        desc:'도장에 1회 입장하기',         type:'dojo',    target:'dojo',    need:1,  eR:500,  gR:200},
+  // 장비 강화
+  {id:'qs18',title:'장비 강화 입문',   desc:'장비 3회 강화하기',           type:'enhance', target:'any',     need:3,  eR:400,  gR:180},
+  {id:'qs19',title:'장비 강화 수련',   desc:'장비 5회 강화하기',           type:'enhance', target:'any',     need:5,  eR:600,  gR:280},
+  {id:'qs20',title:'장비 강화 숙련',   desc:'장비 8회 강화하기',           type:'enhance', target:'any',     need:8,  eR:900,  gR:400},
+];
+
+// ── 주간 퀘스트 (던전 + 월드보스, 매주 월요일 초기화) ──
+const WEEKLY_QUEST_LIST = [
+  {id:'wq1', title:'던전 정복자 I',    desc:'던전 1회 클리어',             type:'dungeon',   target:'any', need:1,  eR:1500, gR:800},
+  {id:'wq2', title:'던전 정복자 II',   desc:'던전 3회 클리어',             type:'dungeon',   target:'any', need:3,  eR:3000, gR:1500},
+  {id:'wq3', title:'월드보스 도전',    desc:'월드보스 1회 파견 참가',      type:'worldboss', target:'wb',  need:1,  eR:2000, gR:1000},
+  {id:'wq4', title:'영웅의 시험',      desc:'던전 1회 + 월드보스 1회',     type:'dungeon',   target:'any', need:1,  eR:2500, gR:1200},
+  {id:'wq5', title:'주간 던전 탐험',   desc:'고블린 던전 1회 클리어',      type:'dungeon',   target:'goblin', need:1, eR:1800, gR:900},
+  {id:'wq6', title:'오크 요새 공략',   desc:'오크 던전 1회 클리어',        type:'dungeon',   target:'orc',    need:1, eR:2200, gR:1100},
+  {id:'wq7', title:'보스 레이드',      desc:'월드보스 2회 파견 참가',      type:'worldboss', target:'wb',  need:2,  eR:4000, gR:2000},
 ];
 
 function getTodayKey() {
@@ -1193,12 +1208,10 @@ function getTodayKey() {
 }
 
 function makeQ(){
-  // 날짜 시드로 매일 다른 4개 퀘스트 선택
+  // 날짜 시드로 매일 다른 4개 퀘스트 선택 (사냥/도장/강화 풀)
   const dateKey = getTodayKey();
   const seed = dateKey.split('-').reduce((s,n)=>s*100+parseInt(n),0);
   const rng = (n=>{let s=seed^(n*2654435761);s^=s>>>16;s*=0x45d9f3b;s^=s>>>16;return(s>>>0)/0xffffffff;});
-  
-  // 퀘스트 풀에서 4개 선택 (중복 없이)
   const pool = [...QUEST_POOL];
   const selected = [];
   for(let i=0;i<4;i++){
@@ -1209,17 +1222,53 @@ function makeQ(){
   return selected;
 }
 
+function getWeekKey(){
+  // 해당 주의 월요일 날짜를 키로 사용
+  const d = new Date();
+  const day = d.getDay(); // 0=일, 1=월 ... 6=토
+  const diff = (day === 0 ? -6 : 1 - day); // 이번 주 월요일까지의 차
+  const mon = new Date(d);
+  mon.setDate(d.getDate() + diff);
+  return mon.getFullYear()+'-'+String(mon.getMonth()+1).padStart(2,'0')+'-'+String(mon.getDate()).padStart(2,'0');
+}
+
+function makeWeeklyQ(){
+  // 주간 퀘스트: 주 시드로 3개 선택
+  const weekKey = getWeekKey();
+  const seed = weekKey.split('-').reduce((s,n)=>s*100+parseInt(n),0);
+  const rng = (n=>{let s=seed^(n*2654435761);s^=s>>>16;s*=0x45d9f3b;s^=s>>>16;return(s>>>0)/0xffffffff;});
+  const pool = [...WEEKLY_QUEST_LIST];
+  const selected = [];
+  const count = Math.min(3, pool.length);
+  for(let i=0;i<count;i++){
+    const idx = Math.floor(rng(i*13+3)*pool.length);
+    selected.push({...pool[idx], id:'wq'+(i+1)});
+    pool.splice(idx,1);
+  }
+  return selected;
+}
+
 function checkDailyQuestReset(){
   const todayKey = getTodayKey();
   const savedKey = localStorage.getItem('gwo_quest_date_'+gwUN());
   if(savedKey !== todayKey){
-    // 날짜가 바뀌었으면 퀘스트 초기화
     localStorage.setItem('gwo_quest_date_'+gwUN(), todayKey);
     G.quests = makeQ();
     G.qprog  = {};
     G.qclaim = {};
     saveG();
     gwT('📅 일일 퀘스트가 초기화되었습니다!');
+  }
+  // 주간 퀘스트 리셋 체크
+  const weekKey  = getWeekKey();
+  const savedWk  = localStorage.getItem('gwo_quest_week_'+gwUN());
+  if(savedWk !== weekKey){
+    localStorage.setItem('gwo_quest_week_'+gwUN(), weekKey);
+    G.wquests = makeWeeklyQ();
+    G.wqprog  = {};
+    G.wqclaim = {};
+    saveG();
+    gwT('📆 주간 퀘스트가 초기화되었습니다!');
   }
 }
 
@@ -1940,8 +1989,9 @@ function goTown(){
 }
 
 function renderQdot(){
-  const has=G.quests.some(q=>!G.qclaim[q.id]&&(G.qprog[q.id]||0)>=q.need);
-  const d=document.getElementById('gw-qdot');if(d)d.style.display=has?'block':'none';
+  const hasDaily  = G.quests.some(q=>!G.qclaim[q.id]&&(G.qprog[q.id]||0)>=q.need);
+  const hasWeekly = (G.wquests||[]).some(q=>!G.wqclaim[q.id]&&(G.wqprog[q.id]||0)>=q.need);
+  const d=document.getElementById('gw-qdot');if(d)d.style.display=(hasDaily||hasWeekly)?'block':'none';
 }
 
 function talkNPC(){
@@ -2502,18 +2552,26 @@ function useItem(i){
     it.qty--;if(it.qty<=0)G.inv.splice(i,1);hud();saveG();renderInv();
   }
 }
+let _qTab = 'daily'; // 'daily' | 'weekly'
 function renderQ(){
   checkDailyQuestReset();
-  // 자정까지 남은 시간 계산
-  const now = new Date();
-  const midnight = new Date(now);
-  midnight.setHours(24,0,0,0);
-  const diffMs = midnight - now;
-  const diffH = Math.floor(diffMs/3600000);
-  const diffM = Math.floor((diffMs%3600000)/60000);
-  const resetStr = `${diffH}시간 ${diffM}분 후 초기화`;
+  if(!G.wquests||G.wquests.length===0) G.wquests = makeWeeklyQ();
 
-  const TYPE_ICON = {kill:'⚔️', zone:'🗺️', dojo:'🎯', dungeon:'🏯', worldboss:'👻'};
+  const now = new Date();
+  // 자정까지
+  const midnight = new Date(now); midnight.setHours(24,0,0,0);
+  const diffMs = midnight - now;
+  const diffH = Math.floor(diffMs/3600000), diffM = Math.floor((diffMs%3600000)/60000);
+  const resetStr = `${diffH}시간 ${diffM}분 후 초기화`;
+  // 다음 월요일까지
+  const day = now.getDay();
+  const daysToMon = day===0 ? 1 : (8-day)%7||7;
+  const nextMon = new Date(now); nextMon.setDate(now.getDate()+daysToMon); nextMon.setHours(0,0,0,0);
+  const wDiffMs = nextMon - now;
+  const wDiffD = Math.floor(wDiffMs/86400000), wDiffH = Math.floor((wDiffMs%86400000)/3600000);
+  const wResetStr = `${wDiffD}일 ${wDiffH}시간 후 초기화`;
+
+  const TYPE_ICON = {kill:'⚔️', zone:'🗺️', dojo:'🎯', dungeon:'🏯', worldboss:'👻', enhance:'⚒️'};
 
   // 몬스터 → 출현 사냥터 매핑 (ZONES에서 자동 생성)
   const MOB_ZONE_MAP = {};
@@ -2547,23 +2605,25 @@ function renderQ(){
         ${z.emoji} ${z.name} <span style="color:#64748b">Lv.${z.min}~${z.max}</span>
       </span>`;
     }
-    if(q.type === 'dungeon') return `<span style="font-size:9px;color:#64748b;">📍 마을 → 던전</span>`;
-    if(q.type === 'dojo')    return `<span style="font-size:9px;color:#64748b;">📍 마을 → 도장</span>`;
+    if(q.type === 'dungeon')   return `<span style="font-size:9px;color:#64748b;">📍 마을 → 던전</span>`;
+    if(q.type === 'dojo')      return `<span style="font-size:9px;color:#64748b;">📍 마을 → 도장</span>`;
     if(q.type === 'worldboss') return `<span style="font-size:9px;color:#64748b;">📍 마을 → 월드보스</span>`;
+    if(q.type === 'enhance')   return `<span style="font-size:9px;color:#64748b;">📍 마을 → 장비 강화</span>`;
     return '';
   }
 
   const body = document.getElementById('gw-qbody');
   if(!body) return;
-  body.innerHTML =
-    `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
+
+  function renderQItems(quests, prog, claim, claimFn, resetLabel, resetTime) {
+    return `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
        margin-bottom:10px;padding:6px 10px;background:rgba(251,191,36,.06);
        border:1px solid rgba(251,191,36,.15);border-radius:8px;display:flex;justify-content:space-between;">
-       <span>📅 일일 퀘스트</span>
-       <span style="color:#fbbf24">⏱ ${resetStr}</span>
+       <span>${resetLabel}</span>
+       <span style="color:#fbbf24">⏱ ${resetTime}</span>
      </div>` +
-    G.quests.map(q=>{
-      const p=G.qprog[q.id]||0, done=p>=q.need, cl=G.qclaim[q.id];
+    quests.map(q=>{
+      const p=prog[q.id]||0, done=p>=q.need, cl=claim[q.id];
       const pct=Math.min(100,p/q.need*100);
       const icon=TYPE_ICON[q.type]||'📌';
       const statusIcon=cl?'✅':done?'🎁':icon;
@@ -2579,31 +2639,65 @@ function renderQ(){
           <span class="gw-qi-cnt">${Math.min(p,q.need)}/${q.need}</span>
         </div>
         <div class="gw-qi-rew">보상: EXP +${q.eR.toLocaleString()} / Gold +${q.gR}G</div>
-        ${done&&!cl?`<button class="gw-qi-claim" onclick="claimQ('${q.id}')">보상 수령</button>`:''}
+        ${done&&!cl?`<button class="gw-qi-claim" onclick="${claimFn}('${q.id}')">보상 수령</button>`:''}
       </div>`;
     }).join('');
+  }
+
+  const tabStyle = (active) => `padding:6px 14px;border-radius:8px 8px 0 0;font-size:11px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;border:none;
+    background:${active?'rgba(124,58,237,.25)':'rgba(124,58,237,.06)'};
+    color:${active?'#c084fc':'#64748b'};
+    border-bottom:2px solid ${active?'#a855f7':'transparent'};`;
+
+  body.innerHTML =
+    `<div style="display:flex;gap:4px;margin-bottom:10px;">
+       <button style="${tabStyle(_qTab==='daily')}"   onclick="_qTab='daily';  renderQ()">📅 일일 퀘스트</button>
+       <button style="${tabStyle(_qTab==='weekly')}"  onclick="_qTab='weekly'; renderQ()">📆 주간 퀘스트</button>
+     </div>` +
+    (_qTab === 'daily'
+      ? renderQItems(G.quests,  G.qprog,  G.qclaim,  'claimQ',  '📅 일일 퀘스트', resetStr)
+      : renderQItems(G.wquests, G.wqprog, G.wqclaim, 'claimWQ', '📆 주간 퀘스트', wResetStr));
 }
 function claimQ(qid){
   const q=G.quests.find(x=>x.id===qid);if(!q||G.qclaim[qid])return;
   G.qclaim[qid]=true;
   const gainedExp=Math.floor(q.eR*tExpRate());
   G.exp+=gainedExp;G.gold+=q.gR;
-  // 레벨업 처리
   while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
-  gwT(`🎉 퀘스트 완료! +${gainedExp}EXP +${q.gR}G`);hud();saveG();renderQ();renderQdot();
+  gwT(`🎉 일일 퀘스트 완료! +${gainedExp}EXP +${q.gR}G`);hud();saveG();renderQ();renderQdot();
+}
+function claimWQ(qid){
+  if(!G.wquests) return;
+  const q=G.wquests.find(x=>x.id===qid);if(!q||G.wqclaim[qid])return;
+  G.wqclaim[qid]=true;
+  const gainedExp=Math.floor(q.eR*tExpRate());
+  G.exp+=gainedExp;G.gold+=q.gR;
+  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
+  gwT(`🎉 주간 퀘스트 완료! +${gainedExp}EXP +${q.gR}G`);hud();saveG();renderQ();renderQdot();
 }
 
 // ── 퀘스트 진행 훅 ──
 function questProgress(type, target) {
   if(!G.quests) return;
   let updated = false;
+  // 일일 퀘스트 체크
   G.quests.forEach(q => {
     if(G.qclaim[q.id]) return;
-    if(q.type === type && (q.target === target || q.target === '*')) {
+    if(q.type === type && (q.target === target || q.target === '*' || q.target === 'any')) {
       G.qprog[q.id] = Math.min((G.qprog[q.id]||0)+1, q.need);
       updated = true;
     }
   });
+  // 주간 퀘스트 체크
+  if(G.wquests) {
+    G.wquests.forEach(q => {
+      if(G.wqclaim[q.id]) return;
+      if(q.type === type && (q.target === target || q.target === '*' || q.target === 'any')) {
+        G.wqprog[q.id] = Math.min((G.wqprog[q.id]||0)+1, q.need);
+        updated = true;
+      }
+    });
+  }
   if(updated){ saveG(); renderQdot(); }
 }
 
@@ -2702,7 +2796,9 @@ function enhSlot(slot){
   } else {
     it.def=(it.def||0)+2;
   }
-  recalcStats();hud();saveG();renderEnh();
+  recalcStats();hud();
+  questProgress('enhance','any'); // 일일 장비강화 퀘스트 진행
+  saveG();renderEnh();
   gwT(`⚒️ ${it.n} +${it.enh} 강화 완료! (다음 비용: ${enhCost(it.enh, it.grade).toLocaleString()}G)`);
 }
 function enhItem(i){/* deprecated - 하위 호환용 */const it=G.inv[i];if(!it)return;}
@@ -2830,7 +2926,7 @@ function confirmJob(){
   const j=JOBS[_selJob],b=cBase(_selJob,1);
   Object.assign(G,{job:_selJob,lv:1,mHP:b.mHP,mMP:b.mMP,hp:b.mHP,mp:b.mMP,
     atk:b.atk,def:b.def,exp:0,gold:100,inv:[],qprog:{},qclaim:{},
-    sk:{},buffs:{},defBuff:false,quests:makeQ()});
+    sk:{},buffs:{},defBuff:false,quests:makeQ(),wquests:makeWeeklyQ(),wqprog:{},wqclaim:{}});
   // 기본 장비를 equip 슬롯에 장착 (강화 수치 영속 유지)
   G.equip={weapon:null,shield:null,armor:null,boots:null,gloves:null,necklace:null,ring1:null,ring2:null,ring3:null};
   if(j.weapon){G.equip.weapon={n:j.weapon.name,e:j.weapon.emoji||'⚔️',type:'weapon',slot:'weapon',atk:j.weapon.atk||5,def:0,grade:'기본',enh:0,_id:1};}
