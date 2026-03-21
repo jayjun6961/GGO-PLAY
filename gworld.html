@@ -1178,6 +1178,31 @@ const ZONES = [
      {n:'파멸의 사자',  e:'⚔️', hp:11000,atk:750,def:420,exp:4900,g:2450,drop:.55},
      {n:'창조신의 분노',e:'💫',hp:8500, atk:880,def:330,exp:5200,g:2600,drop:.58},
    ]},
+  // ── 신규 사냥터 (101~150) ──
+  {id:'voidrift',  name:'공허의 균열', emoji:'🌌',min:101,max:120,
+   mobs:[
+     {n:'공허의 파편',  e:'🌑',hp:16000,atk:1200,def:560,exp:9500, g:4800,drop:.58},
+     {n:'허공의 군주',  e:'🕳️',hp:19000,atk:1150,def:620,exp:10500,g:5200,drop:.57},
+     {n:'공허 약탈자',  e:'👁️',hp:14000,atk:1300,def:520,exp:11000,g:5500,drop:.59},
+   ]},
+  {id:'abyssgate', name:'심연의 관문', emoji:'🔱',min:121,max:140,
+   mobs:[
+     {n:'심연의 악령',  e:'👿',hp:28000,atk:1700,def:780,exp:18000,g:9000,drop:.60},
+     {n:'관문 수호신',  e:'🔱',hp:33000,atk:1600,def:860,exp:20000,g:10000,drop:.59},
+     {n:'지옥의 전령',  e:'🦂',hp:25000,atk:1850,def:740,exp:21000,g:10500,drop:.61},
+   ]},
+  {id:'chaosrealm',name:'혼돈의 왕국', emoji:'💠',min:141,max:149,
+   mobs:[
+     {n:'혼돈의 기사',  e:'🤺',hp:52000,atk:2400,def:1100,exp:36000,g:18000,drop:.62},
+     {n:'파멸의 현현',  e:'💀',hp:60000,atk:2250,def:1200,exp:40000,g:20000,drop:.61},
+     {n:'혼돈 군주',    e:'👁️',hp:45000,atk:2600,def:1050,exp:42000,g:21000,drop:.63},
+   ]},
+  {id:'eternity',  name:'영원의 경계', emoji:'🌟',min:150,max:150,
+   mobs:[
+     {n:'영원의 파수꾼', e:'🌟',hp:95000,atk:3500,def:1600,exp:70000,g:35000,drop:.65},
+     {n:'시간의 지배자', e:'⏳',hp:110000,atk:3300,def:1750,exp:75000,g:37500,drop:.64},
+     {n:'창세의 잔재',   e:'💎',hp:85000,atk:3700,def:1500,exp:80000,g:40000,drop:.66},
+   ]},
 ];
 
 const DROPS = [
@@ -1317,7 +1342,13 @@ const DROPS = [
 ];
 
 
-function expNeed(lv){ return Math.floor(60*Math.pow(lv,1.65)); }
+function expNeed(lv){
+  if(lv < 100) return Math.floor(60 * Math.pow(lv, 1.65));
+  // 100레벨 이후 대폭 증가: 기존 공식의 5배 + 레벨 초과분 지수 증가
+  const base = Math.floor(60 * Math.pow(100, 1.65)); // Lv.99→100 필요 경험치
+  const excess = lv - 99;
+  return Math.floor(base * Math.pow(2.2, excess * 0.35));
+}
 
 // 스토리지
 // sessionStorage가 비어있으면(모바일 재접속 등) localStorage에서 복원
@@ -2112,22 +2143,106 @@ function drawBattle(cv){
     c.fillStyle='rgba(255,200,80,.2)';c.fillRect(0,H*.65,W,2);
   }
 
+  // ── 공허의 균열 배경 ──
+  function drawBg_voidrift(){
+    const sky=c.createLinearGradient(0,0,0,H*.65);
+    sky.addColorStop(0,'#000008');sky.addColorStop(.5,'#04001a');sky.addColorStop(1,'#08002e');
+    c.fillStyle=sky;c.fillRect(0,0,W,H*.65);
+    // 공허 균열선
+    c.strokeStyle='rgba(138,43,226,.35)';c.lineWidth=1;
+    [[W*.2,0,W*.35,H*.65],[W*.55,0,W*.45,H*.65],[W*.78,0,W*.72,H*.65]].forEach(([x1,y1,x2,y2])=>{
+      c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+    });
+    // 공허 입자
+    c.fillStyle='rgba(180,100,255,.7)';
+    for(let i=0;i<18;i++){const px=Math.sin(i*83.7)*W/2+W/2,py=Math.cos(i*67.3)*H*.3+H*.2;c.beginPath();c.arc(px,py,1.2,0,Math.PI*2);c.fill();}
+    const gnd=c.createLinearGradient(0,H*.65,0,H);
+    gnd.addColorStop(0,'#12003a');gnd.addColorStop(1,'#04000f');
+    c.fillStyle=gnd;c.fillRect(0,H*.65,W,H*.35);
+    c.fillStyle='rgba(138,43,226,.25)';c.fillRect(0,H*.65,W,3);
+  }
+  // ── 심연의 관문 배경 ──
+  function drawBg_abyssgate(){
+    const sky=c.createLinearGradient(0,0,0,H*.65);
+    sky.addColorStop(0,'#050008');sky.addColorStop(.5,'#14001a');sky.addColorStop(1,'#200025');
+    c.fillStyle=sky;c.fillRect(0,0,W,H*.65);
+    // 관문 아치
+    c.strokeStyle='rgba(200,0,80,.5)';c.lineWidth=3;
+    c.beginPath();c.moveTo(W*.38,H*.65);c.lineTo(W*.38,H*.25);c.quadraticCurveTo(W*.5,H*.1,W*.62,H*.25);c.lineTo(W*.62,H*.65);c.stroke();
+    c.fillStyle='rgba(180,0,60,.08)';c.fillRect(W*.38,H*.1,W*.24,H*.55);
+    // 핏빛 별
+    c.fillStyle='rgba(220,30,60,.6)';
+    for(let i=0;i<12;i++){const px=Math.sin(i*113.5)*W*.45+W*.5,py=Math.cos(i*79.1)*H*.25+H*.2;c.beginPath();c.arc(px,py,1.5,0,Math.PI*2);c.fill();}
+    const gnd=c.createLinearGradient(0,H*.65,0,H);
+    gnd.addColorStop(0,'#250010');gnd.addColorStop(1,'#0a0005');
+    c.fillStyle=gnd;c.fillRect(0,H*.65,W,H*.35);
+    c.fillStyle='rgba(200,0,80,.3)';c.fillRect(0,H*.65,W,3);
+  }
+  // ── 혼돈의 왕국 배경 ──
+  function drawBg_chaosrealm(){
+    const sky=c.createLinearGradient(0,0,0,H*.65);
+    sky.addColorStop(0,'#080000');sky.addColorStop(.3,'#1a0808');sky.addColorStop(.7,'#0a0a1a');sky.addColorStop(1,'#140020');
+    c.fillStyle=sky;c.fillRect(0,0,W,H*.65);
+    // 혼돈의 소용돌이
+    for(let i=0;i<3;i++){
+      const cx2=W*(0.25+i*0.25),cy2=H*.3,r=30+i*15;
+      const grad=c.createRadialGradient(cx2,cy2,0,cx2,cy2,r);
+      grad.addColorStop(0,`rgba(${i===0?'255,80,0':i===1?'0,80,255':'200,0,200'},.15)`);
+      grad.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=grad;c.beginPath();c.arc(cx2,cy2,r,0,Math.PI*2);c.fill();
+    }
+    // 카오스 파편
+    c.fillStyle='rgba(255,100,50,.5)';
+    for(let i=0;i<15;i++){const px=(i*157.3)%W,py=(i*93.7)%(H*.6);c.fillRect(px,py,2,2);}
+    const gnd=c.createLinearGradient(0,H*.65,0,H);
+    gnd.addColorStop(0,'#200010');gnd.addColorStop(1,'#050005');
+    c.fillStyle=gnd;c.fillRect(0,H*.65,W,H*.35);
+    c.fillStyle='rgba(255,50,50,.2)';c.fillRect(0,H*.65,W,3);
+  }
+  // ── 영원의 경계 배경 ──
+  function drawBg_eternity(){
+    const sky=c.createLinearGradient(0,0,0,H*.65);
+    sky.addColorStop(0,'#000005');sky.addColorStop(.4,'#000518');sky.addColorStop(1,'#001030');
+    c.fillStyle=sky;c.fillRect(0,0,W,H*.65);
+    // 영원의 빛 — 순백/은빛
+    for(let i=0;i<6;i++){
+      const lx=W*(i/6+0.08);
+      const lg=c.createLinearGradient(lx,0,lx,H*.65);
+      lg.addColorStop(0,'rgba(220,240,255,.18)');lg.addColorStop(1,'rgba(220,240,255,0)');
+      c.fillStyle=lg;c.fillRect(lx-6,0,12,H*.65);
+    }
+    // 별자리 (촘촘)
+    c.fillStyle='rgba(255,255,255,.9)';
+    for(let i=0;i<30;i++){const px=Math.sin(i*97.3)*W*.48+W*.5,py=Math.cos(i*137.5)*H*.28+H*.2;c.beginPath();c.arc(px,py,i%5===0?2:1,0,Math.PI*2);c.fill();}
+    // 이중 원형 게이트
+    c.strokeStyle='rgba(200,230,255,.4)';c.lineWidth=2;
+    c.beginPath();c.arc(W*.5,H*.35,55,0,Math.PI*2);c.stroke();
+    c.strokeStyle='rgba(200,230,255,.2)';c.lineWidth=1;
+    c.beginPath();c.arc(W*.5,H*.35,75,0,Math.PI*2);c.stroke();
+    const gnd=c.createLinearGradient(0,H*.65,0,H);
+    gnd.addColorStop(0,'#050a20');gnd.addColorStop(1,'#000308');
+    c.fillStyle=gnd;c.fillRect(0,H*.65,W,H*.35);
+    c.fillStyle='rgba(200,230,255,.2)';c.fillRect(0,H*.65,W,3);
+  }
+
   // 존별 배경 호출
   const bgFns={prairie:drawBg_prairie,forest:drawBg_forest,cave:drawBg_cave,
     ruin:drawBg_ruin,volcano:drawBg_volcano,abyss:drawBg_abyss,
     skytemple:drawBg_skytemple,shadowrealm:drawBg_shadowrealm,
-    dragonspire:drawBg_dragonspire,godplane:drawBg_godplane};
+    dragonspire:drawBg_dragonspire,godplane:drawBg_godplane,
+    voidrift:drawBg_voidrift,abyssgate:drawBg_abyssgate,
+    chaosrealm:drawBg_chaosrealm,eternity:drawBg_eternity};
   if(bgFns[zid]) bgFns[zid](); else drawBg_prairie();
 
   // 지면선 (cave는 자체 처리)
   if(zid!=='cave'){
-    const groundY=H*(zid==='forest'?.62:zid==='abyss'?.68:zid==='skytemple'?.65:zid==='shadowrealm'?.68:zid==='dragonspire'?.65:zid==='godplane'?.65:.71);
+    const groundY=H*(zid==='forest'?.62:zid==='abyss'?.68:zid==='skytemple'?.65:zid==='shadowrealm'?.68:zid==='dragonspire'?.65:zid==='godplane'?.65:zid==='voidrift'?.65:zid==='abyssgate'?.65:zid==='chaosrealm'?.65:zid==='eternity'?.65:.71);
     c.fillStyle='rgba(255,255,255,.04)';c.fillRect(0,groundY,W,2);
   }
 
   // ── 플레이어 ──
   const shP=_anim.playerShake>0?(Math.sin(_anim.frame*1.8)*3):0;
-  const groundY=H*(zid==='forest'?.62:zid==='abyss'?.68:zid==='skytemple'?.65:zid==='shadowrealm'?.68:zid==='cave'?.70:zid==='dragonspire'?.65:zid==='godplane'?.65:.71);
+  const groundY=H*(zid==='forest'?.62:zid==='abyss'?.68:zid==='skytemple'?.65:zid==='shadowrealm'?.68:zid==='cave'?.70:zid==='dragonspire'?.65:zid==='godplane'?.65:zid==='voidrift'?.65:zid==='abyssgate'?.65:zid==='chaosrealm'?.65:zid==='eternity'?.65:.71);
   const px=W*.21+shP, py=groundY;
   // 피격 시 빨간 플래시
   if(_anim.playerShake>4){c.fillStyle='rgba(255,60,60,.18)';c.fillRect(px-20,py-48,40,48);}
@@ -2421,7 +2536,7 @@ function mobDead(){
       if(G.zone?.id===q.target) G.qprog[q.id]=(G.qprog[q.id]||0)+1;
     }
   });
-  while(G.exp>=expNeed(G.lv)&&G.lv<100){
+  while(G.exp>=expNeed(G.lv)&&G.lv<150){
     G.exp-=expNeed(G.lv);G.lv++;
     const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk;G.def=b.def;
     G.hp=Math.min(G.hp+Math.floor(b.mHP*.2),b.mHP);
@@ -2918,7 +3033,7 @@ function claimQ(qid){
   G.qclaim[qid]=true;
   const gainedExp=Math.floor(q.eR*tExpRate());
   G.exp+=gainedExp;G.gold+=q.gR;
-  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
   gwT(`🎉 일일 퀘스트 완료! +${gainedExp}EXP +${q.gR}G`);hud();saveG();renderQ();renderQdot();
 }
 function claimWQ(qid){
@@ -2927,7 +3042,7 @@ function claimWQ(qid){
   G.wqclaim[qid]=true;
   const gainedExp=Math.floor(q.eR*tExpRate());
   G.exp+=gainedExp;G.gold+=q.gR;
-  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
   gwT(`🎉 주간 퀘스트 완료! +${gainedExp}EXP +${q.gR}G`);hud();saveG();renderQ();renderQdot();
 }
 
@@ -3587,7 +3702,7 @@ function dunBossDead() {
 
   // 레벨업 처리
   let lvUp=0;
-  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
   if(lvUp>0){dunBlog(`<span style="color:#a855f7">🆙 레벨업! Lv.${G.lv}</span>`);const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
 
   // 장비 드롭 (직업 맞는 것만)
@@ -5249,7 +5364,7 @@ function wbClaimReward(date, wbId) {
   G.exp  += exp;
   // 레벨업
   let lvUp=0;
-  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
   if(lvUp>0){const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
 
   // 마법석
@@ -6289,7 +6404,7 @@ function towerMobDead() {
   G.exp  += exp;
 
   let lvUp=0;
-  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
   if(lvUp>0){towerBlog(`<span style="color:#a855f7">🆙 레벨업! Lv.${G.lv}</span>`);const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
 
   // 마법석
@@ -6891,7 +7006,7 @@ function rdunBossDead() {
   G.exp  += expGain;
 
   let lvUp=0;
-  while(G.exp>=expNeed(G.lv)&&G.lv<100){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
   if(lvUp>0){ rdunBlog(`<span style="color:#a855f7">🆙 레벨업! Lv.${G.lv}</span>`);
     const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
 
