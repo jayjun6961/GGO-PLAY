@@ -2365,7 +2365,10 @@ function blog(html){const l=document.getElementById('gw-blog');if(!l)return;cons
 
 // ═══ 패널 ═══
 function openP(id){document.getElementById(id).classList.add('on');renderP(id);}
-function closeP(id){document.getElementById(id).classList.remove('on');}
+function closeP(id){
+  document.getElementById(id)?.classList.remove('on');
+  if(id==='gw-ppvp') _detachPVPProfileListener();
+}
 function renderP(id){
   if(id==='gw-pi')       renderInv();
   if(id==='gw-pq')       renderQ();
@@ -5231,20 +5234,24 @@ const PVP_MIN_LV        = 50;       // 참가 최소 레벨
 const PVP_DAILY_LIMIT   = 5;        // 1일 최대 전투 수
 const PVP_WIN_PT        = 3;        // 승리 점수
 const PVP_LOSE_PT       = 1;        // 패배 점수
-const PVP_SEASON_DAYS   = 7;        // 시즌 주기(일)
+const PVP_CYCLE_DAYS    = 25;       // 시즌 주기(일) — 도장과 동일
+const PVP_CYCLE_MS      = PVP_CYCLE_DAYS * 24 * 60 * 60 * 1000;
 
 // Firebase 경로
 const _pvpRef  = path => window._gwDB ? window._gwDB.ref('pvp/' + path) : null;
 
-// ── 시즌 키 (월요일 기준 7일) ──
-function getPVPSeasonKey() {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const mon = new Date(d);
-  mon.setDate(d.getDate() + diff);
-  return mon.getFullYear()+'-'+String(mon.getMonth()+1).padStart(2,'0')+'-'+String(mon.getDate()).padStart(2,'0');
+// ── 시즌 키 — 도장과 동일한 EPOCH 기반 25일 사이클 ──
+function getPVPCycleStart() {
+  const EPOCH  = new Date('2025-01-01').getTime();
+  const cycleN = Math.floor((Date.now() - EPOCH) / PVP_CYCLE_MS);
+  return EPOCH + cycleN * PVP_CYCLE_MS;
 }
+function getPVPDaysLeft() {
+  const start = getPVPCycleStart();
+  const end   = start + PVP_CYCLE_MS;
+  return Math.max(0, Math.ceil((end - Date.now()) / (24*60*60*1000)));
+}
+function getPVPSeasonKey() { return 'c' + getPVPCycleStart(); }
 
 // ── 오늘 전투 횟수 키 ──
 function _pvpDailyKey() {
@@ -5288,6 +5295,8 @@ function pvpUploadProfile() {
 let _pvpCurTab = 'battle';
 function pvpTab(tab) {
   _pvpCurTab = tab;
+  // 순위 탭 전환 시 프로필 구독 해제 (불필요한 실시간 수신 방지)
+  if(tab !== 'battle') _detachPVPProfileListener();
   const tabs = ['battle','rank'];
   tabs.forEach(t => {
     const btn = document.getElementById('pvp-tab-'+t);
@@ -5299,6 +5308,15 @@ function pvpTab(tab) {
   });
   if(tab === 'battle') renderPVPBattle();
   else                 renderPVPRank();
+}
+
+// ── PVP 프로필 실시간 구독 리스너 ──
+let _pvpProfileListener = null;
+function _detachPVPProfileListener() {
+  if(_pvpProfileListener && window._gwDB) {
+    window._gwDB.ref('pvp/profiles').off('value', _pvpProfileListener);
+    _pvpProfileListener = null;
+  }
 }
 
 // ── 전투 탭 렌더 ──
@@ -5316,8 +5334,9 @@ async function renderPVPBattle() {
     return;
   }
 
-  const daily = getPVPDailyCount();
-  const seasonKey = getPVPSeasonKey();
+  const daily      = getPVPDailyCount();
+  const seasonKey  = getPVPSeasonKey();
+  const daysLeft   = getPVPDaysLeft();
 
   // 내 점수
   let myScore = 0, myWin = 0, myLose = 0;
@@ -5328,6 +5347,11 @@ async function renderPVPBattle() {
 
   // 헤더
   el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;
+      padding:8px 12px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:8px;">
+      <span style="font-size:9px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;">🗓 시즌 초기화</span>
+      <span style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;">${daysLeft}일 남음</span>
+    </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;
       padding:10px 14px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;">
       <div>
@@ -5357,31 +5381,45 @@ async function renderPVPBattle() {
     return;
   }
 
-  // Firebase에서 후보 프로필 읽기
-  try {
-    const snap = await _pvpRef('profiles')?.get();
+  if(!window._gwDB) {
+    document.getElementById('pvp-opponents').innerHTML =
+      `<div style="text-align:center;padding:20px;color:#ef4444;font-size:11px;">⚠️ 네트워크 연결 필요</div>`;
+    return;
+  }
+
+  // 기존 리스너 해제 후 실시간 구독 등록
+  _detachPVPProfileListener();
+
+  _pvpProfileListener = window._gwDB.ref('pvp/profiles').on('value', snap => {
+    const oppEl = document.getElementById('pvp-opponents');
+    if(!oppEl) { _detachPVPProfileListener(); return; }
+
     if(!snap || !snap.exists()) {
-      document.getElementById('pvp-opponents').innerHTML =
-        `<div style="text-align:center;padding:20px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">상대가 없습니다.<br>다른 유저가 접속하면 표시됩니다.</div>`;
+      oppEl.innerHTML = `<div style="text-align:center;padding:20px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">상대가 없습니다.<br>다른 유저가 접속하면 표시됩니다.</div>`;
       return;
     }
+
     const all = Object.values(snap.val() || {})
       .filter(p => p.user !== gwUN() && p.lv >= PVP_MIN_LV);
 
     if(all.length === 0) {
-      document.getElementById('pvp-opponents').innerHTML =
-        `<div style="text-align:center;padding:20px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">도전 가능한 상대가 없습니다.<br>(Lv.${PVP_MIN_LV} 이상 유저 대기 중)</div>`;
+      oppEl.innerHTML = `<div style="text-align:center;padding:20px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
+        도전 가능한 상대가 없습니다.<br>(Lv.${PVP_MIN_LV} 이상 유저 대기 중)</div>`;
       return;
     }
 
-    // 랜덤 3명 선택 (중복 없이)
-    const shuffled = all.sort(() => Math.random()-0.5).slice(0, Math.min(3, all.length));
+    // 랜덤 3명 선택
+    const shuffled = [...all].sort(() => Math.random()-0.5).slice(0, Math.min(3, all.length));
+    window._pvpOpponents = shuffled;
+
     const JOB_NAME = {warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'};
     const JOB_EMO  = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
     const JOB_COL  = {warrior:'#3b82f6',archer:'#22c55e',mage:'#a855f7',rogue:'#f97316',paladin:'#fbbf24'};
 
-    document.getElementById('pvp-opponents').innerHTML =
-      `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:4px;">⚔️ 상대를 선택하세요 (${shuffled.length}명)</div>` +
+    oppEl.innerHTML =
+      `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:4px;">
+        ⚔️ 상대를 선택하세요 (전체 ${all.length}명 중 3명 표시)
+      </div>` +
       shuffled.map((p,i) => {
         const jc = JOB_COL[p.job]||'#94a3b8';
         return `<div style="background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.15);border-radius:12px;
@@ -5406,14 +5444,10 @@ async function renderPVPBattle() {
             padding:6px 12px;border-radius:8px;font-size:10px;font-family:'Orbitron',sans-serif;white-space:nowrap;">도전</div>
         </div>`;
       }).join('');
-
-    // 전역에 후보 저장
-    window._pvpOpponents = shuffled;
-
-  } catch(e) {
-    document.getElementById('pvp-opponents').innerHTML =
-      `<div style="text-align:center;padding:20px;color:#ef4444;font-size:11px;">⚠️ 네트워크 오류. 다시 시도해주세요.</div>`;
-  }
+  }, err => {
+    const oppEl = document.getElementById('pvp-opponents');
+    if(oppEl) oppEl.innerHTML = `<div style="text-align:center;padding:20px;color:#ef4444;font-size:11px;">⚠️ 네트워크 오류. 다시 시도해주세요.</div>`;
+  });
 }
 
 // ── 전투 실행 (비동기 시뮬레이션) ──
@@ -5512,19 +5546,15 @@ async function renderPVPRank() {
 
   const seasonKey = getPVPSeasonKey();
 
-  // 시즌 종료까지 남은 시간
-  const d = new Date();
-  const day = d.getDay();
-  const daysToMon = day===0 ? 1 : (8-day)%7||7;
-  const nextMon = new Date(d); nextMon.setDate(d.getDate()+daysToMon); nextMon.setHours(0,0,0,0);
-  const diffMs = nextMon - d;
-  const diffD = Math.floor(diffMs/86400000), diffH = Math.floor((diffMs%86400000)/3600000);
+  // 시즌 종료까지 남은 기간 (도장과 동일한 25일 사이클)
+  const diffD = getPVPDaysLeft();
+  const diffH = Math.floor(((getPVPCycleStart() + PVP_CYCLE_MS) - Date.now()) % (24*60*60*1000) / 3600000);
 
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
       padding:8px 12px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.15);border-radius:8px;">
       <span style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;">📆 주간 PVP 순위</span>
-      <span style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;">⏱ ${diffD}일 ${diffH}시간 후 보상</span>
+      <span style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;">⏱ ${diffD}일 남음</span>
     </div>
     <div style="font-size:9px;color:#475569;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;padding:6px 10px;
       background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.15);border-radius:6px;">
