@@ -5374,6 +5374,12 @@ function myPVPPower() {
   return Math.round(atk * 2 + def + G.lv * 10 + G.mHP * 0.1);
 }
 
+// 상대 유저 전투력 추정 (cBase 기준, 장비 없음 — WB fallback용)
+function estimatePVPPower(job, lv) {
+  const b = cBase(job || 'warrior', lv || 1);
+  return Math.round(b.atk * 2 + b.def + (lv||1) * 10 + b.mHP * 0.1);
+}
+
 // ── Firebase에 내 프로필 업로드 (마을 진입 시) ──
 function pvpUploadProfile() {
   if(!window._gwDB || !G.job || G.lv < 1) return;
@@ -5419,8 +5425,10 @@ async function _pvpFetchFromWB(oppEl) {
           if(m.user && m.user !== gwUN() && (m.lv||0) >= PVP_MIN_LV && !wbProfiles[m.user]) {
             wbProfiles[m.user] = {
               user: m.user, job: m.job||'warrior',
-              lv: m.lv||1, power: (m.lv||1)*100,
-              hp: 100, atk: (m.lv||1)*5, def: (m.lv||1)*2, ts: Date.now()
+              lv: m.lv||1, power: estimatePVPPower(m.job, m.lv),
+              hp: cBase(m.job||'warrior',m.lv||1).mHP,
+              atk: cBase(m.job||'warrior',m.lv||1).atk,
+              def: cBase(m.job||'warrior',m.lv||1).def, ts: Date.now()
             };
           }
         });
@@ -5490,8 +5498,10 @@ async function _pvpSyncFromWB() {
             if(!prev || (m.lv||0) > (prev.lv||0)) {
               _pvpRef('profiles/' + m.user)?.set({
                 user: m.user, job: m.job||'warrior',
-                lv: m.lv||1, power: (m.lv||1)*100,
-                hp: 100, atk: (m.lv||1)*5, def: (m.lv||1)*2, ts: Date.now()
+                lv: m.lv||1, power: estimatePVPPower(m.job, m.lv),
+                hp: cBase(m.job||'warrior',m.lv||1).mHP,
+                atk: cBase(m.job||'warrior',m.lv||1).atk,
+                def: cBase(m.job||'warrior',m.lv||1).def, ts: Date.now()
               }).catch(()=>{});
             }
           }).catch(()=>{});
