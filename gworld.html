@@ -757,12 +757,12 @@
   <div class="gw-screen" id="gs-town">
     <div class="gw-town">
       <div class="gw-hud">
-        <div class="gw-lv-tag" id="tw-lv">Lv.1</div>
+        <div class="gw-lv-tag" id="th-lv">Lv.1</div>
         <div class="gw-hud-nm" id="gw-jnm">전사</div>
-        <div class="bar-g"><div class="bar-lbl" style="color:#ef4444">HP</div><div class="bar-bg"><div class="bar-hp" id="tw-hpf" style="width:100%"></div></div><div class="bar-v" id="tw-hpv">120/120</div></div>
-        <div class="bar-g"><div class="bar-lbl" style="color:#3b82f6">MP</div><div class="bar-bg"><div class="bar-mp" id="tw-mpf" style="width:100%"></div></div><div class="bar-v" id="tw-mpv">60/60</div></div>
-        <div class="bar-g"><div class="bar-lbl" style="color:#fbbf24;font-size:8px">EXP</div><div class="bar-bg w"><div class="bar-exp" id="tw-expf" style="width:0%"></div></div></div>
-        <div class="gw-gold" id="tw-gold">100G</div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#ef4444">HP</div><div class="bar-bg"><div class="bar-hp" id="th-hpf" style="width:100%"></div></div><div class="bar-v" id="th-hpv">120/120</div></div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#3b82f6">MP</div><div class="bar-bg"><div class="bar-mp" id="th-mpf" style="width:100%"></div></div><div class="bar-v" id="th-mpv">60/60</div></div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#fbbf24;font-size:8px">EXP</div><div class="bar-bg w"><div class="bar-exp" id="th-expf" style="width:0%"></div></div></div>
+        <div class="gw-gold" id="th-gold">100G</div>
       </div>
       <div class="gw-cv-area" onclick="checkNPC(event)">
         <canvas id="gw-tcv"></canvas>
@@ -895,30 +895,30 @@
   <div class="gw-screen" id="gs-tower">
     <div class="gw-battle">
       <div class="gw-hud">
-        <div class="gw-lv-tag" id="th-lv">Lv.1</div>
-        <div class="gw-hud-nm" id="th-jnm">전사</div>
-        <div class="bar-g"><div class="bar-lbl" style="color:#ef4444">HP</div><div class="bar-bg"><div class="bar-hp" id="th-hpf" style="width:100%"></div></div><div class="bar-v" id="th-hpv">-/-</div></div>
-        <div class="bar-g"><div class="bar-lbl" style="color:#3b82f6">MP</div><div class="bar-bg"><div class="bar-mp" id="th-mpf" style="width:100%"></div></div><div class="bar-v" id="th-mpv">-/-</div></div>
-        <div class="gw-gold" id="th-gold">0G</div>
+        <div class="gw-lv-tag" id="tower-lv">Lv.1</div>
+        <div class="gw-hud-nm" id="tower-jnm">전사</div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#ef4444">HP</div><div class="bar-bg"><div class="bar-hp" id="tower-hpf" style="width:100%"></div></div><div class="bar-v" id="tower-hpv">-/-</div></div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#3b82f6">MP</div><div class="bar-bg"><div class="bar-mp" id="tower-mpf" style="width:100%"></div></div><div class="bar-v" id="tower-mpv">-/-</div></div>
+        <div class="gw-gold" id="tower-gold">0G</div>
       </div>
-      <div class="gw-battle-scene" id="th-scene" style="min-height:140px;">
-        <canvas id="th-cv"></canvas>
+      <div class="gw-battle-scene" id="tower-scene" style="min-height:140px;">
+        <canvas id="tower-cv"></canvas>
         <div class="gw-mob-hpbar">
-          <div class="gw-mob-nm-lbl" id="th-bnm">몬스터</div>
-          <div class="gw-mob-bar-bg"><div class="gw-mob-bar-f" id="th-barf" style="width:100%"></div></div>
+          <div class="gw-mob-nm-lbl" id="tower-bnm">몬스터</div>
+          <div class="gw-mob-bar-bg"><div class="gw-mob-bar-f" id="tower-barf" style="width:100%"></div></div>
         </div>
-        <div id="th-floor-badge" style="position:absolute;top:8px;left:10px;font-family:'Orbitron',sans-serif;font-size:11px;color:#fbbf24;background:rgba(0,0,0,.65);padding:3px 8px;border-radius:6px;">1F</div>
+        <div id="tower-floor-badge" style="position:absolute;top:8px;left:10px;font-family:'Orbitron',sans-serif;font-size:11px;color:#fbbf24;background:rgba(0,0,0,.65);padding:3px 8px;border-radius:6px;">1F</div>
       </div>
-      <div class="gw-blog" id="th-blog"></div>
+      <div class="gw-blog" id="tower-blog"></div>
       <div style="display:flex;gap:5px;padding:5px 11px;background:rgba(5,3,12,.96);border-top:1px solid rgba(124,58,237,.09);align-items:center;">
         <span style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;margin-right:3px">포션</span>
         <button onclick="usePotInTower('hp')" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💚 HP</button>
         <button onclick="usePotInTower('mp')" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:#60a5fa;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💧 MP</button>
-        <span id="th-pot-hp-count" style="font-size:9px;color:#64748b;"></span>
-        <span id="th-pot-mp-count" style="font-size:9px;color:#64748b;"></span>
+        <span id="tower-pot-hp-count" style="font-size:9px;color:#64748b;"></span>
+        <span id="tower-pot-mp-count" style="font-size:9px;color:#64748b;"></span>
       </div>
       <div class="gw-sk-bar">
-        <div id="th-skbtns" style="display:flex;gap:5px;flex-wrap:wrap;flex:1;"></div>
+        <div id="tower-skbtns" style="display:flex;gap:5px;flex-wrap:wrap;flex:1;"></div>
         <button class="gw-retreat" onclick="towerRetreat()">🏃 철수</button>
       </div>
     </div>
@@ -5981,12 +5981,12 @@ function enterTower(floor) {
   gwSC('tower');
 
   // HUD
-  document.getElementById('th-lv').textContent  = 'Lv.'+G.lv;
-  document.getElementById('th-jnm').textContent = JOBS[G.job]?.name||'';
-  document.getElementById('th-blog').innerHTML  = '';
-  document.getElementById('th-bnm').textContent = mob.n;
-  document.getElementById('th-floor-badge').textContent = floor+'F'+(mob.isBoss?' 👑':'');
-  document.getElementById('th-floor-badge').style.color = mob.isBoss ? '#ef4444' : '#fbbf24';
+  document.getElementById('tower-lv').textContent  = 'Lv.'+G.lv;
+  document.getElementById('tower-jnm').textContent = JOBS[G.job]?.name||'';
+  document.getElementById('tower-blog').innerHTML  = '';
+  document.getElementById('tower-bnm').textContent = mob.n;
+  document.getElementById('tower-floor-badge').textContent = floor+'F'+(mob.isBoss?' 👑':'');
+  document.getElementById('tower-floor-badge').style.color = mob.isBoss ? '#ef4444' : '#fbbf24';
 
   // G.mob / G.zone 임시 세팅 → drawBattle이 캐릭터/몬스터 렌더링에 사용
   G.mob  = { n: mob.n, e: mob.e, hp: mob.hp, atk: mob.atk, def: mob.def };
@@ -5996,7 +5996,7 @@ function enterTower(floor) {
 
   // 캔버스 초기화 + 전투 화면 그리기 (drawBattle 재사용)
   setTimeout(()=>{
-    const cv = document.getElementById('th-cv');
+    const cv = document.getElementById('tower-cv');
     if(cv){
       cv.width  = cv.offsetWidth  || 500;
       cv.height = cv.offsetHeight || 155;
@@ -6025,7 +6025,7 @@ function enterTower(floor) {
 let _towerAnimActive = false;
 function _towerAnimLoop() {
   if(!_towerAnimActive) return;
-  const cv = document.getElementById('th-cv');
+  const cv = document.getElementById('tower-cv');
   if(cv && G.mob) {
     drawBattle(cv);
   }
@@ -6034,18 +6034,18 @@ function _towerAnimLoop() {
 
 // ── 탑 HUD ──
 function towerHud() {
-  document.getElementById('th-hpf').style.width=(G.hp/G.mHP*100)+'%';
-  document.getElementById('th-hpv').textContent=G.hp+'/'+G.mHP;
-  document.getElementById('th-mpf').style.width=(G.mp/G.mMP*100)+'%';
-  document.getElementById('th-mpv').textContent=G.mp+'/'+G.mMP;
-  document.getElementById('th-gold').textContent=G.gold.toLocaleString()+'G';
+  document.getElementById('tower-hpf').style.width=(G.hp/G.mHP*100)+'%';
+  document.getElementById('tower-hpv').textContent=G.hp+'/'+G.mHP;
+  document.getElementById('tower-mpf').style.width=(G.mp/G.mMP*100)+'%';
+  document.getElementById('tower-mpv').textContent=G.mp+'/'+G.mMP;
+  document.getElementById('tower-gold').textContent=G.gold.toLocaleString()+'G';
   const pct = _tower.mobMaxHp>0 ? (_tower.mobHp/_tower.mobMaxHp*100) : 0;
-  document.getElementById('th-barf').style.width=pct+'%';
+  document.getElementById('tower-barf').style.width=pct+'%';
 }
 
 // ── 탑 배틀 로그 ──
 function towerBlog(html) {
-  const el=document.getElementById('th-blog');
+  const el=document.getElementById('tower-blog');
   if(!el) return;
   el.innerHTML+=html+'<br>';
   el.scrollTop=el.scrollHeight;
@@ -6198,7 +6198,7 @@ function towerExit() {
 // ── 탑 스킬 버튼 ──
 function renderTowerSkills() {
   const job = JOBS[G.job]; if(!job) return;
-  const el  = document.getElementById('th-skbtns'); if(!el) return;
+  const el  = document.getElementById('tower-skbtns'); if(!el) return;
   const now = Date.now();
   el.innerHTML = job.skills.filter(s=>G.lv>=s.lv).map(sk=>{
     const lv=G.sk[sk.id]?.lv||0;
@@ -6252,8 +6252,8 @@ function usePotInTower(eff) {
 function updateTowerPotBar() {
   const hp=G.inv.find(i=>i.type==='pot'&&i.eff==='hp');
   const mp=G.inv.find(i=>i.type==='pot'&&i.eff==='mp');
-  const hEl=document.getElementById('th-pot-hp-count');
-  const mEl=document.getElementById('th-pot-mp-count');
+  const hEl=document.getElementById('tower-pot-hp-count');
+  const mEl=document.getElementById('tower-pot-mp-count');
   if(hEl) hEl.textContent=hp?'×'+hp.qty:'×0';
   if(mEl) mEl.textContent=mp?'×'+mp.qty:'×0';
 }
