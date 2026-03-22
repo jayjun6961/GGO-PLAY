@@ -693,6 +693,29 @@
   </div>
 </div>
 
+<!-- 경매장 패널 -->
+<div class="gw-pov" id="gw-pauction" onclick="if(event.target===this)closeP('gw-pauction')">
+  <div class="gw-pbox" style="width:min(480px,98vw);max-height:92vh;display:flex;flex-direction:column;">
+    <div class="gw-phdr" style="background:linear-gradient(135deg,rgba(52,211,153,.1),rgba(16,185,129,.05));border-bottom:1px solid rgba(52,211,153,.25);">
+      <div class="gw-pttl" style="color:#34d399;">🏛️ 경매장</div>
+      <button class="gw-px" onclick="closeP('gw-pauction')">✕</button>
+    </div>
+    <!-- 탭 -->
+    <div style="display:flex;gap:4px;padding:8px 12px 0;background:rgba(5,3,12,.97);">
+      <button id="auc-tab-buy" onclick="aucTab('buy')"
+        style="flex:1;padding:6px;border-radius:8px 8px 0 0;font-size:11px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;border:none;
+               background:rgba(52,211,153,.2);color:#34d399;border-bottom:2px solid #34d399;">🛒 구매</button>
+      <button id="auc-tab-sell" onclick="aucTab('sell')"
+        style="flex:1;padding:6px;border-radius:8px 8px 0 0;font-size:11px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;border:none;
+               background:rgba(52,211,153,.06);color:#64748b;border-bottom:2px solid transparent;">📦 판매 등록</button>
+      <button id="auc-tab-mine" onclick="aucTab('mine')"
+        style="flex:1;padding:6px;border-radius:8px 8px 0 0;font-size:11px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;border:none;
+               background:rgba(52,211,153,.06);color:#64748b;border-bottom:2px solid transparent;">📋 내 판매</button>
+    </div>
+    <div id="gw-aucbody" style="flex:1;overflow-y:auto;padding:12px;"></div>
+  </div>
+</div>
+
 <!-- 군단장 패널 -->
 <div class="gw-pov" id="gw-plegion" onclick="if(event.target===this)closeP('gw-plegion')">
   <div class="gw-pbox" style="width:min(440px,96vw);max-height:88vh;display:flex;flex-direction:column;">
@@ -826,6 +849,7 @@
         <div class="gw-act" onclick="openRelics()" style="border-color:rgba(168,85,247,.25)"><div class="gw-act-ico">🔮</div><div class="gw-act-lbl">유물</div></div>
         <div class="gw-act" onclick="openRelicDungeon()" style="border-color:rgba(234,179,8,.25)"><div class="gw-act-ico">🏺</div><div class="gw-act-lbl">유물 던전</div></div>
         <div class="gw-act" onclick="openLegionBoss()" style="border-color:rgba(239,68,68,.35)"><div class="gw-act-ico">😈</div><div class="gw-act-lbl">군단장</div></div>
+        <div class="gw-act" onclick="openAuction()" style="border-color:rgba(52,211,153,.25)"><div class="gw-act-ico">🏛️</div><div class="gw-act-lbl">경매장</div></div>
         <div class="gw-act" onclick="resetChar()" style="border-color:rgba(239,68,68,.15)"><div class="gw-act-ico">🔄</div><div class="gw-act-lbl">초기화</div></div>
       </div>
     </div>
@@ -2881,6 +2905,7 @@ function renderP(id){
   if(id==='gw-prelic')   renderRelicPanel();
   if(id==='gw-prdun')    renderRelicDungeonPanel();
   if(id==='gw-plegion')  renderLegionPanel();
+  if(id==='gw-pauction') { aucTab('buy'); }
   if(id==='gw-pcash')    renderCashShop();
   if(id==='gw-pwb')      renderWorldBoss(); // async
 }
@@ -8209,6 +8234,449 @@ function legionPotBar(){
 // ════════════════════════════════════════════════════════
 //  군단장 시스템 끝
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  경매장 시스템
+// ════════════════════════════════════════════════════════
+
+const AUC_MAX_LISTINGS = 3;    // 1인당 최대 판매 등록 수
+const AUC_FEE_RATE     = 0.10; // 수수료 10%
+const _aucRef = k => window._gwDB ? window._gwDB.ref('auction/' + k) : null;
+
+let _aucTab       = 'buy';
+let _aucItems     = [];       // 전체 경매 목록 캐시
+let _aucSelected  = null;     // 선택된 아이템 key
+let _aucListener  = null;     // Firebase 리스너
+
+// ── 패널 열기 ──
+function openAuction() { openP('gw-pauction'); }
+
+// ── 탭 전환 ──
+function aucTab(tab) {
+  _aucTab = tab;
+  ['buy','sell','mine'].forEach(t => {
+    const btn = document.getElementById('auc-tab-'+t);
+    if(!btn) return;
+    const active = t === tab;
+    btn.style.background   = active ? 'rgba(52,211,153,.2)'  : 'rgba(52,211,153,.06)';
+    btn.style.color        = active ? '#34d399'               : '#64748b';
+    btn.style.borderBottom = active ? '2px solid #34d399'     : '2px solid transparent';
+  });
+  _aucSelected = null;
+  if(tab === 'buy')  _renderAucBuy();
+  if(tab === 'sell') _renderAucSell();
+  if(tab === 'mine') _renderAucMine();
+}
+
+// ────────────────────────────────────────────────────────
+//  공통 유틸
+// ────────────────────────────────────────────────────────
+function _aucGC(grade) {
+  return GRADE_COLOR[grade] || '#94a3b8';
+}
+
+function _aucItemCard(key, data, mode) {
+  // mode: 'buy' | 'mine'
+  const gc = _aucGC(data.grade);
+  const isSelf   = data.seller === gwUN();
+  const selected = _aucSelected === key;
+  const border   = selected ? `2px solid ${gc}` : `1px solid ${gc}33`;
+  const bg       = selected ? `${gc}18` : `${gc}0a`;
+
+  let statHtml = '';
+  if(data.atk)      statHtml += `ATK +${data.atk} `;
+  if(data.def)      statHtml += `DEF +${data.def} `;
+  if(data.spd)      statHtml += `공속 -${data.spd}ms `;
+  if(data.critRate) statHtml += `치명타 +${data.critRate}% `;
+  if(data.critDmg)  statHtml += `치명타대미지 +${data.critDmg}% `;
+  if(data.expBonus) statHtml += `경험치 +${data.expBonus}% `;
+  if(data.enh > 0)  statHtml += `+${data.enh}강 `;
+
+  const typeLabel = {weapon:'무기',shield:'방패',armor:'갑옷',boots:'신발',gloves:'장갑',accessory:'장신구',pot:'포션',mat:'재료',relic:'유물'}[data.type]||data.type||'';
+
+  return `<div onclick="aucSelectItem('${key}')"
+    style="background:${bg};border:${border};border-radius:10px;padding:10px 13px;
+    margin-bottom:7px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:26px;flex-shrink:0;">${data.e||'🔧'}</span>
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+        <span style="font-size:11px;font-weight:700;color:${gc};">${data.n}</span>
+        <span style="font-size:8px;padding:1px 5px;border-radius:4px;background:${gc}22;color:${gc};border:1px solid ${gc}44;">${data.grade}</span>
+        <span style="font-size:8px;color:#475569;">[${typeLabel}]</span>
+      </div>
+      <div style="font-size:9px;color:#64748b;margin-top:2px;font-family:'Orbitron',sans-serif;">${statHtml||'–'}</div>
+      <div style="font-size:9px;color:#94a3b8;margin-top:1px;font-family:'Noto Sans KR',sans-serif;">판매자: ${data.seller}</div>
+    </div>
+    <div style="text-align:right;flex-shrink:0;">
+      <div style="font-size:12px;font-weight:700;color:#fbbf24;font-family:'Orbitron',sans-serif;">${Number(data.price).toLocaleString()}G</div>
+      ${mode==='mine' ? `<button onclick="event.stopPropagation();aucCancel('${key}')"
+        style="margin-top:4px;font-size:9px;padding:3px 8px;border-radius:5px;background:rgba(239,68,68,.15);
+        border:1px solid rgba(239,68,68,.35);color:#f87171;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">취소</button>` : ''}
+    </div>
+  </div>`;
+}
+
+// ────────────────────────────────────────────────────────
+//  구매 탭
+// ────────────────────────────────────────────────────────
+function _renderAucBuy() {
+  const el = document.getElementById('gw-aucbody'); if(!el) return;
+  el.innerHTML = `<div style="text-align:center;padding:30px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
+    🔄 경매 목록 불러오는 중...</div>`;
+
+  // 기존 리스너 해제
+  if(_aucListener) { _aucRef('items')?.off('value', _aucListener); _aucListener=null; }
+
+  const ref = _aucRef('items');
+  if(!ref) { el.innerHTML=`<div style="padding:20px;text-align:center;color:#475569;font-size:11px;">Firebase 연결 없음</div>`; return; }
+
+  _aucListener = ref.on('value', snap => {
+    _aucItems = [];
+    if(snap && snap.exists()) {
+      snap.forEach(child => { _aucItems.push({ key: child.key, ...child.val() }); });
+    }
+    _aucItems.sort((a,b) => b.regAt - a.regAt); // 최신순
+    _aucRenderList();
+  });
+}
+
+function _aucRenderList() {
+  if(_aucTab !== 'buy') return;
+  const el = document.getElementById('gw-aucbody'); if(!el) return;
+  const myName = gwUN();
+
+  const others = _aucItems.filter(i => i.seller !== myName);
+
+  if(others.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
+      😴 현재 등록된 판매 아이템이 없습니다.</div>`;
+    return;
+  }
+
+  let html = `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">
+    총 ${others.length}개 판매 중 · 아이템 선택 후 구매 버튼 클릭
+  </div>`;
+  html += others.map(i => _aucItemCard(i.key, i, 'buy')).join('');
+
+  // 구매 버튼 영역
+  html += `<div id="auc-buy-bar" style="margin-top:10px;"></div>`;
+  el.innerHTML = html;
+  _aucUpdateBuyBar();
+}
+
+function aucSelectItem(key) {
+  _aucSelected = (_aucSelected === key) ? null : key;
+  if(_aucTab === 'buy') {
+    // 카드 재렌더 없이 스타일만 업데이트
+    document.querySelectorAll('[onclick^="aucSelectItem"]').forEach(el => {
+      const k = el.getAttribute('onclick').match(/'([^']+)'/)?.[1];
+      const item = _aucItems.find(i=>i.key===k);
+      if(!item) return;
+      const gc = _aucGC(item.grade);
+      const sel = _aucSelected === k;
+      el.style.border = sel ? `2px solid ${gc}` : `1px solid ${gc}33`;
+      el.style.background = sel ? `${gc}18` : `${gc}0a`;
+    });
+    _aucUpdateBuyBar();
+  }
+}
+
+function _aucUpdateBuyBar() {
+  const bar = document.getElementById('auc-buy-bar'); if(!bar) return;
+  if(!_aucSelected) { bar.innerHTML=''; return; }
+  const item = _aucItems.find(i=>i.key===_aucSelected);
+  if(!item) { bar.innerHTML=''; return; }
+  const gc = _aucGC(item.grade);
+  bar.innerHTML = `
+    <div style="background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);border-radius:10px;padding:12px 14px;">
+      <div style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">
+        선택: <span style="color:${gc};font-weight:700;">${item.n}</span> · 판매가 <span style="color:#fbbf24;">${Number(item.price).toLocaleString()}G</span>
+      </div>
+      <div style="font-size:9px;color:#64748b;margin-bottom:8px;">내 보유 골드: <span style="color:#fbbf24;">${G.gold.toLocaleString()}G</span></div>
+      <button onclick="aucBuy('${item.key}')"
+        style="width:100%;background:linear-gradient(135deg,#059669,#047857);border:1px solid #34d399;
+        color:#fff;padding:9px;border-radius:8px;font-size:12px;font-family:'Orbitron',sans-serif;
+        cursor:pointer;font-weight:700;">💰 ${Number(item.price).toLocaleString()}G 구매하기</button>
+    </div>`;
+}
+
+async function aucBuy(key) {
+  const item = _aucItems.find(i=>i.key===key);
+  if(!item) { gwT('아이템을 찾을 수 없습니다.'); return; }
+  if(item.seller === gwUN()) { gwT('자신의 아이템은 구매할 수 없습니다.'); return; }
+  if(G.gold < item.price) { gwT(`골드 부족! (${Number(item.price).toLocaleString()}G 필요)`); return; }
+
+  const ref = _aucRef('items/' + key);
+  if(!ref) { gwT('Firebase 연결 없음'); return; }
+
+  // 트랜잭션으로 중복 구매 방지
+  try {
+    const snap = await ref.get();
+    if(!snap || !snap.exists()) { gwT('이미 판매된 아이템입니다.'); _renderAucBuy(); return; }
+
+    // 골드 차감
+    G.gold -= item.price;
+
+    // 아이템 인벤 추가
+    const newItem = { ...item };
+    delete newItem.key; delete newItem.seller; delete newItem.price; delete newItem.regAt;
+    newItem.qty = 1; newItem._id = Date.now();
+    G.inv.push(newItem);
+
+    // 판매자에게 90% 지급 (Firebase auction/payouts에 적립)
+    const payout = Math.floor(item.price * (1 - AUC_FEE_RATE));
+    const payRef = _aucRef('payouts/' + item.seller);
+    if(payRef) {
+      const paySnap = await payRef.get().catch(()=>null);
+      const cur = (paySnap && paySnap.exists()) ? (paySnap.val()||0) : 0;
+      await payRef.set(cur + payout).catch(()=>{});
+    }
+
+    // Firebase에서 아이템 삭제
+    await ref.remove();
+
+    saveG(); _aucSelected=null;
+    gwT(`✅ [${item.n}] 구매 완료! (-${Number(item.price).toLocaleString()}G)`);
+    _renderAucBuy();
+  } catch(e) {
+    gwT('구매 중 오류가 발생했습니다.'); console.error(e);
+  }
+}
+
+// ────────────────────────────────────────────────────────
+//  판매 등록 탭
+// ────────────────────────────────────────────────────────
+function _renderAucSell() {
+  const el = document.getElementById('gw-aucbody'); if(!el) return;
+  const myName = gwUN();
+  const myListings = _aucItems.filter(i=>i.seller===myName).length;
+  const remaining = AUC_MAX_LISTINGS - myListings;
+
+  // 인벤에서 판매 가능한 아이템 (포션 제외, 수량 1이상)
+  const sellable = G.inv.filter(it =>
+    it.type !== 'pot' && it.qty >= 1 && it.grade && it.grade !== '기본'
+  );
+
+  let html = `
+    <div style="padding:8px 12px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.15);
+      border-radius:8px;margin-bottom:12px;font-family:'Noto Sans KR',sans-serif;font-size:10px;color:#64748b;">
+      📦 판매 등록 <strong style="color:${remaining>0?'#34d399':'#ef4444'}">${myListings}/${AUC_MAX_LISTINGS}</strong> · 
+      수수료 <strong style="color:#fbbf24">10%</strong> 차감 후 90% 지급
+    </div>`;
+
+  if(remaining <= 0) {
+    html += `<div style="text-align:center;padding:20px;color:#ef4444;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
+      ⛔ 최대 판매 등록(${AUC_MAX_LISTINGS}개)에 도달했습니다.<br><small style="color:#475569">기존 등록을 취소하거나 판매 완료 후 추가 등록 가능합니다.</small></div>`;
+    el.innerHTML=html; return;
+  }
+
+  if(sellable.length === 0) {
+    html += `<div style="text-align:center;padding:30px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
+      🎒 판매 가능한 아이템이 없습니다.</div>`;
+    el.innerHTML=html; return;
+  }
+
+  html += `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">인벤토리에서 판매할 아이템을 선택하세요.</div>`;
+
+  sellable.forEach((it, idx) => {
+    const gc = _aucGC(it.grade);
+    let statHtml='';
+    if(it.atk)      statHtml+=`ATK+${it.atk} `;
+    if(it.def)      statHtml+=`DEF+${it.def} `;
+    if(it.spd)      statHtml+=`공속-${it.spd}ms `;
+    if(it.critRate) statHtml+=`치명${it.critRate}% `;
+    if(it.critDmg)  statHtml+=`치명대${it.critDmg}% `;
+    if(it.enh>0)    statHtml+=`+${it.enh}강 `;
+    if(it.qty>1)    statHtml+=`×${it.qty} `;
+
+    html += `
+    <div style="background:${gc}0a;border:1px solid ${gc}33;border-radius:10px;padding:10px 13px;margin-bottom:7px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:24px;">${it.e||'🔧'}</span>
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:700;color:${gc};">${it.n} <span style="font-size:8px;padding:1px 5px;border-radius:4px;background:${gc}22;border:1px solid ${gc}44;">${it.grade}</span></div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px;">${statHtml||'–'}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input id="auc-price-${idx}" type="number" min="1" placeholder="판매 가격 (G)"
+          style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(52,211,153,.25);
+          border-radius:6px;padding:6px 10px;font-size:11px;color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;outline:none;"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        <button onclick="aucRegister(${idx})"
+          style="background:linear-gradient(135deg,#059669,#047857);border:1px solid #34d399;
+          color:#fff;padding:6px 14px;border-radius:7px;font-size:10px;
+          font-family:'Orbitron',sans-serif;cursor:pointer;white-space:nowrap;">등록</button>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+  el._sellable = sellable; // 참조 저장
+}
+
+async function aucRegister(idx) {
+  const el = document.getElementById('gw-aucbody');
+  const sellable = G.inv.filter(it =>
+    it.type !== 'pot' && it.qty >= 1 && it.grade && it.grade !== '기본'
+  );
+  const it = sellable[idx];
+  if(!it) { gwT('아이템을 찾을 수 없습니다.'); return; }
+
+  const priceEl = document.getElementById('auc-price-'+idx);
+  const price = parseInt(priceEl?.value||'0');
+  if(!price || price < 1) { gwT('판매 가격을 입력해주세요.'); return; }
+
+  const myName = gwUN();
+  const myListings = _aucItems.filter(i=>i.seller===myName).length;
+  if(myListings >= AUC_MAX_LISTINGS) { gwT(`최대 ${AUC_MAX_LISTINGS}개까지 등록 가능합니다.`); return; }
+
+  const ref = _aucRef('items');
+  if(!ref) { gwT('Firebase 연결 없음'); return; }
+
+  // 아이템 데이터 구성 (인벤 스탯 포함)
+  const listing = {
+    seller: myName, price, regAt: Date.now(),
+    n: it.n, e: it.e, type: it.type, grade: it.grade,
+    slot: it.slot||null, enh: it.enh||0,
+  };
+  // 스탯 필드 복사
+  ['atk','def','spd','critRate','critDmg','expBonus','relicId','subType','ringType','jobType'].forEach(k=>{
+    if(it[k] !== undefined) listing[k]=it[k];
+  });
+
+  try {
+    await ref.push(listing);
+    // 인벤에서 제거 (수량 1 감소)
+    it.qty--;
+    if(it.qty<=0) G.inv.splice(G.inv.indexOf(it),1);
+    saveG();
+    gwT(`✅ [${it.n}] 경매장에 ${price.toLocaleString()}G로 등록 완료!`);
+    // 목록 갱신 후 탭 유지
+    const snap = await ref.get().catch(()=>null);
+    _aucItems = [];
+    if(snap && snap.exists()) snap.forEach(ch=>_aucItems.push({key:ch.key,...ch.val()}));
+    aucTab('mine');
+  } catch(e) {
+    gwT('등록 중 오류가 발생했습니다.'); console.error(e);
+  }
+}
+
+// ────────────────────────────────────────────────────────
+//  내 판매 탭
+// ────────────────────────────────────────────────────────
+async function _renderAucMine() {
+  const el = document.getElementById('gw-aucbody'); if(!el) return;
+  el.innerHTML=`<div style="text-align:center;padding:20px;color:#475569;font-size:11px;">불러오는 중...</div>`;
+
+  const myName = gwUN();
+
+  // 미지급 판매대금 확인
+  let payout = 0;
+  const payRef = _aucRef('payouts/'+myName);
+  if(payRef) {
+    const snap = await payRef.get().catch(()=>null);
+    if(snap && snap.exists()) payout = snap.val()||0;
+  }
+
+  // 판매 목록 최신 조회
+  const ref = _aucRef('items');
+  if(ref) {
+    const snap = await ref.get().catch(()=>null);
+    _aucItems = [];
+    if(snap && snap.exists()) snap.forEach(ch=>_aucItems.push({key:ch.key,...ch.val()}));
+  }
+
+  const mine = _aucItems.filter(i=>i.seller===myName);
+
+  let html='';
+
+  // 미수령 판매대금
+  if(payout > 0) {
+    html+=`
+    <div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:10px;
+      padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:11px;color:#fbbf24;font-family:'Orbitron',sans-serif;font-weight:700;">💰 미수령 판매대금</div>
+        <div style="font-size:13px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-top:3px;">${payout.toLocaleString()}G</div>
+        <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;">(수수료 10% 차감 후 금액)</div>
+      </div>
+      <button onclick="aucCollectPayout()"
+        style="background:linear-gradient(135deg,#d97706,#92400e);border:1px solid #fbbf24;
+        color:#fff;padding:8px 14px;border-radius:8px;font-size:10px;
+        font-family:'Orbitron',sans-serif;cursor:pointer;font-weight:700;">수령</button>
+    </div>`;
+  }
+
+  html+=`<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">
+    판매 등록 ${mine.length}/${AUC_MAX_LISTINGS}개
+  </div>`;
+
+  if(mine.length===0) {
+    html+=`<div style="text-align:center;padding:30px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
+      등록된 판매 아이템이 없습니다.</div>`;
+  } else {
+    html+=mine.map(i=>_aucItemCard(i.key,i,'mine')).join('');
+  }
+
+  el.innerHTML=html;
+}
+
+async function aucCancel(key) {
+  const item = _aucItems.find(i=>i.key===key);
+  if(!item||item.seller!==gwUN()) { gwT('취소 권한이 없습니다.'); return; }
+  if(!confirm(`[${item.n}] 판매 등록을 취소하시겠습니까?
+아이템이 인벤토리로 반환됩니다.`)) return;
+
+  try {
+    await _aucRef('items/'+key)?.remove();
+    // 인벤 반환
+    const ex=G.inv.find(i=>i.n===item.n&&i.grade===item.grade);
+    if(ex) ex.qty=(ex.qty||0)+1;
+    else {
+      const ret={n:item.n,e:item.e,type:item.type,grade:item.grade,slot:item.slot,enh:item.enh||0,qty:1,_id:Date.now()};
+      ['atk','def','spd','critRate','critDmg','expBonus','relicId','subType','ringType','jobType'].forEach(k=>{
+        if(item[k]!==undefined) ret[k]=item[k];
+      });
+      G.inv.push(ret);
+    }
+    saveG();
+    gwT(`[${item.n}] 판매 취소 완료. 인벤토리에 반환되었습니다.`);
+    _renderAucMine();
+  } catch(e) { gwT('취소 중 오류 발생'); console.error(e); }
+}
+
+async function aucCollectPayout() {
+  const myName=gwUN();
+  const payRef=_aucRef('payouts/'+myName);
+  if(!payRef){gwT('Firebase 연결 없음');return;}
+  const snap=await payRef.get().catch(()=>null);
+  const payout=snap&&snap.exists()?snap.val()||0:0;
+  if(payout<=0){gwT('수령할 판매대금이 없습니다.');return;}
+  await payRef.remove().catch(()=>{});
+  G.gold+=payout;
+  saveG();
+  hud();
+  gwT(`💰 판매대금 ${payout.toLocaleString()}G 수령 완료!`);
+  _renderAucMine();
+}
+
+// 패널 닫을 때 리스너 해제
+(()=>{
+  const orig=window.closeP||function(){};
+  const _origCloseP=closeP;
+  closeP=function(id){
+    if(id==='gw-pauction'&&_aucListener){
+      _aucRef('items')?.off('value',_aucListener);
+      _aucListener=null;
+    }
+    _origCloseP(id);
+  };
+})();
+
+// ════════════════════════════════════════════════════════
+//  경매장 시스템 끝
+// ════════════════════════════════════════════════════════
+
 
 
 
