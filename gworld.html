@@ -313,7 +313,7 @@
   .gw-hud{gap:6px;padding:6px 9px;}
 
   /* ── 모바일 전투화면: 스크롤 없이 한 화면에 HUD+캔버스+로그+스킬바 표시 ── */
-  #gs-battle, #gs-dungeon, #gs-dojo, #gs-tower, #gs-rdun {
+  #gs-battle, #gs-dungeon, #gs-dojo, #gs-tower, #gs-rdun, #gs-legion {
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
@@ -322,7 +322,8 @@
   #gs-dungeon .gw-battle,
   #gs-dojo .gw-battle,
   #gs-tower .gw-battle,
-  #gs-rdun .gw-battle {
+  #gs-rdun .gw-battle,
+  #gs-legion .gw-battle {
     height: 100%;
     overflow: hidden;
   }
@@ -692,6 +693,17 @@
   </div>
 </div>
 
+<!-- 군단장 패널 -->
+<div class="gw-pov" id="gw-plegion" onclick="if(event.target===this)closeP('gw-plegion')">
+  <div class="gw-pbox" style="width:min(440px,96vw);max-height:88vh;display:flex;flex-direction:column;">
+    <div class="gw-phdr" style="background:linear-gradient(135deg,rgba(239,68,68,.12),rgba(185,28,28,.06));border-bottom:1px solid rgba(239,68,68,.3);">
+      <div class="gw-pttl" style="color:#f87171;">😈 군단장</div>
+      <button class="gw-px" onclick="closeP('gw-plegion')">✕</button>
+    </div>
+    <div class="gw-pbdy" id="gw-legionbody" style="padding:12px;"></div>
+  </div>
+</div>
+
 <!-- 유물 던전 패널 -->
 <div class="gw-pov" id="gw-prdun" onclick="if(event.target===this)closeP('gw-prdun')">
   <div class="gw-pbox" style="width:min(420px,96vw);max-height:88vh;display:flex;flex-direction:column;">
@@ -813,6 +825,7 @@
         <div class="gw-act" onclick="openTower()" style="border-color:rgba(251,191,36,.25)"><div class="gw-act-ico">🗼</div><div class="gw-act-lbl">천공의 탑</div></div>
         <div class="gw-act" onclick="openRelics()" style="border-color:rgba(168,85,247,.25)"><div class="gw-act-ico">🔮</div><div class="gw-act-lbl">유물</div></div>
         <div class="gw-act" onclick="openRelicDungeon()" style="border-color:rgba(234,179,8,.25)"><div class="gw-act-ico">🏺</div><div class="gw-act-lbl">유물 던전</div></div>
+        <div class="gw-act" onclick="openLegionBoss()" style="border-color:rgba(239,68,68,.35)"><div class="gw-act-ico">😈</div><div class="gw-act-lbl">군단장</div></div>
         <div class="gw-act" onclick="resetChar()" style="border-color:rgba(239,68,68,.15)"><div class="gw-act-ico">🔄</div><div class="gw-act-lbl">초기화</div></div>
       </div>
     </div>
@@ -915,6 +928,50 @@
       <div id="dr-dunname" style="font-size:12px;color:#a855f7;font-family:'Orbitron',sans-serif;margin-bottom:16px;"></div>
       <div id="dr-body" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:8px;"></div>
       <button onclick="dungeonResultClose()" style="margin-top:20px;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:1px solid #a855f7;color:#fff;padding:10px 32px;border-radius:10px;font-size:13px;font-family:'Orbitron',sans-serif;cursor:pointer;">마을로 돌아가기</button>
+    </div>
+  </div>
+
+  <!-- 군단장 전투 화면 -->
+  <div class="gw-screen" id="gs-legion">
+    <div class="gw-battle">
+      <div class="gw-hud">
+        <div class="gw-lv-tag" id="lgh-lv">Lv.1</div>
+        <div class="gw-hud-nm" id="lgh-jnm">전사</div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#ef4444">HP</div><div class="bar-bg"><div class="bar-hp" id="lgh-hpf" style="width:100%"></div></div><div class="bar-v" id="lgh-hpv">-/-</div></div>
+        <div class="bar-g"><div class="bar-lbl" style="color:#3b82f6">MP</div><div class="bar-bg"><div class="bar-mp" id="lgh-mpf" style="width:100%"></div></div><div class="bar-v" id="lgh-mpv">-/-</div></div>
+        <div class="gw-gold" id="lgh-gold">0G</div>
+      </div>
+      <div class="gw-battle-scene" id="lgh-scene" style="min-height:140px;">
+        <canvas id="lgh-cv"></canvas>
+        <div class="gw-mob-hpbar">
+          <div class="gw-mob-nm-lbl" id="lgh-bnm">군단장</div>
+          <div class="gw-mob-bar-bg"><div class="gw-mob-bar-f" id="lgh-barf" style="width:100%"></div></div>
+        </div>
+        <div id="lgh-timer" style="position:absolute;top:8px;right:10px;font-family:'Orbitron',sans-serif;font-size:11px;color:#f87171;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:6px;">⏱ 0:00</div>
+        <div id="lgh-badge" style="position:absolute;top:8px;left:10px;font-family:'Orbitron',sans-serif;font-size:10px;color:#f87171;background:rgba(0,0,0,.65);padding:3px 8px;border-radius:6px;">😈</div>
+      </div>
+      <div class="gw-blog" id="lgh-blog" style="height:130px;"></div>
+      <div style="display:flex;gap:5px;padding:5px 11px;background:rgba(5,3,12,.96);border-top:1px solid rgba(124,58,237,.09);align-items:center;">
+        <span style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;margin-right:3px">포션</span>
+        <button onclick="usePotInLegion('hp')" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💚 HP</button>
+        <button onclick="usePotInLegion('mp')" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:#60a5fa;padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">💧 MP</button>
+        <span id="lgh-pot-hp" style="font-size:9px;color:#64748b;"></span>
+        <span id="lgh-pot-mp" style="font-size:9px;color:#64748b;"></span>
+      </div>
+      <div class="gw-sk-bar">
+        <div id="lgh-skbtns" style="display:flex;gap:5px;flex-wrap:wrap;flex:1;"></div>
+        <button class="gw-retreat" onclick="legionRetreat()">🏃 철수</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 군단장 클리어 결과 화면 -->
+  <div class="gw-screen" id="gs-legion-result">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;padding:24px 20px;gap:0;overflow-y:auto;">
+      <div style="font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;color:#f87171;margin-bottom:4px;text-shadow:0 0 16px #ef444488;">😈 군단장 토벌!</div>
+      <div id="lgr-bossname" style="font-size:12px;color:#f87171;font-family:'Orbitron',sans-serif;margin-bottom:16px;"></div>
+      <div id="lgr-body" style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:8px;"></div>
+      <button onclick="legionResultClose()" style="margin-top:20px;background:linear-gradient(135deg,#dc2626,#991b1b);border:1px solid #f87171;color:#fff;padding:10px 32px;border-radius:10px;font-size:13px;font-family:'Orbitron',sans-serif;cursor:pointer;">마을로 돌아가기</button>
     </div>
   </div>
 
@@ -2823,6 +2880,7 @@ function renderP(id){
   if(id==='gw-ptower')   renderTowerPanel();
   if(id==='gw-prelic')   renderRelicPanel();
   if(id==='gw-prdun')    renderRelicDungeonPanel();
+  if(id==='gw-plegion')  renderLegionPanel();
   if(id==='gw-pcash')    renderCashShop();
   if(id==='gw-pwb')      renderWorldBoss(); // async
 }
@@ -7746,6 +7804,412 @@ function openRelicDungeon() { openP('gw-prdun'); }
 // ════════════════════════════════════════════════════════
 //  유물 던전 시스템 끝
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  군단장 시스템
+// ════════════════════════════════════════════════════════
+
+const LEGION_MIN_LV   = 100;   // 최소 레벨 (패널 접근)
+const LEGION_DAILY_MAX = 2;    // 1일 최대 입장 횟수
+
+const LEGION_BOSSES = [
+  {
+    id:'vulcan', name:'힘의 악마, "발칸"', e:'🔥',
+    minLv:120, hp:150000, atk:450, pen:250,
+    gold:[200000,400000], exp:[300000,500000],
+    magic:[50,100],  alch:[10,30],
+    desc:'불꽃과 파괴의 화신. 강인한 전사.',
+  },
+  {
+    id:'dominion', name:'지배의 악마, "도미니온"', e:'👁️',
+    minLv:140, hp:200000, atk:500, pen:260,
+    gold:[500000,900000], exp:[700000,1200000],
+    magic:[70,150],  alch:[20,50],
+    desc:'의지를 지배하는 자. 최강의 군단장.',
+  },
+];
+
+// 일일 입장 횟수 키
+function _legionDailyKey(bossId) {
+  return 'gwo_legion_daily_' + getTodayKey() + '_' + bossId + '_' + gwUN();
+}
+function getLegionCount(bossId) {
+  return parseInt(localStorage.getItem(_legionDailyKey(bossId))||'0');
+}
+function addLegionCount(bossId) {
+  localStorage.setItem(_legionDailyKey(bossId), String(getLegionCount(bossId)+1));
+}
+
+// ── 패널 열기 ──
+function openLegionBoss() { openP('gw-plegion'); }
+
+// ── 패널 렌더 ──
+function renderLegionPanel() {
+  const el = document.getElementById('gw-legionbody');
+  if(!el) return;
+
+  const GC = {레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff'};
+  let html = `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
+    padding:7px 11px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);
+    border-radius:8px;margin-bottom:12px;">
+    😈 군단장은 Lv.${LEGION_MIN_LV} 이상 도전 가능 · 보스별 1일 ${LEGION_DAILY_MAX}회 입장
+  </div>`;
+
+  LEGION_BOSSES.forEach(boss => {
+    const cnt    = getLegionCount(boss.id);
+    const left   = Math.max(0, LEGION_DAILY_MAX - cnt);
+    const locked = G.lv < boss.minLv;
+    const full   = cnt >= LEGION_DAILY_MAX;
+    const gc     = locked ? '#475569' : full ? '#475569' : '#f87171';
+
+    html += `
+    <div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,${locked?'.1':'.25'});
+      border-radius:14px;padding:14px;margin-bottom:10px;opacity:${locked?'.5':'1'};">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div style="font-size:38px;line-height:1;">${boss.e}</div>
+        <div style="flex:1;">
+          <div style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:${gc};">${boss.name}</div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px;font-family:'Noto Sans KR',sans-serif;">${boss.desc}</div>
+          <div style="font-size:9px;color:#475569;margin-top:2px;font-family:'Orbitron',sans-serif;">
+            HP ${boss.hp.toLocaleString()} · ATK ${boss.atk} · 방어무시 ${boss.pen}
+          </div>
+        </div>
+      </div>
+      <!-- 보상 미리보기 -->
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
+        <span style="font-size:9px;padding:2px 7px;border-radius:5px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);color:#fbbf24;">💰 대량 골드</span>
+        <span style="font-size:9px;padding:2px 7px;border-radius:5px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);color:#c084fc;">⭐ 대량 경험치</span>
+        <span style="font-size:9px;padding:2px 7px;border-radius:5px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);color:#34d399;">💎 마법석 ${boss.magic[0]}~${boss.magic[1]}</span>
+        <span style="font-size:9px;padding:2px 7px;border-radius:5px;background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.2);color:#fbbf24;">🧪 연금석 ${boss.alch[0]}~${boss.alch[1]}</span>
+      </div>
+      <!-- 드롭 등급 -->
+      <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">
+        🎁 장비 드롭:
+        ${['레어','에픽','전설','신화','레전드리'].map((g,i)=>{
+          const pcts=['40%','30%','15%','10%','5%'];
+          return `<span style="color:${GC[g]}">${g} ${pcts[i]}</span>`;
+        }).join(' / ')}
+      </div>
+      <!-- 입장 상태 + 버튼 -->
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:10px;color:${left>0&&!locked?'#34d399':'#ef4444'};font-family:'Orbitron',sans-serif;">
+          ${locked ? `🔒 Lv.${boss.minLv} 이상` : `입장 ${cnt}/${LEGION_DAILY_MAX}회 · 남은 횟수 ${left}`}
+        </div>
+        ${!locked && !full
+          ? `<button onclick="enterLegion('${boss.id}');closeP('gw-plegion')"
+              style="background:linear-gradient(135deg,#dc2626,#991b1b);border:1px solid #f87171;
+              color:#fff;padding:8px 16px;border-radius:8px;font-size:11px;
+              font-family:'Orbitron',sans-serif;cursor:pointer;font-weight:700;">⚔️ 도전</button>`
+          : `<button disabled style="background:rgba(71,85,105,.2);border:1px solid #334155;
+              color:#475569;padding:8px 16px;border-radius:8px;font-size:11px;
+              font-family:'Orbitron',sans-serif;cursor:not-allowed;">${locked?'🔒 잠김':'오늘 소진'}</button>`
+        }
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+// ── 전투 상태 ──
+let _legion = {
+  boss:null, bossHp:0, bossMhp:0,
+  tick:null, timerSec:0, timerInt:null, dead:false
+};
+let _legionBossData = null;
+
+// ── 입장 ──
+function enterLegion(bossId) {
+  if(G.lv < LEGION_MIN_LV) { gwT(`🔒 Lv.${LEGION_MIN_LV} 이상만 입장 가능합니다!`); return; }
+  const boss = LEGION_BOSSES.find(b=>b.id===bossId);
+  if(!boss) return;
+  if(G.lv < boss.minLv) { gwT(`🔒 ${boss.name}은 Lv.${boss.minLv} 이상만 입장 가능합니다!`); return; }
+  if(getLegionCount(bossId) >= LEGION_DAILY_MAX) { gwT(`⛔ 오늘 ${boss.name} 입장 횟수를 모두 사용했습니다.`); return; }
+
+  _legionBossData  = boss;
+  _legion.boss     = boss;
+  _legion.bossHp   = boss.hp;
+  _legion.bossMhp  = boss.hp;
+  _legion.timerSec = 0;
+  _legion.dead     = false;
+
+  gwSC('legion');
+
+  document.getElementById('lgh-lv').textContent   = 'Lv.'+G.lv;
+  document.getElementById('lgh-jnm').textContent  = JOBS[G.job]?.name||'';
+  document.getElementById('lgh-bnm').textContent  = boss.name;
+  document.getElementById('lgh-blog').innerHTML   = '';
+  document.getElementById('lgh-badge').textContent = boss.e + ' ' + boss.name.split('"')[1]||boss.name;
+
+  setTimeout(()=>{
+    const cv = document.getElementById('lgh-cv');
+    if(cv){ cv.width=cv.offsetWidth||500; cv.height=cv.offsetHeight||140; }
+  }, 30);
+
+  legionSkills(); legionPotBar(); legionHud(); hud();
+
+  if(_legion.tick)     clearInterval(_legion.tick);
+  if(_legion.timerInt) clearInterval(_legion.timerInt);
+  _legion.tick = setInterval(legionFight, tSpd());
+  _legion.timerInt = setInterval(()=>{
+    _legion.timerSec++;
+    const m=Math.floor(_legion.timerSec/60), s=_legion.timerSec%60;
+    const el=document.getElementById('lgh-timer');
+    if(el) el.textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+
+  legionBlog(`<span style="color:#f87171">😈 ${boss.name}이(가) 나타났다! 전투 시작!</span>`);
+}
+
+// ── HUD ──
+function legionHud() {
+  const hf = document.getElementById('lgh-hpf');
+  const hv = document.getElementById('lgh-hpv');
+  const mf = document.getElementById('lgh-mpf');
+  const mv = document.getElementById('lgh-mpv');
+  const gd = document.getElementById('lgh-gold');
+  const bf = document.getElementById('lgh-barf');
+  if(hf) hf.style.width=(G.hp/G.mHP*100)+'%';
+  if(hv) hv.textContent=G.hp+'/'+G.mHP;
+  if(mf) mf.style.width=(G.mp/G.mMP*100)+'%';
+  if(mv) mv.textContent=G.mp+'/'+G.mMP;
+  if(gd) gd.textContent=G.gold.toLocaleString()+'G';
+  const pct=_legion.bossMhp>0?(_legion.bossHp/_legion.bossMhp*100):0;
+  if(bf) bf.style.width=pct+'%';
+}
+
+// ── 배틀 로그 ──
+function legionBlog(html) {
+  const el=document.getElementById('lgh-blog');
+  if(!el) return;
+  el.innerHTML+=html+'<br>';
+  el.scrollTop=el.scrollHeight;
+}
+
+// ── 전투 틱 ──
+function legionFight() {
+  if(!_legion.boss||_legion.bossHp<=0||_legion.dead) return;
+  const boss=_legion.boss;
+
+  // 플레이어 공격
+  let dmg=Math.max(1,tAtk()-Math.floor(boss.atk*0.1)+Math.floor(Math.random()*8)-3);
+  const isCrit=Math.random()*100<tCritRate();
+  if(isCrit) dmg=Math.floor(dmg*tCritDmg()/100);
+  _legion.bossHp=Math.max(0,_legion.bossHp-dmg);
+  legionBlog(`<span class="ld">⚔️ ${isCrit?'<span style="color:#f97316">💥치명타! </span>':''}${boss.name}에게 ${dmg.toLocaleString()} 대미지! (HP ${_legion.bossHp.toLocaleString()}/${_legion.bossMhp.toLocaleString()})</span>`);
+  legionHud();
+  if(_legion.bossHp<=0){ legionBossDead(); return; }
+
+  // 보스 공격: 방어무시(pen) + 방어 경감 부분
+  const bPen = boss.pen;
+  const bRes = Math.max(0, Math.floor((boss.atk-boss.pen)*0.5) - Math.floor(tDef()*0.4));
+  const bVar = Math.floor(Math.random()*Math.max(2,Math.floor(boss.atk*0.03)));
+  const md   = Math.min(Math.max(1,bPen+bRes+bVar), Math.floor(G.mHP*0.6));
+  G.hp=Math.max(0,G.hp-md);
+  legionBlog(`<span class="ld">${boss.name}의 공격! -${md} HP</span>`);
+  legionHud(); legionSkills();
+
+  if(G.hp<=0){
+    _legion.dead=true;
+    clearInterval(_legion.tick); clearInterval(_legion.timerInt);
+    addLegionCount(boss.id);
+    legionBlog(`<span style="color:#ef4444">💀 ${boss.name}에게 쓰러졌습니다...</span>`);
+    saveG();
+    setTimeout(()=>{ G.hp=Math.floor(G.mHP*0.1); saveG(); goTown(); gwT('💀 군단장 토벌 실패...'); },2200);
+  }
+}
+
+// ── 보스 처치 ──
+function legionBossDead() {
+  clearInterval(_legion.tick); clearInterval(_legion.timerInt);
+  const boss = _legionBossData;
+  addLegionCount(boss.id);
+
+  const m=Math.floor(_legion.timerSec/60), s=_legion.timerSec%60;
+  legionBlog(`<span style="color:#f87171;font-weight:700">👑 ${boss.name} 토벌! 클리어: ${m}:${String(s).padStart(2,'0')}</span>`);
+
+  // 기본 보상
+  const goldMult=1+(equipBonus().goldBonus||0)/100;
+  const goldGain=Math.floor((boss.gold[0]+Math.floor(Math.random()*(boss.gold[1]-boss.gold[0]+1)))*goldMult);
+  const expGain =Math.floor((boss.exp[0] +Math.floor(Math.random()*(boss.exp[1]-boss.exp[0]+1)))*tExpRate());
+  const magicAmt=boss.magic[0]+Math.floor(Math.random()*(boss.magic[1]-boss.magic[0]+1));
+  const alchAmt =boss.alch[0] +Math.floor(Math.random()*(boss.alch[1]-boss.alch[0]+1));
+  G.gold+=goldGain; G.exp+=expGain;
+
+  // 레벨업 처리
+  let lvUp=0;
+  while(G.exp>=expNeed(G.lv)&&G.lv<150){
+    G.exp-=expNeed(G.lv);G.lv++;lvUp++;
+    const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;
+    G.hp=G.mHP;G.mp=G.mMP;
+  }
+  if(lvUp>0) legionBlog(`<span style="color:#a855f7">🆙 레벨업! Lv.${G.lv}</span>`);
+
+  // 마법석
+  const mgEx=G.inv.find(i=>i.n==='마법석');
+  if(mgEx) mgEx.qty=(mgEx.qty||0)+magicAmt;
+  else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:magicAmt,_id:Date.now()-20});
+
+  // 연금석
+  const alEx=G.inv.find(i=>i.n==='연금석');
+  if(alEx) alEx.qty=(alEx.qty||0)+alchAmt;
+  else G.inv.push({n:'연금석',e:'🧪',type:'mat',val:100,grade:'희귀',sellPrice:100,qty:alchAmt,_id:Date.now()-10});
+
+  const droppedItems=[
+    {n:'마법석',e:'💎',grade:'희귀',qty:magicAmt,_isMat:true},
+    {n:'연금석',e:'🧪',grade:'희귀',qty:alchAmt, _isMat:true},
+  ];
+
+  // 장비 드롭 (무기/방패/갑옷/신발/장갑 각 독립 확률, 35%)
+  const LEGION_SLOTS=['weapon','shield','armor','boots','gloves'];
+  const GRADE_THRESH=[0.40,0.70,0.85,0.95,1.00]; // 레어/에픽/전설/신화/레전드리 누적
+  const GRADES=['레어','에픽','전설','신화','레전드리'];
+  const JOB_MAP={warrior:['warrior','paladin'],archer:['archer'],mage:['mage'],rogue:['rogue'],paladin:['paladin','warrior']};
+  const allowed=JOB_MAP[G.job]||[];
+
+  LEGION_SLOTS.forEach((slot,si)=>{
+    if(Math.random()>0.35) return; // 35% 확률로 각 슬롯 드롭 시도
+    const r=Math.random();
+    let grade=GRADES[GRADES.length-1];
+    for(let gi=0;gi<GRADE_THRESH.length;gi++){
+      if(r<GRADE_THRESH[gi]){grade=GRADES[gi];break;}
+    }
+    let pool;
+    if(slot==='weapon'){
+      pool=DROPS.filter(d=>d.type==='weapon'&&d.grade===grade&&d.jobType&&d.jobType.some(j=>allowed.includes(j)));
+    } else {
+      pool=DROPS.filter(d=>d.type===slot&&d.grade===grade);
+    }
+    if(pool.length){
+      const it={...pool[Math.floor(Math.random()*pool.length)],qty:1,_id:Date.now()+si*13};
+      G.inv.push(it); droppedItems.push(it);
+    }
+  });
+
+  saveG();
+  setTimeout(()=>showLegionResult(boss,goldGain,expGain,magicAmt,alchAmt,droppedItems,lvUp),1200);
+}
+
+// ── 결과 화면 ──
+function showLegionResult(boss,gold,exp,magic,alch,items,lvUp){
+  gwSC('legion-result');
+  document.getElementById('lgr-bossname').textContent=boss.name+' 토벌!';
+  const GC={일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff'};
+  let html=`
+    <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:24px">💰</span>
+      <div><div style="font-size:13px;color:#fbbf24;font-family:'Orbitron',sans-serif;font-weight:700">+${gold.toLocaleString()} G</div>
+      <div style="font-size:10px;color:#64748b">골드 획득</div></div>
+    </div>
+    <div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:24px">⭐</span>
+      <div><div style="font-size:13px;color:#a855f7;font-family:'Orbitron',sans-serif;font-weight:700">+${exp.toLocaleString()} EXP</div>
+      <div style="font-size:10px;color:#64748b">경험치 획득${lvUp>0?' · 레벨업 '+lvUp+'회':''}</div></div>
+    </div>
+    <div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:24px">💎🧪</span>
+      <div><div style="font-size:12px;color:#34d399;font-family:'Orbitron',sans-serif;font-weight:700">마법석 ×${magic.toLocaleString()} · 연금석 ×${alch.toLocaleString()}</div>
+      <div style="font-size:10px;color:#64748b">재료 획득</div></div>
+    </div>`;
+  items.filter(it=>!it._isMat).forEach(it=>{
+    const gc=GC[it.grade]||'#94a3b8';
+    html+=`<div style="background:${gc}11;border:1px solid ${gc}33;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px">${it.e}</span>
+      <div><div style="font-size:12px;font-weight:700;color:${gc}">${it.n}</div>
+      <div style="font-size:9px;color:#64748b">${it.grade}</div></div>
+    </div>`;
+  });
+  document.getElementById('lgr-body').innerHTML=html;
+  hud();
+}
+
+function legionResultClose(){ goTown(); }
+
+// ── 철수 ──
+function legionRetreat(){
+  clearInterval(_legion.tick); clearInterval(_legion.timerInt);
+  _legion.boss=null; G.buffs={}; saveG(); goTown();
+  gwT('🏃 군단장 도전에서 철수했습니다.');
+}
+
+// ── 스킬 버튼 ──
+function legionSkills(){
+  const job=JOBS[G.job]; if(!job) return;
+  const el=document.getElementById('lgh-skbtns'); if(!el) return;
+  const now=Date.now();
+  el.innerHTML=job.skills.filter(s=>G.lv>=s.lv).map(sk=>{
+    const lv=G.sk[sk.id]?.lv||0;
+    const cdLeft=Math.max(0,sk.cd-(now-(G.sk[sk.id]?.t||0))/1000);
+    const ready=cdLeft<=0&&G.mp>=sk.mp;
+    return `<button onclick="useLegionSkill('${sk.id}')"
+      style="padding:5px 9px;border-radius:8px;font-size:9px;font-family:'Orbitron',sans-serif;cursor:pointer;
+        background:${ready?'linear-gradient(135deg,#dc2626,#991b1b)':'rgba(71,85,105,.3)'};
+        border:1px solid ${ready?'#f87171':'rgba(71,85,105,.5)'};color:${ready?'#fff':'#475569'};">
+      ${sk.name}${lv>0?` +${lv}`:''}<br><span style="font-size:8px">${sk.mp}MP${cdLeft>0?' '+cdLeft.toFixed(0)+'s':''}</span>
+    </button>`;
+  }).join('');
+}
+
+function useLegionSkill(skId){
+  const job=JOBS[G.job];if(!job)return;
+  const sk=job.skills.find(s=>s.id===skId);if(!sk||G.lv<sk.lv)return;
+  const now=Date.now();
+  if(now-(G.sk[skId]?.t||0)<sk.cd*1000){gwT('쿨타임 중...');return;}
+  if(G.mp<sk.mp){gwT('MP 부족!');return;}
+  G.mp-=sk.mp; G.sk[skId]={...G.sk[skId]||{},t:now};
+  const lv=G.sk[skId]?.lv||0;
+  let dmg=Math.max(1,Math.floor(tAtk()*(sk.dmg+lv*0.1))-Math.floor(_legion.boss?.atk*0.05||0)+Math.floor(Math.random()*10)-4);
+  const isCrit=Math.random()*100<tCritRate();
+  if(isCrit)dmg=Math.floor(dmg*tCritDmg()/100);
+  if(sk.eff==='heal30'||sk.eff==='holy_nova'||sk.eff==='divine'){
+    let h=0;
+    if(sk.eff==='heal30')  h=Math.floor(G.mHP*0.3);
+    else if(sk.eff==='holy_nova'){
+      const d2=Math.max(1,Math.floor(tAtk()*(sk.dmg+lv*0.1)));
+      _legion.bossHp=Math.max(0,_legion.bossHp-d2);
+      h=Math.floor(G.mHP*0.2);
+      legionBlog(`<span style="color:#fbbf24">✨ ${sk.name} ${d2.toLocaleString()} 대미지!</span>`);
+    } else if(sk.eff==='divine'){
+      const d2=Math.max(1,Math.floor(tAtk()*(sk.dmg+lv*0.1)));
+      _legion.bossHp=Math.max(0,_legion.bossHp-d2);
+      h=Math.floor(G.mHP*0.4);G.buffs.divine=true;
+      setTimeout(()=>{G.buffs.divine=false;},10000);
+      legionBlog(`<span style="color:#fbbf24">👼 ${sk.name} ${d2.toLocaleString()} 대미지! 10초간 피해 50% 감소!</span>`);
+    }
+    G.hp=Math.min(G.mHP,G.hp+h);
+    if(h>0) legionBlog(`<span style="color:#34d399">💚 HP +${h}</span>`);
+    if(_legion.bossHp<=0){legionHud();legionBossDead();return;}
+  } else if(sk.eff==='def_buff'){
+    G.buffs.def=true;legionBlog(`<span style="color:#60a5fa">🛡️ ${sk.name}! 방어력 강화!</span>`);
+  } else {
+    _legion.bossHp=Math.max(0,_legion.bossHp-dmg);
+    legionBlog(`<span style="color:#f87171">⚡ ${sk.name}${isCrit?'<span style="color:#f97316">💥치명타!</span>':''} ${dmg.toLocaleString()} 대미지!</span>`);
+    if(_legion.bossHp<=0){legionHud();legionBossDead();return;}
+  }
+  legionHud(); legionSkills(); saveG();
+}
+
+// ── 포션 ──
+function usePotInLegion(eff){
+  const p=G.inv.find(i=>i.type==='pot'&&i.eff===eff);
+  if(!p){gwT(eff==='hp'?'HP 포션 없음':'MP 포션 없음');return;}
+  if(eff==='hp'){const h=Math.min(p.val,G.mHP-G.hp);G.hp+=h;legionBlog(`<span style="color:#34d399">💚 HP +${h}</span>`);}
+  else{const m=Math.min(p.val,G.mMP-G.mp);G.mp+=m;legionBlog(`<span style="color:#60a5fa">💧 MP +${m}</span>`);}
+  p.qty--;if(p.qty<=0)G.inv.splice(G.inv.indexOf(p),1);
+  legionHud(); legionPotBar(); saveG();
+}
+function legionPotBar(){
+  const hp=G.inv.find(i=>i.type==='pot'&&i.eff==='hp');
+  const mp=G.inv.find(i=>i.type==='pot'&&i.eff==='mp');
+  const hEl=document.getElementById('lgh-pot-hp');
+  const mEl=document.getElementById('lgh-pot-mp');
+  if(hEl)hEl.textContent=hp?'×'+hp.qty:'×0';
+  if(mEl)mEl.textContent=mp?'×'+mp.qty:'×0';
+}
+
+// ════════════════════════════════════════════════════════
+//  군단장 시스템 끝
+// ════════════════════════════════════════════════════════
+
 
 
 
