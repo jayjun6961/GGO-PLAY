@@ -8304,7 +8304,12 @@ function _aucItemCard(key, data, mode) {
         <span style="font-size:8px;color:#475569;">[${typeLabel}]</span>
       </div>
       <div style="font-size:9px;color:#64748b;margin-top:2px;font-family:'Orbitron',sans-serif;">${statHtml||'–'}</div>
-      <div style="font-size:9px;color:#94a3b8;margin-top:1px;font-family:'Noto Sans KR',sans-serif;">판매자: ${data.seller}</div>
+      <div style="font-size:9px;margin-top:1px;font-family:'Noto Sans KR',sans-serif;">
+        ${isSelf
+          ? `<span style="color:#fbbf24;">👤 내 판매</span>`
+          : `<span style="color:#64748b;">판매자: ${data.seller}</span>`
+        }
+      </div>
     </div>
     <div style="text-align:right;flex-shrink:0;">
       <div style="font-size:12px;font-weight:700;color:#fbbf24;font-family:'Orbitron',sans-serif;">${Number(data.price).toLocaleString()}G</div>
@@ -8344,18 +8349,17 @@ function _aucRenderList() {
   const el = document.getElementById('gw-aucbody'); if(!el) return;
   const myName = gwUN();
 
-  const others = _aucItems.filter(i => i.seller !== myName);
-
-  if(others.length === 0) {
+  // 전체 목록 표시 (자신 포함)
+  if(_aucItems.length === 0) {
     el.innerHTML = `<div style="text-align:center;padding:40px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
       😴 현재 등록된 판매 아이템이 없습니다.</div>`;
     return;
   }
 
   let html = `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">
-    총 ${others.length}개 판매 중 · 아이템 선택 후 구매 버튼 클릭
+    총 ${_aucItems.length}개 판매 중 · 아이템 선택 후 구매 버튼 클릭
   </div>`;
-  html += others.map(i => _aucItemCard(i.key, i, 'buy')).join('');
+  html += _aucItems.map(i => _aucItemCard(i.key, i, 'buy')).join('');
 
   // 구매 버튼 영역
   html += `<div id="auc-buy-bar" style="margin-top:10px;"></div>`;
@@ -8386,16 +8390,25 @@ function _aucUpdateBuyBar() {
   const item = _aucItems.find(i=>i.key===_aucSelected);
   if(!item) { bar.innerHTML=''; return; }
   const gc = _aucGC(item.grade);
+  const isMine = item.seller === gwUN();
   bar.innerHTML = `
-    <div style="background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);border-radius:10px;padding:12px 14px;">
+    <div style="background:${isMine?'rgba(251,191,36,.06)':'rgba(52,211,153,.06)'};
+      border:1px solid ${isMine?'rgba(251,191,36,.2)':'rgba(52,211,153,.2)'};border-radius:10px;padding:12px 14px;">
       <div style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">
         선택: <span style="color:${gc};font-weight:700;">${item.n}</span> · 판매가 <span style="color:#fbbf24;">${Number(item.price).toLocaleString()}G</span>
+        ${isMine ? '<span style="color:#fbbf24;margin-left:6px;">👤 내 판매</span>' : ''}
       </div>
-      <div style="font-size:9px;color:#64748b;margin-bottom:8px;">내 보유 골드: <span style="color:#fbbf24;">${G.gold.toLocaleString()}G</span></div>
-      <button onclick="aucBuy('${item.key}')"
-        style="width:100%;background:linear-gradient(135deg,#059669,#047857);border:1px solid #34d399;
-        color:#fff;padding:9px;border-radius:8px;font-size:12px;font-family:'Orbitron',sans-serif;
-        cursor:pointer;font-weight:700;">💰 ${Number(item.price).toLocaleString()}G 구매하기</button>
+      ${isMine
+        ? `<div style="text-align:center;padding:8px;font-size:11px;color:#fbbf24;font-family:'Noto Sans KR',sans-serif;">
+            ⚠️ 자신이 등록한 아이템은 구매할 수 없습니다.<br>
+            <small style="color:#475569;">취소하려면 '내 판매' 탭에서 취소하세요.</small>
+           </div>`
+        : `<div style="font-size:9px;color:#64748b;margin-bottom:8px;">내 보유 골드: <span style="color:#fbbf24;">${G.gold.toLocaleString()}G</span></div>
+           <button onclick="aucBuy('${item.key}')"
+             style="width:100%;background:linear-gradient(135deg,#059669,#047857);border:1px solid #34d399;
+             color:#fff;padding:9px;border-radius:8px;font-size:12px;font-family:'Orbitron',sans-serif;
+             cursor:pointer;font-weight:700;">💰 ${Number(item.price).toLocaleString()}G 구매하기</button>`
+      }
     </div>`;
 }
 
@@ -8583,15 +8596,19 @@ async function _renderAucMine() {
     if(snap && snap.exists()) payout = snap.val()||0;
   }
 
-  // 판매 목록 최신 조회
+  // 내 판매 탭: Firebase 전체 독립 조회 (구매 탭 리스너 캐시와 분리)
+  let allItems = [];
   const ref = _aucRef('items');
   if(ref) {
     const snap = await ref.get().catch(()=>null);
-    _aucItems = [];
-    if(snap && snap.exists()) snap.forEach(ch=>_aucItems.push({key:ch.key,...ch.val()}));
+    if(snap && snap.exists()) {
+      snap.forEach(ch => { allItems.push({key:ch.key,...ch.val()}); });
+    }
+    // 전체 캐시도 갱신
+    _aucItems = allItems;
   }
 
-  const mine = _aucItems.filter(i=>i.seller===myName);
+  const mine = allItems.filter(i => i.seller === myName);
 
   let html='';
 
