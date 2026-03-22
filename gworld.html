@@ -8451,9 +8451,9 @@ function _renderAucSell() {
   const myListings = _aucItems.filter(i=>i.seller===myName).length;
   const remaining = AUC_MAX_LISTINGS - myListings;
 
-  // 인벤에서 판매 가능한 아이템 (포션 제외, 수량 1이상)
+  // 인벤에서 판매 가능한 아이템 (포션/재료 제외, 기본 등급 제외)
   const sellable = G.inv.filter(it =>
-    it.type !== 'pot' && it.qty >= 1 && it.grade && it.grade !== '기본'
+    it.type !== 'pot' && it.type !== 'mat' && it.qty >= 1 && it.grade && it.grade !== '기본'
   );
 
   let html = `
@@ -8477,7 +8477,9 @@ function _renderAucSell() {
 
   html += `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">인벤토리에서 판매할 아이템을 선택하세요.</div>`;
 
-  sellable.forEach((it, idx) => {
+  // ── _id를 키로 사용 — 등록 후 인벤 변경 시 idx 불일치 방지 ──
+  sellable.forEach((it) => {
+    const uid = String(it._id ?? (it.n + it.grade)); // 고유 식별자
     const gc = _aucGC(it.grade);
     let statHtml='';
     if(it.atk)      statHtml+=`ATK+${it.atk} `;
@@ -8498,11 +8500,11 @@ function _renderAucSell() {
         </div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
-        <input id="auc-price-${idx}" type="number" min="1" placeholder="판매 가격 (G)"
+        <input id="auc-price-${uid}" type="number" min="1" placeholder="판매 가격 (G)"
           style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(52,211,153,.25);
           border-radius:6px;padding:6px 10px;font-size:11px;color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;outline:none;"
           oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-        <button onclick="aucRegister(${idx})"
+        <button onclick="aucRegister('${uid}')"
           style="background:linear-gradient(135deg,#059669,#047857);border:1px solid #34d399;
           color:#fff;padding:6px 14px;border-radius:7px;font-size:10px;
           font-family:'Orbitron',sans-serif;cursor:pointer;white-space:nowrap;">등록</button>
@@ -8511,47 +8513,50 @@ function _renderAucSell() {
   });
 
   el.innerHTML = html;
-  el._sellable = sellable; // 참조 저장
 }
 
-async function aucRegister(idx) {
-  const el = document.getElementById('gw-aucbody');
-  const sellable = G.inv.filter(it =>
-    it.type !== 'pot' && it.qty >= 1 && it.grade && it.grade !== '기본'
-  );
-  const it = sellable[idx];
+async function aucRegister(uid) {
+  // ── _id 기반으로 아이템 탐색 — idx 불일치 버그 완전 방지 ──
+  const it = G.inv.find(item => {
+    const itemUid = String(item._id ?? (item.n + item.grade));
+    return itemUid === String(uid) && item.type !== 'pot' && item.type !== 'mat' && item.qty >= 1 && item.grade && item.grade !== '기본';
+  });
   if(!it) { gwT('아이템을 찾을 수 없습니다.'); return; }
 
-  const priceEl = document.getElementById('auc-price-'+idx);
+  const priceEl = document.getElementById('auc-price-'+uid);
   const price = parseInt(priceEl?.value||'0');
   if(!price || price < 1) { gwT('판매 가격을 입력해주세요.'); return; }
+  if(price > 999999999) { gwT('최대 판매가는 999,999,999G 입니다.'); return; }
 
   const myName = gwUN();
-  const myListings = _aucItems.filter(i=>i.seller===myName).length;
-  if(myListings >= AUC_MAX_LISTINGS) { gwT(`최대 ${AUC_MAX_LISTINGS}개까지 등록 가능합니다.`); return; }
-
+  // Firebase에서 현재 내 등록 수 재확인
   const ref = _aucRef('items');
   if(!ref) { gwT('Firebase 연결 없음'); return; }
 
-  // 아이템 데이터 구성 (인벤 스탯 포함)
+  const currentSnap = await ref.get().catch(()=>null);
+  let currentItems = [];
+  if(currentSnap && currentSnap.exists()) currentSnap.forEach(ch=>currentItems.push({key:ch.key,...ch.val()}));
+  const myListings = currentItems.filter(i=>i.seller===myName).length;
+  if(myListings >= AUC_MAX_LISTINGS) { gwT(`최대 ${AUC_MAX_LISTINGS}개까지 등록 가능합니다.`); return; }
+
+  // 아이템 데이터 구성
   const listing = {
     seller: myName, price, regAt: Date.now(),
     n: it.n, e: it.e, type: it.type, grade: it.grade,
     slot: it.slot||null, enh: it.enh||0,
   };
-  // 스탯 필드 복사
   ['atk','def','spd','critRate','critDmg','expBonus','relicId','subType','ringType','jobType'].forEach(k=>{
     if(it[k] !== undefined) listing[k]=it[k];
   });
 
   try {
     await ref.push(listing);
-    // 인벤에서 제거 (수량 1 감소)
+    // 인벤에서 제거
     it.qty--;
     if(it.qty<=0) G.inv.splice(G.inv.indexOf(it),1);
     saveG();
     gwT(`✅ [${it.n}] 경매장에 ${price.toLocaleString()}G로 등록 완료!`);
-    // 목록 갱신 후 탭 유지
+    // _aucItems 갱신 후 내 판매 탭으로 이동
     const snap = await ref.get().catch(()=>null);
     _aucItems = [];
     if(snap && snap.exists()) snap.forEach(ch=>_aucItems.push({key:ch.key,...ch.val()}));
