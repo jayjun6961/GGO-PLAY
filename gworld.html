@@ -751,10 +751,19 @@
 
 <!-- 천공의 탑 패널 -->
 <div class="gw-pov" id="gw-ptower" onclick="if(event.target===this)closeP('gw-ptower')">
-  <div class="gw-pbox" style="width:min(440px,96vw);max-height:88vh;display:flex;flex-direction:column;">
+  <div class="gw-pbox" style="width:min(440px,96vw);max-height:92vh;display:flex;flex-direction:column;">
     <div class="gw-phdr" style="background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(245,158,11,.06));border-bottom:1px solid rgba(251,191,36,.25);">
       <div class="gw-pttl" style="color:#fbbf24;">🗼 천공의 탑</div>
       <button class="gw-px" onclick="closeP('gw-ptower')">✕</button>
+    </div>
+    <!-- 탭 -->
+    <div style="display:flex;gap:4px;padding:8px 12px 0;background:rgba(5,3,12,.97);">
+      <button id="tower-tab-info" onclick="towerTab('info')"
+        style="flex:1;padding:6px;border-radius:8px 8px 0 0;font-size:11px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;border:none;
+               background:rgba(251,191,36,.2);color:#fbbf24;border-bottom:2px solid #fbbf24;">🗼 도전</button>
+      <button id="tower-tab-rank" onclick="towerTab('rank')"
+        style="flex:1;padding:6px;border-radius:8px 8px 0 0;font-size:11px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;border:none;
+               background:rgba(251,191,36,.06);color:#64748b;border-bottom:2px solid transparent;">🏆 순위</button>
     </div>
     <div class="gw-pbdy" id="gw-towerbody" style="padding:12px;"></div>
   </div>
@@ -2901,7 +2910,7 @@ function renderP(id){
   if(id==='gw-pdungeon') renderDungeonSelect();
   if(id==='gw-pdojo')    renderDojoEnter();
   if(id==='gw-ppvp')     pvpTab('battle');
-  if(id==='gw-ptower')   renderTowerPanel();
+  if(id==='gw-ptower')   { towerTab('info'); }
   if(id==='gw-prelic')   renderRelicPanel();
   if(id==='gw-prdun')    renderRelicDungeonPanel();
   if(id==='gw-plegion')  renderLegionPanel();
@@ -6488,6 +6497,25 @@ function getTowerCleared() {
 }
 function saveTowerCleared(set) {
   localStorage.setItem(_towerClaimKey(), JSON.stringify([...set]));
+  // Firebase 순위 동기화
+  _towerUploadRank(set);
+}
+function _towerUploadRank(set) {
+  if(!window._gwDB) return;
+  const username = gwUN();
+  if(!username || username === '_g') return;
+  const maxFloor = set.size === 0 ? 0 : Math.max(...[...set]);
+  if(maxFloor <= 0) return;
+  const weekKey = wbWeekKey();
+  // 기존 기록보다 높을 때만 업데이트 (먼저 도달한 사람 우선: timestamp 보존)
+  const ref = window._gwDB.ref('tower_rank/' + weekKey + '/' + username);
+  ref.get().then(snap => {
+    const cur = snap && snap.exists() ? snap.val() : null;
+    if(!cur || maxFloor > (cur.floor||0)) {
+      ref.set({ floor: maxFloor, ts: Date.now(), user: username, job: G.job, lv: G.lv })
+        .catch(e => console.warn('[탑순위] 업로드 실패:', e));
+    }
+  }).catch(()=>{});
 }
 function getTowerMaxFloor() {
   const cleared = getTowerCleared();
@@ -8759,6 +8787,213 @@ async function aucCollectPayout() {
 // ════════════════════════════════════════════════════════
 //  경매장 시스템 끝
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  천공의 탑 순위 시스템
+// ════════════════════════════════════════════════════════
+
+const TOWER_RANK_REWARDS = [
+  { rank:1,  alch:100 },
+  { rank:2,  alch:70  },
+  { rank:3,  alch:50  },
+  { rank:10, alch:30  },  // 4~10위
+  { rank:Infinity, alch:10 }, // 11위 이하
+];
+
+function _towerRankRef(key) {
+  return window._gwDB ? window._gwDB.ref('tower_rank/' + key) : null;
+}
+
+// 이번 주 보상 수령 여부 키
+function _towerRankClaimKey() {
+  return 'gwo_tower_rank_claim_' + wbWeekKey() + '_' + gwUN();
+}
+// 지난 주 보상 수령 여부 키
+function _towerRankLastClaimKey() {
+  return 'gwo_tower_rank_claim_' + wbLastWeekKey() + '_' + gwUN();
+}
+
+// 순위 보상 연금석 계산
+function _towerRankReward(rank) {
+  for(const r of TOWER_RANK_REWARDS) {
+    if(rank <= r.rank) return r.alch;
+  }
+  return 10;
+}
+
+// ── 탭 전환 ──
+let _towerTab = 'info';
+function towerTab(tab) {
+  _towerTab = tab;
+  ['info','rank'].forEach(t => {
+    const btn = document.getElementById('tower-tab-'+t);
+    if(!btn) return;
+    const active = t === tab;
+    btn.style.background   = active ? 'rgba(251,191,36,.2)'  : 'rgba(251,191,36,.06)';
+    btn.style.color        = active ? '#fbbf24'               : '#64748b';
+    btn.style.borderBottom = active ? '2px solid #fbbf24'     : '2px solid transparent';
+  });
+  if(tab === 'info') renderTowerPanel();
+  else               renderTowerRank();
+}
+
+// ── 순위 패널 렌더 ──
+async function renderTowerRank() {
+  const el = document.getElementById('gw-towerbody'); if(!el) return;
+  el.innerHTML = `<div style="text-align:center;padding:20px;color:#64748b;font-size:11px;font-family:'Noto Sans KR',sans-serif;">🔄 순위 불러오는 중...</div>`;
+
+  const myName  = gwUN();
+  const weekKey = wbWeekKey();
+  const lastKey = wbLastWeekKey();
+
+  // 이번 주 순위 조회
+  const ref = _towerRankRef(weekKey);
+  if(!ref) {
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:#475569;font-size:11px;">Firebase 연결 없음</div>`;
+    return;
+  }
+
+  let rankData = [];
+  try {
+    const snap = await ref.get();
+    if(snap && snap.exists()) {
+      snap.forEach(ch => { rankData.push(ch.val()); });
+    }
+  } catch(e) { console.warn('[탑순위]', e); }
+
+  // 정렬: floor 내림차순, 같으면 ts 오름차순 (먼저 도달한 사람 우선)
+  rankData.sort((a,b) => b.floor - a.floor || a.ts - b.ts);
+
+  const myRankIdx = rankData.findIndex(r => r.user === myName);
+  const myRank    = myRankIdx >= 0 ? myRankIdx + 1 : null;
+  const myData    = myRankIdx >= 0 ? rankData[myRankIdx] : null;
+
+  // 지난 주 보상 수령 가능 여부
+  const lastClaimed  = localStorage.getItem(_towerRankLastClaimKey());
+  const canLastClaim = !lastClaimed;
+  let lastRankData = [];
+  let lastMyRank   = null;
+  let lastAlch     = 0;
+  if(canLastClaim) {
+    try {
+      const lastSnap = await _towerRankRef(lastKey)?.get();
+      if(lastSnap && lastSnap.exists()) {
+        lastSnap.forEach(ch => { lastRankData.push(ch.val()); });
+        lastRankData.sort((a,b) => b.floor - a.floor || a.ts - b.ts);
+        const lastIdx = lastRankData.findIndex(r => r.user === myName);
+        if(lastIdx >= 0) {
+          lastMyRank = lastIdx + 1;
+          lastAlch   = _towerRankReward(lastMyRank);
+        }
+      }
+    } catch(e) {}
+  }
+
+  const JOB_EMO = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+  const MEDAL   = ['🥇','🥈','🥉'];
+
+  let html = '';
+
+  // 지난 주 보상 수령 섹션
+  if(canLastClaim && lastMyRank !== null) {
+    html += `
+    <div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);
+      border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:11px;color:#34d399;font-family:'Orbitron',sans-serif;font-weight:700;">🎁 지난 주 보상 수령 가능</div>
+        <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-top:3px;">
+          지난 주 <strong style="color:#fbbf24;">${lastMyRank}위</strong> · 연금석 <strong style="color:#34d399;">${lastAlch}개</strong>
+        </div>
+      </div>
+      <button onclick="towerRankClaim(${lastAlch})"
+        style="background:linear-gradient(135deg,#059669,#047857);border:1px solid #34d399;
+        color:#fff;padding:7px 14px;border-radius:8px;font-size:10px;
+        font-family:'Orbitron',sans-serif;cursor:pointer;font-weight:700;">수령</button>
+    </div>`;
+  } else if(canLastClaim && lastMyRank === null && lastRankData.length > 0) {
+    // 지난 주 기록 없음
+    html += `<div style="font-size:9px;color:#475569;text-align:center;margin-bottom:8px;font-family:'Noto Sans KR',sans-serif;">지난 주 탑 기록이 없어 보상이 없습니다.</div>`;
+  }
+
+  // 내 현황
+  html += `
+    <div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);
+      border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;">
+        📊 이번 주 내 순위
+      </div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:12px;color:#fbbf24;font-weight:700;">
+        ${myRank ? `${myRank}위 · ${myData?.floor||0}층` : '기록 없음'}
+        ${myRank ? `<span style="font-size:9px;color:#64748b;margin-left:5px;">(보상: 연금석 ${_towerRankReward(myRank)}개)</span>` : ''}
+      </div>
+    </div>`;
+
+  // 주간 초기화 안내
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const daysLeft = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+  html += `<div style="font-size:9px;color:#475569;text-align:right;font-family:'Orbitron',sans-serif;margin-bottom:8px;">
+    🔄 주간 초기화: ${daysLeft}일 후 (월요일 00시)
+  </div>`;
+
+  // 순위표
+  html += `<div style="font-size:10px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:6px;">
+    🏆 이번 주 순위 (${rankData.length}명)
+  </div>`;
+
+  if(rankData.length === 0) {
+    html += `<div style="text-align:center;padding:30px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
+      아직 이번 주 기록이 없습니다.</div>`;
+  } else {
+    rankData.slice(0, 50).forEach((r, idx) => {
+      const rank    = idx + 1;
+      const isMe    = r.user === myName;
+      const medal   = MEDAL[idx] || '';
+      const reward  = _towerRankReward(rank);
+      const gc      = rank <= 3 ? ['#fbbf24','#94a3b8','#c97c3a'][rank-1] : (isMe ? '#34d399' : '#475569');
+
+      html += `
+      <div style="background:${isMe?'rgba(52,211,153,.07)':rank<=3?'rgba(251,191,36,.05)':'rgba(255,255,255,.02)'};
+        border:1px solid ${isMe?'rgba(52,211,153,.3)':rank<=3?'rgba(251,191,36,.15)':'rgba(255,255,255,.05)'};
+        border-radius:8px;padding:8px 12px;margin-bottom:4px;
+        display:flex;align-items:center;gap:8px;">
+        <div style="width:28px;text-align:center;font-family:'Orbitron',sans-serif;font-size:${rank<=3?'16':'11'}px;
+          color:${gc};font-weight:700;flex-shrink:0;">${medal||rank}</div>
+        <div style="font-size:10px;">${JOB_EMO[r.job]||'👤'}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;font-weight:700;color:${isMe?'#34d399':'#e2e8f0'};font-family:'Noto Sans KR',sans-serif;">
+            ${r.user}${isMe?' <span style="color:#34d399;font-size:9px;">▶ 나</span>':''}
+          </div>
+          <div style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;">Lv.${r.lv||'?'}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:12px;font-weight:700;color:#fbbf24;font-family:'Orbitron',sans-serif;">${r.floor}층</div>
+          <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;">🧪${reward}개</div>
+        </div>
+      </div>`;
+    });
+    if(rankData.length > 50) {
+      html += `<div style="text-align:center;font-size:9px;color:#475569;padding:8px;font-family:'Noto Sans KR',sans-serif;">상위 50위까지 표시</div>`;
+    }
+  }
+
+  el.innerHTML = html;
+}
+
+// ── 보상 수령 ──
+function towerRankClaim(alchAmt) {
+  localStorage.setItem(_towerRankLastClaimKey(), '1');
+  const alchEx = G.inv.find(i=>i.n==='연금석');
+  if(alchEx) alchEx.qty=(alchEx.qty||0)+alchAmt;
+  else G.inv.push({n:'연금석',e:'🧪',type:'mat',val:100,grade:'희귀',sellPrice:100,qty:alchAmt,_id:Date.now()});
+  saveG(); hud();
+  gwT(`🧪 탑 순위 보상: 연금석 ×${alchAmt} 수령!`);
+  renderTowerRank();
+}
+
+// ════════════════════════════════════════════════════════
+//  천공의 탑 순위 시스템 끝
+// ════════════════════════════════════════════════════════
+
 
 
 
