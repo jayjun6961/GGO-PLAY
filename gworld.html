@@ -3609,19 +3609,21 @@ function quickPot(){const p=G.inv.find(i=>i.type==='pot'&&i.eff==='hp');if(!p){g
 // ════ 포션 상점 시스템 ════
 const POTIONS = [
   // HP 포션 3종
-  {id:'hp_s', name:'소형 HP 포션', e:'🧪', eff:'hp', val:30,  price:30,  grade:'일반'},
-  {id:'hp_m', name:'중형 HP 포션', e:'💊', eff:'hp', val:80,  price:80,  grade:'희귀'},
-  {id:'hp_l', name:'대형 HP 포션', e:'🔴', eff:'hp', val:180, price:180, grade:'에픽'},
+  {id:'hp_s', name:'소형 HP 포션', e:'🧪', eff:'hp', val:30,  price:30,    grade:'일반'},
+  {id:'hp_m', name:'중형 HP 포션', e:'💊', eff:'hp', val:80,  price:80,    grade:'희귀'},
+  {id:'hp_l', name:'대형 HP 포션', e:'🔴', eff:'hp', val:180, price:180,   grade:'에픽'},
+  {id:'hp_x', name:'HP 엘릭서',   e:'❤️', eff:'hp', val:999, price:20000, grade:'전설'},
   // MP 포션 3종
-  {id:'mp_s', name:'소형 MP 포션', e:'💧', eff:'mp', val:20,  price:20,  grade:'일반'},
-  {id:'mp_m', name:'중형 MP 포션', e:'🫧', eff:'mp', val:50,  price:50,  grade:'희귀'},
-  {id:'mp_l', name:'대형 MP 포션', e:'🔵', eff:'mp', val:120, price:120, grade:'에픽'},
+  {id:'mp_s', name:'소형 MP 포션', e:'💧', eff:'mp', val:20,  price:20,    grade:'일반'},
+  {id:'mp_m', name:'중형 MP 포션', e:'🫧', eff:'mp', val:50,  price:50,    grade:'희귀'},
+  {id:'mp_l', name:'대형 MP 포션', e:'🔵', eff:'mp', val:120, price:120,   grade:'에픽'},
+  {id:'mp_x', name:'MP 엘릭서',   e:'💙', eff:'mp', val:999, price:10000, grade:'전설'},
 ];
 
 function renderShop() {
   const el = document.getElementById('gw-shopbody');
   if(!el) return;
-  const GRADE_COL = {일반:'#94a3b8', 희귀:'#34d399', 에픽:'#a855f7'};
+  const GRADE_COL = {일반:'#94a3b8', 희귀:'#34d399', 에픽:'#a855f7', 전설:'#fbbf24'};
   let html = `<div style="font-size:10px;color:var(--text-dim);margin-bottom:10px;font-family:'Orbitron',sans-serif">💰 보유 골드: <span style="color:#fbbf24">${G.gold}G</span></div>`;
   // HP 포션 섹션
   html += `<div style="font-size:10px;color:#f87171;font-family:'Orbitron',sans-serif;margin-bottom:6px;letter-spacing:1px">💚 HP 포션</div>`;
