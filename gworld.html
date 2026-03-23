@@ -7688,7 +7688,7 @@ function rdunBossDead() {
   droppedItems.push({n:'연금석',e:'🧪',grade:'희귀',qty:alchemyAmt,_isMat:true});
 
   // 유물 드롭 (5% 확률, 일반 등급)
-  if(Math.random() < 0.05 && rdun.relics.length > 0) {
+  if(Math.random() < 0.10 && rdun.relics.length > 0) {
     const relicId = rdun.relics[Math.floor(Math.random()*rdun.relics.length)];
     const rd = RELIC_DEFS.find(x=>x.id===relicId);
     if(rd) {
@@ -8084,9 +8084,13 @@ function legionBossDead() {
     {n:'연금석',e:'🧪',grade:'희귀',qty:alchAmt, _isMat:true},
   ];
 
-  // 장비 드롭 (무기/방패/갑옷/신발/장갑 각 독립 확률, 35%)
+  // 장비 드롭 (무기/방패/갑옷/신발/장갑 각 독립 확률)
   const LEGION_SLOTS=['weapon','shield','armor','boots','gloves'];
-  const GRADE_THRESH=[0.40,0.70,0.85,0.95,1.00]; // 레어/에픽/전설/신화/레전드리 누적
+  // 발칸: 레어40% 에픽30% 전설15% 신화10% 레전드리5%
+  // 도미니온: 레어30% 에픽25% 전설20% 신화15% 레전드리10%
+  const GRADE_THRESH = boss.id==='dominion'
+    ? [0.30,0.55,0.75,0.90,1.00]
+    : [0.40,0.70,0.85,0.95,1.00];
   const GRADES=['레어','에픽','전설','신화','레전드리'];
   const JOB_MAP={warrior:['warrior','paladin'],archer:['archer'],mage:['mage'],rogue:['rogue'],paladin:['paladin','warrior']};
   const allowed=JOB_MAP[G.job]||[];
