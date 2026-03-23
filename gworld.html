@@ -6557,8 +6557,8 @@ function towerPickGrade(floor) {
 function towerStoneAmt(floor) {
   if(floor <= 50)  return 10  + Math.floor(Math.random()*41);   // 10~50
   if(floor <= 70)  return 30  + Math.floor(Math.random()*71);   // 30~100
-  if(floor <= 90)  return 50  + Math.floor(Math.random()*101);  // 50~150
-  return 100 + Math.floor(Math.random()*101);                    // 100~200
+  if(floor <= 90)  return 50  + Math.floor(Math.random()*51);   // 50~100
+  return 70  + Math.floor(Math.random()*31);                     // 70~100
 }
 
 // ── 층별 골드/경험치 보상 ──
