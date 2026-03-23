@@ -2885,6 +2885,8 @@ function drawSkBtns(){
   }).join('');
 }
 setInterval(()=>{if(G.sc==='battle')drawSkBtns();},500);
+setInterval(()=>{if(G.sc==='rdun')rdunSkills();},500);
+setInterval(()=>{if(G.sc==='legion')legionSkills();},500);
 
 function floatDmg(val,col){
   const sc=document.getElementById('gw-bsc');if(!sc)return;
@@ -7843,11 +7845,18 @@ function rdunSkills() {
     const lv=G.sk[sk.id]?.lv||0;
     const cdLeft=Math.max(0,sk.cd-(now-(G.sk[sk.id]?.t||0))/1000);
     const ready=cdLeft<=0&&G.mp>=sk.mp;
+    const onCd=cdLeft>0;
     return `<button onclick="useRdunSkill('${sk.id}')"
-      style="padding:5px 9px;border-radius:8px;font-size:9px;font-family:'Orbitron',sans-serif;cursor:pointer;
+      style="position:relative;overflow:hidden;padding:5px 9px;border-radius:8px;font-size:9px;
+        font-family:'Orbitron',sans-serif;cursor:pointer;
         background:${ready?'linear-gradient(135deg,#7c3aed,#5b21b6)':'rgba(71,85,105,.3)'};
         border:1px solid ${ready?'#a855f7':'rgba(71,85,105,.5)'};color:${ready?'#fff':'#475569'};">
-      ${sk.name}${lv>0?` +${lv}`:''}<br><span style="font-size:8px">${sk.mp}MP${cdLeft>0?' '+cdLeft.toFixed(0)+'s':''}</span>
+      ${sk.name}${lv>0?` +${lv}`:''}<br>
+      <span style="font-size:8px">${sk.mp}MP</span>
+      ${onCd?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.6);border-radius:8px;
+        display:flex;align-items:center;justify-content:center;
+        font-size:11px;font-weight:700;color:#fbbf24;font-family:'Orbitron',sans-serif;
+        pointer-events:none;">${cdLeft.toFixed(1)}s</div>`:''}
     </button>`;
   }).join('');
 }
@@ -8258,11 +8267,18 @@ function legionSkills(){
     const lv=G.sk[sk.id]?.lv||0;
     const cdLeft=Math.max(0,sk.cd-(now-(G.sk[sk.id]?.t||0))/1000);
     const ready=cdLeft<=0&&G.mp>=sk.mp;
+    const onCd=cdLeft>0;
     return `<button onclick="useLegionSkill('${sk.id}')"
-      style="padding:5px 9px;border-radius:8px;font-size:9px;font-family:'Orbitron',sans-serif;cursor:pointer;
+      style="position:relative;overflow:hidden;padding:5px 9px;border-radius:8px;font-size:9px;
+        font-family:'Orbitron',sans-serif;cursor:pointer;
         background:${ready?'linear-gradient(135deg,#dc2626,#991b1b)':'rgba(71,85,105,.3)'};
         border:1px solid ${ready?'#f87171':'rgba(71,85,105,.5)'};color:${ready?'#fff':'#475569'};">
-      ${sk.name}${lv>0?` +${lv}`:''}<br><span style="font-size:8px">${sk.mp}MP${cdLeft>0?' '+cdLeft.toFixed(0)+'s':''}</span>
+      ${sk.name}${lv>0?` +${lv}`:''}<br>
+      <span style="font-size:8px">${sk.mp}MP</span>
+      ${onCd?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.6);border-radius:8px;
+        display:flex;align-items:center;justify-content:center;
+        font-size:11px;font-weight:700;color:#fbbf24;font-family:'Orbitron',sans-serif;
+        pointer-events:none;">${cdLeft.toFixed(1)}s</div>`:''}
     </button>`;
   }).join('');
 }
