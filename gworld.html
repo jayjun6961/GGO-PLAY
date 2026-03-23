@@ -7639,7 +7639,7 @@ function renderRelicDungeonPanel() {
     <div style="padding:8px 12px;background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.15);border-radius:8px;">
       <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;line-height:1.8;">
         🎁 <span style="color:#34d399">기본 보상:</span> 대량 골드 + 대량 경험치 + 연금석 1~10개<br>
-        🔮 <span style="color:#c084fc">유물 드롭:</span> ${rdun.relics.map(rid=>{const rd=RELIC_DEFS.find(x=>x.id===rid);return rd?rd.name:'';}).filter(Boolean).join(', ')} (5% 확률 · 일반 등급)
+        🔮 <span style="color:#c084fc">유물 드롭:</span> ${rdun.relics.map(rid=>{const rd=RELIC_DEFS.find(x=>x.id===rid);return rd?rd.name:'';}).filter(Boolean).join(', ')} (10% 확률 · 일반 등급)
       </div>
     </div>`;
 
@@ -7772,7 +7772,7 @@ function rdunBossDead() {
   else G.inv.push({n:'연금석',e:'🧪',type:'mat',val:100,grade:'희귀',sellPrice:100,qty:alchemyAmt,_id:Date.now()-5});
   droppedItems.push({n:'연금석',e:'🧪',grade:'희귀',qty:alchemyAmt,_isMat:true});
 
-  // 유물 드롭 (5% 확률, 일반 등급)
+  // 유물 드롭 (10% 확률, 일반 등급)
   if(Math.random() < 0.10 && rdun.relics.length > 0) {
     const relicId = rdun.relics[Math.floor(Math.random()*rdun.relics.length)];
     const rd = RELIC_DEFS.find(x=>x.id===relicId);
@@ -7995,7 +7995,9 @@ function renderLegionPanel() {
       <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">
         🎁 장비 드롭:
         ${['레어','에픽','전설','신화','레전드리'].map((g,i)=>{
-          const pcts=['40%','30%','15%','10%','5%'];
+          const pcts = boss.id==='dominion'
+            ? ['30%','25%','20%','15%','10%']
+            : ['40%','30%','15%','10%','5%'];
           return `<span style="color:${GC[g]}">${g} ${pcts[i]}</span>`;
         }).join(' / ')}
       </div>
