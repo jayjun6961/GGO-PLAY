@@ -1815,33 +1815,33 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
       pattern:'shrink',    // 퍼펙트 구간 점점 좁아짐 + 갑자기 가속
     },
     {
-      id:'storm_shark',    name:'폭풍 상어',   emoji:'🦈', hp:700,  reward:30000,  perfectDmg:40,  maxClicks:30,
+      id:'storm_shark',    name:'폭풍 상어',   emoji:'🦈', hp:700,  reward:30000,  perfectDmg:40,  maxClicks:50,
       unlockMap:'deep',    color:'#a78bfa',
       desc:'폭풍을 일으키며 질주하는 상어',
       pattern:'chaos',     // 속도 랜덤 급변
     },
     {
-      id:'phantom_jelly',  name:'환영 해파리', emoji:'👻', hp:900,  reward:50000,  perfectDmg:50,  maxClicks:30,
+      id:'phantom_jelly',  name:'환영 해파리', emoji:'👻', hp:900,  reward:50000,  perfectDmg:50,  maxClicks:50,
       unlockMap:'volcano', color:'#f0abfc',
       desc:'가짜 퍼펙트를 만들어 낚시꾼을 현혹',
       pattern:'fake',      // 가짜 퍼펙트 구간
     },
     {
-      id:'flame_eel',      name:'화염 장어',   emoji:'🔥', hp:1000, reward:70000,  perfectDmg:60,  maxClicks:15,
+      id:'flame_eel',      name:'화염 장어',   emoji:'🔥', hp:1200, reward:70000,  perfectDmg:50,  maxClicks:60,
       unlockMap:'sky',     color:'#f97316',
-      desc:'불꽃을 뿜으며 공격하는 장어',
+      desc:'분노할수록 더 강해지는 장어. 실수할수록 난이도 급상승',
       pattern:'rage',      // 퍼펙트 성공 시 2배, 실패 시 난이도 상승
     },
     {
-      id:'ice_turtle',     name:'빙결 거북',   emoji:'🐢', hp:1500, reward:100000, perfectDmg:80,  maxClicks:30,
+      id:'ice_turtle',     name:'빙결 거북',   emoji:'🐢', hp:2000, reward:100000, perfectDmg:60,  maxClicks:70,
       unlockMap:'space',   color:'#38bdf8',
-      desc:'얼음 갑옷으로 무장한 고대 거북',
+      desc:'빈번한 무적 + 좁은 퍼펙트 구간. 타이밍이 생명',
       pattern:'invincible', // 일정 시간 무적
     },
     {
-      id:'thunder_nemo',   name:'번개 니모',   emoji:'🐠', hp:2000, reward:300000, perfectDmg:100, maxClicks:30,
+      id:'thunder_nemo',   name:'번개 니모',   emoji:'🐠', hp:3000, reward:300000, perfectDmg:70,  maxClicks:80,
       unlockMap:'galaxy',  color:'#fbbf24',
-      desc:'번개처럼 빠르고 예측불가한 물고기',
+      desc:'극단적 위치 변화 + 초고속 + 가짜 구간. 최후의 보스',
       pattern:'thunder',   // 속도변화 + 페이크 타이밍
     },
   ];
@@ -2103,36 +2103,63 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
       }
     } else if(boss.pattern === 'rage') {
       const rl = _boss.rageLevel||0;
-      pzWidth = Math.max(5, 18 - rl*2);
-      pzStart = 20 + Math.random()*50;
-      _bossSpeed = 1.3 + rl*0.2 + Math.random()*0.8;
+      // 퍼펙트 실패마다 구간 빠르게 축소 + 속도 급증
+      pzWidth = Math.max(3, 12 - rl*1.5);
+      pzStart = 15 + Math.random()*60;
+      _bossSpeed = 1.8 + rl*0.4 + Math.random()*1.2;
+      // rage 5이상: 가짜 구간도 추가 등장
+      if(rl >= 5) {
+        const fakeEl = document.getElementById('boss-fake-zone');
+        if(fakeEl && Math.random()<0.5) {
+          fakeEl.style.display='block';
+          fakeEl.style.left=(Math.random()*65)+'%';
+          fakeEl.style.width=(6+Math.random()*8)+'%';
+        }
+      }
     } else if(boss.pattern === 'invincible') {
-      pzWidth = 8 + Math.random()*8;
-      pzStart = 25 + Math.random()*45;
-      _bossSpeed = 0.7 + Math.random()*0.6; // 느림
-      // 5초마다 무적 발동
+      // 퍼펙트 구간 매우 좁음, 빠르게 변하는 위치, 무적 자주 발동
+      pzWidth = 4 + Math.random()*5;   // 4~9% (매우 좁음)
+      pzStart = 10 + Math.random()*72; // 넓은 범위에서 랜덤
+      _bossSpeed = 1.4 + Math.random()*1.2; // 중간 속도 (예측 어려움)
+      // 5초마다 무적 발동 (무적 4초, 해제 후 1초)
       if(!phase.invTimer) {
         phase.invTimer = setInterval(()=>{
           if(_boss.dead||_boss.failed){ clearInterval(phase.invTimer); return; }
           _boss.invincible = true;
           const ov = document.getElementById('boss-invincible-overlay');
           if(ov) ov.style.display='flex';
-          bossLog('<span style="color:#38bdf8">🛡️ 빙결 거북이 무적 상태가 됩니다!</span>');
+          bossLog('<span style="color:#38bdf8">🛡️ 빙결! 4초간 무적 상태!</span>');
           setTimeout(()=>{
             _boss.invincible=false;
             const ov2=document.getElementById('boss-invincible-overlay');
             if(ov2) ov2.style.display='none';
-          }, 3000);
-        }, 7000);
+            bossLog('<span style="color:#34d399">❄️ 무적 해제! 지금 공격하세요!</span>');
+          }, 4000);
+        }, 6000); // 6초마다 (무적4초+기회2초)
       }
-    } else { // thunder
-      pzWidth = 10 + Math.random()*8;
-      pzStart = 15 + Math.random()*60;
-      // 랜덤 가속/감속 + 가짜 구간
-      _bossSpeed = 1.0 + Math.random()*3.0;
-      if(Math.random()<0.5){
-        const fakeEl=document.getElementById('boss-fake-zone');
-        if(fakeEl){ fakeEl.style.display='block'; fakeEl.style.left=(Math.random()*70)+'%'; fakeEl.style.width=(6+Math.random()*8)+'%'; }
+    } else { // thunder (번개 니모 - 최상위 보스)
+      const hits = phase.hits||0;
+      // 구간: 좁고 극단 위치에 자주 배치
+      pzWidth = 4 + Math.random()*6;   // 4~10% (매우 좁음)
+      pzStart = Math.random()<0.3
+        ? 5 + Math.random()*10          // 30% 확률로 극좌
+        : Math.random()<0.4
+          ? 80 + Math.random()*10       // 40% 확률로 극우
+          : 30 + Math.random()*30;      // 30% 확률로 중앙
+      // 속도: 공격 많을수록 더 빨라짐
+      const thunderBase = 1.5 + hits * 0.08;
+      _bossSpeed = Math.random()<0.25
+        ? 4.5 + Math.random()*2.5       // 25% 확률 초고속
+        : thunderBase + Math.random()*2.0;
+      _bossSpeed = Math.min(_bossSpeed, 6.5); // 상한선
+      // 가짜 구간 70% 확률로 등장
+      const fakeEl=document.getElementById('boss-fake-zone');
+      if(fakeEl){
+        if(Math.random()<0.7){
+          fakeEl.style.display='block';
+          fakeEl.style.left=(Math.random()*70)+'%';
+          fakeEl.style.width=(5+Math.random()*10)+'%';
+        } else { fakeEl.style.display='none'; }
       }
     }
 
