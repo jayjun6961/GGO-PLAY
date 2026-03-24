@@ -683,6 +683,13 @@
         장착 미끼: <span id="fshop-bait-status" style="color:#e2e8f0;font-weight:600;">없음</span>
       </div>
       <div class="fshop-grid" id="fshop-bait-grid"></div>
+
+      <!-- 아이템 섹션 -->
+      <div class="fshop-section-label" style="margin-top:20px;">🎒 아이템</div>
+      <div style="margin-bottom:6px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text-dim);">
+        장착 아이템: <span id="fshop-item-status" style="color:#e2e8f0;font-weight:600;">없음</span>
+      </div>
+      <div class="fshop-grid" id="fshop-item-grid"></div>
     </div>
 
     <!-- ── 일일 퀘스트 탭 ── -->
@@ -911,6 +918,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
 
   // ── 게임 상태 ──
   let _gameState = 'idle'; // idle | casting | waiting | gauge | result
+  let _currentFish2 = null; // 자석 아이템: 2번째 물고기
   let _gaugeVal  = 0;
   let _gaugeDir  = 1;
   let _gaugeAnim = null;
@@ -988,7 +996,10 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     _perfectStart = 10 + Math.random() * (80 - _perfectWidth); // 10~80% 사이 위치
     const pz = document.getElementById('gauge-perfect-zone');
     if(pz){ pz.style.left=_perfectStart+'%'; pz.style.width=_perfectWidth+'%'; }
-    const speed = 1.2 + Math.random()*1.2; // %/frame
+    // 아이템: 레이더 → 게이지 속도 감소
+    const _equippedItem = getEquippedItem();
+    const _speedMult = (_equippedItem && _equippedItem.effect==='speed') ? _equippedItem.value : 1.0;
+    const speed = (1.2 + Math.random()*1.2) * _speedMult; // %/frame
     function animGauge(){
       _gaugeVal += _gaugeDir * speed;
       if(_gaugeVal >= 100){ _gaugeVal=100; _gaugeDir=-1; }
@@ -1018,6 +1029,20 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     // 퍼펙트/굿에 따라 가격 보정
     if(isInPerfect) _currentFish.price = Math.floor(_currentFish.price * 1.3);
     else if(!isGood) _currentFish.price = Math.floor(_currentFish.price * 0.7);
+    // 아이템: 나침반 → 판매 금액 추가 증가
+    const _cItem = getEquippedItem();
+    if(_cItem && _cItem.effect==='price') {
+      _currentFish.price = Math.floor(_currentFish.price * (1 + _cItem.value));
+    }
+    // 아이템: 자석 → 50% 확률로 물고기 2마리
+    _currentFish2 = null;
+    if(_cItem && _cItem.effect==='double' && Math.random() < _cItem.value) {
+      _currentFish2 = rollFish(_currentMap, isInPerfect);
+      if(_cItem2 && _cItem2.effect==='price') {
+        _currentFish2.price = Math.floor(_currentFish2.price * (1 + _cItem2.value));
+      }
+      _currentFish2.double = true;
+    }
     _currentFish.perfect = isInPerfect;
     _currentFish.good    = isGood;
     consumeGear(); // 낚시대/미끼 내구도 소모
@@ -1039,25 +1064,53 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     document.getElementById('catch-grade-badge').style.cssText = `color:${gi.color};background:${gi.bg};border-color:${gi.border};`;
     document.getElementById('catch-size-badge').textContent = fish.sizeLabel;
     document.getElementById('catch-size-badge').style.cssText = 'color:var(--text-sub);background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12);';
-    document.getElementById('catch-price').textContent = fish.price.toLocaleString() + ' FP';
+    // 자석 2마리 시 합산 가격 표시
+    const totalPrice = fish.price + (_currentFish2 ? _currentFish2.price : 0);
+    document.getElementById('catch-price').textContent = totalPrice.toLocaleString() + ' FP' + (_currentFish2 ? ' (×2 🧲)' : '');
     document.getElementById('catch-size-cm').textContent = fish.sizeCm + 'cm';
     if(perfect){
       document.getElementById('catch-perfect-badge').style.display='inline-flex';
     } else {
       document.getElementById('catch-perfect-badge').style.display='none';
     }
+    // 자석 2번째 물고기 표시
+    let f2El = document.getElementById('catch-fish2');
+    if(!f2El) {
+      f2El = document.createElement('div');
+      f2El.id = 'catch-fish2';
+      f2El.style.cssText = 'margin-top:8px;padding:8px 12px;border-radius:10px;font-family:Noto Sans KR,sans-serif;font-size:12px;text-align:center;';
+      document.getElementById('catch-price').parentNode.appendChild(f2El);
+    }
+    if(_currentFish2) {
+      const gi2 = FISH_GRADE_INFO[_currentFish2.grade];
+      f2El.style.display = 'block';
+      f2El.style.background = gi2.bg;
+      f2El.style.border = `1px solid ${gi2.border}`;
+      f2El.innerHTML = `🧲 추가 획득: ${_currentFish2.emoji} <span style="color:${gi2.color};font-weight:700;">${_currentFish2.name}</span> (${_currentFish2.grade}) · ${_currentFish2.price.toLocaleString()} FP`;
+    } else {
+      f2El.style.display = 'none';
+    }
   }
 
   function sellCatch() {
     if(!_currentFish) return;
-    const mapAtSell = _currentMap; // resetToIdle 전에 맵 저장
+    const mapAtSell = _currentMap;
     addFP(_currentFish.price);
     updateStats('sell', _currentFish);
     updateQuestProgress('sell', _currentFish, mapAtSell);
+    // 자석: 2번째 물고기도 함께 판매
+    let toast = '💧 ' + _currentFish.name + ' 판매! +' + _currentFish.price.toLocaleString() + ' FP';
+    if(_currentFish2) {
+      addFP(_currentFish2.price);
+      updateStats('sell', _currentFish2);
+      updateQuestProgress('sell', _currentFish2, mapAtSell);
+      toast += `  🧲 +${_currentFish2.name} +${_currentFish2.price.toLocaleString()} FP`;
+      _currentFish2 = null;
+    }
     const _qEl = document.getElementById('fcontent-quest');
     if(_qEl && _qEl.classList.contains('active')) renderQuestTab();
     updateFPBadge();
-    showFishToast('💧 ' + _currentFish.name + ' 판매! +' + _currentFish.price.toLocaleString() + ' FP');
+    showFishToast(toast);
     resetToIdle();
   }
 
@@ -1069,15 +1122,26 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
       return;
     }
     storage.push({ ..._currentFish, id: Date.now()+Math.random(), caughtAt: new Date().toISOString() });
+    let toast = '📦 ' + _currentFish.name + ' 보관함에 저장!';
+    // 자석: 2번째 물고기도 보관
+    if(_currentFish2) {
+      if(storage.length < STORAGE_MAX) {
+        storage.push({ ..._currentFish2, id: Date.now()+Math.random()+1, caughtAt: new Date().toISOString() });
+        updateStats('keep', _currentFish2);
+        toast += `  🧲 ${_currentFish2.name}도 보관!`;
+      }
+      _currentFish2 = null;
+    }
     setFS('storage', storage);
     updateStats('keep', _currentFish);
-    showFishToast('📦 ' + _currentFish.name + ' 보관함에 저장!');
+    showFishToast(toast);
     resetToIdle();
   }
 
   function resetToIdle() {
     _gameState = 'idle';
     _currentFish = null;
+    _currentFish2 = null;
     renderFishScene();
     renderStats();
     renderDexTab();
@@ -1553,6 +1617,70 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     showFishToast('🗺️ ' + map.name + ' 이동!');
   }
 
+  function renderFishShopItems() {
+    const grid = document.getElementById('fshop-item-grid');
+    if(!grid) return;
+    const fp   = getFP();
+    const gear = getGear();
+    grid.innerHTML = ITEM_DEFS.map(item => {
+      const usesLeft   = getItemUsesLeft(item.id);
+      const isOwned    = usesLeft > 0;
+      const isEquipped = gear.item === item.id;
+      const canBuy     = fp >= item.price;
+      const gc         = '#60a5fa';
+      let effectText = '';
+      if(item.effect==='speed')  effectText = `⚡ 게이지 속도 ${Math.round((1-item.value)*100)}% 감소`;
+      if(item.effect==='price')  effectText = `💰 판매 금액 +${Math.round(item.value*100)}%`;
+      if(item.effect==='double') effectText = `🎣 2마리 낚을 확률 ${Math.round(item.value*100)}%`;
+      let btn = '';
+      if(isEquipped)   btn = `<button class="fshop-btn equipped" onclick="unequipItem()">장착 해제</button>`;
+      else if(isOwned) btn = `<button class="fshop-btn equip" onclick="equipItem('${item.id}')">장착 (${usesLeft}회)</button>`;
+      else             btn = `<button class="fshop-btn buy" onclick="buyItem('${item.id}')" ${!canBuy?'disabled':''}>💧 ${item.price.toLocaleString()} FP</button>`;
+      return `<div class="fshop-card ${isEquipped?'equipped-card':''}">
+        ${isOwned?'<div class="fshop-owned-badge">보유</div>':''}
+        <div class="fshop-card-emoji">${item.emoji}</div>
+        <div class="fshop-card-name">${item.name}</div>
+        <div class="fshop-card-grade" style="background:${gc}22;color:${gc};border:1px solid ${gc}44">아이템</div>
+        <div class="fshop-card-desc" style="color:#34d399;font-weight:600;">${effectText}</div>
+        <div class="fshop-card-desc">${item.desc.replace(/\n/g,'<br>')}</div>
+        ${btn}
+      </div>`;
+    }).join('');
+  }
+
+  function buyItem(itemId) {
+    const item = ITEM_DEFS.find(it=>it.id===itemId);
+    if(!item) return;
+    const fp = getFP();
+    if(fp < item.price){ showFishToast('💧 FP가 부족합니다!'); return; }
+    addFP(-item.price);
+    const gear = getGear();
+    if(!gear.itemUses) gear.itemUses = {};
+    gear.itemUses[item.id] = item.uses;
+    saveGear(gear);
+    showFishToast(`${item.emoji} ${item.name} 구매! (${item.uses}회 사용 가능)`);
+    renderFishShop();
+  }
+
+  function equipItem(itemId) {
+    const item = ITEM_DEFS.find(it=>it.id===itemId);
+    if(!item) return;
+    if(getItemUsesLeft(itemId) <= 0){ showFishToast('사용 횟수가 없습니다.'); return; }
+    const gear = getGear();
+    gear.item = itemId;
+    saveGear(gear);
+    showFishToast(`${item.emoji} ${item.name} 장착!`);
+    renderFishShop();
+  }
+
+  function unequipItem() {
+    const gear = getGear();
+    gear.item = null;
+    saveGear(gear);
+    showFishToast('🎒 아이템 해제');
+    renderFishShop();
+  }
+
   // ── 탭 전환 ──
   function switchFishTab(tabId) {
     document.querySelectorAll('.fish-tab').forEach(t=>t.classList.remove('active'));
@@ -1751,11 +1879,43 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     const gear = getGear();
     return ROD_DEFS.find(r=>r.id===gear.rod) || ROD_DEFS[0];
   }
+  // ── 아이템 정의 ──
+  const ITEM_DEFS = [
+    {
+      id:'item_radar',   name:'레이더',  emoji:'📡',
+      price:300000, uses:30,
+      effect:'speed',   value:0.5,   // 게이지 속도 ×0.5 (50% 감소 = 절반 속도)
+      desc:'게이지 속도 50% 감소\n퍼펙트 맞추기 쉬워짐\n30회 사용 가능'
+    },
+    {
+      id:'item_compass', name:'나침반', emoji:'🧭',
+      price:500000, uses:50,
+      effect:'price',   value:0.30,  // 판매 금액 +30%
+      desc:'물고기 판매 금액 +30%\n50회 사용 가능'
+    },
+    {
+      id:'item_magnet',  name:'자석',   emoji:'🧲',
+      price:700000, uses:70,
+      effect:'double',  value:0.50,  // 50% 확률로 2마리
+      desc:'50% 확률로 물고기 2마리 낚음\n70회 사용 가능'
+    },
+  ];
+
   function getEquippedBait() {
     const gear = getGear();
     if(!gear.bait) return null;
     return BAIT_DEFS.find(b=>b.id===gear.bait) || null;
   }
+  function getEquippedItem() {
+    const gear = getGear();
+    if(!gear.item) return null;
+    return ITEM_DEFS.find(it=>it.id===gear.item) || null;
+  }
+  function getItemUsesLeft(itemId) {
+    const gear = getGear();
+    return gear.itemUses && gear.itemUses[itemId] !== undefined ? gear.itemUses[itemId] : 0;
+  }
+
   function getRodDurability(rodId) {
     const gear = getGear();
     const rod  = ROD_DEFS.find(r=>r.id===rodId);
@@ -1814,6 +1974,22 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
         return;
       }
     }
+    if(gear.item) {
+      const curItem = getItemUsesLeft(gear.item);
+      const nextItem = Math.max(0, curItem - 1);
+      if(!gear.itemUses) gear.itemUses = {};
+      gear.itemUses[gear.item] = nextItem;
+      if(nextItem === 0) {
+        const itemId = gear.item;
+        gear.item = null;
+        delete gear.itemUses[itemId];
+        saveGear(gear);
+        showFishToast('🎒 아이템 소진! 장착이 해제됩니다.');
+        renderFishShopStatus();
+        renderFishShop();
+        return;
+      }
+    }
     saveGear(gear);
   }
 
@@ -1824,12 +2000,14 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     if(el) el.textContent = fp.toLocaleString();
     renderFishShopRods();
     renderFishShopBaits();
+    renderFishShopItems();
     renderFishShopStatus();
   }
 
   function renderFishShopStatus() {
     const rodEl  = document.getElementById('fshop-rod-status');
     const baitEl = document.getElementById('fshop-bait-status');
+    const itemEl = document.getElementById('fshop-item-status');
     const gear   = getGear();
     const rod    = getEquippedRod();
     const dur    = getRodDurability(rod.id);
@@ -1841,6 +2019,15 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
         baitEl.textContent = bait.name + ' (' + left + '회 남음)';
       } else {
         baitEl.textContent = '없음';
+      }
+    }
+    if(itemEl) {
+      const item = getEquippedItem();
+      if(item) {
+        const left = getItemUsesLeft(item.id);
+        itemEl.textContent = item.name + ' (' + left + '회 남음)';
+      } else {
+        itemEl.textContent = '없음';
       }
     }
   }
