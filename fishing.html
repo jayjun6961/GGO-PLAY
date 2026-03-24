@@ -841,21 +841,41 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   }
 
   // ── 랜덤 물고기 뽑기 ──
-  function rollFish(mapId) {
+  function rollFish(mapId, isPerfect=false) {
     const map  = MAP_DATA.find(m=>m.id===mapId) || MAP_DATA[0];
     const rod  = getEquippedRod();
     const bait = getEquippedBait();
+    const gradeOrder = ['일반','희귀','레어','에픽','전설','신화','레전더리','초월'];
 
     // 낚시대 등급 보너스: 고등급 물고기 확률 상향
     const probs = { ...map.grades };
     if(rod.gradeBonus > 0) {
-      const gradeOrder = ['일반','희귀','레어','에픽','전설','신화','레전더리','초월'];
       const mapGrades  = Object.keys(probs);
       const topGrades  = mapGrades.filter(g => gradeOrder.indexOf(g) >= 1); // 희귀 이상
       const shift      = rod.gradeBonus * 100; // ex 0.05 → 5%p
-      if(topGrades.length > 0 && probs['일반'] > shift) {
-        probs['일반'] -= shift;
+      const lowestKey  = mapGrades.find(g => probs[g] > shift);
+      if(topGrades.length > 0 && lowestKey) {
+        probs[lowestKey] -= shift;
         topGrades.forEach(g => { probs[g] = (probs[g] || 0) + shift / topGrades.length; });
+      }
+    }
+
+    // 퍼펙트 판정 시 상위 등급 추가 보너스
+    // 맵에서 출현 가능한 최상위 2개 등급의 확률을 추가 상향
+    if(isPerfect) {
+      const mapGrades  = Object.keys(probs).sort((a,b) => gradeOrder.indexOf(b) - gradeOrder.indexOf(a));
+      const rod2 = getEquippedRod();
+      // 퍼펙트 보너스 = 낚시대 등급에 비례 (일반:+5% ~ 레전더리:+20%)
+      const perfectBonus = 5 + (rod2.perfectZone || 4) * 0.4; // 5~19%p 범위
+      const topTwo = mapGrades.slice(0, 2); // 최상위 2개 등급
+      const bottomGrades = mapGrades.filter(g => !topTwo.includes(g));
+      let available = 0;
+      bottomGrades.forEach(g => { available += probs[g]; });
+      const shift = Math.min(perfectBonus, available * 0.6); // 최대 하위 확률의 60% 이동
+      if(shift > 0 && bottomGrades.length > 0) {
+        const perBottom = shift / bottomGrades.length;
+        bottomGrades.forEach(g => { probs[g] = Math.max(0, probs[g] - perBottom); });
+        topTwo.forEach(g => { probs[g] = (probs[g] || 0) + shift / topTwo.length; });
       }
     }
 
@@ -961,8 +981,11 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     _gaugeVal = 0;
     _gaugeDir = 1;
     // 퍼펙트 존: 25~65% 사이 랜덤
-    _perfectStart = 25 + Math.random()*20;
-    _perfectWidth = 18 + Math.random()*14;
+    // 낚시대 등급에 따른 퍼펙트 구간 크기
+    const _rod = getEquippedRod();
+    const _pzBase = _rod.perfectZone || 4; // 기본값 4%
+    _perfectWidth = _pzBase + Math.random() * (_pzBase * 0.4); // ±20% 랜덤 편차
+    _perfectStart = 10 + Math.random() * (80 - _perfectWidth); // 10~80% 사이 위치
     const pz = document.getElementById('gauge-perfect-zone');
     if(pz){ pz.style.left=_perfectStart+'%'; pz.style.width=_perfectWidth+'%'; }
     const speed = 1.2 + Math.random()*1.2; // %/frame
@@ -991,7 +1014,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     cancelAnimationFrame(_gaugeAnim);
     const isInPerfect = _gaugeVal >= _perfectStart && _gaugeVal <= _perfectStart+_perfectWidth;
     const isGood      = _gaugeVal >= _perfectStart-10 && _gaugeVal <= _perfectStart+_perfectWidth+10;
-    _currentFish = rollFish(_currentMap);
+    _currentFish = rollFish(_currentMap, isInPerfect);
     // 퍼펙트/굿에 따라 가격 보정
     if(isInPerfect) _currentFish.price = Math.floor(_currentFish.price * 1.3);
     else if(!isGood) _currentFish.price = Math.floor(_currentFish.price * 0.7);
@@ -1700,12 +1723,13 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   //  낚시 상점 데이터
   // ══════════════════════════════════════════
   const ROD_DEFS = [
-    { id:'rod_normal',  name:'일반 낚시대',  grade:'일반', emoji:'🎣', price:0,     durability:Infinity, gradeBonus:0,    desc:'기본 지급 낚시대\n내구도 무한' },
-    { id:'rod_rare',    name:'희귀 낚시대',  grade:'희귀', emoji:'🎣', price:1000,  durability:100,      gradeBonus:0.05, desc:'희귀+ 확률 +5%\n내구도 100' },
-    { id:'rod_rleg',    name:'레어 낚시대',  grade:'레어', emoji:'🎣', price:5000,  durability:90,       gradeBonus:0.10, desc:'레어+ 확률 +10%\n내구도 90' },
-    { id:'rod_epic',    name:'에픽 낚시대',  grade:'에픽', emoji:'🎣', price:10000, durability:80,       gradeBonus:0.15, desc:'에픽+ 확률 +15%\n내구도 80' },
-    { id:'rod_legend',  name:'전설 낚시대',  grade:'전설', emoji:'🎣', price:50000, durability:70,       gradeBonus:0.20, desc:'전설+ 확률 +20%\n내구도 70' },
-    { id:'rod_legendary', name:'레전더리 낚시대', grade:'레전더리', emoji:'🌌', price:200000, durability:60, gradeBonus:0.30, desc:'레전더리+ 확률 +30%\n내구도 60' },
+    // perfectZone: 퍼펙트 구간 기본 크기(%) — 높을수록 퍼펙트 맞추기 쉬움
+    { id:'rod_normal',  name:'일반 낚시대',  grade:'일반',    emoji:'🎣', price:0,      durability:Infinity, gradeBonus:0,    perfectZone:4,  desc:'퍼펙트 구간 4%\n내구도 무한' },
+    { id:'rod_rare',    name:'희귀 낚시대',  grade:'희귀',    emoji:'🎣', price:1000,   durability:100,      gradeBonus:0.05, perfectZone:8,  desc:'퍼펙트 구간 8%\n내구도 100' },
+    { id:'rod_rleg',    name:'레어 낚시대',  grade:'레어',    emoji:'🎣', price:5000,   durability:90,       gradeBonus:0.10, perfectZone:13, desc:'퍼펙트 구간 13%\n내구도 90' },
+    { id:'rod_epic',    name:'에픽 낚시대',  grade:'에픽',    emoji:'🎣', price:10000,  durability:80,       gradeBonus:0.15, perfectZone:19, desc:'퍼펙트 구간 19%\n내구도 80' },
+    { id:'rod_legend',  name:'전설 낚시대',  grade:'전설',    emoji:'🎣', price:50000,  durability:70,       gradeBonus:0.20, perfectZone:26, desc:'퍼펙트 구간 26%\n내구도 70' },
+    { id:'rod_legendary', name:'레전더리 낚시대', grade:'레전더리', emoji:'🎣', price:200000, durability:60, gradeBonus:0.30, perfectZone:35, desc:'퍼펙트 구간 35%\n내구도 60' },
   ];
   const BAIT_DEFS = [
     { id:'bait_snail',  name:'달팽이', emoji:'🐌', price:1000,  uses:20, sizeBonus:0.05, desc:'크기 보너스 +5%\n20회 사용 가능' },
@@ -1850,7 +1874,10 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
         <div class="fshop-card-emoji">${rod.emoji}</div>
         <div class="fshop-card-name">${rod.name}</div>
         <div class="fshop-card-grade" style="background:${gc}22;color:${gc};border:1px solid ${gc}44">${rod.grade}</div>
-        <div class="fshop-card-desc">${rod.desc.replace(/\n/g,'<br>')}</div>
+        <div class="fshop-card-desc">
+          <span style="color:#34d399;font-weight:700;">✅ 퍼펙트 구간 ${rod.perfectZone}%</span><br>
+          ${rod.desc.replace(/\n/g,'<br>')}
+        </div>
         ${isOwned?`<div class="fshop-durability">${durText}</div>`:''}
         ${btn}
       </div>`;
