@@ -181,8 +181,9 @@
   .fshop-durability{font-size:10px;color:#94a3b8;text-align:center;font-family:'Noto Sans KR',sans-serif;}
   .fshop-owned-badge{position:absolute;top:7px;right:7px;background:rgba(16,185,129,0.2);color:#10b981;font-size:9px;padding:2px 6px;border-radius:10px;font-family:'Noto Sans KR',sans-serif;}
   .fish-gp-badge{display:flex;align-items:center;gap:6px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);border-radius:10px;padding:6px 14px;font-family:'Orbitron',sans-serif;font-size:12px;color:#fbbf24;font-weight:700;}
-  .fish-tabs{display:flex;gap:4px;padding:16px 20px 0;border-bottom:1px solid rgba(124,58,237,0.1);}
-  .fish-tab{background:none;border:none;color:var(--text-dim);padding:10px 18px;border-radius:10px 10px 0 0;font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;transition:all 0.2s;border-bottom:2px solid transparent;}
+  .fish-tabs{display:flex;gap:4px;padding:16px 20px 0;border-bottom:1px solid rgba(124,58,237,0.1);overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .fish-tabs::-webkit-scrollbar{display:none;}
+  .fish-tab{background:none;border:none;color:var(--text-dim);padding:10px 18px;border-radius:10px 10px 0 0;font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;transition:all 0.2s;border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0;}
   .fish-tab:hover{color:var(--text-sub);}
   .fish-tab.active{color:var(--purple-3);border-bottom-color:var(--purple-2);background:rgba(124,58,237,0.08);}
   .fish-tab-content{display:none;padding:20px;flex:1;}
@@ -2798,6 +2799,10 @@ function toggleSidebarBox(e) {
 function doSidebarLogout() {
   sessionStorage.removeItem('ggo_logged_in');
   sessionStorage.removeItem('ggo_username');
+  localStorage.removeItem('ggo_logged_in');
+  localStorage.removeItem('ggo_username');
+  localStorage.removeItem('ggo_logged_in');
+  localStorage.removeItem('ggo_username');
   location.href = 'index.html';
 }
 
