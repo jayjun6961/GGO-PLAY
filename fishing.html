@@ -510,6 +510,7 @@
     <!-- 탭 -->
     <div class="fish-tabs">
       <button class="fish-tab active" id="ftab-game"    onclick="switchFishTab('game')">🎣 낚시</button>
+      <button class="fish-tab"        id="ftab-boss"    onclick="switchFishTab('boss')">⚔️ 보스</button>
       <button class="fish-tab"        id="ftab-storage" onclick="switchFishTab('storage')">📦 보관함</button>
       <button class="fish-tab"        id="ftab-dex"     onclick="switchFishTab('dex')">📖 도감</button>
       <button class="fish-tab"        id="ftab-rank"    onclick="switchFishTab('rank')">🏆 순위</button>
@@ -601,6 +602,9 @@
     </div><!-- /fcontent-game -->
 
     <!-- ── 보관함 탭 ── -->
+    <!-- ── 보스 탭 ── -->
+    <div class="fish-tab-content" id="fcontent-boss"></div>
+
     <div class="fish-tab-content" id="fcontent-storage">
       <div class="storage-header">
         <div class="section-title" style="margin-bottom:0">보관함</div>
@@ -1687,6 +1691,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     document.querySelectorAll('.fish-tab-content').forEach(c=>c.classList.remove('active'));
     document.getElementById('ftab-'+tabId).classList.add('active');
     document.getElementById('fcontent-'+tabId).classList.add('active');
+    if(tabId==='boss')    renderBossTab();
     if(tabId==='storage') renderStorageTab();
     if(tabId==='dex')     renderDexTab();
     if(tabId==='rank')    renderRankTab();
@@ -1797,6 +1802,475 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   }
 
   // 퀘스트 탭 렌더
+
+  // ════════════════════════════════════════════════════
+  //  낚시 보스 시스템
+  // ════════════════════════════════════════════════════
+
+  const BOSS_DEFS = [
+    {
+      id:'deep_monster',   name:'심해 괴어',   emoji:'🦑', hp:500,  reward:10000,
+      unlockMap:'sea',     color:'#60a5fa',
+      desc:'심해에서 솟아오른 거대 생명체',
+      pattern:'shrink',    // 퍼펙트 구간 점점 좁아짐 + 갑자기 가속
+    },
+    {
+      id:'storm_shark',    name:'폭풍 상어',   emoji:'🦈', hp:700,  reward:30000,
+      unlockMap:'deep',    color:'#a78bfa',
+      desc:'폭풍을 일으키며 질주하는 상어',
+      pattern:'chaos',     // 속도 랜덤 급변
+    },
+    {
+      id:'phantom_jelly',  name:'환영 해파리', emoji:'🪼', hp:900,  reward:50000,
+      unlockMap:'volcano', color:'#f0abfc',
+      desc:'가짜 퍼펙트를 만들어 낚시꾼을 현혹',
+      pattern:'fake',      // 가짜 퍼펙트 구간
+    },
+    {
+      id:'flame_eel',      name:'화염 장어',   emoji:'🔥', hp:1000, reward:70000,
+      unlockMap:'sky',     color:'#f97316',
+      desc:'불꽃을 뿜으며 공격하는 장어',
+      pattern:'rage',      // 퍼펙트 성공 시 2배, 실패 시 난이도 상승
+    },
+    {
+      id:'ice_turtle',     name:'빙결 거북',   emoji:'🐢', hp:1500, reward:100000,
+      unlockMap:'space',   color:'#38bdf8',
+      desc:'얼음 갑옷으로 무장한 고대 거북',
+      pattern:'invincible', // 일정 시간 무적
+    },
+    {
+      id:'thunder_nemo',   name:'번개 니모',   emoji:'🐠', hp:2000, reward:300000,
+      unlockMap:'galaxy',  color:'#fbbf24',
+      desc:'번개처럼 빠르고 예측불가한 물고기',
+      pattern:'thunder',   // 속도변화 + 페이크 타이밍
+    },
+  ];
+
+  const BOSS_WEEKLY_LIMIT = 3;
+  const BOSS_RESET_DAY    = 3; // 수요일(0=일,1=월,...,3=수)
+
+  // 이번 주 수요일 날짜 키
+  function bossWeekKey() {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = day >= 3 ? day - 3 : day + 4; // 가장 최근 수요일
+    const wed = new Date(d); wed.setDate(d.getDate() - diff);
+    return wed.getFullYear()+'-'+String(wed.getMonth()+1).padStart(2,'0')+'-'+String(wed.getDate()).padStart(2,'0');
+  }
+
+  function getBossTries(bossId) {
+    const key = fKey('boss_tries_'+bossWeekKey()+'_'+bossId);
+    return parseInt(localStorage.getItem(key)||'0');
+  }
+  function addBossTry(bossId) {
+    const key = fKey('boss_tries_'+bossWeekKey()+'_'+bossId);
+    localStorage.setItem(key, String(getBossTries(bossId)+1));
+  }
+
+  // 낚시터 해금 여부 (총 마리수 기반)
+  function isMapUnlocked(mapId) {
+    const stats = getFS('stats') || {total:0};
+    const totalCatch = stats.total || 0;
+    const map = MAP_DATA.find(m=>m.id===mapId);
+    return map ? totalCatch >= map.unlockAt : false;
+  }
+
+  // ── 보스 탭 렌더 ──
+  function renderBossTab() {
+    const el = document.getElementById('fcontent-boss'); if(!el) return;
+    const stats = getFS('stats') || {total:0};
+    const totalCatch = stats.total || 0;
+
+    // 다음 수요일까지 남은 시간
+    const now = new Date();
+    const day = now.getDay();
+    const daysToWed = day === 3 ? 7 : (3 - day + 7) % 7 || 7;
+    const nextWed = new Date(now); nextWed.setDate(now.getDate() + daysToWed);
+    nextWed.setHours(0,0,0,0);
+    const diffMs = nextWed - now;
+    const diffD  = Math.floor(diffMs/86400000);
+    const diffH  = Math.floor((diffMs%86400000)/3600000);
+
+    let html = `
+      <div class="section-title">⚔️ 낚시 보스</div>
+      <div style="padding:10px 14px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);
+        border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:11px;color:#94a3b8;margin-bottom:4px;">
+        🗓️ 보스별 주 3회 도전 가능 · 매주 수요일 00시 초기화
+        <span style="color:#fbbf24;margin-left:8px;">다음 초기화: ${diffD}일 ${diffH}시간 후</span>
+      </div>`;
+
+    BOSS_DEFS.forEach(boss => {
+      const tries   = getBossTries(boss.id);
+      const left    = Math.max(0, BOSS_WEEKLY_LIMIT - tries);
+      const unlocked = isMapUnlocked(boss.unlockMap);
+      const mapName  = MAP_DATA.find(m=>m.id===boss.unlockMap)?.name || boss.unlockMap;
+      const gc       = boss.color;
+      const canChallenge = unlocked && left > 0;
+
+      html += `
+      <div style="background:${gc}0a;border:1px solid ${gc}${unlocked?'33':'15'};
+        border-radius:14px;padding:14px;opacity:${unlocked?'1':'0.5'};">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+          <div style="font-size:40px;line-height:1;">${boss.emoji}</div>
+          <div style="flex:1;">
+            <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:${gc};">${boss.name}</div>
+            <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-top:2px;">${boss.desc}</div>
+            <div style="font-size:9px;color:#475569;font-family:'Orbitron',sans-serif;margin-top:3px;">
+              HP ${boss.hp.toLocaleString()} · 보상 ${boss.reward.toLocaleString()} FP · 시간 3분
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:10px;font-family:'Orbitron',sans-serif;color:${left>0&&unlocked?'#34d399':'#ef4444'};">
+            ${unlocked ? `도전 ${tries}/${BOSS_WEEKLY_LIMIT}회 · 남은 횟수 ${left}` : `🔒 ${mapName} 해금 필요`}
+          </div>
+          <button onclick="startBossChallenge('${boss.id}')"
+            ${!canChallenge?'disabled':''}
+            style="background:${canChallenge?`linear-gradient(135deg,${gc},${gc}99)`:'rgba(71,85,105,.3)'};
+            border:1px solid ${canChallenge?gc:'rgba(71,85,105,.5)'};
+            color:${canChallenge?'#fff':'#475569'};padding:7px 16px;border-radius:8px;font-size:11px;
+            font-family:'Orbitron',sans-serif;cursor:${canChallenge?'pointer':'not-allowed'};font-weight:700;">
+            ${canChallenge ? '⚔️ 도전' : unlocked ? '소진' : '🔒 잠김'}
+          </button>
+        </div>
+      </div>`;
+    });
+
+    el.innerHTML = html;
+  }
+
+  // ── 보스 전투 상태 ──
+  let _boss = {
+    def:null, hp:0, maxHp:0, timer:null, timerSec:0, timerInt:null,
+    patternData:{}, fakeZones:[], invincible:false, rageLevel:0,
+    dead:false, failed:false
+  };
+
+  function startBossChallenge(bossId) {
+    const boss = BOSS_DEFS.find(b=>b.id===bossId);
+    if(!boss) return;
+    const tries = getBossTries(bossId);
+    if(tries >= BOSS_WEEKLY_LIMIT){ showFishToast('⛔ 이번 주 도전 횟수를 모두 사용했습니다.'); return; }
+    if(!isMapUnlocked(boss.unlockMap)){ showFishToast('🔒 해당 낚시터를 해금해야 합니다.'); return; }
+
+    _boss.def        = boss;
+    _boss.hp         = boss.hp;
+    _boss.maxHp      = boss.hp;
+    _boss.timerSec   = 0;
+    _boss.dead       = false;
+    _boss.failed     = false;
+    _boss.patternData = {};
+    _boss.fakeZones  = [];
+    _boss.invincible = false;
+    _boss.rageLevel  = 0;
+
+    addBossTry(bossId);
+    showBossScreen();
+  }
+
+  // ── 보스 전투 화면 (오버레이) ──
+  function showBossScreen() {
+    const boss = _boss.def;
+    let overlay = document.getElementById('boss-overlay');
+    if(!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'boss-overlay';
+      overlay.style.cssText = `position:fixed;inset:0;z-index:9999;
+        background:rgba(5,3,12,.97);display:flex;flex-direction:column;align-items:center;
+        justify-content:flex-start;padding:20px;overflow-y:auto;`;
+      document.body.appendChild(overlay);
+    }
+
+    overlay.innerHTML = `
+      <div style="width:100%;max-width:500px;">
+        <!-- 헤더 -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:${boss.color};">
+            ⚔️ ${boss.name}
+          </div>
+          <div id="boss-timer" style="font-family:'Orbitron',sans-serif;font-size:13px;color:#f87171;">⏱ 3:00</div>
+        </div>
+        <!-- 보스 HP -->
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:11px;color:#94a3b8;font-family:'Orbitron',sans-serif;">${boss.emoji} HP</span>
+            <span id="boss-hp-text" style="font-size:11px;color:${boss.color};font-family:'Orbitron',sans-serif;">${boss.hp}/${boss.hp}</span>
+          </div>
+          <div style="background:rgba(255,255,255,.06);border-radius:8px;height:16px;overflow:hidden;">
+            <div id="boss-hp-bar" style="height:100%;width:100%;background:linear-gradient(90deg,${boss.color},${boss.color}88);transition:width .3s;border-radius:8px;"></div>
+          </div>
+        </div>
+        <!-- 보스 이모지 -->
+        <div style="text-align:center;font-size:72px;margin-bottom:8px;line-height:1;" id="boss-emoji">${boss.emoji}</div>
+        <div id="boss-status-msg" style="text-align:center;font-size:11px;color:#94a3b8;margin-bottom:16px;font-family:'Noto Sans KR',sans-serif;min-height:18px;"></div>
+        <!-- 게이지 영역 -->
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;margin-bottom:14px;">
+          <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;text-align:center;">
+            🎣 낚시 게이지로 보스를 공격하세요!
+          </div>
+          <div style="position:relative;background:rgba(255,255,255,.08);border-radius:10px;height:26px;overflow:hidden;border:1px solid rgba(124,58,237,.2);" id="boss-gauge-track">
+            <div id="boss-fake-zone" style="position:absolute;top:0;bottom:0;background:rgba(239,68,68,.25);border:1px solid rgba(239,68,68,.5);border-radius:4px;display:none;"></div>
+            <div id="boss-perfect-zone" style="position:absolute;top:0;bottom:0;background:rgba(52,211,153,.3);border:1px solid rgba(52,211,153,.6);border-radius:4px;"></div>
+            <div id="boss-gauge-fill" style="height:100%;border-radius:10px;transition:width .04s linear;background:linear-gradient(90deg,#7c3aed,#0ea5e9);"></div>
+            <div id="boss-invincible-overlay" style="position:absolute;inset:0;background:rgba(56,189,248,.3);display:none;align-items:center;justify-content:center;font-size:10px;color:#38bdf8;font-family:'Orbitron',sans-serif;">🛡️ 무적</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:#475569;margin-top:4px;font-family:'Orbitron',sans-serif;">
+            <span>약함</span><span style="color:#34d399">✅ 퍼펙트</span><span>강함</span>
+          </div>
+        </div>
+        <!-- 공격 버튼 -->
+        <button id="boss-attack-btn" onclick="bossAttack()"
+          style="width:100%;background:linear-gradient(135deg,#dc2626,#991b1b);border:1px solid #f87171;
+          color:#fff;padding:14px;border-radius:12px;font-size:14px;font-family:'Orbitron',sans-serif;
+          cursor:pointer;font-weight:700;margin-bottom:12px;">⚡ 지금 공격!</button>
+        <!-- 배틀 로그 -->
+        <div id="boss-log" style="background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);
+          border-radius:10px;padding:10px;height:100px;overflow-y:auto;
+          font-size:10px;font-family:'Noto Sans KR',sans-serif;"></div>
+        <!-- 철수 -->
+        <button onclick="bossRetreat()" style="width:100%;margin-top:10px;background:rgba(71,85,105,.3);
+          border:1px solid rgba(71,85,105,.5);color:#94a3b8;padding:10px;border-radius:10px;
+          font-size:11px;font-family:'Orbitron',sans-serif;cursor:pointer;">🏃 도전 포기</button>
+      </div>`;
+
+    // 전투 시작
+    bossStartGauge();
+    bossStartTimer();
+  }
+
+  // ── 게이지 ──
+  let _bossGaugeVal = 0, _bossGaugeDir = 1, _bossGaugeAnim = null;
+  let _bossPerfectStart = 0, _bossPerfectWidth = 0, _bossSpeed = 1.5;
+
+  function bossStartGauge() {
+    const boss = _boss.def;
+    cancelAnimationFrame(_bossGaugeAnim);
+    _bossGaugeVal = 0; _bossGaugeDir = 1;
+
+    // 패턴별 초기 속도/구간 설정
+    _bossApplyPattern();
+
+    function animBossGauge() {
+      if(_boss.dead || _boss.failed) return;
+      _bossGaugeVal += _bossGaugeDir * _bossSpeed;
+      if(_bossGaugeVal >= 100){ _bossGaugeVal=100; _bossGaugeDir=-1; }
+      if(_bossGaugeVal <= 0){   _bossGaugeVal=0;   _bossGaugeDir=1; }
+      const fill = document.getElementById('boss-gauge-fill');
+      if(!fill) return;
+      const isInPerfect = _bossGaugeVal >= _bossPerfectStart && _bossGaugeVal <= _bossPerfectStart+_bossPerfectWidth;
+      fill.style.width = _bossGaugeVal+'%';
+      fill.style.background = isInPerfect
+        ? 'linear-gradient(90deg,#34d399,#10b981)'
+        : _bossGaugeVal < 15 || _bossGaugeVal > 85
+          ? 'linear-gradient(90deg,#ef4444,#dc2626)'
+          : 'linear-gradient(90deg,#7c3aed,#0ea5e9)';
+      _bossGaugeAnim = requestAnimationFrame(animBossGauge);
+    }
+    _bossGaugeAnim = requestAnimationFrame(animBossGauge);
+  }
+
+  function _bossApplyPattern() {
+    const boss = _boss.def;
+    const phase = _boss.patternData;
+    let pzStart, pzWidth;
+
+    if(boss.pattern === 'shrink') {
+      // 퍼펙트 구간 점점 좁아짐
+      const shrink = Math.min(phase.hits||0, 15);
+      pzWidth = Math.max(4, 22 - shrink);
+      pzStart = 20 + Math.random()*50;
+      _bossSpeed = 1.2 + Math.random()*0.8;
+      // 10회 이상 공격 시 랜덤 가속
+      if((phase.hits||0) > 10 && Math.random() < 0.3) _bossSpeed = 3.5 + Math.random()*2;
+    } else if(boss.pattern === 'chaos') {
+      pzWidth = 12 + Math.random()*12;
+      pzStart = 15 + Math.random()*55;
+      _bossSpeed = 0.8 + Math.random()*3.5; // 매우 랜덤한 속도
+    } else if(boss.pattern === 'fake') {
+      pzWidth = 14 + Math.random()*10;
+      pzStart = 20 + Math.random()*50;
+      _bossSpeed = 1.5 + Math.random()*1.0;
+      // 가짜 구간 설정
+      const fakeStart = Math.random()*70;
+      const fakeEl = document.getElementById('boss-fake-zone');
+      if(fakeEl && Math.random()<0.6) {
+        fakeEl.style.display='block';
+        fakeEl.style.left=fakeStart+'%'; fakeEl.style.width=(8+Math.random()*10)+'%';
+      }
+    } else if(boss.pattern === 'rage') {
+      const rl = _boss.rageLevel||0;
+      pzWidth = Math.max(5, 18 - rl*2);
+      pzStart = 20 + Math.random()*50;
+      _bossSpeed = 1.3 + rl*0.2 + Math.random()*0.8;
+    } else if(boss.pattern === 'invincible') {
+      pzWidth = 8 + Math.random()*8;
+      pzStart = 25 + Math.random()*45;
+      _bossSpeed = 0.7 + Math.random()*0.6; // 느림
+      // 5초마다 무적 발동
+      if(!phase.invTimer) {
+        phase.invTimer = setInterval(()=>{
+          if(_boss.dead||_boss.failed){ clearInterval(phase.invTimer); return; }
+          _boss.invincible = true;
+          const ov = document.getElementById('boss-invincible-overlay');
+          if(ov) ov.style.display='flex';
+          bossLog('<span style="color:#38bdf8">🛡️ 빙결 거북이 무적 상태가 됩니다!</span>');
+          setTimeout(()=>{
+            _boss.invincible=false;
+            const ov2=document.getElementById('boss-invincible-overlay');
+            if(ov2) ov2.style.display='none';
+          }, 3000);
+        }, 7000);
+      }
+    } else { // thunder
+      pzWidth = 10 + Math.random()*8;
+      pzStart = 15 + Math.random()*60;
+      // 랜덤 가속/감속 + 가짜 구간
+      _bossSpeed = 1.0 + Math.random()*3.0;
+      if(Math.random()<0.5){
+        const fakeEl=document.getElementById('boss-fake-zone');
+        if(fakeEl){ fakeEl.style.display='block'; fakeEl.style.left=(Math.random()*70)+'%'; fakeEl.style.width=(6+Math.random()*8)+'%'; }
+      }
+    }
+
+    _bossPerfectStart = pzStart;
+    _bossPerfectWidth = pzWidth;
+    const pz = document.getElementById('boss-perfect-zone');
+    if(pz){ pz.style.left=pzStart+'%'; pz.style.width=pzWidth+'%'; }
+  }
+
+  // ── 타이머 ──
+  function bossStartTimer() {
+    if(_boss.timerInt) clearInterval(_boss.timerInt);
+    const LIMIT = 180; // 3분
+    _boss.timerSec = 0;
+    _boss.timerInt = setInterval(()=>{
+      _boss.timerSec++;
+      const remain = LIMIT - _boss.timerSec;
+      const m = Math.floor(remain/60), s = remain%60;
+      const el = document.getElementById('boss-timer');
+      if(el) {
+        el.textContent = `⏱ ${m}:${String(s).padStart(2,'0')}`;
+        if(remain <= 30) el.style.color='#ef4444';
+      }
+      if(remain <= 0) bossFail();
+    }, 1000);
+  }
+
+  // ── 공격 ──
+  function bossAttack() {
+    if(!_boss.def || _boss.dead || _boss.failed) return;
+    cancelAnimationFrame(_bossGaugeAnim);
+
+    const isInPerfect = _bossGaugeVal >= _bossPerfectStart && _bossGaugeVal <= _bossPerfectStart+_bossPerfectWidth;
+
+    // 환영 해파리: 가짜 구간에 멈추면 0 대미지
+    if(_boss.def.pattern==='fake') {
+      const fakeEl = document.getElementById('boss-fake-zone');
+      if(fakeEl && fakeEl.style.display!=='none') {
+        const fakeL = parseFloat(fakeEl.style.left)||0;
+        const fakeW = parseFloat(fakeEl.style.width)||0;
+        if(_bossGaugeVal >= fakeL && _bossGaugeVal <= fakeL+fakeW) {
+          bossLog('<span style="color:#f87171">👻 가짜 퍼펙트에 속았습니다! 대미지 없음!</span>');
+          _bossApplyPattern(); bossStartGauge(); return;
+        }
+      }
+    }
+
+    let dmg = isInPerfect ? 100 : 10;
+
+    // 화염 장어: 퍼펙트 성공 시 2배, 실패 시 난이도 상승
+    if(_boss.def.pattern==='rage') {
+      if(isInPerfect) { dmg = 200; bossLog('<span style="color:#f97316">🔥 화염 강타! 2배 대미지!</span>'); }
+      else { _boss.rageLevel = (_boss.rageLevel||0)+1; }
+    }
+
+    // 빙결 거북: 무적 시 0 대미지
+    if(_boss.invincible) {
+      bossLog('<span style="color:#38bdf8">🛡️ 무적 상태! 대미지 없음!</span>');
+      _bossApplyPattern(); bossStartGauge(); return;
+    }
+
+    if((_boss.patternData.hits === undefined)) _boss.patternData.hits = 0;
+    _boss.patternData.hits++;
+    _boss.hp = Math.max(0, _boss.hp - dmg);
+
+    const pct = (_boss.hp / _boss.maxHp * 100).toFixed(1);
+    const hpBar = document.getElementById('boss-hp-bar');
+    const hpTxt = document.getElementById('boss-hp-text');
+    if(hpBar) hpBar.style.width = pct+'%';
+    if(hpTxt) hpTxt.textContent = _boss.hp+'/'+_boss.maxHp;
+
+    if(isInPerfect) bossLog(`<span style="color:#34d399">💥 퍼펙트 크리티컬! -${dmg} HP (남은 HP: ${_boss.hp})</span>`);
+    else            bossLog(`<span style="color:#94a3b8">⚡ 공격! -${dmg} HP (남은 HP: ${_boss.hp})</span>`);
+
+    // 보스 이모지 흔들기
+    const em = document.getElementById('boss-emoji');
+    if(em){ em.style.transform='scale(1.2)'; setTimeout(()=>em.style.transform='',200); }
+
+    if(_boss.hp <= 0) { bossVictory(); return; }
+
+    // 패턴 재적용 후 게이지 재시작
+    _bossApplyPattern();
+    bossStartGauge();
+  }
+
+  // ── 승리 ──
+  function bossVictory() {
+    _boss.dead = true;
+    clearInterval(_boss.timerInt); cancelAnimationFrame(_bossGaugeAnim);
+    if(_boss.patternData.invTimer) clearInterval(_boss.patternData.invTimer);
+    const boss = _boss.def;
+    addFP(boss.reward);
+    updateFPBadge();
+    bossLog(`<span style="color:#fbbf24;font-weight:700">🏆 ${boss.name} 처치! +${boss.reward.toLocaleString()} FP!</span>`);
+
+    const btn = document.getElementById('boss-attack-btn');
+    if(btn){ btn.textContent='🏆 처치 성공!'; btn.disabled=true; btn.style.background='linear-gradient(135deg,#059669,#047857)'; }
+
+    setTimeout(()=>{ bossClose(); showFishToast(`🏆 ${boss.name} 처치! +${boss.reward.toLocaleString()} FP!`); }, 1800);
+  }
+
+  // ── 실패 ──
+  function bossFail() {
+    if(_boss.dead || _boss.failed) return;
+    _boss.failed = true;
+    clearInterval(_boss.timerInt); cancelAnimationFrame(_bossGaugeAnim);
+    if(_boss.patternData.invTimer) clearInterval(_boss.patternData.invTimer);
+    bossLog('<span style="color:#ef4444;font-weight:700">⏰ 시간 초과! 공략 실패...</span>');
+    const btn = document.getElementById('boss-attack-btn');
+    if(btn){ btn.textContent='❌ 공략 실패'; btn.disabled=true; btn.style.background='rgba(71,85,105,.4)'; }
+    const timerEl = document.getElementById('boss-timer');
+    if(timerEl) timerEl.textContent = '⏱ 0:00';
+    setTimeout(()=>{ bossClose(); showFishToast('❌ 공략 실패... 다음에 도전하세요!'); }, 2000);
+  }
+
+  // ── 철수 ──
+  function bossRetreat() {
+    _boss.failed = true;
+    clearInterval(_boss.timerInt); cancelAnimationFrame(_bossGaugeAnim);
+    if(_boss.patternData.invTimer) clearInterval(_boss.patternData.invTimer);
+    bossClose();
+    showFishToast('🏃 보스 도전을 포기했습니다.');
+    renderBossTab();
+  }
+
+  // ── 오버레이 닫기 ──
+  function bossClose() {
+    const ov = document.getElementById('boss-overlay');
+    if(ov) ov.remove();
+    renderBossTab();
+  }
+
+  // ── 로그 ──
+  function bossLog(html) {
+    const el = document.getElementById('boss-log'); if(!el) return;
+    el.innerHTML += html+'<br>';
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // ════════════════════════════════════════════════════
+  //  낚시 보스 시스템 끝
+  // ════════════════════════════════════════════════════
   function renderQuestTab() {
     const progress = loadQuestProgress();
     const list     = document.getElementById('quest-list');
