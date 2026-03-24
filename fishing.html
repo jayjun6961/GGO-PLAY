@@ -1809,37 +1809,37 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
 
   const BOSS_DEFS = [
     {
-      id:'deep_monster',   name:'심해 괴어',   emoji:'🦑', hp:500,  reward:10000,  perfectDmg:30,
+      id:'deep_monster',   name:'심해 괴어',   emoji:'🦑', hp:500,  reward:10000,  perfectDmg:30,  maxClicks:30,
       unlockMap:'sea',     color:'#60a5fa',
       desc:'심해에서 솟아오른 거대 생명체',
       pattern:'shrink',    // 퍼펙트 구간 점점 좁아짐 + 갑자기 가속
     },
     {
-      id:'storm_shark',    name:'폭풍 상어',   emoji:'🦈', hp:700,  reward:30000,  perfectDmg:40,
+      id:'storm_shark',    name:'폭풍 상어',   emoji:'🦈', hp:700,  reward:30000,  perfectDmg:40,  maxClicks:30,
       unlockMap:'deep',    color:'#a78bfa',
       desc:'폭풍을 일으키며 질주하는 상어',
       pattern:'chaos',     // 속도 랜덤 급변
     },
     {
-      id:'phantom_jelly',  name:'환영 해파리', emoji:'👻', hp:900,  reward:50000,  perfectDmg:50,
+      id:'phantom_jelly',  name:'환영 해파리', emoji:'👻', hp:900,  reward:50000,  perfectDmg:50,  maxClicks:30,
       unlockMap:'volcano', color:'#f0abfc',
       desc:'가짜 퍼펙트를 만들어 낚시꾼을 현혹',
       pattern:'fake',      // 가짜 퍼펙트 구간
     },
     {
-      id:'flame_eel',      name:'화염 장어',   emoji:'🔥', hp:1000, reward:70000,  perfectDmg:60,
+      id:'flame_eel',      name:'화염 장어',   emoji:'🔥', hp:1000, reward:70000,  perfectDmg:60,  maxClicks:15,
       unlockMap:'sky',     color:'#f97316',
       desc:'불꽃을 뿜으며 공격하는 장어',
       pattern:'rage',      // 퍼펙트 성공 시 2배, 실패 시 난이도 상승
     },
     {
-      id:'ice_turtle',     name:'빙결 거북',   emoji:'🐢', hp:1500, reward:100000, perfectDmg:80,
+      id:'ice_turtle',     name:'빙결 거북',   emoji:'🐢', hp:1500, reward:100000, perfectDmg:80,  maxClicks:30,
       unlockMap:'space',   color:'#38bdf8',
       desc:'얼음 갑옷으로 무장한 고대 거북',
       pattern:'invincible', // 일정 시간 무적
     },
     {
-      id:'thunder_nemo',   name:'번개 니모',   emoji:'🐠', hp:2000, reward:300000, perfectDmg:100,
+      id:'thunder_nemo',   name:'번개 니모',   emoji:'🐠', hp:2000, reward:300000, perfectDmg:100, maxClicks:30,
       unlockMap:'galaxy',  color:'#fbbf24',
       desc:'번개처럼 빠르고 예측불가한 물고기',
       pattern:'thunder',   // 속도변화 + 페이크 타이밍
@@ -1916,7 +1916,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
             <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:${gc};">${boss.name}</div>
             <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-top:2px;">${boss.desc}</div>
             <div style="font-size:9px;color:#475569;font-family:'Orbitron',sans-serif;margin-top:3px;">
-              HP ${boss.hp.toLocaleString()} · 퍼펙트 ${boss.perfectDmg}dmg · 보상 ${boss.reward.toLocaleString()} FP · 시간 3분
+              HP ${boss.hp.toLocaleString()} · 퍼펙트 ${boss.perfectDmg}dmg · 도전 횟수 ${boss.maxClicks}회 · 보상 ${boss.reward.toLocaleString()} FP · 3분
             </div>
           </div>
         </div>
@@ -1943,7 +1943,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   let _boss = {
     def:null, hp:0, maxHp:0, timer:null, timerSec:0, timerInt:null,
     patternData:{}, fakeZones:[], invincible:false, rageLevel:0,
-    dead:false, failed:false
+    dead:false, failed:false, clicksLeft:0, maxClicks:0
   };
 
   function startBossChallenge(bossId) {
@@ -1963,6 +1963,8 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     _boss.fakeZones  = [];
     _boss.invincible = false;
     _boss.rageLevel  = 0;
+    _boss.maxClicks  = boss.maxClicks || 30;
+    _boss.clicksLeft = boss.maxClicks || 30;
 
     addBossTry(bossId);
     showBossScreen();
@@ -2007,6 +2009,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
         <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;margin-bottom:14px;">
           <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;text-align:center;">
             🎣 퍼펙트 구간에서만 대미지! 일반 공격은 헛스윙
+          <span id="boss-clicks-left" style="float:right;color:#fbbf24;font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;"></span>
           </div>
           <div style="position:relative;background:rgba(255,255,255,.08);border-radius:10px;height:26px;overflow:hidden;border:1px solid rgba(124,58,237,.2);" id="boss-gauge-track">
             <div id="boss-fake-zone" style="position:absolute;top:0;bottom:0;background:rgba(239,68,68,.25);border:1px solid rgba(239,68,68,.5);border-radius:4px;display:none;"></div>
@@ -2036,6 +2039,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     // 전투 시작
     bossStartGauge();
     bossStartTimer();
+    setTimeout(_bossUpdateClicksUI, 50);
   }
 
   // ── 게이지 ──
@@ -2159,7 +2163,17 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   // ── 공격 ──
   function bossAttack() {
     if(!_boss.def || _boss.dead || _boss.failed) return;
+    if(_boss.clicksLeft <= 0) return; // 이미 소진된 경우 무시
     cancelAnimationFrame(_bossGaugeAnim);
+
+    // 클릭 횟수 차감
+    _boss.clicksLeft--;
+    _bossUpdateClicksUI();
+
+    // 클릭 횟수 소진 → 실패
+    if(_boss.clicksLeft <= 0 && _boss.hp > 0) {
+      // 마지막 공격 처리 후 결과에 따라 실패 판단 (아래에서 처리)
+    }
 
     const isInPerfect = _bossGaugeVal >= _bossPerfectStart && _bossGaugeVal <= _bossPerfectStart+_bossPerfectWidth;
 
@@ -2183,6 +2197,10 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
       // 화염 장어: 퍼펙트 실패 시 난이도 상승
       if(_boss.def.pattern==='rage') _boss.rageLevel = (_boss.rageLevel||0)+1;
       bossLog('<span style="color:#475569">💨 헛스윙! 퍼펙트 구간을 맞춰야 대미지가 들어갑니다.</span>');
+      if(_boss.clicksLeft <= 0) {
+        bossLog('<span style="color:#ef4444;font-weight:700">⚠️ 클릭 횟수 소진! 공략 실패...</span>');
+        setTimeout(()=>bossFail(), 800); return;
+      }
       _bossApplyPattern(); bossStartGauge(); return;
     }
 
@@ -2218,7 +2236,12 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
 
     if(_boss.hp <= 0) { bossVictory(); return; }
 
-    // 패턴 재적용 후 게이지 재시작
+    // 패턴 재적용 후 게이지 재시작 or 클릭 소진 체크
+    if(_boss.clicksLeft <= 0 && !_boss.dead) {
+      bossLog('<span style="color:#ef4444;font-weight:700">⚠️ 클릭 횟수 소진! 공략 실패...</span>');
+      setTimeout(()=>bossFail(), 800);
+      return;
+    }
     _bossApplyPattern();
     bossStartGauge();
   }
@@ -2268,6 +2291,17 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     const ov = document.getElementById('boss-overlay');
     if(ov) ov.remove();
     renderBossTab();
+  }
+
+  // ── 클릭 횟수 UI 갱신 ──
+  function _bossUpdateClicksUI() {
+    const el = document.getElementById('boss-clicks-left');
+    if(!el) return;
+    const left = _boss.clicksLeft;
+    const max  = _boss.maxClicks;
+    const color = left <= 5 ? '#ef4444' : left <= 10 ? '#f97316' : '#fbbf24';
+    el.textContent = `⚡ 남은 횟수: ${left}/${max}`;
+    el.style.color = color;
   }
 
   // ── 로그 ──
