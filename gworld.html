@@ -693,6 +693,17 @@
   </div>
 </div>
 
+<!-- 캐릭터 선택 패널 -->
+<div class="gw-pov" id="gw-pcharsel" onclick="if(event.target===this)closeP('gw-pcharsel')">
+  <div class="gw-pbox" style="width:min(440px,96vw);max-height:90vh;display:flex;flex-direction:column;">
+    <div class="gw-phdr" style="background:linear-gradient(135deg,rgba(52,211,153,.1),rgba(16,185,129,.05));border-bottom:1px solid rgba(52,211,153,.25);">
+      <div class="gw-pttl" style="color:#34d399;">👤 캐릭터 선택</div>
+      <button class="gw-px" onclick="closeP('gw-pcharsel')">✕</button>
+    </div>
+    <div class="gw-pbdy" id="gw-charselbody" style="padding:12px;"></div>
+  </div>
+</div>
+
 <!-- 경매장 패널 -->
 <div class="gw-pov" id="gw-pauction" onclick="if(event.target===this)closeP('gw-pauction')">
   <div class="gw-pbox" style="width:min(480px,98vw);max-height:92vh;display:flex;flex-direction:column;">
@@ -859,7 +870,7 @@
         <div class="gw-act" onclick="openRelicDungeon()" style="border-color:rgba(234,179,8,.25)"><div class="gw-act-ico">🏺</div><div class="gw-act-lbl">유물 던전</div></div>
         <div class="gw-act" onclick="openLegionBoss()" style="border-color:rgba(239,68,68,.35)"><div class="gw-act-ico">😈</div><div class="gw-act-lbl">군단장</div></div>
         <div class="gw-act" onclick="openAuction()" style="border-color:rgba(52,211,153,.25)"><div class="gw-act-ico">🏛️</div><div class="gw-act-lbl">경매장</div></div>
-        <div class="gw-act" onclick="resetChar()" style="border-color:rgba(239,68,68,.15)"><div class="gw-act-ico">🔄</div><div class="gw-act-lbl">초기화</div></div>
+        <div class="gw-act" onclick="openCharSelect()" style="border-color:rgba(52,211,153,.2)"><div class="gw-act-ico">👤</div><div class="gw-act-lbl">캐릭터</div></div>
       </div>
     </div>
   </div>
@@ -2917,6 +2928,7 @@ function renderP(id){
   if(id==='gw-prdun')    renderRelicDungeonPanel();
   if(id==='gw-plegion')  renderLegionPanel();
   if(id==='gw-pauction') { aucTab('buy'); }
+  if(id==='gw-pcharsel') renderCharSelectPanel();
   if(id==='gw-pcash')    renderCashShop();
   if(id==='gw-pwb')      renderWorldBoss(); // async
 }
@@ -9013,6 +9025,182 @@ function towerRankClaim(alchAmt) {
 // ════════════════════════════════════════════════════════
 //  천공의 탑 순위 시스템 끝
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  캐릭터 선택 시스템
+// ════════════════════════════════════════════════════════
+
+const CHAR_JOBS = ['warrior','archer','mage','rogue','paladin'];
+
+// 직업별 독립 저장 키 (유저명 + 직업명)
+function charSaveKey(jobId) {
+  return 'gwo_charsave_' + gwUN() + '_' + jobId;
+}
+
+// 현재 활성 직업 키
+function activeJobKey() {
+  return 'gwo_activejob_' + gwUN();
+}
+
+// 현재 활성 직업 조회
+function getActiveJob() {
+  return localStorage.getItem(activeJobKey()) || null;
+}
+
+// 직업별 저장 데이터 조회
+function getCharData(jobId) {
+  try { return JSON.parse(localStorage.getItem(charSaveKey(jobId)) || 'null'); }
+  catch { return null; }
+}
+
+// 직업별 저장 데이터 저장
+function saveCharData(jobId, data) {
+  localStorage.setItem(charSaveKey(jobId), JSON.stringify(data));
+}
+
+// ── 현재 캐릭터를 직업별 슬롯에 저장 ──
+function saveCurrentChar() {
+  if(!G.job) return;
+  const data = {
+    job:G.job, lv:G.lv, hp:G.hp, mp:G.mp, exp:G.exp,
+    gold:G.gold, inv:G.inv, sk:G.sk, equip:G.equip||{},
+    qprog:G.qprog, qclaim:G.qclaim, quests:G.quests,
+    wquests:G.wquests, wqprog:G.wqprog, wqclaim:G.wqclaim,
+    relics:G.relics||[null,null,null,null,null],
+    savedAt: Date.now()
+  };
+  saveCharData(G.job, data);
+  localStorage.setItem(activeJobKey(), G.job);
+}
+
+// ── 캐릭터 선택창 열기 ──
+function openCharSelect() { openP('gw-pcharsel'); }
+
+// ── 캐릭터 선택창 렌더 ──
+function renderCharSelectPanel() {
+  const el = document.getElementById('gw-charselbody');
+  if(!el) return;
+  const activeJob = G.job;
+
+  let html = `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
+    padding:8px 12px;background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.12);
+    border-radius:8px;margin-bottom:14px;">
+    👤 직업별로 독립된 캐릭터가 저장됩니다.<br>
+    플레이 기록이 없는 직업은 1레벨부터 시작합니다.
+  </div>`;
+
+  CHAR_JOBS.forEach(jobId => {
+    const job    = JOBS[jobId]; if(!job) return;
+    const data   = getCharData(jobId);
+    const isCur  = jobId === activeJob;
+    const gc     = job.color || '#94a3b8';
+    const hasData = data && data.lv;
+    const lv     = hasData ? data.lv : 1;
+    const gold   = hasData ? (data.gold||0).toLocaleString() : '0';
+    const savedAt = hasData && data.savedAt
+      ? new Date(data.savedAt).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+      : null;
+
+    html += `
+    <div style="background:${isCur?gc+'18':'rgba(255,255,255,.03)'};
+      border:${isCur?`2px solid ${gc}`:`1px solid rgba(255,255,255,.08)`};
+      border-radius:14px;padding:14px;margin-bottom:8px;
+      display:flex;align-items:center;gap:12px;">
+      <div style="font-size:36px;line-height:1;flex-shrink:0;">${job.emoji}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:${gc};">${job.name}</span>
+          ${isCur ? `<span style="font-size:9px;padding:2px 7px;background:${gc}33;color:${gc};border-radius:5px;border:1px solid ${gc}55;font-family:'Orbitron',sans-serif;">현재</span>` : ''}
+          ${!hasData ? `<span style="font-size:9px;padding:2px 7px;background:rgba(100,116,139,.2);color:#94a3b8;border-radius:5px;font-family:'Noto Sans KR',sans-serif;">미생성</span>` : ''}
+        </div>
+        <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;">${job.desc}</div>
+        ${hasData ? `
+          <div style="font-size:10px;color:#e2e8f0;margin-top:4px;font-family:'Orbitron',sans-serif;">
+            Lv.<span style="color:${gc};font-weight:700;">${lv}</span>
+            <span style="color:#64748b;margin-left:8px;font-size:9px;">💰${gold}G</span>
+            ${savedAt?`<span style="color:#475569;margin-left:6px;font-size:8px;">저장: ${savedAt}</span>`:''}
+          </div>` : `
+          <div style="font-size:9px;color:#475569;margin-top:4px;font-family:'Noto Sans KR',sans-serif;">처음 선택 시 1레벨부터 시작</div>`
+        }
+      </div>
+      ${isCur
+        ? `<span style="font-size:20px;">✅</span>`
+        : `<button onclick="selectCharJob('${jobId}')"
+            style="background:${hasData?`linear-gradient(135deg,${gc},${gc}99)`:'rgba(52,211,153,.15)'};
+            border:1px solid ${hasData?gc:'rgba(52,211,153,.3)'};
+            color:#fff;padding:8px 14px;border-radius:9px;font-size:11px;
+            font-family:'Orbitron',sans-serif;cursor:pointer;font-weight:700;white-space:nowrap;">
+            ${hasData ? '선택' : '🆕 시작'}
+          </button>`
+      }
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+// ── 직업 전환 ──
+function selectCharJob(jobId) {
+  const job = JOBS[jobId]; if(!job) return;
+  if(jobId === G.job) { closeP('gw-pcharsel'); return; }
+
+  const existData = getCharData(jobId);
+  const msg = existData && existData.lv
+    ? `[${job.name}] Lv.${existData.lv} 캐릭터로 전환합니다.`
+    : `[${job.name}]로 새 캐릭터를 생성합니다. (1레벨 시작)`;
+
+  if(!confirm(msg + '\n현재 캐릭터는 자동으로 저장됩니다.')) return;
+
+  // 1. 현재 캐릭터 저장
+  saveCurrentChar();
+
+  // 2. 선택한 직업 데이터 로드 or 신규 생성
+  if(existData && existData.job) {
+    // 기존 데이터 복원
+    Object.assign(G, existData);
+    const b = cBase(G.job, G.lv);
+    G.mHP = b.mHP; G.mMP = b.mMP;
+    G.equip = G.equip || {};
+    G.relics = G.relics || [null,null,null,null,null];
+    G.inv = G.inv || [];
+    G.sk = G.sk || {};
+  } else {
+    // 신규 캐릭터 생성
+    const b = cBase(jobId, 1);
+    const j = JOBS[jobId];
+    G.job = jobId; G.lv = 1; G.exp = 0; G.gold = 500;
+    G.mHP = b.mHP; G.hp = b.mHP;
+    G.mMP = b.mMP; G.mp = b.mMP;
+    G.inv = []; G.sk = {}; G.equip = {}; G.buffs = {};
+    G.qprog = {}; G.qclaim = {}; G.quests = [];
+    G.wquests = []; G.wqprog = {}; G.wqclaim = {};
+    G.relics = [null,null,null,null,null];
+    // 기본 장비 지급
+    if(j.weapon) G.equip.weapon = {...j.weapon, type:'weapon', slot:'weapon', def:0, grade:'기본', enh:0, _id:1};
+    if(j.armor)  G.equip.armor  = {...j.armor,  type:'armor',  slot:'armor',  atk:0, grade:'기본', enh:0, _id:2};
+  }
+
+  // 3. 활성 직업 업데이트 + 통합 save 업데이트
+  localStorage.setItem(activeJobKey(), jobId);
+  saveG();       // 기존 gwo_save_유저명 도 동기화 유지
+  saveCurrentChar(); // 직업별 슬롯도 저장
+
+  closeP('gw-pcharsel');
+  goTown();
+  hud();
+  gwT(`✅ ${job.emoji} ${job.name} 캐릭터로 전환했습니다!`);
+}
+
+// ── 기존 saveG 후킹: 직업별 슬롯도 함께 저장 ──
+const _origSaveG = saveG;
+saveG = function() {
+  _origSaveG();
+  if(G.job) saveCurrentChar();
+};
+
+// ════════════════════════════════════════════════════════
+//  캐릭터 선택 시스템 끝
+// ════════════════════════════════════════════════════════
+
 
 
 
@@ -9026,7 +9214,7 @@ function towerRankClaim(alchAmt) {
 
 // ════ 포션 상점 끝 ════
 
-function resetChar(){if(!confirm('캐릭터를 초기화하시겠습니까?'))return;gSet('save',null);location.reload();}
+// resetChar → openCharSelect() 로 대체됨
 
 let _gwTt=null;
 function gwT(msg){const t=document.getElementById('gw-toast');if(!t)return;clearTimeout(_gwTt);t.textContent=msg;t.classList.add('on');_gwTt=setTimeout(()=>t.classList.remove('on'),2400);}
