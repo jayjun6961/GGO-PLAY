@@ -693,6 +693,17 @@
   </div>
 </div>
 
+<!-- 링크 패널 -->
+<div class="gw-pov" id="gw-plink" onclick="if(event.target===this)closeP('gw-plink')">
+  <div class="gw-pbox" style="width:min(460px,96vw);max-height:92vh;display:flex;flex-direction:column;">
+    <div class="gw-phdr" style="background:linear-gradient(135deg,rgba(251,191,36,.1),rgba(245,158,11,.05));border-bottom:1px solid rgba(251,191,36,.25);">
+      <div class="gw-pttl" style="color:#fbbf24;">🔗 링크</div>
+      <button class="gw-px" onclick="closeP('gw-plink')">✕</button>
+    </div>
+    <div class="gw-pbdy" id="gw-linkbody" style="padding:12px;overflow-y:auto;"></div>
+  </div>
+</div>
+
 <!-- 캐릭터 선택 패널 -->
 <div class="gw-pov" id="gw-pcharsel" onclick="if(event.target===this)closeP('gw-pcharsel')">
   <div class="gw-pbox" style="width:min(440px,96vw);max-height:90vh;display:flex;flex-direction:column;">
@@ -871,6 +882,7 @@
         <div class="gw-act" onclick="openLegionBoss()" style="border-color:rgba(239,68,68,.35)"><div class="gw-act-ico">😈</div><div class="gw-act-lbl">군단장</div></div>
         <div class="gw-act" onclick="openAuction()" style="border-color:rgba(52,211,153,.25)"><div class="gw-act-ico">🏛️</div><div class="gw-act-lbl">경매장</div></div>
         <div class="gw-act" onclick="openCharSelect()" style="border-color:rgba(52,211,153,.2)"><div class="gw-act-ico">👤</div><div class="gw-act-lbl">캐릭터</div></div>
+        <div class="gw-act" onclick="openLink()" style="border-color:rgba(251,191,36,.25)"><div class="gw-act-ico">🔗</div><div class="gw-act-lbl">링크</div></div>
       </div>
     </div>
   </div>
@@ -1536,10 +1548,10 @@ function tAtk(){
   const b=cBase(G.job,G.lv);const eq=G.equip||{};
   let a=b.atk;
   Object.values(eq).forEach(it=>{if(it)a+=(it.atk||0);});
-  // 유물 보너스
   (G.relics||[]).forEach(r=>{if(r)a+=(r.atk_bonus||0);});
-  // 버프
   if(G.buffs.berserk) a=Math.floor(a*1.8);
+  // 링크 공격력 % 보너스
+  a=Math.floor(a*getLinkAtkMult());
   return a;
 }
 function tDef(){
@@ -1548,8 +1560,9 @@ function tDef(){
   Object.values(eq).forEach(it=>{if(it)d+=(it.def||0);});
   (G.relics||[]).forEach(r=>{if(r)d+=(r.def_bonus||0);});
   if(G.defBuff) d=Math.floor(d*1.5);
-  // 데스마크(상대 방어 -30%), 신성강림(피해 50% 감소 → 방어값으로 환산)
   if(G.buffs.divine) d=Math.floor(d*2.0);
+  // 링크 방어력 % 보너스
+  d=Math.floor(d*getLinkDefMult());
   return d;
 }
 
@@ -2932,6 +2945,7 @@ function renderP(id){
   if(id==='gw-plegion')  renderLegionPanel();
   if(id==='gw-pauction') { aucTab('buy'); }
   if(id==='gw-pcharsel') renderCharSelectPanel();
+  if(id==='gw-plink')    renderLinkPanel();
   if(id==='gw-pcash')    renderCashShop();
   if(id==='gw-pwb')      renderWorldBoss(); // async
 }
@@ -2988,16 +3002,17 @@ function recalcStats(){
   G.atk=b.atk+eq.atk;G.def=b.def+eq.def;
   // 유물 HP/MP 보너스 반영
   G.mHP=b.mHP+Math.floor(b.mHP*(eq.relicHpBonus||0)/100);
+  G.mHP=Math.floor(G.mHP*getLinkHpMult()); // 링크 HP % 보너스
   G.mMP=b.mMP+Math.floor(b.mMP*(eq.relicMpBonus||0)/100);
   G.hp=Math.min(G.hp,G.mHP);
   G.mp=Math.min(G.mp,G.mMP);
 }
 // 공격 속도: 기본 1150ms - 신발 spd (최소 400ms)
-function tSpd(){ const base=G.job==='archer'?1300:1500; return Math.max(400, base-(equipBonus().spd||0)); }
+function tSpd(){ const base=G.job==='archer'?1300:1500; return Math.max(400, base-(equipBonus().spd||0)-getLinkSpdReduce()); }
 // 치명타 확률 (%) - 기본 5%
 function tCritRate(){ const base=G.job==='rogue'?10:5; return base+(equipBonus().critRate||0); }
 // 치명타 대미지 배율 (%) - 기본 150%
-function tCritDmg(){ return 100+(equipBonus().critDmg||0); }
+function tCritDmg(){ return 100+(equipBonus().critDmg||0)+getLinkCritDmgBonus(); }
 
 const SLOT_INFO={
   weapon:   {label:'무기',    emoji:'⚔️'},
@@ -9203,6 +9218,184 @@ saveG = function() {
 // ════════════════════════════════════════════════════════
 //  캐릭터 선택 시스템 끝
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  링크 시스템
+// ════════════════════════════════════════════════════════
+
+// 직업별 링크 정의
+const LINK_DEFS = {
+  warrior: {
+    label:'HP 증가', stat:'hp', unit:'%',
+    milestones:[
+      {lv:10,  val:1},
+      {lv:30,  val:3},
+      {lv:50,  val:5},
+      {lv:100, val:7},
+      {lv:120, val:10},
+      {lv:140, val:15},
+    ]
+  },
+  archer: {
+    label:'공격 속도 감소', stat:'spd', unit:'초',
+    milestones:[
+      {lv:10,  val:0.01},
+      {lv:30,  val:0.03},
+      {lv:50,  val:0.05},
+      {lv:100, val:0.07},
+      {lv:120, val:0.10},
+      {lv:140, val:0.15},
+    ]
+  },
+  rogue: {
+    label:'치명타 대미지 증가', stat:'critDmg', unit:'%',
+    milestones:[
+      {lv:10,  val:1},
+      {lv:30,  val:3},
+      {lv:50,  val:5},
+      {lv:100, val:7},
+      {lv:120, val:10},
+      {lv:140, val:15},
+    ]
+  },
+  mage: {
+    label:'공격력 증가', stat:'atk', unit:'%',
+    milestones:[
+      {lv:10,  val:1},
+      {lv:30,  val:3},
+      {lv:50,  val:5},
+      {lv:100, val:7},
+      {lv:120, val:10},
+      {lv:140, val:15},
+    ]
+  },
+  paladin: {
+    label:'방어력 증가', stat:'def', unit:'%',
+    milestones:[
+      {lv:10,  val:1},
+      {lv:30,  val:3},
+      {lv:50,  val:5},
+      {lv:100, val:7},
+      {lv:120, val:10},
+      {lv:140, val:15},
+    ]
+  },
+};
+
+// ── 링크 보너스 계산 ──
+// 각 직업의 저장된 레벨을 기반으로 달성된 마일스톤 합산
+function getLinkBonus() {
+  const bonus = { hp:0, spd:0, critDmg:0, atk:0, def:0 };
+  for(const [jobId, def] of Object.entries(LINK_DEFS)) {
+    // 현재 직업은 G.lv, 나머지는 저장된 데이터에서
+    let jobLv;
+    if(jobId === G.job) {
+      jobLv = G.lv;
+    } else {
+      const data = getCharData(jobId);
+      jobLv = (data && data.lv) ? data.lv : 0;
+    }
+    for(const ms of def.milestones) {
+      if(jobLv >= ms.lv) bonus[def.stat] += ms.val;
+    }
+  }
+  return bonus;
+}
+
+// ── tAtk/tDef/tSpd/tCritDmg/mHP에 링크 보너스 반영 함수 ──
+function getLinkAtkMult()     { return 1 + getLinkBonus().atk / 100; }
+function getLinkDefMult()     { return 1 + getLinkBonus().def / 100; }
+function getLinkHpMult()      { return 1 + getLinkBonus().hp  / 100; }
+function getLinkSpdReduce()   { return Math.round(getLinkBonus().spd * 1000); } // 초→ms
+function getLinkCritDmgBonus(){ return getLinkBonus().critDmg; }
+
+// ── 패널 열기 ──
+function openLink() { openP('gw-plink'); }
+
+// ── 링크 패널 렌더 ──
+function renderLinkPanel() {
+  const el = document.getElementById('gw-linkbody'); if(!el) return;
+
+  const JOB_COLORS = { warrior:'#ef4444', archer:'#34d399', mage:'#a855f7', rogue:'#94a3b8', paladin:'#fbbf24' };
+  const JOB_NAMES  = { warrior:'전사', archer:'궁수', mage:'마법사', rogue:'도적', paladin:'성기사' };
+  const JOB_EMOJIS = { warrior:'⚔️', archer:'🏹', mage:'🔮', rogue:'🗡️', paladin:'🛡️' };
+
+  // 현재 총 링크 보너스
+  const bonus = getLinkBonus();
+  let totalHtml = `
+    <div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);
+      border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+      <div style="font-size:10px;color:#fbbf24;font-family:'Orbitron',sans-serif;font-weight:700;margin-bottom:6px;">
+        ✨ 현재 적용 중인 링크 보너스
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:10px;font-family:'Noto Sans KR',sans-serif;">
+        ${bonus.hp > 0      ? `<span style="padding:2px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:5px;color:#f87171;">❤️ HP +${bonus.hp}%</span>` : ''}
+        ${bonus.atk > 0     ? `<span style="padding:2px 8px;background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.3);border-radius:5px;color:#c084fc;">⚔️ 공격력 +${bonus.atk}%</span>` : ''}
+        ${bonus.def > 0     ? `<span style="padding:2px 8px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:5px;color:#fbbf24;">🛡️ 방어력 +${bonus.def}%</span>` : ''}
+        ${bonus.critDmg > 0 ? `<span style="padding:2px 8px;background:rgba(148,163,184,.15);border:1px solid rgba(148,163,184,.3);border-radius:5px;color:#94a3b8;">🗡️ 치명타 대미지 +${bonus.critDmg}%</span>` : ''}
+        ${bonus.spd > 0     ? `<span style="padding:2px 8px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:5px;color:#34d399;">🏹 공격속도 -${bonus.spd}초</span>` : ''}
+        ${Object.values(bonus).every(v=>v===0) ? '<span style="color:#475569">아직 획득한 링크 효과가 없습니다.</span>' : ''}
+      </div>
+    </div>`;
+
+  let jobsHtml = '';
+  for(const [jobId, def] of Object.entries(LINK_DEFS)) {
+    let jobLv = jobId === G.job ? G.lv : ((getCharData(jobId)?.lv) || 0);
+    const gc = JOB_COLORS[jobId] || '#94a3b8';
+    const hasChar = jobLv > 0;
+
+    // 달성/미달성 마일스톤 계산
+    let achieved = 0, total = def.milestones.length;
+    let totalVal = 0;
+    def.milestones.forEach(ms => { if(jobLv >= ms.lv){ achieved++; totalVal += ms.val; } });
+
+    // 진행도 바 (달성 마일스톤 / 전체)
+    const pct = total > 0 ? (achieved / total * 100).toFixed(0) : 0;
+
+    jobsHtml += `
+    <div style="background:${gc}08;border:1px solid ${gc}${hasChar?'25':'12'};
+      border-radius:14px;padding:14px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:30px;">${JOB_EMOJIS[jobId]}</span>
+        <div style="flex:1;">
+          <div style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:${gc};">
+            ${JOB_NAMES[jobId]}
+            ${jobId===G.job?`<span style="font-size:9px;padding:1px 6px;background:${gc}33;border-radius:4px;margin-left:4px;">현재</span>`:''}
+          </div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px;font-family:'Noto Sans KR',sans-serif;">
+            ${def.label} · Lv.${jobLv>0?jobLv:'미생성'} · 달성 ${achieved}/${total}
+            ${totalVal>0?`<span style="color:${gc};font-weight:700;"> (+${totalVal}${def.unit})</span>`:''}
+          </div>
+        </div>
+      </div>
+      <!-- 진행도 바 -->
+      <div style="background:rgba(255,255,255,.05);border-radius:4px;height:4px;margin-bottom:10px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${gc};border-radius:4px;transition:width .3s;"></div>
+      </div>
+      <!-- 마일스톤 목록 -->
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        ${def.milestones.map(ms=>{
+          const done = jobLv >= ms.lv;
+          return `<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;
+            background:${done?`${gc}15`:'rgba(255,255,255,.02)'};
+            border-radius:6px;border:1px solid ${done?`${gc}30`:'rgba(255,255,255,.05)'};">
+            <span style="font-size:12px;">${done?'✅':'⬜'}</span>
+            <span style="font-size:10px;color:${done?gc:'#475569'};font-family:'Orbitron',sans-serif;">Lv.${ms.lv}</span>
+            <span style="font-size:10px;color:${done?'#e2e8f0':'#475569'};font-family:'Noto Sans KR',sans-serif;">
+              ${def.label} +${ms.val}${def.unit}
+            </span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = totalHtml + jobsHtml;
+}
+
+// ════════════════════════════════════════════════════════
+//  링크 시스템 끝
+// ════════════════════════════════════════════════════════
+
 
 
 
