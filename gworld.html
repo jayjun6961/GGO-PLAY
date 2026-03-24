@@ -2680,6 +2680,11 @@ function autoFight(){
   updMobBar();
   if(G.mhp<=0){mobDead();return;}
   // 몬스터 공격 → 돌진 모션 + 플레이어 피격
+  // 회피율 체크
+  if(tDodge()>0 && Math.random()*100 < tDodge()){
+    blog(`<span style="color:#34d399">💨 회피! 공격을 피했습니다!</span>`);
+    return;
+  }
   const mdRaw=Math.max(1,G.mob.atk-tDef()+Math.floor(Math.random()*3)-1);
   const mdCap=Math.floor(G.mHP*0.6); // 즉사 방지 캡: 최대 HP의 60%
   const md=Math.min(mdRaw, mdCap);
@@ -2966,7 +2971,7 @@ function equipBonus(){
   });
   // 유물 보너스 합산
   let relicAtk=0,relicDef=0,relicSpd=0,relicCritRate=0,relicCritDmg=0,relicExpBonus=0,relicGoldBonus=0;
-  let relicHpBonus=0,relicMpBonus=0;
+  let relicHpBonus=0,relicMpBonus=0,relicDodge=0,relicBossDmg=0;
   (G.relics||[]).forEach(r=>{
     if(!r) return;
     relicHpBonus    +=(r.hp_bonus   ||0);
@@ -2978,11 +2983,13 @@ function equipBonus(){
     relicCritDmg    +=(r.critDmg_bonus ||0);
     relicExpBonus   +=(r.exp_bonus  ||0);
     relicGoldBonus  +=(r.gold_bonus ||0);
+    relicDodge      +=(r.dodge_bonus||0);
+    relicBossDmg    +=(r.bossDmg_bonus||0);
   });
   return {atk:atk+relicAtk, def:def+relicDef, spd:spd+relicSpd,
           critRate:critRate+relicCritRate, critDmg:critDmg+relicCritDmg,
           expBonus:expBonus+relicExpBonus, goldBonus:relicGoldBonus,
-          relicHpBonus, relicMpBonus};
+          relicHpBonus, relicMpBonus, dodge:relicDodge, bossDmg:relicBossDmg};
 }
 // 경험치 획득 배율 (1 + expBonus%) × 구간별 효율
 function tExpRate(){
@@ -3013,6 +3020,10 @@ function tSpd(){ const base=G.job==='archer'?1300:1500; return Math.max(400, bas
 function tCritRate(){ const base=G.job==='rogue'?10:5; return base+(equipBonus().critRate||0); }
 // 치명타 대미지 배율 (%) - 기본 150%
 function tCritDmg(){ return 100+(equipBonus().critDmg||0)+getLinkCritDmgBonus(); }
+// 회피율 (%) - 유물로만 증가
+function tDodge(){ return equipBonus().dodge||0; }
+// 보스 추가 대미지 (%) - 던전/군단장/유물던전 보스에만 적용
+function tBossDmg(){ return equipBonus().bossDmg||0; }
 
 const SLOT_INFO={
   weapon:   {label:'무기',    emoji:'⚔️'},
@@ -3521,6 +3532,8 @@ function renderStat(){
       <div class="gw-stat-row"><span class="gw-stat-l">치명타 확률</span><span class="gw-stat-v">${cr}% <span style="color:#f97316;font-size:10px">${eq.critRate>0?'(+'+eq.critRate+'%)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">치명타 대미지</span><span class="gw-stat-v">${cd}% <span style="color:#f97316;font-size:10px">${eq.critDmg>0?'(+'+eq.critDmg+'%)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">경험치 획득량</span><span class="gw-stat-v" style="color:#34d399">×${tExpRate().toFixed(2)} <span style="color:#34d399;font-size:10px">${eq.expBonus>0?'(반지+'+eq.expBonus+'%)':''}</span>${G.lv>30?`<span style="color:#f87171;font-size:10px"> 효율${G.lv<=50?85:G.lv<=70?65:G.lv<=85?45:30}%</span>`:''}</span></div>
+      <div class="gw-stat-row"><span class="gw-stat-l">회피율</span><span class="gw-stat-v" style="color:#34d399">${tDodge()}% <span style="color:#475569;font-size:10px">${tDodge()===0?'(유물로 증가 가능)':''}</span></span></div>
+      <div class="gw-stat-row"><span class="gw-stat-l">보스 대미지</span><span class="gw-stat-v" style="color:#f97316">+${tBossDmg()}% <span style="color:#475569;font-size:10px">${tBossDmg()===0?'(유물로 증가 가능)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">골드</span><span class="gw-stat-v" style="color:#fbbf24">${G.gold.toLocaleString()}G</span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">EXP</span><span class="gw-stat-v">${G.exp}/${expNeed(G.lv)}</span></div>
     </div>`;
@@ -3978,6 +3991,11 @@ function dunFight() {
   const bPenetrate = Math.floor(boss.atk * 0.6);
   const bResisted  = Math.max(0, Math.floor(boss.atk * 0.4) - Math.floor(tDef() * 0.5));
   const bVariance  = Math.floor(Math.random() * Math.max(2, Math.floor(boss.atk * 0.05)));
+  // 던전 보스 회피율 체크
+  if(tDodge()>0 && Math.random()*100 < tDodge()){
+    dunBlog(`<span style="color:#34d399">💨 회피! 보스 공격을 피했습니다!</span>`);
+    dunHud(); return;
+  }
   const mdRaw2 = Math.max(1, bPenetrate + bResisted + bVariance);
   const mdCap2 = Math.floor(G.mHP * 0.6); // 즉사 방지 캡: 최대 HP의 60%
   const md = Math.min(mdRaw2, mdCap2);
@@ -6888,6 +6906,7 @@ function towerFight() {
   const bPen  = Math.floor(mob.atk*0.6);
   const bRes  = Math.max(0, Math.floor(mob.atk*0.4)-Math.floor(tDef()*0.5));
   const bVar  = Math.floor(Math.random()*Math.max(2,Math.floor(mob.atk*0.05)));
+  // 플레이어 공격에 보스대미지 % 추가 반영은 던전보스 처치 시 dmg 계산에서 처리
   const md    = Math.min(Math.max(1,bPen+bRes+bVar), Math.floor(G.mHP*0.6));
   G.hp = Math.max(0, G.hp-md);
   towerBlog(`<span class="ld">${mob.n}의 공격! -${md} HP</span>`);
@@ -7748,8 +7767,8 @@ function rdunFight() {
   if(!_rdun.boss || _rdun.bossHp<=0 || _rdun.dead) return;
   const boss = _rdun.boss;
 
-  // 플레이어 공격
-  let dmg = Math.max(1, tAtk()-boss.def+Math.floor(Math.random()*6)-2);
+  // 플레이어 공격 (보스대미지 % 반영)
+  let dmg = Math.max(1, Math.floor((tAtk()-boss.def+Math.floor(Math.random()*6)-2)*(1+tBossDmg()/100)));
   const isCrit = Math.random()*100 < tCritRate();
   if(isCrit) dmg = Math.floor(dmg*tCritDmg()/100);
   _rdun.bossHp = Math.max(0, _rdun.bossHp-dmg);
@@ -7757,7 +7776,11 @@ function rdunFight() {
   rdunHud();
   if(_rdun.bossHp<=0){ rdunBossDead(); return; }
 
-  // 보스 공격 (드래곤 던전과 동일 공식)
+  // 보스 공격 (회피율 체크 후 피해 계산)
+  if(tDodge()>0 && Math.random()*100 < tDodge()){
+    rdunBlog(`<span style="color:#34d399">💨 회피! 보스 공격을 피했습니다!</span>`);
+    rdunHud(); return;
+  }
   const bPen  = Math.floor(boss.atk*0.6);
   const bRes  = Math.max(0, Math.floor(boss.atk*0.4)-Math.floor(tDef()*0.5));
   const bVar  = Math.floor(Math.random()*Math.max(2,Math.floor(boss.atk*0.05)));
@@ -8144,7 +8167,7 @@ function legionFight() {
   const boss=_legion.boss;
 
   // 플레이어 공격
-  let dmg=Math.max(1,tAtk()-Math.floor(boss.atk*0.1)+Math.floor(Math.random()*8)-3);
+  let dmg=Math.max(1,Math.floor((tAtk()-Math.floor(boss.atk*0.1)+Math.floor(Math.random()*8)-3)*(1+tBossDmg()/100)));
   const isCrit=Math.random()*100<tCritRate();
   if(isCrit) dmg=Math.floor(dmg*tCritDmg()/100);
   _legion.bossHp=Math.max(0,_legion.bossHp-dmg);
@@ -8157,6 +8180,9 @@ function legionFight() {
   const bRes = Math.max(0, Math.floor((boss.atk-boss.pen)*0.5) - Math.floor(tDef()*0.4));
   const bVar = Math.floor(Math.random()*Math.max(2,Math.floor(boss.atk*0.03)));
   const md   = Math.min(Math.max(1,bPen+bRes+bVar), Math.floor(G.mHP*0.6));
+  if(tDodge()>0 && Math.random()*100 < tDodge()){
+    legionBlog(`<span style="color:#34d399">💨 회피!</span>`); legionHud(); return;
+  }
   G.hp=Math.max(0,G.hp-md);
   legionBlog(`<span class="ld">${boss.name}의 공격! -${md} HP</span>`);
   legionHud(); legionSkills();
@@ -8321,7 +8347,8 @@ function useLegionSkill(skId){
   if(G.mp<sk.mp){gwT('MP 부족!');return;}
   G.mp-=sk.mp; G.sk[skId]={...G.sk[skId]||{},t:now};
   const lv=G.sk[skId]?.lv||0;
-  let dmg=Math.max(1,Math.floor(tAtk()*(sk.dmg+lv*0.1))-Math.floor(_legion.boss?.atk*0.05||0)+Math.floor(Math.random()*10)-4);
+  const _legBossMult = 1 + tBossDmg()/100;
+  let dmg=Math.max(1,Math.floor((tAtk()*(sk.dmg+lv*0.1)-Math.floor(_legion.boss?.atk*0.05||0)+Math.floor(Math.random()*10)-4)*_legBossMult));
   const isCrit=Math.random()*100<tCritRate();
   if(isCrit)dmg=Math.floor(dmg*tCritDmg()/100);
   if(sk.eff==='heal30'||sk.eff==='holy_nova'||sk.eff==='divine'){
