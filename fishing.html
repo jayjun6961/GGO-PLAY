@@ -1809,37 +1809,37 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
 
   const BOSS_DEFS = [
     {
-      id:'deep_monster',   name:'심해 괴어',   emoji:'🦑', hp:500,  reward:10000,
+      id:'deep_monster',   name:'심해 괴어',   emoji:'🦑', hp:500,  reward:10000,  perfectDmg:30,
       unlockMap:'sea',     color:'#60a5fa',
       desc:'심해에서 솟아오른 거대 생명체',
       pattern:'shrink',    // 퍼펙트 구간 점점 좁아짐 + 갑자기 가속
     },
     {
-      id:'storm_shark',    name:'폭풍 상어',   emoji:'🦈', hp:700,  reward:30000,
+      id:'storm_shark',    name:'폭풍 상어',   emoji:'🦈', hp:700,  reward:30000,  perfectDmg:40,
       unlockMap:'deep',    color:'#a78bfa',
       desc:'폭풍을 일으키며 질주하는 상어',
       pattern:'chaos',     // 속도 랜덤 급변
     },
     {
-      id:'phantom_jelly',  name:'환영 해파리', emoji:'🪼', hp:900,  reward:50000,
+      id:'phantom_jelly',  name:'환영 해파리', emoji:'🪼', hp:900,  reward:50000,  perfectDmg:50,
       unlockMap:'volcano', color:'#f0abfc',
       desc:'가짜 퍼펙트를 만들어 낚시꾼을 현혹',
       pattern:'fake',      // 가짜 퍼펙트 구간
     },
     {
-      id:'flame_eel',      name:'화염 장어',   emoji:'🔥', hp:1000, reward:70000,
+      id:'flame_eel',      name:'화염 장어',   emoji:'🔥', hp:1000, reward:70000,  perfectDmg:60,
       unlockMap:'sky',     color:'#f97316',
       desc:'불꽃을 뿜으며 공격하는 장어',
       pattern:'rage',      // 퍼펙트 성공 시 2배, 실패 시 난이도 상승
     },
     {
-      id:'ice_turtle',     name:'빙결 거북',   emoji:'🐢', hp:1500, reward:100000,
+      id:'ice_turtle',     name:'빙결 거북',   emoji:'🐢', hp:1500, reward:100000, perfectDmg:80,
       unlockMap:'space',   color:'#38bdf8',
       desc:'얼음 갑옷으로 무장한 고대 거북',
       pattern:'invincible', // 일정 시간 무적
     },
     {
-      id:'thunder_nemo',   name:'번개 니모',   emoji:'🐠', hp:2000, reward:300000,
+      id:'thunder_nemo',   name:'번개 니모',   emoji:'🐠', hp:2000, reward:300000, perfectDmg:100,
       unlockMap:'galaxy',  color:'#fbbf24',
       desc:'번개처럼 빠르고 예측불가한 물고기',
       pattern:'thunder',   // 속도변화 + 페이크 타이밍
@@ -1916,7 +1916,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
             <div style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:${gc};">${boss.name}</div>
             <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-top:2px;">${boss.desc}</div>
             <div style="font-size:9px;color:#475569;font-family:'Orbitron',sans-serif;margin-top:3px;">
-              HP ${boss.hp.toLocaleString()} · 보상 ${boss.reward.toLocaleString()} FP · 시간 3분
+              HP ${boss.hp.toLocaleString()} · 퍼펙트 ${boss.perfectDmg}dmg · 보상 ${boss.reward.toLocaleString()} FP · 시간 3분
             </div>
           </div>
         </div>
@@ -2006,7 +2006,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
         <!-- 게이지 영역 -->
         <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;margin-bottom:14px;">
           <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;text-align:center;">
-            🎣 낚시 게이지로 보스를 공격하세요!
+            🎣 퍼펙트 구간에서만 대미지! 일반 공격은 헛스윙
           </div>
           <div style="position:relative;background:rgba(255,255,255,.08);border-radius:10px;height:26px;overflow:hidden;border:1px solid rgba(124,58,237,.2);" id="boss-gauge-track">
             <div id="boss-fake-zone" style="position:absolute;top:0;bottom:0;background:rgba(239,68,68,.25);border:1px solid rgba(239,68,68,.5);border-radius:4px;display:none;"></div>
@@ -2176,12 +2176,22 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
       }
     }
 
-    let dmg = isInPerfect ? 100 : 10;
+    // 퍼펙트만 유효 — 일반 공격은 헛스윙
+    const baseDmg = _boss.def.perfectDmg || 30;
 
-    // 화염 장어: 퍼펙트 성공 시 2배, 실패 시 난이도 상승
+    if(!isInPerfect) {
+      // 화염 장어: 퍼펙트 실패 시 난이도 상승
+      if(_boss.def.pattern==='rage') _boss.rageLevel = (_boss.rageLevel||0)+1;
+      bossLog('<span style="color:#475569">💨 헛스윙! 퍼펙트 구간을 맞춰야 대미지가 들어갑니다.</span>');
+      _bossApplyPattern(); bossStartGauge(); return;
+    }
+
+    let dmg = baseDmg;
+
+    // 화염 장어: 퍼펙트 성공 시 2배
     if(_boss.def.pattern==='rage') {
-      if(isInPerfect) { dmg = 200; bossLog('<span style="color:#f97316">🔥 화염 강타! 2배 대미지!</span>'); }
-      else { _boss.rageLevel = (_boss.rageLevel||0)+1; }
+      dmg = baseDmg * 2;
+      bossLog('<span style="color:#f97316">🔥 화염 강타! 2배 대미지!</span>');
     }
 
     // 빙결 거북: 무적 시 0 대미지
@@ -2200,8 +2210,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     if(hpBar) hpBar.style.width = pct+'%';
     if(hpTxt) hpTxt.textContent = _boss.hp+'/'+_boss.maxHp;
 
-    if(isInPerfect) bossLog(`<span style="color:#34d399">💥 퍼펙트 크리티컬! -${dmg} HP (남은 HP: ${_boss.hp})</span>`);
-    else            bossLog(`<span style="color:#94a3b8">⚡ 공격! -${dmg} HP (남은 HP: ${_boss.hp})</span>`);
+    bossLog(`<span style="color:#34d399">💥 퍼펙트! -${dmg} HP (남은 HP: ${_boss.hp})</span>`);
 
     // 보스 이모지 흔들기
     const em = document.getElementById('boss-emoji');
