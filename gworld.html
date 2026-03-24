@@ -6668,7 +6668,7 @@ function renderTowerPanel() {
     <div style="margin-bottom:12px;padding:12px 14px;background:rgba(251,191,36,.06);
       border:1px solid rgba(251,191,36,.2);border-radius:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <span style="font-size:11px;font-weight:700;color:#fbbf24;font-family:'Orbitron',sans-serif;">진행: ${cleared.size}/100층</span>
+        <span style="font-size:11px;font-weight:700;color:#fbbf24;font-family:'Orbitron',sans-serif;">진행: ${cleared.size}/200층</span>
         <span style="font-size:10px;color:#64748b;font-family:'Orbitron',sans-serif;">${pct}%</span>
       </div>
       <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;">
@@ -7172,7 +7172,7 @@ function renderRelicPanel() {
       const gc = RELIC_GRADE_COL[r.grade]||'#94a3b8';
       const def = RELIC_DEFS.find(d=>d.id===r.relicId);
       html += `<div onclick="unequipRelic(${i})"
-        title="${r.name} (해제하려면 클릭)"
+        title="${r.name||r.n} (해제하려면 클릭)"
         style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
           background:${gc}18;border:2px solid ${gc}66;border-radius:10px;cursor:pointer;
           transition:all .15s;position:relative;"
@@ -7240,7 +7240,7 @@ function renderRelicPanel() {
         background:${gc}0d;border:1px solid ${gc}33;border-radius:10px;">
         <span style="font-size:24px">${r.e}</span>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:11px;font-weight:700;color:${gc};">${r.name}</div>
+          <div style="font-size:11px;font-weight:700;color:${gc};">${r.name||r.n||'(이름없음)'}</div>
           <div style="display:flex;gap:5px;align-items:center;margin-top:2px;">
             <span style="font-size:8px;padding:1px 5px;border-radius:4px;background:${gc}22;color:${gc};border:1px solid ${gc}44;">${r.grade}</span>
             <span style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;">${statLabel}</span>
@@ -7273,7 +7273,7 @@ function equipRelic(invIdx) {
   G.inv.splice(invIdx, 1);
   G.relics[emptySlot] = r;
   recalcStats(); hud(); saveG();
-  gwT(`🔮 [${r.name}] 장착!`);
+  gwT(`🔮 [${r.name||r.n}] 장착!`);
   renderRelicPanel();
 }
 
@@ -7281,12 +7281,12 @@ function equipRelic(invIdx) {
 function unequipRelic(slotIdx) {
   const r = (G.relics||[])[slotIdx];
   if(!r) return;
-  if(!confirm(`[${r.name}] 해제하고 인벤토리로 이동할까요?`)) return;
+  if(!confirm(`[${r.name||r.n}] 해제하고 인벤토리로 이동할까요?`)) return;
 
   G.relics[slotIdx] = null;
   G.inv.push(r);
   recalcStats(); hud(); saveG();
-  gwT(`🔮 [${r.name}] 해제됨`);
+  gwT(`🔮 [${r.name||r.n}] 해제됨`);
   renderRelicPanel();
 }
 
@@ -7484,7 +7484,7 @@ function relicEnhSlot(slotIdx) {
   r.enh = enh + 1;
 
   recalcStats(); hud(); saveG();
-  gwT(`🔮 [${r.name}] +${r.enh} 강화 완료!`);
+  gwT(`🔮 [${r.name||r.n}] +${r.enh} 강화 완료!`);
   renderRelicEnh();
 }
 
@@ -7510,7 +7510,7 @@ function relicRefineSlot(slotIdx) {
   if(alchQty  < cost.alch)  { gwT(`연금석 부족! (${cost.alch.toLocaleString()}개 필요)`);  return; }
   if(magicQty < cost.magic) { gwT(`마법석 부족! (${cost.magic.toLocaleString()}개 필요)`); return; }
 
-  if(!confirm(`[${r.name}] ${r.grade} → ${nextGrade} 연마하시겠습니까?\n비용: 연금석 ${cost.alch}개 + 마법석 ${cost.magic}개`)) return;
+  if(!confirm(`[${r.name||r.n}] ${r.grade} → ${nextGrade} 연마하시겠습니까?\n비용: 연금석 ${cost.alch}개 + 마법석 ${cost.magic}개`)) return;
 
   // 비용 차감
   alchItem.qty  -= cost.alch;
@@ -7522,7 +7522,7 @@ function relicRefineSlot(slotIdx) {
   const def      = RELIC_DEFS.find(d=>d.id===r.relicId);
   const baseVal  = def?.vals[nextGrade] || 0;
   const newRelic = {
-    n: r.name, e: r.e, type:'relic', relicId: r.relicId,
+    n: r.name||r.n, e: r.e, type:'relic', relicId: r.relicId,
     grade: nextGrade, [def?.stat]: baseVal,
     desc: r.desc, sellPrice: r.sellPrice * 3,
     qty:1, _id: Date.now(), enh: 0,
@@ -7532,7 +7532,7 @@ function relicRefineSlot(slotIdx) {
   G.relics[slotIdx] = newRelic;
 
   recalcStats(); hud(); saveG();
-  gwT(`✨ 연마 성공! [${r.name}] ${r.grade} → ${nextGrade} 승급!`);
+  gwT(`✨ 연마 성공! [${r.name||r.n}] ${r.grade} → ${nextGrade} 승급!`);
   renderRelicEnh();
 }
 
