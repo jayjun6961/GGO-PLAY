@@ -1489,9 +1489,12 @@ const DROPS = [
 
 
 function expNeed(lv){
+  // 1~79레벨: 기존의 25% (빠른 레벨업)
+  // 80레벨~: 기존 공식 그대로 유지
+  if(lv < 80) return Math.floor(60 * Math.pow(lv, 1.65) * 0.25);
   if(lv < 100) return Math.floor(60 * Math.pow(lv, 1.65));
-  // 100레벨 이후 대폭 증가: 기존 공식의 5배 + 레벨 초과분 지수 증가
-  const base = Math.floor(60 * Math.pow(100, 1.65)); // Lv.99→100 필요 경험치
+  // 100레벨 이후 대폭 증가
+  const base = Math.floor(60 * Math.pow(100, 1.65));
   const excess = lv - 99;
   return Math.floor(base * Math.pow(2.2, excess * 0.35));
 }
