@@ -1566,7 +1566,7 @@ function tDef(){
   return d;
 }
 
-function saveG(){gSet('save',{job:G.job,lv:G.lv,hp:G.hp,mp:G.mp,exp:G.exp,gold:G.gold,inv:G.inv,qprog:G.qprog,qclaim:G.qclaim,sk:G.sk,quests:G.quests,equip:G.equip||{},wquests:G.wquests,wqprog:G.wqprog,wqclaim:G.wqclaim,relics:G.relics||[null,null,null,null,null]});}
+function saveG(){gSet('save',{job:G.job,lv:G.lv,hp:G.hp,mp:G.mp,exp:G.exp,gold:G.gold,inv:G.inv,qprog:G.qprog,qclaim:G.qclaim,sk:G.sk,quests:G.quests,equip:G.equip||{},wquests:G.wquests,wqprog:G.wqprog,wqclaim:G.wqclaim,relics:G.relics||[null,null,null,null,null]}); if(G.job && typeof saveCurrentChar==='function') saveCurrentChar();}
 
 function loadG(){
   const s=gGet('save');if(!s||!s.job)return false;
@@ -9235,12 +9235,7 @@ function selectCharJob(jobId) {
   gwT(`✅ ${job.emoji} ${job.name} 캐릭터로 전환했습니다!`);
 }
 
-// ── 기존 saveG 후킹: 직업별 슬롯도 함께 저장 ──
-const _origSaveG = saveG;
-saveG = function() {
-  _origSaveG();
-  if(G.job) saveCurrentChar();
-};
+// saveG 후킹 제거 → saveG 본체에 직접 saveCurrentChar() 호출 포함됨
 
 // ════════════════════════════════════════════════════════
 //  캐릭터 선택 시스템 끝
