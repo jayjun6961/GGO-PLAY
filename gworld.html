@@ -5574,7 +5574,7 @@ async function wbFindOpenParty(wb=WB_LIST[_wbTabIdx]) {
 /* ── 월드 보스 패널 열기 ── */
 function openWorldBoss() {
   openP('gw-pwb');
-  renderWorldBoss();
+  selectWbTab(_wbTabIdx || 0); // 탭 동적 생성 + 렌더
 }
 
 /* ── 월드 보스 패널 렌더 ── */
@@ -5586,7 +5586,7 @@ function selectWbTab(idx) {
 
   // 탭 동적 생성 (WB_LIST 기반, 처음 또는 수 불일치 시)
   const tabsEl = document.getElementById('gw-wb-tabs');
-  if(tabsEl && tabsEl.children.length !== WB_LIST.length) {
+  if(tabsEl) { // 항상 탭 재생성 (WB_LIST 기준)
     tabsEl.innerHTML = WB_LIST.map((wb, i) => {
       const label = wb.name.replace(/"/g,'').length > 8
         ? wb.emoji + ' ' + wb.name.replace(/["]/g,'').substring(0,7) + '…'
