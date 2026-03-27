@@ -1497,6 +1497,22 @@ const DROPS = [
   {n:'절대의 반지(공격)', e:'🌌', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_atk',  atk:70,      grade:'레전드리', sellPrice:18000},
   {n:'절대의 반지(방어)', e:'🌌', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_def',  def:70,      grade:'레전드리', sellPrice:18000},
   {n:'절대의 반지(경험)', e:'🌌', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp',  expBonus:90, grade:'레전드리', sellPrice:18000},
+
+  // ── 초월 등급 장비 ──
+  {n:'초월의 대검',      e:'💠', type:'weapon', slot:'weapon', atk:250,def:40,  grade:'초월', sellPrice:50000, jobType:['warrior','paladin']},
+  {n:'초월의 성검',      e:'🔷', type:'weapon', slot:'weapon', atk:260,def:80,  grade:'초월', sellPrice:55000, jobType:['paladin']},
+  {n:'초월의 신궁',      e:'💙', type:'weapon', slot:'weapon', atk:255,def:12,  grade:'초월', sellPrice:50000, jobType:['archer']},
+  {n:'초월의 영혼검',    e:'🌀', type:'weapon', slot:'weapon', atk:248,def:28,  grade:'초월', sellPrice:50000, jobType:['rogue']},
+  {n:'초월의 법장',      e:'💎', type:'weapon', slot:'weapon', atk:270,def:12,  grade:'초월', sellPrice:52000, jobType:['mage']},
+  {n:'초월의 방패',      e:'🛡️', type:'shield', slot:'shield', def:220,         grade:'초월', sellPrice:48000, jobType:['warrior','paladin']},
+  {n:'초월의 갑주',      e:'💠', type:'armor',  slot:'armor',  atk:28,def:200,  grade:'초월', sellPrice:49000},
+  {n:'초월의 발걸음',    e:'💙', type:'boots',  slot:'boots',  spd:680,         grade:'초월', sellPrice:46000},
+  {n:'초월의 장갑',      e:'🔷', type:'gloves', slot:'gloves', atk:65,def:65,   grade:'초월', sellPrice:47000},
+  {n:'초월의 목걸이',    e:'💠', type:'accessory', slot:'necklace', subType:'necklace', critRate:75, grade:'초월', sellPrice:48000},
+  {n:'초월의 반지(치명)', e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_crit', critDmg:320, grade:'초월', sellPrice:48000},
+  {n:'초월의 반지(공격)', e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_atk',  atk:100,     grade:'초월', sellPrice:48000},
+  {n:'초월의 반지(방어)', e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_def',  def:100,     grade:'초월', sellPrice:48000},
+  {n:'초월의 반지(경험)', e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp',  expBonus:120,grade:'초월', sellPrice:48000},
 ];
 
 
@@ -2752,7 +2768,7 @@ function mobDead(){
     const eqPool = DROPS.filter(d => {
       if(d.type==='pot'||d.type==='mat') return false;
       if(d.type==='accessory') return false;  // 반지·목걸이는 월드보스 전용
-      if(d.grade==='신화'||d.grade==='레전드리') return false;
+      if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월') return false;
       if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
       return true;
     });
@@ -3036,7 +3052,7 @@ const SLOT_INFO={
   ring2:    {label:'반지2',   emoji:'💍'},
   ring3:    {label:'반지3',   emoji:'💍'},
 };
-const GRADE_COLOR={일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff'};
+const GRADE_COLOR={일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff',초월:'#a78bfa'};
 
 function renderInv(){
   // ── 장착 슬롯 6개 ──
@@ -3410,6 +3426,7 @@ const ENH_COST_TABLE = {
   '전설': {base: 3000, step: 1500, max: 150},
   '신화':      {base:  8000, step:  4000, max: 200},
   '레전드리':  {base: 20000, step: 10000, max: 250},
+  '초월':      {base: 50000, step: 33278, max: 300},
 };
 function enhCost(enh, grade){
   const cfg = ENH_COST_TABLE[grade] || ENH_COST_TABLE['일반'];
@@ -3449,7 +3466,7 @@ function renderEnh(){
       } else {
         stat=`DEF +${it.def||0}`; nextStat=`DEF +${(it.def||0)+2}`;
       }
-      const GRADE_COL2={'기본':'#94a3b8','일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24','신화':'#f97316','레전드리':'#e2c4ff'};
+      const GRADE_COL2={'기본':'#94a3b8','일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24','신화':'#f97316','레전드리':'#e2c4ff','초월':'#a78bfa'};
       const gc2 = GRADE_COL2[it.grade||'일반']||'#94a3b8';
       const maxEnh = getEnhMax(it.grade);
       const isMax  = enh >= maxEnh;
@@ -4049,7 +4066,7 @@ function dunBossDead() {
   const validDrops=DROPS.filter(d=>{
     if(d.type==='pot'||d.type==='mat') return false;
     if(d.type==='accessory') return false;  // 목걸이·반지 → 월드보스 전용
-    if(d.grade==='신화'||d.grade==='레전드리') return false;
+    if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월') return false;
     if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
     return true; // weapon/shield/armor/boots/gloves
   });
@@ -4129,7 +4146,7 @@ function dunBossDead() {
 function showDunResult(dun, gold, exp, items, lvUp) {
   gwSC('dun-result');
   document.getElementById('dr-dunname').textContent = dun.name + ' 클리어!';
-  const GRADE_COL={'일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24','신화':'#f97316','레전드리':'#e2c4ff'};
+  const GRADE_COL={'일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24','신화':'#f97316','레전드리':'#e2c4ff','초월':'#a78bfa'};
   let html = '';
   // 골드/경험치
   html += `<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
@@ -5431,7 +5448,11 @@ function buyCashItem(itemId) {
 const WB_LIST = [
   { id:'baldrix',   name:'유령기사 발드릭스', emoji:'👻', minLv:50,  maxParty:5,  fbPath:'world_boss',   cycle:'daily' },
   { id:'dimension', name:'차원의 문',          emoji:'🌀', minLv:90,  maxParty:10, fbPath:'world_boss_2', cycle:'daily' },
-  { id:'eldrania',  name:'빛을 찢은 여왕, 타락신 "엘드라니아"', emoji:'👑', minLv:140, maxParty:15, fbPath:'world_boss_3', cycle:'weekly' },
+  { id:'eldrania',  name:'빛을 찢은 여왕, 타락신 "엘드라니아"', emoji:'👑', minLv:120, maxParty:10, fbPath:'world_boss_3', cycle:'weekly' },
+  { id:'azarc',     name:'흑룡 "아자르크"',                       emoji:'🐲', minLv:140, maxParty:10, fbPath:'world_boss_4', cycle:'weekly' },
+  { id:'astraель',  name:'별을 삼키는 자 "아스트라엘"',           emoji:'🌠', minLv:160, maxParty:15, fbPath:'world_boss_5', cycle:'weekly' },
+  { id:'orphion',   name:'시간의 파괴자 "오르피온"',               emoji:'⏳', minLv:180, maxParty:15, fbPath:'world_boss_6', cycle:'weekly' },
+  { id:'seraphiel', name:'타락한 절대자 "세라피엘"',               emoji:'😇', minLv:200, maxParty:20, fbPath:'world_boss_7', cycle:'weekly' },
 ];
 
 // 하위 호환용 (기존 코드가 WB_NAME 등을 직접 참조하므로 유지)
@@ -5807,7 +5828,23 @@ function wbClaimReward(date, wbId) {
 
   // 보스별 보상 규모 차등
   let gold, exp, stones;
-  if(wb.id === 'eldrania') {
+  if(wb.id === 'seraphiel') {
+    gold   = 1000000 + Math.floor(rng(1)*2000001); // 100만~300만G
+    exp    = Math.floor((1000000 + Math.floor(rng(2)*4000001))*tExpRate()); // 100만~500만EXP
+    stones = 1000 + Math.floor(rng(3)*1001);        // 1,000~2,000개
+  } else if(wb.id === 'orphion') {
+    gold   = 500000  + Math.floor(rng(1)*1500001); // 50만~200만G
+    exp    = Math.floor((1000000 + Math.floor(rng(2)*1500001))*tExpRate()); // 100만~250만EXP
+    stones = 800 + Math.floor(rng(3)*801);          // 800~1,600개
+  } else if(wb.id === 'astraель') {
+    gold   = 500000  + Math.floor(rng(1)*1000001); // 50만~150만G
+    exp    = Math.floor((1000000 + Math.floor(rng(2)*1000001))*tExpRate()); // 100만~200만EXP
+    stones = 700 + Math.floor(rng(3)*701);          // 700~1,400개
+  } else if(wb.id === 'azarc') {
+    gold   = 500000  + Math.floor(rng(1)*700001);  // 50만~120만G
+    exp    = Math.floor((1000000 + Math.floor(rng(2)*500001))*tExpRate()); // 100만~150만EXP
+    stones = 700 + Math.floor(rng(3)*501);          // 700~1,200개
+  } else if(wb.id === 'eldrania') {
     gold   = 500000  + Math.floor(rng(1)*500001);  // 500,000~1,000,000G
     exp    = Math.floor((800000 + Math.floor(rng(2)*400001))*tExpRate()); // 800,000~1,200,000 EXP
     stones = 500 + Math.floor(rng(3)*501);          // 500~1,000개 마법석
@@ -5833,12 +5870,27 @@ function wbClaimReward(date, wbId) {
   if(stEx) stEx.qty=(stEx.qty||1)+stones;
   else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:stones,_id:Date.now()});
 
-  // 엘드라니아: 연금석 대량 추가 지급
-  if(wb.id === 'eldrania') {
-    const alchAmt = 200 + Math.floor(rng(99)*201); // 200~400개
+  // 연금석 지급 (엘드라니아 이상 보스)
+  const alchAmtMap = {
+    eldrania:  [200, 301],  // 200~500
+    azarc:     [200, 301],  // 200~500
+    'astraель':[200, 401],  // 200~600
+    orphion:   [300, 301],  // 300~600
+    seraphiel: [500, 501],  // 500~1,000
+  };
+  if(alchAmtMap[wb.id]) {
+    const [base, range] = alchAmtMap[wb.id];
+    const alchAmt = base + Math.floor(rng(99)*range);
     const alchEx = G.inv.find(i=>i.n==='연금석');
     if(alchEx) alchEx.qty=(alchEx.qty||0)+alchAmt;
     else G.inv.push({n:'연금석',e:'🧪',type:'mat',val:100,grade:'희귀',sellPrice:100,qty:alchAmt,_id:Date.now()-1});
+  }
+  // 세라피엘: 빛의 정수 1~10개 추가 지급
+  if(wb.id === 'seraphiel') {
+    const essenceAmt = 1 + Math.floor(rng(98)*10); // 1~10개
+    const essEx = G.inv.find(i=>i.n==='빛의 정수');
+    if(essEx) essEx.qty=(essEx.qty||0)+essenceAmt;
+    else G.inv.push({n:'빛의 정수',e:'✨',type:'mat',val:500,grade:'전설',sellPrice:500,qty:essenceAmt,_id:Date.now()-2});
   }
 
   // 장비 드롭 (7슬롯 각각 독립 확률)
@@ -5847,36 +5899,53 @@ function wbClaimReward(date, wbId) {
   const WB_ACC   = ['necklace','ring'];
   const JOB_MAP  = {warrior:['warrior','paladin'],archer:['archer'],mage:['mage'],rogue:['rogue'],paladin:['paladin','warrior']};
 
-  // 차원의 문(dimension)에서만 신화 5% 드롭
-  const isDimension = (wbId === 'dimension');
-  const isEldrania  = (wbId === 'eldrania');
+  const isDimension  = (wbId === 'dimension');
+  const isEldrania   = (wbId === 'eldrania');
+  const isAzarc      = (wbId === 'azarc');
+  const isAstraел    = (wbId === 'astraель');
+  const isOrphion    = (wbId === 'orphion');
+  const isSeraphiel  = (wbId === 'seraphiel');
 
   function wbPickGrade(rngN, isAcc) {
     const r = rng(rngN);
-    if(isEldrania) {
-      // 엘드라니아: 에픽60% 전설25% 신화10% 레전드리5% (목걸이/반지 공통)
+    if(isSeraphiel) {
+      // 세라피엘: 전설40% 신화30% 레전드리20% 초월10%
+      if(r < 0.10) return '초월';
+      if(r < 0.30) return '레전드리';
+      if(r < 0.60) return '신화';
+      return '전설';
+    } else if(isOrphion) {
+      // 오르피온: 전설50% 신화30% 레전드리10% 초월5%
+      if(r < 0.05) return '초월';
+      if(r < 0.15) return '레전드리';
+      if(r < 0.45) return '신화';
+      return '전설';
+    } else if(isAstraел) {
+      // 아스트라엘: 에픽40% 전설30% 신화20% 레전드리10%
+      if(r < 0.10) return '레전드리';
+      if(r < 0.30) return '신화';
+      if(r < 0.60) return '전설';
+      return '에픽';
+    } else if(isAzarc) {
+      // 아자르크: 에픽50% 전설30% 신화10% 레전드리5%
       if(r < 0.05) return '레전드리';
       if(r < 0.15) return '신화';
-      if(r < 0.40) return '전설';
+      if(r < 0.45) return '전설';
       return '에픽';
+    } else if(isEldrania) {
+      // 엘드라니아: 레어40% 에픽30% 전설20% 신화10%
+      if(r < 0.10) return '신화';
+      if(r < 0.30) return '전설';
+      if(r < 0.60) return '에픽';
+      return '레어';
     } else if(isDimension) {
-      // 신화 5% — 차원의 문 전용
+      // 차원의 문: 레어50% 에픽30% 전설10% 신화5%
       if(r < 0.05) return '신화';
-      const r2 = (r - 0.05) / 0.95;
-      if(isAcc){
-        if(r2<0.35) return '일반';
-        if(r2<0.65) return '희귀';
-        if(r2<0.85) return '레어';
-        if(r2<0.95) return '에픽';
-        return '전설';
-      } else {
-        if(r2<0.50) return '희귀';
-        if(r2<0.80) return '레어';
-        if(r2<0.95) return '에픽';
-        return '전설';
-      }
+      if(r < 0.15) return '전설';
+      if(r < 0.45) return '에픽';
+      return '레어';
     } else {
-      // 일반 월드보스 (발드릭스): 신화 없음
+      // 발드릭스: 신화 없음
       if(isAcc){
         if(r<0.35) return '일반';
         if(r<0.65) return '희귀';
@@ -5896,7 +5965,7 @@ function wbClaimReward(date, wbId) {
   // 월드보스: 목걸이·반지만 드롭 (무기/방패/갑옷/장갑/신발은 던전 전용)
   // 목걸이: 70% 확률, 반지: 70% 확률
   WB_ACC.forEach((sub,si) => {
-    if(rng(drops_start+10+si) > 0.70) return;
+    if(rng(drops_start+10+si) > 1.00) return; // 100% 드롭
     const grade = wbPickGrade(drops_start+10+si+100, true);
     const pool  = window._WB_DROPS.filter(d=>d.type==='accessory'&&d.subType===sub&&d.grade===grade);
     if(pool.length){
@@ -5905,12 +5974,13 @@ function wbClaimReward(date, wbId) {
     }
   });
 
+  const essenceResult = wb.id === 'seraphiel' ? (G.inv.find(i=>i.n==='빛의 정수')?.qty || 0) : 0;
   saveG();
-  showWbResult(gold, exp, stones, droppedGear, lvUp);
+  showWbResult(gold, exp, stones, droppedGear, lvUp, essenceResult);
 }
 
 /* ── 보상 결과 화면 ── */
-function showWbResult(gold, exp, stones, gear, lvUp) {
+function showWbResult(gold, exp, stones, gear, lvUp, essence) {
   const GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff'};
   const el = document.getElementById('gw-wbbody');
   if(!el) return;
@@ -5934,6 +6004,10 @@ function showWbResult(gold, exp, stones, gear, lvUp) {
         <span style="font-size:12px;color:#94a3b8">💎 마법석</span>
         <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#34d399;">+${stones}개</span>
       </div>
+      ${essence>0?`<div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:#94a3b8">✨ 빛의 정수</span>
+        <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#fbbf24;">+${essence}개</span>
+      </div>`:''}
     </div>`;
 
   if(gear.length > 0) {
@@ -6050,7 +6124,7 @@ async function _pvpFetchFromWB(oppEl) {
     const today = new Date();
     const dateKey = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
     const wbProfiles = {};
-    for(const path of ['world_boss','world_boss_2']) {
+    for(const path of ['world_boss','world_boss_2','world_boss_3','world_boss_4','world_boss_5','world_boss_6','world_boss_7']) {
       for(let i=0;i<10;i++){
         const ps = await window._gwDB.ref(path+'/party_'+dateKey+'_'+i).get().catch(()=>null);
         if(!ps || !ps.exists()) break;
@@ -6119,7 +6193,7 @@ async function _pvpSyncFromWB() {
   try {
     const today = new Date();
     const dateKey = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-    for(const path of ['world_boss','world_boss_2']) {
+    for(const path of ['world_boss','world_boss_2','world_boss_3','world_boss_4','world_boss_5','world_boss_6','world_boss_7']) {
       for(let i=0;i<10;i++){
         const ps = await window._gwDB.ref(path+'/party_'+dateKey+'_'+i).get().catch(()=>null);
         if(!ps || !ps.exists()) break;
@@ -6962,7 +7036,7 @@ function towerMobDead() {
       if(d.grade !== grade) return false;
       if(d.type==='pot'||d.type==='mat') return false;
       if(d.type==='accessory') return false;  // 목걸이·반지 제외
-      if(d.grade==='신화'||d.grade==='레전드리') return false;
+      if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월') return false;
       if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
       return true;
     });
@@ -8058,7 +8132,7 @@ function renderLegionPanel() {
       <!-- 드롭 등급 -->
       <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">
         🎁 장비 드롭:
-        ${['레어','에픽','전설','신화','레전드리'].map((g,i)=>{
+        ${['레어','에픽','전설','신화','레전드리','초월'].map((g,i)=>{
           const pcts = boss.id==='dominion'
             ? ['30%','25%','20%','15%','10%']
             : ['40%','30%','15%','10%','5%'];
@@ -8245,7 +8319,7 @@ function legionBossDead() {
   const GRADE_THRESH = boss.id==='dominion'
     ? [0.30,0.55,0.75,0.90,1.00]
     : [0.40,0.70,0.85,0.95,1.00];
-  const GRADES=['레어','에픽','전설','신화','레전드리'];
+  const GRADES=['레어','에픽','전설','신화','레전드리','초월'];
   const JOB_MAP={warrior:['warrior','paladin'],archer:['archer'],mage:['mage'],rogue:['rogue'],paladin:['paladin','warrior']};
   const allowed=JOB_MAP[G.job]||[];
 
