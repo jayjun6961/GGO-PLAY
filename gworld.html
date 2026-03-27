@@ -1522,19 +1522,19 @@ const DROPS = [
 
 function expNeed(lv){
   // 1~79레벨: 기존의 25% (빠른 레벨업)
-  // 80레벨~: 기존 공식 그대로 유지
+  // 80~99레벨: 기존 공식 그대로
   if(lv < 80) return Math.floor(60 * Math.pow(lv, 1.65) * 0.25);
   if(lv < 100) return Math.floor(60 * Math.pow(lv, 1.65));
-  // 100~149레벨: 기존 지수 증가
+  // 100~149레벨: 지수 완화(0.18) + 50% 감소
   if(lv < 150) {
     const base = Math.floor(60 * Math.pow(100, 1.65));
     const excess = lv - 99;
-    return Math.floor(base * Math.pow(2.2, excess * 0.35));
+    return Math.floor(base * Math.pow(2.2, excess * 0.18) * 0.5);
   }
-  // 150~199레벨: 150레벨 기준 더 가파르게 증가
-  const base150 = (()=>{ const b=Math.floor(60*Math.pow(100,1.65)); return Math.floor(b*Math.pow(2.2,50*0.35)); })();
+  // 150~199레벨: 150레벨 기준 + 지수 완화(1.8^0.2) + 30% 감소
+  const base150 = (()=>{ const b=Math.floor(60*Math.pow(100,1.65)); return Math.floor(b*Math.pow(2.2,50*0.18)*0.5); })();
   const excess2 = lv - 149;
-  return Math.floor(base150 * Math.pow(2.5, excess2 * 0.3));
+  return Math.floor(base150 * Math.pow(1.8, excess2 * 0.2) * 0.7);
 }
 
 // 스토리지
