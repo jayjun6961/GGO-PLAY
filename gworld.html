@@ -632,23 +632,9 @@
       <div class="gw-pttl">⚔️ 월드 보스</div>
       <button class="gw-px" onclick="closeP('gw-pwb')">✕</button>
     </div>
-    <!-- 보스 선택 탭 -->
-    <div id="gw-wb-tabs" style="display:flex;gap:6px;padding:8px 14px 0;border-bottom:1px solid rgba(124,58,237,.15);">
-      <button id="wb-tab-0" onclick="selectWbTab(0)"
-        style="flex:1;padding:6px 0;border-radius:8px 8px 0 0;border:1px solid rgba(124,58,237,.3);border-bottom:none;
-          background:rgba(124,58,237,.15);color:#a78bfa;font-size:10px;font-family:'Orbitron',sans-serif;cursor:pointer;">
-        👻 발드릭스
-      </button>
-      <button id="wb-tab-1" onclick="selectWbTab(1)"
-        style="flex:1;padding:6px 0;border-radius:8px 8px 0 0;border:1px solid rgba(124,58,237,.1);border-bottom:none;
-          background:transparent;color:#475569;font-size:10px;font-family:'Orbitron',sans-serif;cursor:pointer;">
-        🌀 차원의 문
-      </button>
-      <button id="wb-tab-2" onclick="selectWbTab(2)"
-        style="flex:1;padding:6px 0;border-radius:8px 8px 0 0;border:1px solid rgba(124,58,237,.1);border-bottom:none;
-          background:transparent;color:#475569;font-size:9px;font-family:'Orbitron',sans-serif;cursor:pointer;">
-        👑 엘드라니아
-      </button>
+    <!-- 보스 선택 탭 (가로 스크롤) -->
+    <div id="gw-wb-tabs" style="display:flex;gap:4px;padding:8px 14px 0;border-bottom:1px solid rgba(124,58,237,.15);
+      overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
     </div>
     <div class="gw-pbdy" id="gw-wbbody" style="padding:14px;max-height:500px;overflow-y:auto;"></div>
   </div>
@@ -5573,6 +5559,22 @@ let _wbTabIdx = 0; // 현재 선택된 보스 인덱스
 
 function selectWbTab(idx) {
   _wbTabIdx = idx;
+
+  // 탭 동적 생성 (WB_LIST 기반, 처음 또는 수 불일치 시)
+  const tabsEl = document.getElementById('gw-wb-tabs');
+  if(tabsEl && tabsEl.children.length !== WB_LIST.length) {
+    tabsEl.innerHTML = WB_LIST.map((wb, i) => {
+      const label = wb.name.replace(/"/g,'').length > 8
+        ? wb.emoji + ' ' + wb.name.replace(/["]/g,'').substring(0,7) + '…'
+        : wb.emoji + ' ' + wb.name.replace(/["]/g,'');
+      return `<button id="wb-tab-${i}" onclick="selectWbTab(${i})"
+        style="flex-shrink:0;padding:6px 10px;border-radius:8px 8px 0 0;
+        border:1px solid rgba(124,58,237,.1);border-bottom:none;
+        background:transparent;color:#475569;font-size:9px;
+        font-family:'Orbitron',sans-serif;cursor:pointer;white-space:nowrap;">${label}</button>`;
+    }).join('');
+  }
+
   // 탭 스타일 업데이트
   WB_LIST.forEach((_, i) => {
     const tab = document.getElementById('wb-tab-' + i);
