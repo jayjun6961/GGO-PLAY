@@ -1314,17 +1314,35 @@ const ZONES = [
      {n:'관문 수호신',  e:'🔱',hp:9800, atk:467,def:335,exp:105000,g:52000,drop:.59},
      {n:'지옥의 전령',  e:'🦂',hp:8800, atk:475,def:328,exp:115000,g:57000,drop:.61},
    ]},
-  {id:'chaosrealm',name:'혼돈의 왕국', emoji:'💠',min:141,max:149,
+  {id:'chaosrealm',name:'혼돈의 왕국', emoji:'💠',min:141,max:160,
    mobs:[
-     {n:'혼돈의 기사',  e:'🤺',hp:10500,atk:530,def:355,exp:220000,g:110000,drop:.62},
-     {n:'파멸의 현현',  e:'💀',hp:10800,atk:535,def:365,exp:250000,g:125000,drop:.61},
-     {n:'혼돈 군주',    e:'👁️',hp:9800, atk:545,def:358,exp:270000,g:135000,drop:.63},
+     {n:'혼돈의 기사',  e:'🤺',hp:12000,atk:750,def:365,exp:300000, g:150000,drop:.62},
+     {n:'파멸의 현현',  e:'💀',hp:12500,atk:760,def:375,exp:350000, g:175000,drop:.61},
+     {n:'혼돈 군주',    e:'👁️',hp:11500,atk:770,def:368,exp:380000, g:190000,drop:.63},
    ]},
-  {id:'eternity',  name:'영원의 경계', emoji:'🌟',min:150,max:150,
+  {id:'eternity',  name:'영원의 경계', emoji:'🌟',min:161,max:180,
    mobs:[
-     {n:'영원의 파수꾼', e:'🌟',hp:11200,atk:598, def:385,exp:600000,g:300000,drop:.65},
-     {n:'시간의 지배자', e:'⏳',hp:11500,atk:605, def:395,exp:700000,g:350000,drop:.64},
-     {n:'창세의 잔재',   e:'💎',hp:10500,atk:615, def:388,exp:800000,g:400000,drop:.66},
+     {n:'영원의 파수꾼', e:'🌟',hp:14000,atk:870, def:415,exp:900000, g:450000,drop:.65},
+     {n:'시간의 지배자', e:'⏳',hp:14500,atk:880, def:425,exp:1050000,g:525000,drop:.64},
+     {n:'창세의 잔재',   e:'💎',hp:13500,atk:890, def:418,exp:1200000,g:600000,drop:.66},
+   ]},
+  {id:'etercenter', name:'영원의 중심', emoji:'🔮',min:181,max:190,
+   mobs:[
+     {n:'중심의 수호자', e:'🔮',hp:16000,atk:1050,def:465,exp:2000000,g:1000000,drop:.67},
+     {n:'영원의 핵심',   e:'💠',hp:16500,atk:1060,def:478,exp:2300000,g:1150000,drop:.66},
+     {n:'창세의 심장',   e:'🌀',hp:15500,atk:1070,def:470,exp:2600000,g:1300000,drop:.68},
+   ]},
+  {id:'eterdepth',  name:'영원의 심부', emoji:'⚡',min:191,max:199,
+   mobs:[
+     {n:'심부의 파수꾼', e:'⚡',hp:18000,atk:1200,def:520,exp:5000000, g:2500000,drop:.68},
+     {n:'절대의 군주',   e:'👑',hp:18500,atk:1210,def:535,exp:5800000, g:2900000,drop:.67},
+     {n:'혼돈의 근원',   e:'🌑',hp:17500,atk:1220,def:528,exp:6500000, g:3250000,drop:.69},
+   ]},
+  {id:'eldrfield',  name:'영원의 엘드라니아', emoji:'👑',min:200,max:200,
+   mobs:[
+     {n:'타락의 전령',   e:'😈',hp:20000,atk:1350,def:625,exp:10000000,g:5000000,drop:.70},
+     {n:'절대자의 그림자',e:'👁️',hp:21000,atk:1360,def:640,exp:12000000,g:6000000,drop:.69},
+     {n:'엘드라니아의 분신',e:'👑',hp:22000,atk:1380,def:635,exp:15000000,g:7500000,drop:.71},
    ]},
 ];
 
@@ -1507,10 +1525,16 @@ function expNeed(lv){
   // 80레벨~: 기존 공식 그대로 유지
   if(lv < 80) return Math.floor(60 * Math.pow(lv, 1.65) * 0.25);
   if(lv < 100) return Math.floor(60 * Math.pow(lv, 1.65));
-  // 100레벨 이후 대폭 증가
-  const base = Math.floor(60 * Math.pow(100, 1.65));
-  const excess = lv - 99;
-  return Math.floor(base * Math.pow(2.2, excess * 0.35));
+  // 100~149레벨: 기존 지수 증가
+  if(lv < 150) {
+    const base = Math.floor(60 * Math.pow(100, 1.65));
+    const excess = lv - 99;
+    return Math.floor(base * Math.pow(2.2, excess * 0.35));
+  }
+  // 150~199레벨: 150레벨 기준 더 가파르게 증가
+  const base150 = (()=>{ const b=Math.floor(60*Math.pow(100,1.65)); return Math.floor(b*Math.pow(2.2,50*0.35)); })();
+  const excess2 = lv - 149;
+  return Math.floor(base150 * Math.pow(2.5, excess2 * 0.3));
 }
 
 // 스토리지
@@ -2775,7 +2799,7 @@ function mobDead(){
       if(G.zone?.id===q.target) G.qprog[q.id]=(G.qprog[q.id]||0)+1;
     }
   });
-  while(G.exp>=expNeed(G.lv)&&G.lv<150){
+  while(G.exp>=expNeed(G.lv)&&G.lv<200){
     G.exp-=expNeed(G.lv);G.lv++;
     const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk;G.def=b.def;
     G.hp=Math.min(G.hp+Math.floor(b.mHP*.2),b.mHP);
@@ -3363,7 +3387,7 @@ function claimQ(qid){
   G.qclaim[qid]=true;
   const gainedExp=Math.floor(q.eR*tExpRate());
   G.exp+=gainedExp;G.gold+=q.gR;
-  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<200){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
   gwT(`🎉 일일 퀘스트 완료! +${gainedExp}EXP +${q.gR}G`);hud();saveG();renderQ();renderQdot();
 }
 function claimWQ(qid){
@@ -3372,7 +3396,7 @@ function claimWQ(qid){
   G.wqclaim[qid]=true;
   const gainedExp=Math.floor(q.eR*tExpRate());
   G.exp+=gainedExp;G.gold+=q.gR;
-  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<200){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
   gwT(`🎉 주간 퀘스트 완료! +${gainedExp}EXP +${q.gR}G`);hud();saveG();renderQ();renderQdot();
 }
 
@@ -3538,7 +3562,7 @@ function renderStat(){
       <div class="gw-stat-row"><span class="gw-stat-l">회피율</span><span class="gw-stat-v" style="color:#34d399">${tDodge()}% <span style="color:#475569;font-size:10px">${tDodge()===0?'(유물로 증가 가능)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">보스 대미지</span><span class="gw-stat-v" style="color:#f97316">+${tBossDmg()}% <span style="color:#475569;font-size:10px">${tBossDmg()===0?'(유물로 증가 가능)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">골드</span><span class="gw-stat-v" style="color:#fbbf24">${G.gold.toLocaleString()}G</span></div>
-      <div class="gw-stat-row"><span class="gw-stat-l">EXP</span><span class="gw-stat-v">${G.exp}/${expNeed(G.lv)}</span></div>
+      <div class="gw-stat-row"><span class="gw-stat-l">EXP</span><span class="gw-stat-v">${G.exp}/${G.lv>=200?'MAX':expNeed(G.lv)}</span></div>
     </div>`;
 }
 
@@ -4043,7 +4067,7 @@ function dunBossDead() {
 
   // 레벨업 처리
   let lvUp=0;
-  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<200){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
   if(lvUp>0){dunBlog(`<span style="color:#a855f7">🆙 레벨업! Lv.${G.lv}</span>`);const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
 
   // 장비 드롭 (직업 맞는 것만)
@@ -5864,7 +5888,7 @@ function wbClaimReward(date, wbId) {
   G.exp  += exp;
   // 레벨업
   let lvUp=0;
-  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<200){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
   if(lvUp>0){const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
 
   // 마법석
@@ -7018,7 +7042,7 @@ function towerMobDead() {
   G.exp  += exp;
 
   let lvUp=0;
-  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<200){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
   if(lvUp>0){towerBlog(`<span style="color:#a855f7">🆙 레벨업! Lv.${G.lv}</span>`);const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
 
   // 마법석
@@ -7892,7 +7916,7 @@ function rdunBossDead() {
   G.exp  += expGain;
 
   let lvUp=0;
-  while(G.exp>=expNeed(G.lv)&&G.lv<150){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+  while(G.exp>=expNeed(G.lv)&&G.lv<200){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
   if(lvUp>0){ rdunBlog(`<span style="color:#a855f7">🆙 레벨업! Lv.${G.lv}</span>`);
     const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
 
@@ -8292,7 +8316,7 @@ function legionBossDead() {
 
   // 레벨업 처리
   let lvUp=0;
-  while(G.exp>=expNeed(G.lv)&&G.lv<150){
+  while(G.exp>=expNeed(G.lv)&&G.lv<200){
     G.exp-=expNeed(G.lv);G.lv++;lvUp++;
     const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;
     G.hp=G.mHP;G.mp=G.mMP;
