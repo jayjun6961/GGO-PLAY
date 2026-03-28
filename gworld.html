@@ -3106,8 +3106,18 @@ function recalcStats(){
   G.hp=Math.min(G.hp,G.mHP);
   G.mp=Math.min(G.mp,G.mMP);
 }
-// 공격 속도: 기본 1150ms - 신발 spd (최소 400ms)
-function tSpd(){ const base=G.job==='archer'?1300:1500; return Math.max(400, base-(equipBonus().spd||0)-getLinkSpdReduce()); }
+// 공격 속도: 기본 1500ms(궁수 1300ms) - 신발 spd
+// 최솟값은 착용 중인 신발 등급에 따라 결정 (등급 미착용 시 기본 최솟값 550ms)
+function tSpdMin() {
+  const boots = (G.equip||{}).boots;
+  const grade = boots ? (boots.grade||'일반') : null;
+  const MIN_BY_GRADE = {
+    '일반':550, '희귀':500, '레어':450, '에픽':400,
+    '전설':350, '신화':300, '레전드리':250, '초월':200, '절대자':150,
+  };
+  return grade ? (MIN_BY_GRADE[grade]||550) : 550;
+}
+function tSpd(){ const base=G.job==='archer'?1300:1500; return Math.max(tSpdMin(), base-(equipBonus().spd||0)-getLinkSpdReduce()); }
 // 치명타 확률 (%) - 기본 5%
 function tCritRate(){ const base=G.job==='rogue'?10:5; return base+(equipBonus().critRate||0); }
 // 치명타 대미지 배율 (%) - 기본 150%
@@ -3657,7 +3667,7 @@ function renderStat(){
       <div class="gw-stat-row"><span class="gw-stat-l">MP</span><span class="gw-stat-v">${G.mp}/${G.mMP}</span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">공격력</span><span class="gw-stat-v">${tAtk()} <span style="color:#34d399;font-size:10px">${eq.atk>0?'(+'+eq.atk+')':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">방어력</span><span class="gw-stat-v">${tDef()} <span style="color:#60a5fa;font-size:10px">${eq.def>0?'(+'+eq.def+')':''}</span></span></div>
-      <div class="gw-stat-row"><span class="gw-stat-l">공격 속도</span><span class="gw-stat-v">${(spd/1000).toFixed(2)}초 <span style="color:#34d399;font-size:10px">${eq.spd>0?'(-'+eq.spd+'ms)':''}</span></span></div>
+      <div class="gw-stat-row"><span class="gw-stat-l">공격 속도</span><span class="gw-stat-v">${(spd/1000).toFixed(2)}초 <span style="color:#34d399;font-size:10px">${eq.spd>0?'(-'+eq.spd+'ms)':''}</span><span style="color:#475569;font-size:9px;margin-left:4px">(최소 ${(tSpdMin()/1000).toFixed(2)}초)</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">치명타 확률</span><span class="gw-stat-v">${cr}% <span style="color:#f97316;font-size:10px">${eq.critRate>0?'(+'+eq.critRate+'%)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">치명타 대미지</span><span class="gw-stat-v">${cd}% <span style="color:#f97316;font-size:10px">${eq.critDmg>0?'(+'+eq.critDmg+'%)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">경험치 획득량</span><span class="gw-stat-v" style="color:#34d399">×${tExpRate().toFixed(2)} <span style="color:#34d399;font-size:10px">${eq.expBonus>0?'(반지+'+eq.expBonus+'%)':''}</span>${G.lv>30?`<span style="color:#f87171;font-size:10px"> 효율${G.lv<=50?85:G.lv<=70?65:G.lv<=85?45:30}%</span>`:''}</span></div>
