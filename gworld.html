@@ -6695,19 +6695,23 @@ async function renderPVPBattle() {
       byUser[p.user].push(p);
     });
 
-    // 유저 목록 랜덤 셔플, 최대 5명 표시
-    const userList = Object.keys(byUser).sort(() => Math.random()-0.5).slice(0,5);
+    // 유저 목록 전투력 높은 순 정렬 (전체 표시, 제한 없음)
+    const userList = Object.keys(byUser).sort((a, b) => {
+      const maxA = Math.max(...byUser[a].map(c => c.power||0));
+      const maxB = Math.max(...byUser[b].map(c => c.power||0));
+      return maxB - maxA; // 전투력 높은 유저 먼저
+    });
 
     // _pvpOpponents 배열: 카드 클릭 index → 해당 캐릭터 정보
     window._pvpOpponents = [];
     let cardIdx = 0;
 
     let html = `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:6px;">
-      ⚔️ 도전할 캐릭터를 선택하세요 (${allChars.length}개${allChars.length > 10 ? ' · 일부만 표시':''})
+      ⚔️ 도전할 캐릭터를 선택하세요 — ${userList.length}명 · Lv.${PVP_MIN_LV}+ 캐릭터 ${allChars.length}개
     </div>`;
 
     userList.forEach(uname => {
-      const chars = byUser[uname].sort((a,b) => b.lv - a.lv); // 레벨 내림차순
+      const chars = byUser[uname].sort((a,b) => (b.power||0) - (a.power||0)); // 전투력 내림차순
       html += `<div style="border:1px solid rgba(239,68,68,.18);border-radius:12px;
         padding:10px 12px;margin-bottom:8px;background:rgba(239,68,68,.02);">
         <div style="font-size:11px;font-weight:700;color:#e2e8f0;margin-bottom:8px;
