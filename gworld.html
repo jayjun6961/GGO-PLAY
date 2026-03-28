@@ -7735,19 +7735,19 @@ const RELIC_ENH_MAX = { 일반:10, 희귀:20, 레어:30, 에픽:40, 전설:50 };
 
 // 유물 강화 비용 (골드 + 연금석)
 const RELIC_ENH_BASE = {
-  일반: { gold:1000000,  alch:10   },
-  희귀: { gold:3000000,  alch:50   },
-  레어: { gold:5000000,  alch:100  },
-  에픽: { gold:10000000, alch:500  },
-  전설: { gold:50000000, alch:1000 },
+  일반: { gold:1000000,  alch:30,  goldMult:0.4444, alchMult:0.2593 },  // 최종(+9):  500만G / 100개
+  희귀: { gold:5000000,  alch:60,  goldMult:0.0526, alchMult:0.1228 },  // 최종(+19): 1000만G / 200개
+  레어: { gold:10000000, alch:90,  goldMult:0.0690, alchMult:0.0805 },  // 최종(+29): 3000만G / 300개
+  에픽: { gold:30000000, alch:150, goldMult:0.0171, alchMult:0.0427 },  // 최종(+39): 5000만G / 400개
+  전설: { gold:50000000, alch:300, goldMult:0.0204, alchMult:0.0136 },  // 최종(+49): 1억G / 500개
 };
 
 // 유물 연마(승급) 비용
 const RELIC_REFINE_COST = {
-  일반: { alch:50,   magic:100   },  // 일반 → 희귀
-  희귀: { alch:100,  magic:500   },  // 희귀 → 레어
-  레어: { alch:500,  magic:1000  },  // 레어 → 에픽
-  에픽: { alch:1000, magic:10000 },  // 에픽 → 전설
+  일반: { alch:200,  magic:1000  },  // 일반 → 희귀
+  희귀: { alch:400,  magic:3000  },  // 희귀 → 레어
+  레어: { alch:600,  magic:5000  },  // 레어 → 에픽
+  에픽: { alch:1200, magic:10000 },  // 에픽 → 전설
 };
 
 const RELIC_GRADE_ORDER = ['일반','희귀','레어','에픽','전설'];
@@ -7755,10 +7755,10 @@ const RELIC_GRADE_ORDER = ['일반','희귀','레어','에픽','전설'];
 // 유물 강화 비용 계산 (강화 단계마다 증가)
 function relicEnhCost(enh, grade) {
   const b = RELIC_ENH_BASE[grade] || RELIC_ENH_BASE['일반'];
-  const mult = 1 + (enh||0) * 0.15; // 단계당 15% 증가
+  const e = enh || 0;
   return {
-    gold: Math.floor(b.gold * mult),
-    alch: Math.floor(b.alch * (1 + (enh||0) * 0.1)),
+    gold: Math.floor(b.gold * (1 + e * b.goldMult)),
+    alch: Math.floor(b.alch * (1 + e * b.alchMult)),
   };
 }
 
