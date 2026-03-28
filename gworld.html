@@ -9692,7 +9692,7 @@ async function aucBuy(key) {
 
     // 아이템 인벤 추가
     const newItem = { ...item };
-    delete newItem.key; delete newItem.seller; delete newItem.price; delete newItem.regAt;
+    delete newItem.key; delete newItem.seller; delete newItem.sellerJob; delete newItem.price; delete newItem.regAt;
     newItem.qty = 1; newItem._id = Date.now();
     G.inv.push(newItem);
 
@@ -9725,10 +9725,22 @@ function _renderAucSell() {
   const myListings = _aucItems.filter(i=>i.seller===myName && (i.sellerJob===G.job||!i.sellerJob)).length;
   const remaining = AUC_MAX_LISTINGS - myListings;
 
-  // 인벤에서 판매 가능한 아이템 (포션/재료 제외, 기본 등급 제외)
-  const sellable = G.inv.filter(it =>
-    it.type !== 'pot' && it.type !== 'mat' && it.qty >= 1 && it.grade && it.grade !== '기본'
-  );
+  // 판매 가능 조건:
+  //   - 장비 (기존): type이 장비류 (pot/mat/elixir/craft_mat 제외), 기본등급 제외
+  //   - 유물: type === 'relic'
+  //   - 성장의 비약: type === 'elixir'
+  //   - 빛의 정수: n === '빛의 정수'
+  function isAucSellable(it) {
+    if(!it || it.qty < 1) return false;
+    if(it.type === 'relic') return true;
+    if(it.type === 'elixir') return true;
+    if(it.n === '빛의 정수') return true;
+    if(it.type === 'pot') return false;
+    if(it.type === 'mat') return false;
+    if(!it.grade || it.grade === '기본') return false;
+    return true;
+  }
+  const sellable = G.inv.filter(isAucSellable);
 
   let html = `
     <div style="padding:8px 12px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.15);
@@ -9756,13 +9768,23 @@ function _renderAucSell() {
     const uid = String(it._id ?? (it.n + it.grade)); // 고유 식별자
     const gc = _aucGC(it.grade);
     let statHtml='';
-    if(it.atk)      statHtml+=`ATK+${it.atk} `;
-    if(it.def)      statHtml+=`DEF+${it.def} `;
-    if(it.spd)      statHtml+=`공속-${it.spd}ms `;
-    if(it.critRate) statHtml+=`치명${it.critRate}% `;
-    if(it.critDmg)  statHtml+=`치명대${it.critDmg}% `;
-    if(it.enh>0)    statHtml+=`+${it.enh}강 `;
-    if(it.qty>1)    statHtml+=`×${it.qty} `;
+    if(it.type==='relic') {
+      const rd = (typeof RELIC_DEFS!=='undefined') ? RELIC_DEFS.find(d=>d.id===it.relicId) : null;
+      if(rd) statHtml = `${rd.desc} · ${it.grade}`;
+      else   statHtml = it.grade||'';
+    } else if(it.type==='elixir') {
+      statHtml = `경험치 +${(it.expVal||0).toLocaleString()} · ${it.grade}`;
+    } else if(it.n==='빛의 정수') {
+      statHtml = `빛의 정수 · ${it.grade} · 보유 ${it.qty}개`;
+    } else {
+      if(it.atk)      statHtml+=`ATK+${it.atk} `;
+      if(it.def)      statHtml+=`DEF+${it.def} `;
+      if(it.spd)      statHtml+=`공속-${it.spd}ms `;
+      if(it.critRate) statHtml+=`치명${it.critRate}% `;
+      if(it.critDmg)  statHtml+=`치명대${it.critDmg}% `;
+      if(it.enh>0)    statHtml+=`+${it.enh}강 `;
+      if(it.qty>1)    statHtml+=`×${it.qty} `;
+    }
 
     html += `
     <div style="background:${gc}0a;border:1px solid ${gc}33;border-radius:10px;padding:10px 13px;margin-bottom:7px;">
@@ -9793,7 +9815,13 @@ async function aucRegister(uid) {
   // ── _id 기반으로 아이템 탐색 — idx 불일치 버그 완전 방지 ──
   const it = G.inv.find(item => {
     const itemUid = String(item._id ?? (item.n + item.grade));
-    return itemUid === String(uid) && item.type !== 'pot' && item.type !== 'mat' && item.qty >= 1 && item.grade && item.grade !== '기본';
+    if(itemUid !== String(uid)) return false;
+    if(item.qty < 1) return false;
+    if(item.type === 'relic') return true;
+    if(item.type === 'elixir') return true;
+    if(item.n === '빛의 정수') return true;
+    if(item.type === 'pot' || item.type === 'mat') return false;
+    return item.grade && item.grade !== '기본';
   });
   if(!it) { gwT('아이템을 찾을 수 없습니다.'); return; }
 
@@ -9819,7 +9847,8 @@ async function aucRegister(uid) {
     n: it.n, e: it.e, type: it.type, grade: it.grade,
     slot: it.slot||null, enh: it.enh||0,
   };
-  ['atk','def','spd','critRate','critDmg','expBonus','relicId','subType','ringType','jobType'].forEach(k=>{
+  ['atk','def','spd','critRate','critDmg','expBonus','relicId','subType','ringType','jobType',
+   'expVal','enh','stat','vals'].forEach(k=>{
     if(it[k] !== undefined) listing[k]=it[k];
   });
 
@@ -9916,12 +9945,13 @@ async function aucCancel(key) {
 
   try {
     await _aucRef('items/'+key)?.remove();
-    // 인벤 반환
+    // 인벤 반환 (유물/비약/빛의 정수 포함)
     const ex=G.inv.find(i=>i.n===item.n&&i.grade===item.grade);
     if(ex) ex.qty=(ex.qty||0)+1;
     else {
-      const ret={n:item.n,e:item.e,type:item.type,grade:item.grade,slot:item.slot,enh:item.enh||0,qty:1,_id:Date.now()};
-      ['atk','def','spd','critRate','critDmg','expBonus','relicId','subType','ringType','jobType'].forEach(k=>{
+      const ret={n:item.n,e:item.e,type:item.type,grade:item.grade,slot:item.slot||null,enh:item.enh||0,qty:1,_id:Date.now()};
+      ['atk','def','spd','critRate','critDmg','expBonus','relicId','subType','ringType','jobType',
+       'expVal','stat','vals'].forEach(k=>{
         if(item[k]!==undefined) ret[k]=item[k];
       });
       G.inv.push(ret);
