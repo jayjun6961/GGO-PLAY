@@ -157,6 +157,20 @@
 .px-btn:hover{box-shadow:0 0 28px rgba(124,58,237,.55);transform:translateY(-2px);}
 .px-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
 
+/* ── 절대자 등급 그라데이션 텍스트 ── */
+.grade-absolute {
+  background: linear-gradient(90deg, #fff6fb 0%, #ffb3de 35%, #ffffff 60%, #ffd6f0 85%, #ffe8f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 6px rgba(255,180,220,.7));
+  font-weight: 900;
+}
+.grade-absolute-bg {
+  background: linear-gradient(135deg, rgba(255,255,255,.12) 0%, rgba(255,180,220,.18) 50%, rgba(255,255,255,.08) 100%);
+  border-color: rgba(255,200,230,.45) !important;
+  box-shadow: 0 0 18px rgba(255,180,220,.25), inset 0 0 12px rgba(255,255,255,.05);
+}
 /* ── 직업 선택 ── */
 .gw-jobsel{flex:1;display:flex;flex-direction:column;align-items:center;gap:18px;padding:26px 20px;overflow-y:auto;}
 .gw-sc-title{font-family:'Orbitron',sans-serif;font-size:15px;font-weight:700;color:var(--purple-3);letter-spacing:2px;}
@@ -736,6 +750,17 @@
 </div>
 
 <!-- 유물 던전 패널 -->
+<!-- 제작 패널 -->
+<div class="gw-pov" id="gw-pcraft" onclick="if(event.target===this)closeP('gw-pcraft')">
+  <div class="gw-pbox" style="width:min(440px,96vw);max-height:88vh;display:flex;flex-direction:column;">
+    <div class="gw-phdr" style="background:linear-gradient(135deg,rgba(255,180,220,.12),rgba(255,255,255,.04));border-bottom:1px solid rgba(255,200,230,.3);">
+      <div class="gw-pttl" style="background:linear-gradient(90deg,#fff6fb,#ffb3de,#ffffff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🌟 제작</div>
+      <button class="gw-px" onclick="closeP('gw-pcraft')">✕</button>
+    </div>
+    <div class="gw-pbdy" id="gw-craftbody" style="padding:12px;"></div>
+  </div>
+</div>
+
 <div class="gw-pov" id="gw-prdun" onclick="if(event.target===this)closeP('gw-prdun')">
   <div class="gw-pbox" style="width:min(420px,96vw);max-height:88vh;display:flex;flex-direction:column;">
     <div class="gw-phdr" style="background:linear-gradient(135deg,rgba(234,179,8,.12),rgba(161,98,7,.06));border-bottom:1px solid rgba(234,179,8,.3);">
@@ -869,6 +894,7 @@
         <div class="gw-act" onclick="openAuction()" style="border-color:rgba(52,211,153,.25)"><div class="gw-act-ico">🏛️</div><div class="gw-act-lbl">경매장</div></div>
         <div class="gw-act" onclick="openCharSelect()" style="border-color:rgba(52,211,153,.2)"><div class="gw-act-ico">👤</div><div class="gw-act-lbl">캐릭터</div></div>
         <div class="gw-act" onclick="openLink()" style="border-color:rgba(251,191,36,.25)"><div class="gw-act-ico">🔗</div><div class="gw-act-lbl">링크</div></div>
+        <div class="gw-act" onclick="openCraft()" style="border-color:rgba(255,200,230,.4);background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,180,220,.06));"><div class="gw-act-ico">🌟</div><div class="gw-act-lbl" style="background:linear-gradient(90deg,#fff6fb,#ffb3de);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:700;">제작</div></div>
       </div>
     </div>
   </div>
@@ -1517,6 +1543,22 @@ const DROPS = [
   {n:'초월의 반지(공격)', e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_atk',  atk:100,     grade:'초월', sellPrice:48000},
   {n:'초월의 반지(방어)', e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_def',  def:100,     grade:'초월', sellPrice:48000},
   {n:'초월의 반지(경험)', e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp',  expBonus:120,grade:'초월', sellPrice:48000},
+
+  // ── 절대자 등급 장비 (제작으로만 획득 가능한 최종 등급) ──
+  {n:'절대자의 대검',      e:'🌟', type:'weapon', slot:'weapon', atk:420,def:70,  grade:'절대자', sellPrice:500000, jobType:['warrior','paladin']},
+  {n:'절대자의 성검',      e:'🌟', type:'weapon', slot:'weapon', atk:440,def:130, grade:'절대자', sellPrice:550000, jobType:['paladin']},
+  {n:'절대자의 신궁',      e:'🌟', type:'weapon', slot:'weapon', atk:430,def:20,  grade:'절대자', sellPrice:500000, jobType:['archer']},
+  {n:'절대자의 영혼검',    e:'🌟', type:'weapon', slot:'weapon', atk:415,def:50,  grade:'절대자', sellPrice:500000, jobType:['rogue']},
+  {n:'절대자의 법장',      e:'🌟', type:'weapon', slot:'weapon', atk:450,def:20,  grade:'절대자', sellPrice:520000, jobType:['mage']},
+  {n:'절대자의 방패',      e:'🌟', type:'shield', slot:'shield', def:380,         grade:'절대자', sellPrice:480000, jobType:['warrior','paladin']},
+  {n:'절대자의 갑주',      e:'🌟', type:'armor',  slot:'armor',  atk:50,def:340,  grade:'절대자', sellPrice:490000},
+  {n:'절대자의 발걸음',    e:'🌟', type:'boots',  slot:'boots',  spd:1100,        grade:'절대자', sellPrice:460000},
+  {n:'절대자의 장갑',      e:'🌟', type:'gloves', slot:'gloves', atk:110,def:110, grade:'절대자', sellPrice:470000},
+  {n:'절대자의 목걸이',    e:'🌟', type:'accessory', slot:'necklace', subType:'necklace', critRate:120, grade:'절대자', sellPrice:480000},
+  {n:'절대자의 반지(치명)', e:'🌟', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_crit', critDmg:520, grade:'절대자', sellPrice:480000},
+  {n:'절대자의 반지(공격)', e:'🌟', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_atk',  atk:170,     grade:'절대자', sellPrice:480000},
+  {n:'절대자의 반지(방어)', e:'🌟', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_def',  def:170,     grade:'절대자', sellPrice:480000},
+  {n:'절대자의 반지(경험)', e:'🌟', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp',  expBonus:200,grade:'절대자', sellPrice:480000},
 ];
 
 
@@ -2778,7 +2820,7 @@ function mobDead(){
     const eqPool = DROPS.filter(d => {
       if(d.type==='pot'||d.type==='mat') return false;
       if(d.type==='accessory') return false;  // 반지·목걸이는 월드보스 전용
-      if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월') return false;
+      if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월'||d.grade==='절대자') return false;
       if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
       return true;
     });
@@ -2974,6 +3016,7 @@ function renderP(id){
   if(id==='gw-prelic')   renderRelicPanel();
   if(id==='gw-prdun')    renderRelicDungeonPanel();
   if(id==='gw-plegion')  renderLegionPanel();
+  if(id==='gw-pcraft')   renderCraftPanel();
   if(id==='gw-pauction') { aucTab('buy'); }
   if(id==='gw-pcharsel') renderCharSelectPanel();
   if(id==='gw-plink')    renderLinkPanel();
@@ -3062,7 +3105,7 @@ const SLOT_INFO={
   ring2:    {label:'반지2',   emoji:'💍'},
   ring3:    {label:'반지3',   emoji:'💍'},
 };
-const GRADE_COLOR={일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff',초월:'#a78bfa'};
+const GRADE_COLOR={일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff',초월:'#a78bfa',절대자:'url(#grad-absolute)'};
 
 function renderInv(){
   // ── 장착 슬롯 6개 ──
@@ -3437,6 +3480,7 @@ const ENH_COST_TABLE = {
   '신화':      {base:  8000, step:  4000, max: 200},
   '레전드리':  {base: 20000, step: 10000, max: 250},
   '초월':      {base: 50000, step: 33278, max: 300},
+  '절대자':    {base: 10000000, step: 3000000, max: 300},
 };
 function enhCost(enh, grade){
   const cfg = ENH_COST_TABLE[grade] || ENH_COST_TABLE['일반'];
@@ -3476,7 +3520,7 @@ function renderEnh(){
       } else {
         stat=`DEF +${it.def||0}`; nextStat=`DEF +${(it.def||0)+2}`;
       }
-      const GRADE_COL2={'기본':'#94a3b8','일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24','신화':'#f97316','레전드리':'#e2c4ff','초월':'#a78bfa'};
+      const GRADE_COL2={'기본':'#94a3b8','일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24','신화':'#f97316','레전드리':'#e2c4ff','초월':'#a78bfa','절대자':'#ffb3de'};
       const gc2 = GRADE_COL2[it.grade||'일반']||'#94a3b8';
       const maxEnh = getEnhMax(it.grade);
       const isMax  = enh >= maxEnh;
@@ -4083,7 +4127,7 @@ function dunBossDead() {
   const validDrops=DROPS.filter(d=>{
     if(d.type==='pot'||d.type==='mat') return false;
     if(d.type==='accessory') return false;  // 목걸이·반지 → 월드보스 전용
-    if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월') return false;
+    if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월'||d.grade==='절대자') return false;
     if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
     return true; // weapon/shield/armor/boots/gloves
   });
@@ -4163,7 +4207,7 @@ function dunBossDead() {
 function showDunResult(dun, gold, exp, items, lvUp) {
   gwSC('dun-result');
   document.getElementById('dr-dunname').textContent = dun.name + ' 클리어!';
-  const GRADE_COL={'일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24','신화':'#f97316','레전드리':'#e2c4ff','초월':'#a78bfa'};
+  const GRADE_COL={'일반':'#94a3b8','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24','신화':'#f97316','레전드리':'#e2c4ff','초월':'#a78bfa','절대자':'#ffb3de'};
   let html = '';
   // 골드/경험치
   html += `<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
@@ -7282,7 +7326,7 @@ function towerMobDead() {
       if(d.grade !== grade) return false;
       if(d.type==='pot'||d.type==='mat') return false;
       if(d.type==='accessory') return false;  // 목걸이·반지 제외
-      if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월') return false;
+      if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월'||d.grade==='절대자') return false;
       if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
       return true;
     });
@@ -8804,6 +8848,236 @@ function legionPotBar(){
 // ════════════════════════════════════════════════════════
 //  군단장 시스템 끝
 // ════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════
+//  제작 시스템 (절대자 등급 장비 합성)
+// ════════════════════════════════════════════════════════
+
+const CRAFT_COST_GOLD    = 300000000;  // 3억 골드
+const CRAFT_ESSENCE_NEED = 20;         // 빛의 정수 20개
+const CRAFT_SUCCESS_RATE = 0.30;       // 성공률 30%
+
+// 절대자 등급 색상 헬퍼
+function absoluteGradeStyle(fontSize='11px', fw='700') {
+  return `font-size:${fontSize};font-weight:${fw};background:linear-gradient(90deg,#fff6fb,#ffb3de,#ffffff,#ffd6f0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 5px rgba(255,180,220,.6));`;
+}
+
+// 절대자 테두리/배경
+function absoluteCardStyle() {
+  return `background:linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,180,220,.10));border:1px solid rgba(255,200,230,.4);box-shadow:0 0 16px rgba(255,180,220,.18),inset 0 0 10px rgba(255,255,255,.03);`;
+}
+
+// 초월 장비 → 절대자 장비 매핑 (slot 기준)
+function getAbsoluteItemForSlot(slot, subType, ringType, jobType) {
+  return window._WB_DROPS
+    ? window._WB_DROPS.filter(d => d.grade === '절대자' && d.slot === slot
+        && (slot !== 'ring' || d.ringType === ringType)
+        && (slot !== 'necklace' || d.subType === 'necklace')
+        && (d.jobType == null || jobType == null || d.jobType.some(j => jobType.includes(j)))
+      )
+    : DROPS.filter(d => d.grade === '절대자' && d.slot === slot
+        && (slot !== 'ring' || d.ringType === ringType)
+        && (slot !== 'necklace' || d.subType === 'necklace')
+        && (d.jobType == null || jobType == null || d.jobType.some(j => jobType.includes(j)))
+      );
+}
+
+// 패널 열기
+function openCraft() {
+  renderCraftPanel();
+  openP('gw-pcraft');
+}
+
+// 패널 렌더
+function renderCraftPanel() {
+  const el = document.getElementById('gw-craftbody');
+  if(!el) return;
+
+  // 인벤에서 초월 장비 목록 추출
+  const transcendItems = G.inv.filter(it => it.grade === '초월' && it.type !== 'mat');
+  // 빛의 정수 보유량
+  const essenceItem = G.inv.find(i => i.n === '빛의 정수');
+  const essenceQty  = essenceItem ? (essenceItem.qty || 0) : 0;
+  const goldOk      = G.gold >= CRAFT_COST_GOLD;
+  const essenceOk   = essenceQty >= CRAFT_ESSENCE_NEED;
+
+  const SLOT_LABEL = {weapon:'무기',shield:'방패',armor:'갑옷',boots:'신발',gloves:'장갑',necklace:'목걸이',ring:'반지'};
+  const GRADE_COL  = {초월:'#a78bfa'};
+
+  let html = `
+    <!-- 안내 섹션 -->
+    <div style="${absoluteCardStyle()}border-radius:12px;padding:12px 14px;margin-bottom:14px;">
+      <div style="${absoluteGradeStyle('13px','900')}margin-bottom:6px;">🌟 절대자 등급 제작</div>
+      <div style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;line-height:1.8;">
+        최종 등급 장비를 합성합니다.<br>
+        <span style="color:#fbbf24">합성 부위</span>는 투입한 초월 장비의 부위와 동일합니다.
+      </div>
+    </div>
+
+    <!-- 재료 현황 -->
+    <div style="background:rgba(15,10,30,.8);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+      <div style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:8px;">📦 합성 재료</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+        <div style="text-align:center;padding:6px;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.2);border-radius:8px;">
+          <div style="font-size:16px">💠</div>
+          <div style="font-size:9px;color:#a78bfa;font-family:'Orbitron',sans-serif;margin-top:2px;">초월 장비</div>
+          <div style="font-size:10px;font-weight:700;color:${transcendItems.length>0?'#34d399':'#ef4444'};">${transcendItems.length}개 보유</div>
+        </div>
+        <div style="text-align:center;padding:6px;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.2);border-radius:8px;">
+          <div style="font-size:16px">✨</div>
+          <div style="font-size:9px;color:#a78bfa;font-family:'Orbitron',sans-serif;margin-top:2px;">빛의 정수</div>
+          <div style="font-size:10px;font-weight:700;color:${essenceOk?'#34d399':'#ef4444'};">${essenceQty}/${CRAFT_ESSENCE_NEED}개</div>
+        </div>
+        <div style="text-align:center;padding:6px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:8px;">
+          <div style="font-size:16px">💰</div>
+          <div style="font-size:9px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-top:2px;">합성 비용</div>
+          <div style="font-size:10px;font-weight:700;color:${goldOk?'#34d399':'#ef4444'};">${(CRAFT_COST_GOLD/1e8).toFixed(1)}억G</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;padding:6px 10px;background:rgba(239,68,68,.06);border-radius:7px;font-size:9px;color:#f87171;font-family:'Noto Sans KR',sans-serif;">
+        ⚠️ 성공률 <b>${(CRAFT_SUCCESS_RATE*100).toFixed(0)}%</b> · 실패 시 재료 소멸 · 골드는 시도 시 차감
+      </div>
+    </div>
+
+    <!-- 초월 장비 선택 목록 -->
+    <div style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:6px;">⚒️ 합성할 초월 장비 선택</div>`;
+
+  if(transcendItems.length === 0) {
+    html += `<div style="text-align:center;padding:24px;color:#475569;font-size:12px;font-family:'Noto Sans KR',sans-serif;">
+      초월 등급 장비가 없습니다.<br>
+      <span style="font-size:10px;color:#334155;">월드보스·군단장에서 획득하세요.</span>
+    </div>`;
+  } else {
+    transcendItems.forEach((it, idx) => {
+      const invIdx = G.inv.indexOf(it);
+      const slotLabel = SLOT_LABEL[it.slot] || it.slot || '';
+      const canCraft  = essenceOk && goldOk;
+      // 절대자 결과 미리보기
+      const resultItems = getAbsoluteItemForSlot(it.slot, it.subType, it.ringType, it.jobType);
+      const resultPreview = resultItems.length > 0 ? resultItems[0].n : '절대자의 ' + (slotLabel || '장비');
+      html += `
+        <div style="background:rgba(167,139,250,.05);border:1px solid rgba(167,139,250,.2);border-radius:10px;
+          padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
+          <div style="font-size:28px;line-height:1;flex-shrink:0;">${it.e||'💠'}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;font-weight:700;color:#a78bfa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.n}</div>
+            <div style="font-size:9px;color:#64748b;margin-top:2px;">${slotLabel} · 초월</div>
+            <div style="font-size:9px;color:#94a3b8;margin-top:2px;">
+              → <span style="${absoluteGradeStyle('9px')}${resultPreview}</span>
+            </div>
+          </div>
+          <button onclick="tryCraft(${invIdx})"
+            ${canCraft ? '' : 'disabled'}
+            style="flex-shrink:0;
+              ${canCraft
+                ? 'background:linear-gradient(135deg,rgba(255,255,255,.15),rgba(255,180,220,.25));border:1px solid rgba(255,200,230,.5);color:#fff;cursor:pointer;'
+                : 'background:rgba(71,85,105,.2);border:1px solid #334155;color:#475569;cursor:not-allowed;'
+              }
+              padding:7px 14px;border-radius:8px;font-size:10px;font-family:'Orbitron',sans-serif;font-weight:700;white-space:nowrap;">
+            🌟 합성
+          </button>
+        </div>`;
+    });
+  }
+
+  html += `</div>`;  // 닫기는 불필요 (innerHTML)
+  el.innerHTML = html;
+}
+
+// 합성 실행
+function tryCraft(invIdx) {
+  const it = G.inv[invIdx];
+  if(!it || it.grade !== '초월') { gwT('⚠️ 유효하지 않은 재료입니다.'); return; }
+
+  // 재료 검증
+  const essenceItem = G.inv.find(i => i.n === '빛의 정수');
+  const essenceQty  = essenceItem ? (essenceItem.qty || 0) : 0;
+  if(essenceQty < CRAFT_ESSENCE_NEED) { gwT(`✨ 빛의 정수가 부족합니다. (${essenceQty}/${CRAFT_ESSENCE_NEED}개)`); return; }
+  if(G.gold < CRAFT_COST_GOLD) { gwT(`💰 골드가 부족합니다. (필요: ${CRAFT_COST_GOLD.toLocaleString()}G)`); return; }
+
+  // 재료 차감 (골드 + 초월 장비 + 빛의 정수)
+  G.gold -= CRAFT_COST_GOLD;
+  G.inv.splice(invIdx, 1); // 초월 장비 제거
+  if(essenceItem.qty <= CRAFT_ESSENCE_NEED) {
+    G.inv = G.inv.filter(i => i !== essenceItem); // 전부 소모
+  } else {
+    essenceItem.qty -= CRAFT_ESSENCE_NEED;
+  }
+
+  // 성공/실패 판정
+  const success = Math.random() < CRAFT_SUCCESS_RATE;
+
+  if(success) {
+    // 결과 장비 결정 (같은 슬롯의 절대자 장비)
+    const pool = getAbsoluteItemForSlot(it.slot, it.subType, it.ringType, it.jobType);
+    if(pool.length === 0) {
+      gwT('⚠️ 해당 부위의 절대자 장비 데이터가 없습니다. 관리자에게 문의하세요.');
+      saveG(); renderCraftPanel(); return;
+    }
+    const result = {...pool[Math.floor(Math.random() * pool.length)], qty:1, enh:0, _id:Date.now()};
+    G.inv.push(result);
+    saveG();
+    showCraftResult(true, result, it);
+  } else {
+    saveG();
+    showCraftResult(false, null, it);
+  }
+}
+
+// 합성 결과 화면
+function showCraftResult(success, result, srcItem) {
+  const el = document.getElementById('gw-craftbody');
+  if(!el) return;
+
+  if(success) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:20px 10px;">
+        <div style="font-size:52px;margin-bottom:10px;filter:drop-shadow(0 0 16px rgba(255,180,220,.8));">🌟</div>
+        <div style="${absoluteGradeStyle('18px','900')}display:block;margin-bottom:6px;">합성 성공!</div>
+        <div style="font-size:11px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;margin-bottom:20px;">절대자 등급 장비를 획득했습니다!</div>
+        <div style="${absoluteCardStyle()}border-radius:14px;padding:16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <div style="font-size:40px;line-height:1;filter:drop-shadow(0 0 10px rgba(255,180,220,.6));">${result.e||'🌟'}</div>
+          <div style="flex:1;text-align:left;">
+            <div style="${absoluteGradeStyle('13px','900')}">${result.n}</div>
+            <div style="font-size:9px;color:#94a3b8;margin-top:4px;">
+              ${result.atk?'ATK +'+result.atk+' ':''} ${result.def?'DEF +'+result.def+' ':''} ${result.spd?'SPD +'+result.spd+' ':''} ${result.critRate?'치명타율 +'+result.critRate+'% ':''} ${result.critDmg?'치명타피해 +'+result.critDmg+'% ':''} ${result.expBonus?'경험치 +'+result.expBonus+'% ':''}
+            </div>
+            <div style="font-size:9px;color:#64748b;margin-top:2px;">절대자 · 강화 +0</div>
+          </div>
+        </div>
+        <button onclick="openCraft()"
+          style="${absoluteCardStyle()}border-radius:10px;padding:11px 28px;font-size:12px;font-family:'Orbitron',sans-serif;font-weight:700;cursor:pointer;color:#fff;width:100%;">
+          🌟 다시 제작하기
+        </button>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div style="text-align:center;padding:20px 10px;">
+        <div style="font-size:52px;margin-bottom:10px;">💔</div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;color:#ef4444;margin-bottom:6px;">합성 실패</div>
+        <div style="font-size:11px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:6px;">
+          <b style="color:#a78bfa">${srcItem.n}</b> 이(가) 사라졌습니다...
+        </div>
+        <div style="font-size:10px;color:#475569;font-family:'Noto Sans KR',sans-serif;margin-bottom:20px;">
+          빛의 정수 ${CRAFT_ESSENCE_NEED}개와 ${(CRAFT_COST_GOLD/1e8).toFixed(1)}억G가 소모되었습니다.
+        </div>
+        <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px;margin-bottom:16px;font-size:10px;color:#f87171;font-family:'Noto Sans KR',sans-serif;">
+          성공률 ${(CRAFT_SUCCESS_RATE*100).toFixed(0)}% · 계속 도전해보세요!
+        </div>
+        <button onclick="openCraft()"
+          style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;
+            border-radius:10px;padding:11px 28px;font-size:12px;font-family:'Orbitron',sans-serif;
+            font-weight:700;cursor:pointer;width:100%;">
+          다시 도전하기
+        </button>
+      </div>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  제작 시스템 끝
+// ════════════════════════════════════════════════════════
+
 // ════════════════════════════════════════════════════════
 //  경매장 시스템
 // ════════════════════════════════════════════════════════
