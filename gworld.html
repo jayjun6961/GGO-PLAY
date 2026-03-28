@@ -5929,6 +5929,17 @@ function renderWbClaimSection(username, partyInfo, wb=WB_LIST[0], jobId=null) {
   const job = jobId || partyInfo.job || G.job;
   const jobName = WB_JOB_NAMES[job] || job;
   const jobEmoji = WB_JOB_EMOJI[job] || '?';
+  // 현재 플레이 중인 직업만 버튼 활성화
+  const isCurJob = (job === G.job);
+  const btnStyle = isCurJob
+    ? `background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;color:#000;cursor:pointer;`
+    : `background:rgba(71,85,105,.3);border:1px solid #334155;color:#475569;cursor:not-allowed;`;
+  const btnLabel = isCurJob
+    ? `🎁 ${jobName} 보상 수령`
+    : `🔒 ${jobName} 캐릭터로 전환 후 수령`;
+  const btnAttr  = isCurJob
+    ? `onclick="wbClaimReward('${partyInfo.date}', '${wb.id}', '${job}')"`
+    : `disabled`;
   return `
     <div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.3);border-radius:14px;padding:14px;text-align:center;margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px;">
@@ -5939,12 +5950,11 @@ function renderWbClaimSection(username, partyInfo, wb=WB_LIST[0], jobId=null) {
       <div style="font-size:10px;color:#94a3b8;margin-bottom:3px;">${jobName} 파티원 ${partyInfo.party.members.length}명 참여</div>
       <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:10px;">
         보상은 <span style="color:#a78bfa;">${jobName}</span> 캐릭터에게 지급됩니다.
+        ${!isCurJob ? `<br><span style="color:#f87171;font-size:9px;">⚠️ 현재 ${WB_JOB_NAMES[G.job]||G.job} 캐릭터 — 캐릭터 전환 필요</span>` : ''}
       </div>
-      <button onclick="wbClaimReward('${partyInfo.date}', '${wb.id}', '${job}')"
-        style="background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;color:#000;
-          padding:10px 28px;border-radius:10px;font-size:13px;font-weight:700;
-          font-family:'Orbitron',sans-serif;cursor:pointer;">
-        🎁 ${jobName} 보상 수령
+      <button ${btnAttr}
+        style="${btnStyle}padding:10px 28px;border-radius:10px;font-size:13px;font-weight:700;font-family:'Orbitron',sans-serif;width:100%;">
+        ${btnLabel}
       </button>
     </div>`;
 }
@@ -6121,11 +6131,18 @@ function wbClaimReward(date, wbId, jobId=null) {
     }
     // 장비 드롭 — 다른 직업 캐릭터 인벤에 추가
     const droppedGear = wbRollGearDrops(wb, job, rng, charData.inv);
+    // 연금석 결과
+    const alchAmtMap2 = {eldrania:[200,301],azarc:[200,301],'astraель':[200,401],orphion:[300,301],seraphiel:[500,501]};
+    const alchAmt2 = alchAmtMap2[wb.id] ? alchAmtMap2[wb.id][0] + Math.floor(rng(99)*alchAmtMap2[wb.id][1]) : 0;
+    const essenceAmt2 = wb.id === 'seraphiel' ? 1 + Math.floor(rng(98)*10) : 0;
     saveCharData(job, charData);
-    // 알림 표시 (현재 화면에서 결과 출력)
+    // 결과 화면 표시 (showWbResult 재활용, 직업명 추가 표시)
     const jobName = WB_JOB_NAMES[job] || job;
-    gwT(`🎁 ${jobName} 캐릭터 보상 지급 완료! (골드+${gold.toLocaleString()}, EXP+${exp.toLocaleString()}${lvUp>0?' / '+lvUp+'레벨 업!':''})`);
-    renderWorldBoss();
+    // showWbResult 호출 전 보스명 임시 override
+    const _origWbName = window._wbResultJobName;
+    window._wbResultJobName = jobName;
+    showWbResult(gold, exp, stones, droppedGear, lvUp, essenceAmt2, alchAmt2, jobName);
+    window._wbResultJobName = _origWbName;
     return;
   }
 }
@@ -6158,9 +6175,11 @@ function applyWbRewardToG(wb, job, gold, exp, stones, rng, date) {
   }
 
   const droppedGear = wbRollGearDrops(wb, job, rng, G.inv);
-  const essenceResult = wb.id === 'seraphiel' ? (G.inv.find(i=>i.n==='빛의 정수')?.qty || 0) : 0;
+  const essenceResult = wb.id === 'seraphiel' ? (1 + Math.floor(rng(98)*10)) : 0;
+  const alchAmtMap3 = {eldrania:[200,301],azarc:[200,301],'astraель':[200,401],orphion:[300,301],seraphiel:[500,501]};
+  const alchResult = alchAmtMap3[wb.id] ? alchAmtMap3[wb.id][0] + Math.floor(rng(99)*alchAmtMap3[wb.id][1]) : 0;
   saveG();
-  showWbResult(gold, exp, stones, droppedGear, lvUp, essenceResult);
+  showWbResult(gold, exp, stones, droppedGear, lvUp, essenceResult, alchResult, null);
 }
 
 // ── 장비 드롭 공통 로직 (인벤토리 배열에 직접 push) ──
@@ -6171,12 +6190,12 @@ function wbRollGearDrops(wb, job, rng, invArr) {
   const WB_ACC   = ['necklace','ring'];
   const JOB_MAP  = {warrior:['warrior','paladin'],archer:['archer'],mage:['mage'],rogue:['rogue'],paladin:['paladin','warrior']};
 
-  const isDimension  = (wbId === 'dimension');
-  const isEldrania   = (wbId === 'eldrania');
-  const isAzarc      = (wbId === 'azarc');
-  const isAstraел    = (wbId === 'astraель');
-  const isOrphion    = (wbId === 'orphion');
-  const isSeraphiel  = (wbId === 'seraphiel');
+  const isDimension  = (wb.id === 'dimension');
+  const isEldrania   = (wb.id === 'eldrania');
+  const isAzarc      = (wb.id === 'azarc');
+  const isAstraел    = (wb.id === 'astraель');
+  const isOrphion    = (wb.id === 'orphion');
+  const isSeraphiel  = (wb.id === 'seraphiel');
 
   function wbPickGrade(rngN, isAcc) {
     const r = rng(rngN);
@@ -6250,16 +6269,22 @@ function wbRollGearDrops(wb, job, rng, invArr) {
 }
 
 /* ── 보상 결과 화면 ── */
-function showWbResult(gold, exp, stones, gear, lvUp, essence) {
+function showWbResult(gold, exp, stones, gear, lvUp, essence, alch=0, jobLabel=null) {
   const GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff',초월:'#a78bfa'};
   const el = document.getElementById('gw-wbbody');
   if(!el) return;
 
+  const wbLabel = WB_LIST[_wbTabIdx]?.name || WB_NAME;
+  const jobBadge = jobLabel
+    ? `<div style="font-size:10px;color:#a78bfa;margin-top:3px;">🎖️ ${jobLabel} 캐릭터 지급 완료</div>`
+    : '';
+
   let html = `
     <div style="text-align:center;margin-bottom:12px;">
       <div style="font-size:28px">🏆</div>
-      <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;color:#fbbf24;">${WB_NAME}</div>
-      <div style="font-size:10px;color:#34d399;font-family:'Noto Sans KR',sans-serif;">토벌 보상</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:900;color:#fbbf24;">${wbLabel}</div>
+      <div style="font-size:10px;color:#34d399;font-family:'Noto Sans KR',sans-serif;">토벌 보상 획득!</div>
+      ${jobBadge}
     </div>
     <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px;">
       <div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
@@ -6274,9 +6299,13 @@ function showWbResult(gold, exp, stones, gear, lvUp, essence) {
         <span style="font-size:12px;color:#94a3b8">💎 마법석</span>
         <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#34d399;">+${stones}개</span>
       </div>
-      ${essence>0?`<div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+      ${alch>0?`<div style="background:rgba(234,179,8,.07);border:1px solid rgba(234,179,8,.2);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;color:#94a3b8">🧪 연금석</span>
+        <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#fbbf24;">+${alch}개</span>
+      </div>`:''}
+      ${essence>0?`<div style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
         <span style="font-size:12px;color:#94a3b8">✨ 빛의 정수</span>
-        <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#fbbf24;">+${essence}개</span>
+        <span style="font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#a78bfa;">+${essence}개</span>
       </div>`:''}
     </div>`;
 
@@ -6302,7 +6331,7 @@ function showWbResult(gold, exp, stones, gear, lvUp, essence) {
 }
 
 // DROPS 참조용 (월드보스 드롭 풀)
-window._WB_DROPS = null;
+window._WB_DROPS = typeof DROPS !== 'undefined' ? DROPS : [];
 // ════ 월드 보스 시스템 끝 ════
 // ※ Firebase Rules에 추가 필요: "world_boss_3": { ".read": true, ".write": true }
 // ════════════════════════════════════════════════════════
