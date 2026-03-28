@@ -8317,17 +8317,73 @@ const LEGION_DAILY_MAX = 2;    // 1일 최대 입장 횟수
 const LEGION_BOSSES = [
   {
     id:'vulcan', name:'힘의 악마, "발칸"', e:'🔥',
-    minLv:120, hp:150000, atk:450, pen:250,
+    minLv:120, hp:200000, atk:450, pen:250,
     gold:[200000,400000], exp:[300000,500000],
-    magic:[50,100],  alch:[10,30],
+    magic:[50,100], alch:[10,30],
     desc:'불꽃과 파괴의 화신. 강인한 전사.',
+    grades:['레어','에픽','전설','신화'],
+    thresh:[0.50,0.80,0.95,1.00],
+    essence:null,
   },
   {
     id:'dominion', name:'지배의 악마, "도미니온"', e:'👁️',
-    minLv:140, hp:200000, atk:500, pen:260,
+    minLv:140, hp:400000, atk:500, pen:260,
     gold:[500000,900000], exp:[700000,1200000],
-    magic:[70,150],  alch:[20,50],
-    desc:'의지를 지배하는 자. 최강의 군단장.',
+    magic:[70,150], alch:[20,40],
+    desc:'의지를 지배하는 자. 강력한 군단장.',
+    grades:['레어','에픽','전설','신화'],
+    thresh:[0.40,0.70,0.90,1.00],
+    essence:null,
+  },
+  {
+    id:'asmodeus', name:'색욕의 악마, "아스모데우스"', e:'💜',
+    minLv:150, hp:600000, atk:600, pen:280,
+    gold:[700000,1500000], exp:[1000000,1500000],
+    magic:[100,200], alch:[30,60],
+    desc:'쾌락과 유혹의 화신. 적의 의지를 꺾는다.',
+    grades:['에픽','전설','신화','레전드리'],
+    thresh:[0.55,0.85,0.95,1.00],
+    essence:null,
+  },
+  {
+    id:'mammon', name:'탐욕의 악마, "마몬"', e:'💰',
+    minLv:160, hp:800000, atk:700, pen:280,
+    gold:[1000000,2000000], exp:[1500000,3000000],
+    magic:[100,300], alch:[40,70],
+    desc:'끝없는 욕망의 화신. 황금을 먹고 자란다.',
+    grades:['에픽','전설','신화','레전드리'],
+    thresh:[0.40,0.70,0.90,1.00],
+    essence:null,
+  },
+  {
+    id:'leviathan', name:'질투의 악마, "레비아탄"', e:'🌊',
+    minLv:170, hp:1000000, atk:800, pen:280,
+    gold:[2000000,4000000], exp:[2000000,4000000],
+    magic:[100,300], alch:[50,80],
+    desc:'심연에서 올라온 거대한 질투의 괴물.',
+    grades:['전설','신화','레전드리','초월'],
+    thresh:[0.60,0.85,0.95,1.00],
+    essence:null,
+  },
+  {
+    id:'belphegor', name:'나태의 악마, "벨페고르"', e:'😴',
+    minLv:180, hp:2000000, atk:900, pen:290,
+    gold:[3000000,6000000], exp:[3000000,6000000],
+    magic:[100,500], alch:[50,100],
+    desc:'잠든 척 세상을 지배하는 자. 방심하면 끝이다.',
+    grades:['전설','신화','레전드리','초월'],
+    thresh:[0.50,0.78,0.93,1.00],
+    essence:{prob:0.5, amt:1},
+  },
+  {
+    id:'beelzebub', name:'폭식의 악마, "베엘제부브"', e:'🪰',
+    minLv:195, hp:5000000, atk:999, pen:300,
+    gold:[5000000,10000000], exp:[5000000,10000000],
+    magic:[100,1000], alch:[100,500],
+    desc:'모든 것을 집어삼키는 최강의 군단장. 섣불리 도전하지 말라.',
+    grades:['전설','신화','레전드리','초월'],
+    thresh:[0.40,0.70,0.90,1.00],
+    essence:{prob:1.0, amt:2},
   },
 ];
 
@@ -8359,7 +8415,7 @@ function renderLegionPanel() {
     border-radius:8px;margin-bottom:10px;">
     ${JEN[G.job]||''} <b style="color:#c084fc">${JNM[G.job]||G.job}</b> 캐릭터로 입장 · 직업별 입장 횟수 독립 관리
   </div>`;
-  const GC = {레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff'};
+  const GC = {레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff',초월:'#ffffff'};
   let html = jobNotice + `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
     padding:7px 11px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);
     border-radius:8px;margin-bottom:12px;">
@@ -8396,12 +8452,12 @@ function renderLegionPanel() {
       <!-- 드롭 등급 -->
       <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">
         🎁 장비 드롭:
-        ${['레어','에픽','전설','신화','레전드리','초월'].map((g,i)=>{
-          const pcts = boss.id==='dominion'
-            ? ['30%','25%','20%','15%','10%']
-            : ['40%','30%','15%','10%','5%'];
-          return `<span style="color:${GC[g]}">${g} ${pcts[i]}</span>`;
+        ${boss.grades.map((g,i)=>{
+          const prev = i===0 ? 0 : boss.thresh[i-1];
+          const pct  = Math.round((boss.thresh[i]-prev)*100)+'%';
+          return `<span style="color:${GC[g]||'#94a3b8'}">${g} ${pct}</span>`;
         }).join(' / ')}
+        ${boss.essence ? `<span style="color:#a78bfa"> · ✨빛의 정수 ${boss.essence.amt}개(${Math.round(boss.essence.prob*100)}%)</span>` : ''}
       </div>
       <!-- 입장 상태 + 버튼 -->
       <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -8576,21 +8632,31 @@ function legionBossDead() {
     {n:'연금석',e:'🧪',grade:'희귀',qty:alchAmt, _isMat:true},
   ];
 
+  // 빛의 정수 지급 (boss.essence 정의 시)
+  if(boss.essence) {
+    const roll = Math.random();
+    if(roll < boss.essence.prob) {
+      const essAmt = boss.essence.amt;
+      const essEx = G.inv.find(i=>i.n==='빛의 정수');
+      if(essEx) essEx.qty=(essEx.qty||0)+essAmt;
+      else G.inv.push({n:'빛의 정수',e:'✨',type:'mat',val:500,grade:'전설',sellPrice:500,qty:essAmt,_id:Date.now()-5});
+      droppedItems.push({n:'빛의 정수',e:'✨',grade:'전설',qty:essAmt,_isMat:true});
+      legionBlog(`<span style="color:#a78bfa">✨ 빛의 정수 ${essAmt}개 획득!</span>`);
+    }
+  }
+
   // 장비 드롭 (무기/방패/갑옷/신발/장갑 각 독립 확률)
   const LEGION_SLOTS=['weapon','shield','armor','boots','gloves'];
-  // 발칸: 레어40% 에픽30% 전설15% 신화10% 레전드리5%
-  // 도미니온: 레어30% 에픽25% 전설20% 신화15% 레전드리10%
-  const GRADE_THRESH = boss.id==='dominion'
-    ? [0.30,0.55,0.75,0.90,1.00]
-    : [0.40,0.70,0.85,0.95,1.00];
-  const GRADES=['레어','에픽','전설','신화','레전드리','초월'];
+  // boss.grades / boss.thresh 로 등급 결정 (보스별 개별 설정)
+  const GRADE_THRESH = boss.thresh;
+  const GRADES       = boss.grades;
   const JOB_MAP={warrior:['warrior','paladin'],archer:['archer'],mage:['mage'],rogue:['rogue'],paladin:['paladin','warrior']};
   const allowed=JOB_MAP[G.job]||[];
 
   LEGION_SLOTS.forEach((slot,si)=>{
     if(Math.random()>0.35) return; // 35% 확률로 각 슬롯 드롭 시도
     const r=Math.random();
-    let grade=GRADES[GRADES.length-1];
+    let grade=GRADES[GRADES.length-1]; // 기본값: 최고 등급
     for(let gi=0;gi<GRADE_THRESH.length;gi++){
       if(r<GRADE_THRESH[gi]){grade=GRADES[gi];break;}
     }
@@ -8614,7 +8680,7 @@ function legionBossDead() {
 function showLegionResult(boss,gold,exp,magic,alch,items,lvUp){
   gwSC('legion-result');
   document.getElementById('lgr-bossname').textContent=boss.name+' 토벌!';
-  const GC={일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff'};
+  const GC={일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff',초월:'#ffffff'};
   let html=`
     <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
       <span style="font-size:24px">💰</span>
