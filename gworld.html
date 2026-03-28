@@ -9828,7 +9828,7 @@ async function aucRegister(uid) {
   const priceEl = document.getElementById('auc-price-'+uid);
   const price = parseInt(priceEl?.value||'0');
   if(!price || price < 1) { gwT('판매 가격을 입력해주세요.'); return; }
-  if(price > 999999999) { gwT('최대 판매가는 999,999,999G 입니다.'); return; }
+  if(price > 9999999999) { gwT('최대 판매가는 9,999,999,999G 입니다.'); return; }
 
   const myName = gwUN();
   // Firebase에서 현재 내 등록 수 재확인
