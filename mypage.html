@@ -446,7 +446,7 @@
     <!-- EXPORT -->
     <div id="sync-export-panel">
       <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:#c084fc;margin-bottom:6px">📤 데이터 내보내기</div>
-      <div style="font-size:11px;color:#64748b;margin-bottom:16px;line-height:1.6">아래 코드를 복사해서 다른 기기의 <b style="color:#a78bfa">데이터 가져오기</b>에 붙여넣으세요.<br>루비·크리스탈·GP·꾸미기·낚시·G월드 기록이 모두 포함됩니다.</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:16px;line-height:1.6">아래 코드를 복사해서 다른 기기의 <b style="color:#a78bfa">데이터 가져오기</b>에 붙여넣으세요.<br>루비·크리스탈·GP·꾸미기·낚시·G월드(모든 직업 캐릭터·천공의 탑·유물·퀘스트 등) 기록이 모두 포함됩니다.</div>
       <div style="position:relative;">
         <textarea id="sync-export-code" readonly style="width:100%;height:120px;background:#07040e;border:1px solid rgba(124,58,237,.3);border-radius:10px;color:#e2e8f0;font-size:11px;font-family:monospace;padding:10px;resize:none;outline:none;line-height:1.5"></textarea>
       </div>
@@ -1999,6 +1999,7 @@
 
   // 동기화할 키 접두사 목록 (username이 접미사로 붙는 것들)
   const SYNC_KEY_PREFIXES = [
+    // ── GGO 공통 ──
     'ggo_currency_',
     'ggo_items_',
     'ggo_deco_exp_',
@@ -2006,6 +2007,8 @@
     'ggo_tour_claimed_',
     'ggo_used_coupons_',
     'ggo_notifs_',
+    'ggo_rank_snap_',
+    // ── 낚시 ──
     'ggo_fish_stats_',
     'ggo_fish_storage_',
     'ggo_fish_map_',
@@ -2013,36 +2016,60 @@
     'ggo_fish_fp_',
     'ggo_fish_gear_',
     'ggo_fish_owned_rods_',
-    'gwo_save_',
-    'ggo_rank_snap_',
+    // ── G월드 고정 키 (끝에 username) ──
+    'gwo_save_',          // 현재 캐릭터 세이브
+    'gwo_activejob_',     // 현재 활성 직업
+    'gwo_dojo_auto_',     // 도장 자동 설정
+    'gwo_pvp_daily_',     // PVP 일일 횟수
   ];
 
-  // 낚시 퀘스트 키 (날짜 포함 동적 키)
+  // 동적 접두사 키 — username을 포함하는 모든 키 스캔
+  // (날짜·직업명 등이 중간에 들어가는 키들)
   const SYNC_KEY_DYNAMIC_PREFIXES = [
+    // 낚시
     'ggo_fish_quest_',
     'ggo_fish_rank_claimed_',
+    // G월드 — 직업별 캐릭터 저장 (가장 중요)
+    'gwo_charsave_',      // gwo_charsave_{username}_{job}
+    // G월드 — 직업별 천공의 탑 진행도
+    'gwo_tower_cleared_', // gwo_tower_cleared_{job}_{username}
+    'gwo_tower_cur_',     // gwo_tower_cur_{job}_{username}
+    'gwo_tower_rank_claim_',
+    // G월드 — 월드보스 보상 수령 여부
+    'gwo_wb_claimed_',
+    'gwo_wb_',
+    // G월드 — PVP 시즌 보상
+    'gwo_pvp_reward_',
+    // G월드 — 던전/유물던전/군단장 일일 횟수 (날짜 포함)
+    'gwo_dun_count_',
+    'gwo_rdun_daily_',
+    'gwo_legion_daily_',
+    // G월드 — 퀘스트 날짜 키
+    'gwo_quest_date_',
+    'gwo_quest_week_',
   ];
 
   function collectAllSyncData() {
     const username = sessionStorage.getItem('ggo_username') || '';
     const data = {
-      _v: 2,
+      _v: 3,
       _username: username,
       _ts: Date.now(),
       keys: {}
     };
 
-    // 1. 유저별 고정 접미사 키
+    // 1. 유저별 고정 접미사 키 (prefix + username)
     SYNC_KEY_PREFIXES.forEach(prefix => {
       const key = prefix + username;
       const val = localStorage.getItem(key);
       if (val !== null) data.keys[key] = val;
     });
 
-    // 2. 동적 접두사 키 (날짜 등 포함) — 전체 스캔
+    // 2. 동적 접두사 키 — 전체 localStorage 스캔하여 username 포함 여부 확인
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (!k) continue;
+      if (data.keys[k] !== undefined) continue; // 이미 수집됨
       const isDynamic = SYNC_KEY_DYNAMIC_PREFIXES.some(p => k.startsWith(p));
       if (isDynamic && k.includes(username)) {
         data.keys[k] = localStorage.getItem(k);
@@ -2130,17 +2157,33 @@
     const currentUN = sessionStorage.getItem('ggo_username') || '';
     const sourceUN  = data._username;
 
-    // username이 다를 경우: 키를 현재 username으로 교체해서 저장
+    // username이 다를 경우: 키 내 username을 현재 username으로 전체 교체
+    // 패턴 1: prefix_sourceUN           (끝에 username) → prefix_currentUN
+    // 패턴 2: prefix_sourceUN_suffix    (중간에 username) → prefix_currentUN_suffix
+    // ex) gwo_charsave_잡채_warrior → gwo_charsave_현재유저_warrior
+    function convertKey(key) {
+      if (!sourceUN || !currentUN || sourceUN === currentUN) return key;
+      // username이 키에 포함되어 있으면 전체 교체 (구분자 _ 기준)
+      if (key.includes(sourceUN)) {
+        return key.split(sourceUN).join(currentUN);
+      }
+      return key;
+    }
+
+    // val 내부에 username이 포함된 JSON도 교체 (gwo_charsave 등)
+    function convertVal(val) {
+      if (!sourceUN || !currentUN || sourceUN === currentUN) return val;
+      if (typeof val === 'string' && val.includes(sourceUN)) {
+        return val.split(sourceUN).join(currentUN);
+      }
+      return val;
+    }
+
     let count = 0;
     Object.entries(data.keys).forEach(([key, val]) => {
-      let targetKey = key;
-      // 소스 username → 현재 username으로 키 변환
-      if (sourceUN && currentUN && sourceUN !== currentUN) {
-        if (key.endsWith('_' + sourceUN)) {
-          targetKey = key.slice(0, key.length - sourceUN.length) + currentUN;
-        }
-      }
-      localStorage.setItem(targetKey, val);
+      const targetKey = convertKey(key);
+      const targetVal = convertVal(val);
+      localStorage.setItem(targetKey, targetVal);
       count++;
     });
 
