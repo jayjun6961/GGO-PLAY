@@ -3869,13 +3869,19 @@ function showDungeonSelect() {
 function renderDungeonSelect() {
   const el = document.getElementById('gw-dunbody');
   if(!el) return;
-  let html = '';
+  const JEN = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+  const JNM = {warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'};
+  let html = `<div style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;
+    padding:6px 10px;background:rgba(124,58,237,.05);border:1px solid rgba(124,58,237,.15);
+    border-radius:8px;margin-bottom:10px;">
+    ${JEN[G.job]||''} <b style="color:#c084fc">${JNM[G.job]||G.job}</b> 캐릭터로 입장 · 직업별 입장 횟수 독립 관리
+  </div>`;
   DUNGEONS.forEach(d => {
     const locked = G.lv < d.minLv;
     const col = locked ? '#475569' : '#e2e8f0';
     const bg  = locked ? 'rgba(71,85,105,.08)' : 'rgba(124,58,237,.08)';
     const bd  = locked ? 'rgba(71,85,105,.2)'  : 'rgba(124,58,237,.25)';
-    const cnt = getDunCount(d.id);
+    const cnt = getDunCount(d.id); // 현재 직업 기준 카운트
     const full = cnt >= DUN_DAILY_LIMIT;
     const btnDisabled = locked || full;
     const cntColor = full ? '#ef4444' : cnt>0 ? '#fbbf24' : '#34d399';
@@ -3912,13 +3918,14 @@ function renderDungeonSelect() {
 }
 
 /* ── 던전 입장 ── */
-function getDunDailyKey(dunId) {
+function getDunDailyKey(dunId, jobId=null) {
   const d=new Date();
   const date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  return 'gwo_dun_count_'+dunId+'_'+date+'_'+gwUN();
+  const job = jobId || G.job || 'warrior';
+  return 'gwo_dun_count_'+dunId+'_'+date+'_'+job+'_'+gwUN();
 }
-function getDunCount(dunId) {
-  return parseInt(localStorage.getItem(getDunDailyKey(dunId))||'0');
+function getDunCount(dunId, jobId=null) {
+  return parseInt(localStorage.getItem(getDunDailyKey(dunId, jobId))||'0');
 }
 const DUN_DAILY_LIMIT = 5;
 
@@ -6240,28 +6247,51 @@ function estimatePVPPower(job, lv) {
 }
 
 // ── Firebase에 내 프로필 업로드 (마을 진입 시) ──
+// pvp/profiles/{username}/{job} 구조로 직업별 저장
 function pvpUploadProfile() {
   if(!window._gwDB || !G.job || G.lv < 1) return;
   const username = gwUN();
-  // gwUN()이 '_g'를 반환하면 아직 로그인 정보가 없는 것 → 재시도
   if(!username || username === '_g') {
     setTimeout(pvpUploadProfile, 800);
     return;
   }
-  const profile = {
-    user:   username,
-    job:    G.job,
-    lv:     G.lv,
-    power:  myPVPPower(),
-    hp:     G.mHP,
-    atk:    cBase(G.job,G.lv).atk + (equipBonus().atk||0),
-    def:    cBase(G.job,G.lv).def + (equipBonus().def||0),
-    ts:     Date.now(),
+  // 현재 플레이 중인 캐릭터 업로드
+  const curProfile = {
+    user:  username,
+    job:   G.job,
+    lv:    G.lv,
+    power: myPVPPower(),
+    hp:    G.mHP,
+    atk:   cBase(G.job,G.lv).atk + (equipBonus().atk||0),
+    def:   cBase(G.job,G.lv).def + (equipBonus().def||0),
+    ts:    Date.now(),
   };
-  _pvpRef('profiles/' + username)?.set(profile)
-    .then(()=>console.log('[PVP] 프로필 업로드:', username, 'Lv.'+G.lv))
+  _pvpRef('profiles/' + username + '/' + G.job)?.set(curProfile)
+    .then(()=>console.log('[PVP] 프로필 업로드:', username, G.job, 'Lv.'+G.lv))
     .catch(e=>console.warn('[PVP] 프로필 업로드 실패:', e.code||e.message));
-  // 월드보스 파티에서 다른 유저 프로필도 자동 수집해서 pvp/profiles에 등록
+
+  // 보유 중인 다른 직업 캐릭터도 함께 업로드 (저장 데이터 기준)
+  const CHAR_JOBS_ALL = ['warrior','archer','mage','rogue','paladin'];
+  CHAR_JOBS_ALL.forEach(job => {
+    if(job === G.job) return; // 현재 캐릭터는 위에서 처리
+    const d = getCharData(job);
+    if(!d || d.lv < 1) return;
+    const b = cBase(job, d.lv);
+    const p = {
+      user:  username,
+      job,
+      lv:    d.lv,
+      power: Math.round(b.atk * 2 + b.def + d.lv * 10 + b.mHP * 0.1),
+      hp:    b.mHP,
+      atk:   b.atk,
+      def:   b.def,
+      ts:    Date.now(),
+    };
+    _pvpRef('profiles/' + username + '/' + job)?.set(p)
+      .catch(e=>console.warn('[PVP] 다른 직업 프로필 업로드 실패:', job, e.code||e.message));
+  });
+
+  // 월드보스 파티에서 다른 유저 프로필도 자동 수집
   _pvpSyncFromWB();
 }
 
@@ -6301,38 +6331,45 @@ async function _pvpFetchFromWB(oppEl) {
         도전 가능한 상대가 없습니다.<br>(Lv.${PVP_MIN_LV} 이상 유저 대기 중)</div>`;
       return;
     }
-    // pvp/profiles에 자동 등록
-    wbList.forEach(p => _pvpRef('profiles/'+p.user)?.set(p).catch(()=>{}));
+    // pvp/profiles에 자동 등록 (profiles/username/job)
+    wbList.forEach(p => _pvpRef('profiles/'+p.user+'/'+p.job)?.set(p).catch(()=>{}));
 
-    // UI 업데이트
-    window._pvpOpponents = wbList.slice(0, 3);
-    oppEl.innerHTML =
-      `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:4px;">
-        ⚔️ 상대를 선택하세요 (${wbList.length}명)
-      </div>` +
-      window._pvpOpponents.map((p,i) => {
+    // UI 업데이트 (유저별 그룹, WB fallback)
+    window._pvpOpponents = wbList;
+    const byUser = {};
+    wbList.forEach(p => { if(!byUser[p.user]) byUser[p.user]=[]; byUser[p.user].push(p); });
+    let cardIdx2 = 0;
+    let html2 = `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:6px;">
+      ⚔️ 도전할 캐릭터를 선택하세요 (${wbList.length}개)
+    </div>`;
+    Object.entries(byUser).forEach(([uname, chars]) => {
+      html2 += `<div style="border:1px solid rgba(239,68,68,.18);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:rgba(239,68,68,.02);">
+        <div style="font-size:11px;font-weight:700;color:#e2e8f0;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06);">
+          👤 ${uname} <span style="font-size:9px;color:#64748b;font-weight:400;">캐릭터 ${chars.length}개</span>
+        </div><div style="display:flex;flex-direction:column;gap:5px;">`;
+      chars.forEach(p => {
         const jc = JOB_COL[p.job]||'#94a3b8';
-        return `<div style="background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.15);border-radius:12px;
-          padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;"
-          onclick="startPVP(${i})"
-          onmouseover="this.style.background='rgba(239,68,68,.1)'"
-          onmouseout="this.style.background='rgba(239,68,68,.04)'">
-          <div style="font-size:28px;line-height:1;">${JOB_EMO[p.job]||'👤'}</div>
-          <div style="flex:1;">
-            <div style="font-size:12px;font-weight:700;color:#e2e8f0;">${p.user}</div>
-            <div style="display:flex;gap:6px;margin-top:3px;align-items:center;">
-              <span style="font-size:9px;padding:1px 6px;border-radius:4px;background:${jc}22;color:${jc};border:1px solid ${jc}44;">${JOB_NAME[p.job]||p.job}</span>
-              <span style="font-size:9px;color:#94a3b8;font-family:'Orbitron',sans-serif;">Lv.${p.lv}</span>
+        window._pvpOpponents[cardIdx2] = p;
+        html2 += `<div style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 10px;
+            border-radius:8px;background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.12);transition:all .15s;"
+            onclick="startPVP(${cardIdx2})"
+            onmouseover="this.style.background='rgba(239,68,68,.12)'"
+            onmouseout="this.style.background='rgba(239,68,68,.04)'">
+            <div style="font-size:22px;">${JOB_EMO[p.job]||'👤'}</div>
+            <div style="flex:1;">
+              <span style="font-size:10px;padding:1px 7px;border-radius:4px;background:${jc}22;color:${jc};border:1px solid ${jc}44;font-weight:700;">${JOB_NAME[p.job]||p.job}</span>
+              <span style="font-size:10px;color:#94a3b8;font-family:'Orbitron',sans-serif;margin-left:4px;">Lv.${p.lv}</span>
+              <div style="font-size:9px;color:#475569;margin-top:2px;font-family:'Orbitron',sans-serif;">전투력 <span style="color:#f87171;">${(p.power||0).toLocaleString()}</span></div>
             </div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;">전투력</div>
-            <div style="font-size:13px;font-weight:700;color:#f87171;font-family:'Orbitron',sans-serif;">${(p.power||0).toLocaleString()}</div>
-          </div>
-          <div style="background:linear-gradient(135deg,#ef4444,#dc2626);border:1px solid #f87171;color:#fff;
-            padding:6px 12px;border-radius:8px;font-size:10px;font-family:'Orbitron',sans-serif;white-space:nowrap;">도전</div>
-        </div>`;
-      }).join('');
+            <div style="background:linear-gradient(135deg,#ef4444,#dc2626);border:1px solid #f87171;color:#fff;
+              padding:5px 11px;border-radius:7px;font-size:10px;font-family:'Orbitron',sans-serif;white-space:nowrap;flex-shrink:0;">도전</div>
+          </div>`;
+        cardIdx2++;
+      });
+      html2 += `</div></div>`;
+    });
+    window._pvpOpponents = wbList; // 배열 형태 유지
+    oppEl.innerHTML = html2;
   } catch(e) {
     console.warn('[PVP] WB fallback 실패:', e);
     if(oppEl) oppEl.innerHTML = `<div style="text-align:center;padding:20px;color:#475569;font-size:11px;">상대를 불러오지 못했습니다.</div>`;
@@ -6351,16 +6388,17 @@ async function _pvpSyncFromWB() {
         const party = ps.val();
         (party.members||[]).forEach(m => {
           if(!m.user || m.user === gwUN() || (m.lv||0) < 1) return;
-          // 기존 프로필보다 최신이면 업데이트
-          _pvpRef('profiles/' + m.user)?.get().then(snap => {
+          const mJob = m.job||'warrior';
+          // 기존 프로필보다 최신이면 업데이트 (profiles/username/job)
+          _pvpRef('profiles/' + m.user + '/' + mJob)?.get().then(snap => {
             const prev = snap?.exists() ? snap.val() : null;
             if(!prev || (m.lv||0) > (prev.lv||0)) {
-              _pvpRef('profiles/' + m.user)?.set({
-                user: m.user, job: m.job||'warrior',
-                lv: m.lv||1, power: estimatePVPPower(m.job, m.lv),
-                hp: cBase(m.job||'warrior',m.lv||1).mHP,
-                atk: cBase(m.job||'warrior',m.lv||1).atk,
-                def: cBase(m.job||'warrior',m.lv||1).def, ts: Date.now()
+              _pvpRef('profiles/' + m.user + '/' + mJob)?.set({
+                user: m.user, job: mJob,
+                lv: m.lv||1, power: estimatePVPPower(mJob, m.lv),
+                hp: cBase(mJob,m.lv||1).mHP,
+                atk: cBase(mJob,m.lv||1).atk,
+                def: cBase(mJob,m.lv||1).def, ts: Date.now()
               }).catch(()=>{});
             }
           }).catch(()=>{});
@@ -6469,59 +6507,107 @@ async function renderPVPBattle() {
   // 기존 리스너 해제 후 실시간 구독 등록
   _detachPVPProfileListener();
 
+  // pvp/profiles/{username}/{job} 구조 구독
   _pvpProfileListener = window._gwDB.ref('pvp/profiles').on('value', snap => {
     const oppEl = document.getElementById('pvp-opponents');
     if(!oppEl) { _detachPVPProfileListener(); return; }
 
-    const allProfiles = snap?.exists() ? Object.values(snap.val() || {}) : [];
-    console.log('[PVP] profiles 수:', allProfiles.length);
-    let all = allProfiles.filter(p => p.user !== gwUN() && p.lv >= PVP_MIN_LV);
-    console.log('[PVP] Lv50+ 필터 후:', all.length, '명');
+    const myUsername = gwUN();
+    const JOB_NAME = {warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'};
+    const JOB_EMO  = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+    const JOB_COL  = {warrior:'#3b82f6',archer:'#22c55e',mage:'#a855f7',rogue:'#f97316',paladin:'#fbbf24'};
 
-    // profiles가 비어있으면 WB 파티에서 보완 (async 별도 함수로 처리)
-    if(all.length === 0) {
+    // profiles 값은 {username: {job: profile}} 또는 구버전 {username: profile}
+    // 두 형식 모두 처리 (하위 호환)
+    const rawVal = snap?.exists() ? (snap.val() || {}) : {};
+    const allChars = []; // [{user, job, lv, power, hp, atk, def}]
+
+    Object.entries(rawVal).forEach(([uname, val]) => {
+      if(uname === myUsername) return; // 자기 자신 제외
+      // 신규 형식: val = {warrior:{...}, mage:{...}} — 직업별 객체
+      if(val && typeof val === 'object' && !val.job) {
+        Object.entries(val).forEach(([job, profile]) => {
+          if(profile && profile.lv >= PVP_MIN_LV) {
+            allChars.push({...profile, user: uname, job});
+          }
+        });
+      } else if(val && val.lv >= PVP_MIN_LV) {
+        // 구버전 형식: val = {user, job, lv, ...} 단일 프로필
+        allChars.push({...val, user: uname});
+      }
+    });
+
+    console.log('[PVP] 도전 가능 캐릭터:', allChars.length, '개');
+
+    // 캐릭터 없으면 WB fallback
+    if(allChars.length === 0) {
       oppEl.innerHTML = `<div style="text-align:center;padding:20px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
         🔄 상대를 불러오는 중...</div>`;
       _pvpFetchFromWB(oppEl);
       return;
     }
 
-    // 1명이어도 표시, 최대 3명 랜덤 선택
-    const shuffled = [...all].sort(() => Math.random()-0.5).slice(0, Math.min(3, all.length));
-    window._pvpOpponents = shuffled;
+    // 유저별로 그룹화 (유저 카드 안에 직업 목록 표시)
+    const byUser = {};
+    allChars.forEach(p => {
+      if(!byUser[p.user]) byUser[p.user] = [];
+      byUser[p.user].push(p);
+    });
 
-    const JOB_NAME = {warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'};
-    const JOB_EMO  = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
-    const JOB_COL  = {warrior:'#3b82f6',archer:'#22c55e',mage:'#a855f7',rogue:'#f97316',paladin:'#fbbf24'};
+    // 유저 목록 랜덤 셔플, 최대 5명 표시
+    const userList = Object.keys(byUser).sort(() => Math.random()-0.5).slice(0,5);
 
-    oppEl.innerHTML =
-      `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:4px;">
-        ⚔️ 상대를 선택하세요 (${shuffled.length}명${all.length > 3 ? ' / 전체 '+all.length+'명 중 랜덤':''})
-      </div>` +
-      shuffled.map((p,i) => {
+    // _pvpOpponents 배열: 카드 클릭 index → 해당 캐릭터 정보
+    window._pvpOpponents = [];
+    let cardIdx = 0;
+
+    let html = `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:6px;">
+      ⚔️ 도전할 캐릭터를 선택하세요 (${allChars.length}개${allChars.length > 10 ? ' · 일부만 표시':''})
+    </div>`;
+
+    userList.forEach(uname => {
+      const chars = byUser[uname].sort((a,b) => b.lv - a.lv); // 레벨 내림차순
+      html += `<div style="border:1px solid rgba(239,68,68,.18);border-radius:12px;
+        padding:10px 12px;margin-bottom:8px;background:rgba(239,68,68,.02);">
+        <div style="font-size:11px;font-weight:700;color:#e2e8f0;margin-bottom:8px;
+          padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06);">
+          👤 ${uname} <span style="font-size:9px;color:#64748b;font-weight:400;">캐릭터 ${chars.length}개</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;">`;
+
+      chars.forEach(p => {
         const jc = JOB_COL[p.job]||'#94a3b8';
-        return `<div style="background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.15);border-radius:12px;
-          padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;"
-          onclick="startPVP(${i})"
-          onmouseover="this.style.background='rgba(239,68,68,.1)'"
-          onmouseout="this.style.background='rgba(239,68,68,.04)'"
-          id="pvp-op-${i}">
-          <div style="font-size:28px;line-height:1;">${JOB_EMO[p.job]||'👤'}</div>
-          <div style="flex:1;">
-            <div style="font-size:12px;font-weight:700;color:#e2e8f0;">${p.user}</div>
-            <div style="display:flex;gap:6px;margin-top:3px;align-items:center;">
-              <span style="font-size:9px;padding:1px 6px;border-radius:4px;background:${jc}22;color:${jc};border:1px solid ${jc}44;">${JOB_NAME[p.job]||p.job}</span>
-              <span style="font-size:9px;color:#94a3b8;font-family:'Orbitron',sans-serif;">Lv.${p.lv}</span>
+        const ci = cardIdx++;
+        window._pvpOpponents.push(p);
+        html += `<div style="display:flex;align-items:center;gap:10px;cursor:pointer;
+            padding:8px 10px;border-radius:8px;background:rgba(239,68,68,.04);
+            border:1px solid rgba(239,68,68,.12);transition:all .15s;"
+            onclick="startPVP(${ci})"
+            onmouseover="this.style.background='rgba(239,68,68,.12)'"
+            onmouseout="this.style.background='rgba(239,68,68,.04)'">
+            <div style="font-size:22px;line-height:1;">${JOB_EMO[p.job]||'👤'}</div>
+            <div style="flex:1;">
+              <div style="display:flex;gap:6px;align-items:center;">
+                <span style="font-size:10px;padding:1px 7px;border-radius:4px;
+                  background:${jc}22;color:${jc};border:1px solid ${jc}44;font-weight:700;">
+                  ${JOB_NAME[p.job]||p.job}
+                </span>
+                <span style="font-size:10px;color:#94a3b8;font-family:'Orbitron',sans-serif;">Lv.${p.lv}</span>
+              </div>
+              <div style="font-size:9px;color:#475569;margin-top:2px;font-family:'Orbitron',sans-serif;">
+                전투력 <span style="color:#f87171;">${(p.power||0).toLocaleString()}</span>
+              </div>
             </div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;">전투력</div>
-            <div style="font-size:13px;font-weight:700;color:#f87171;font-family:'Orbitron',sans-serif;">${(p.power||0).toLocaleString()}</div>
-          </div>
-          <div style="background:linear-gradient(135deg,#ef4444,#dc2626);border:1px solid #f87171;color:#fff;
-            padding:6px 12px;border-radius:8px;font-size:10px;font-family:'Orbitron',sans-serif;white-space:nowrap;">도전</div>
-        </div>`;
-      }).join('');
+            <div style="background:linear-gradient(135deg,#ef4444,#dc2626);border:1px solid #f87171;
+              color:#fff;padding:5px 11px;border-radius:7px;font-size:10px;
+              font-family:'Orbitron',sans-serif;white-space:nowrap;flex-shrink:0;">도전</div>
+          </div>`;
+      });
+
+      html += `</div></div>`;
+    });
+
+    oppEl.innerHTML = html;
   }, err => {
     const oppEl = document.getElementById('pvp-opponents');
     if(oppEl) oppEl.innerHTML = `<div style="text-align:center;padding:20px;color:#ef4444;font-size:11px;">⚠️ 네트워크 오류. 다시 시도해주세요.</div>`;
@@ -6533,11 +6619,14 @@ async function startPVP(idx) {
   const opp = (window._pvpOpponents||[])[idx];
   if(!opp) return;
 
+  // 자기 자신의 다른 캐릭터에는 도전 불가
+  if(opp.user === gwUN()) { gwT('⚠️ 자신의 캐릭터에는 도전할 수 없습니다.'); return; }
+
   const el = document.getElementById('gw-pvpbody');
   if(!el) return;
 
   el.innerHTML = `<div style="text-align:center;padding:40px;color:#94a3b8;font-size:12px;font-family:'Noto Sans KR',sans-serif;">
-    ⚔️ <strong style="color:#f87171;">${opp.user}</strong>와 전투 중...<br>
+    ⚔️ <strong style="color:#f87171;">${opp.user}</strong>의 ${({warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'})[opp.job]||opp.job}와 전투 중...<br>
     <div style="margin-top:8px;font-size:10px;color:#475569;">결과 계산 중</div>
   </div>`;
 
@@ -6765,8 +6854,8 @@ function openPVP() {
 // ════════════════════════════════════════════════════════
 
 // ── 저장 키 ──
-const _towerClaimKey = () => 'gwo_tower_cleared_' + gwUN();   // 클리어한 층 Set
-const _towerCurKey   = () => 'gwo_tower_cur_'     + gwUN();   // 현재 도전 층
+const _towerClaimKey = (jobId=null) => 'gwo_tower_cleared_' + (jobId||G.job||'warrior') + '_' + gwUN();   // 직업별 클리어한 층 Set
+const _towerCurKey   = (jobId=null) => 'gwo_tower_cur_'     + (jobId||G.job||'warrior') + '_' + gwUN();   // 직업별 현재 도전 층
 
 function getTowerCleared() {
   try { return new Set(JSON.parse(localStorage.getItem(_towerClaimKey())||'[]')); }
@@ -6929,6 +7018,8 @@ function renderTowerPanel() {
   const el = document.getElementById('gw-towerbody');
   if(!el) return;
 
+  const JEN = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+  const JNM = {warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'};
   const cleared  = getTowerCleared();
   const maxFloor = getTowerMaxFloor();
   const nextFloor = maxFloor + 1;
@@ -6937,7 +7028,11 @@ function renderTowerPanel() {
   // 진행도 바
   const pct = Math.min(100, (cleared.size / 200 * 100)).toFixed(0);
 
-  let html = `
+  let html = `<div style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;
+    padding:6px 10px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);
+    border-radius:8px;margin-bottom:10px;">
+    ${JEN[G.job]||''} <b style="color:#fbbf24">${JNM[G.job]||G.job}</b> 캐릭터의 진행도 · 직업별 독립 저장
+  </div>` + `
     <div style="margin-bottom:12px;padding:12px 14px;background:rgba(251,191,36,.06);
       border:1px solid rgba(251,191,36,.2);border-radius:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -7838,14 +7933,16 @@ function getTodayRdun() {
 }
 
 // 일일 입장 횟수 키
-function _rdunDailyKey() {
-  return 'gwo_rdun_daily_' + getTodayKey() + '_' + gwUN();
+function _rdunDailyKey(jobId=null) {
+  const job = jobId || G.job || 'warrior';
+  return 'gwo_rdun_daily_' + getTodayKey() + '_' + job + '_' + gwUN();
 }
-function getRdunCount() {
-  return parseInt(localStorage.getItem(_rdunDailyKey())||'0');
+function getRdunCount(jobId=null) {
+  return parseInt(localStorage.getItem(_rdunDailyKey(jobId))||'0');
 }
-function addRdunCount() {
-  localStorage.setItem(_rdunDailyKey(), String(getRdunCount()+1));
+function addRdunCount(jobId=null) {
+  const job = jobId || G.job || 'warrior';
+  localStorage.setItem(_rdunDailyKey(job), String(getRdunCount(job)+1));
 }
 
 // ── 패널 렌더 ──
@@ -7853,6 +7950,13 @@ function renderRelicDungeonPanel() {
   const el = document.getElementById('gw-rdunbody');
   if(!el) return;
 
+  const JEN = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+  const JNM = {warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'};
+  const jobNotice = `<div style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;
+    padding:6px 10px;background:rgba(124,58,237,.05);border:1px solid rgba(124,58,237,.15);
+    border-radius:8px;margin-bottom:10px;">
+    ${JEN[G.job]||''} <b style="color:#c084fc">${JNM[G.job]||G.job}</b> 캐릭터로 입장 · 직업별 입장 횟수 독립 관리
+  </div>`;
   const rdun  = getTodayRdun();
   const cnt   = getRdunCount();
   const left  = Math.max(0, RDUN_DAILY_MAX - cnt);
@@ -7862,7 +7966,7 @@ function renderRelicDungeonPanel() {
   // 요일 탭
   const days = ['일','월','화','수','목','금','토'];
   const today = new Date().getDay();
-  let html = `
+  let html = jobNotice + `
     <div style="display:flex;gap:3px;margin-bottom:12px;overflow-x:auto;">` +
     RDUN_LIST.map(d => {
       const isToday = d.day === today;
@@ -8228,14 +8332,16 @@ const LEGION_BOSSES = [
 ];
 
 // 일일 입장 횟수 키
-function _legionDailyKey(bossId) {
-  return 'gwo_legion_daily_' + getTodayKey() + '_' + bossId + '_' + gwUN();
+function _legionDailyKey(bossId, jobId=null) {
+  const job = jobId || G.job || 'warrior';
+  return 'gwo_legion_daily_' + getTodayKey() + '_' + bossId + '_' + job + '_' + gwUN();
 }
-function getLegionCount(bossId) {
-  return parseInt(localStorage.getItem(_legionDailyKey(bossId))||'0');
+function getLegionCount(bossId, jobId=null) {
+  return parseInt(localStorage.getItem(_legionDailyKey(bossId, jobId))||'0');
 }
-function addLegionCount(bossId) {
-  localStorage.setItem(_legionDailyKey(bossId), String(getLegionCount(bossId)+1));
+function addLegionCount(bossId, jobId=null) {
+  const job = jobId || G.job || 'warrior';
+  localStorage.setItem(_legionDailyKey(bossId, job), String(getLegionCount(bossId, job)+1));
 }
 
 // ── 패널 열기 ──
@@ -8246,11 +8352,18 @@ function renderLegionPanel() {
   const el = document.getElementById('gw-legionbody');
   if(!el) return;
 
+  const JEN = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+  const JNM = {warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'};
+  const jobNotice = `<div style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;
+    padding:6px 10px;background:rgba(124,58,237,.05);border:1px solid rgba(124,58,237,.15);
+    border-radius:8px;margin-bottom:10px;">
+    ${JEN[G.job]||''} <b style="color:#c084fc">${JNM[G.job]||G.job}</b> 캐릭터로 입장 · 직업별 입장 횟수 독립 관리
+  </div>`;
   const GC = {레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff'};
-  let html = `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
+  let html = jobNotice + `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
     padding:7px 11px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);
     border-radius:8px;margin-bottom:12px;">
-    😈 군단장은 Lv.${LEGION_MIN_LV} 이상 도전 가능 · 보스별 1일 ${LEGION_DAILY_MAX}회 입장
+    😈 군단장은 Lv.${LEGION_MIN_LV} 이상 도전 가능 · 보스별 1일 ${LEGION_DAILY_MAX}회 입장 · 직업별 독립
   </div>`;
 
   LEGION_BOSSES.forEach(boss => {
