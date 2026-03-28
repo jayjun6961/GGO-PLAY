@@ -8044,7 +8044,23 @@ function renderRelicEnh() {
     const statKey  = def?.stat;
     const statVal  = statKey ? (r[statKey]||0) : 0;
     const statUnit = def?.unit || '';
-    const statNext = (statVal + 0.1).toFixed(1);
+    // 강화 1회당 증가량 (relicEnhSlot과 동일한 테이블)
+    const _ENH_STEP = {
+      hp_bonus:      {일반:0.5,희귀:1,레어:1,에픽:1,전설:1},
+      mp_bonus:      {일반:0.5,희귀:1,레어:1,에픽:1,전설:1},
+      atk_bonus:     {일반:1,희귀:1,레어:2,에픽:2,전설:4},
+      def_bonus:     {일반:1,희귀:1,레어:2,에픽:2,전설:4},
+      critRate_bonus:{일반:0.2,희귀:0.3,레어:0.5,에픽:0.5,전설:0.5},
+      spd_bonus:     {일반:3,희귀:5,레어:8,에픽:12,전설:16},
+      gold_bonus:    {일반:0.5,희귀:1,레어:1,에픽:1,전설:1},
+      critDmg_bonus: {일반:1,희귀:2,레어:3,에픽:4,전설:6},
+      exp_bonus:     {일반:0.5,희귀:1,레어:1,에픽:1,전설:1},
+      dodge_bonus:   {일반:0.2,희귀:0.3,레어:0.3,에픽:0.3,전설:0.4},
+      bossDmg_bonus: {일반:0.4,희귀:0.5,레어:0.5,에픽:0.5,전설:0.6},
+    };
+    const _step = (_ENH_STEP[statKey]||{})[r.grade] || 0.1;
+    const statNextVal = Math.round((statVal + _step) * 100) / 100;
+    const statNext = Number.isInteger(statNextVal) ? String(statNextVal) : statNextVal.toFixed(1);
 
     const enhBadge = enh > 0 ? `<span style="font-size:9px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-left:3px">+${enh}</span>` : '';
     const maxBadge = isMax   ? `<span style="font-size:9px;color:#f87171;font-family:'Orbitron',sans-serif;margin-left:3px">MAX</span>` : '';
@@ -8054,10 +8070,10 @@ function renderRelicEnh() {
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         <span style="font-size:24px">${r.e}</span>
         <div style="flex:1;">
-          <div style="font-size:11px;font-weight:700;color:${gc};">${r.name}${enhBadge}${maxBadge}</div>
+          <div style="font-size:11px;font-weight:700;color:${gc};">${r.name||r.n||(RELIC_DEFS.find(d=>d.id===r.relicId)?.name)||'유물'}${enhBadge}${maxBadge}</div>
           <div style="display:flex;gap:5px;align-items:center;margin-top:2px;">
             <span style="font-size:8px;padding:1px 5px;border-radius:4px;background:${gc}22;color:${gc};border:1px solid ${gc}44;">${r.grade}</span>
-            <span style="font-size:9px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;">${def?.desc||''} ${statVal.toFixed(1)}${statUnit}</span>
+            <span style="font-size:9px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;">${def?.desc||''} ${Number.isInteger(statVal)?statVal:statVal.toFixed(1)}${statUnit}</span>
           </div>
         </div>
         <div style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;text-align:right;">
@@ -8071,7 +8087,7 @@ function renderRelicEnh() {
       ${canEnh ? `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
         <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;">
-          강화 후: ${statNext}${statUnit}
+          강화 후: ${statNext}${statUnit} <span style="color:#34d399;">(+${_step})</span>
           <span style="color:#475569;margin-left:4px">💰${cost.gold.toLocaleString()}G · 🧪${cost.alch}개</span>
         </div>
         <button onclick="relicEnhSlot(${slotIdx})"
@@ -8124,11 +8140,27 @@ function relicEnhSlot(slotIdx) {
     if(alchItem.qty <= 0) G.inv.splice(G.inv.indexOf(alchItem), 1);
   }
 
-  // 강화 적용 (+0.1 상승)
+  // 강화 적용 (유물별 차등 증가)
   const def = RELIC_DEFS.find(d=>d.id===r.relicId);
   if(def?.stat) {
+    // 유물별 강화 1회당 증가량 테이블
+    const RELIC_ENH_STEP = {
+      hp_bonus:      {일반:0.5, 희귀:1, 레어:1, 에픽:1, 전설:1},
+      mp_bonus:      {일반:0.5, 희귀:1, 레어:1, 에픽:1, 전설:1},
+      atk_bonus:     {일반:1,   희귀:1, 레어:2, 에픽:2, 전설:4},
+      def_bonus:     {일반:1,   희귀:1, 레어:2, 에픽:2, 전설:4},
+      critRate_bonus:{일반:0.2, 희귀:0.3, 레어:0.5, 에픽:0.5, 전설:0.5},
+      spd_bonus:     {일반:3,   희귀:5, 레어:8, 에픽:12, 전설:16},
+      gold_bonus:    {일반:0.5, 희귀:1, 레어:1, 에픽:1, 전설:1},
+      critDmg_bonus: {일반:1,   희귀:2, 레어:3, 에픽:4, 전설:6},
+      exp_bonus:     {일반:0.5, 희귀:1, 레어:1, 에픽:1, 전설:1},
+      dodge_bonus:   {일반:0.2, 희귀:0.3, 레어:0.3, 에픽:0.3, 전설:0.4},
+      bossDmg_bonus: {일반:0.4, 희귀:0.5, 레어:0.5, 에픽:0.5, 전설:0.6},
+    };
+    const stepMap = RELIC_ENH_STEP[def.stat] || {};
+    const step = stepMap[r.grade] || 0.1;
     const cur = r[def.stat] || 0;
-    r[def.stat] = Math.round((cur + 0.1) * 10) / 10; // 부동소수점 보정
+    r[def.stat] = Math.round((cur + step) * 100) / 100;
   }
   r.enh = enh + 1;
 
@@ -8315,6 +8347,7 @@ function enterRelicDungeon() {
   if(G.lv < RDUN_MIN_LV) { gwT(`🔒 Lv.${RDUN_MIN_LV} 이상만 입장 가능합니다!`); return; }
   if(getRdunCount() >= RDUN_DAILY_MAX) { gwT(`⛔ 오늘 유물 던전 입장 횟수를 모두 사용했습니다. (${RDUN_DAILY_MAX}/${RDUN_DAILY_MAX})`); return; }
 
+  addRdunCount(); // 입장 시점에 횟수 차감 (3회 완전히 보장)
   const rdun = getTodayRdun();
   _rdun.boss     = rdun.boss;
   _rdun.bossHp   = rdun.boss.hp;
@@ -8401,7 +8434,6 @@ function rdunFight() {
   if(G.hp<=0){
     _rdun.dead=true;
     clearInterval(_rdun.tick); clearInterval(_rdun.timerInt);
-    addRdunCount();
     rdunBlog(`<span style="color:#ef4444">💀 ${boss.n}에게 쓰러졌습니다...</span>`);
     saveG();
     setTimeout(()=>{ G.hp=Math.floor(G.mHP*0.1); saveG(); goTown(); gwT('💀 유물 던전에서 패배...'); },2200);
@@ -8411,7 +8443,6 @@ function rdunFight() {
 // ── 보스 처치 ──
 function rdunBossDead() {
   clearInterval(_rdun.tick); clearInterval(_rdun.timerInt);
-  addRdunCount();
   const rdun   = _rdunDay || getTodayRdun();
   const boss   = _rdun.boss;
   const m=Math.floor(_rdun.timerSec/60), s=_rdun.timerSec%60;
