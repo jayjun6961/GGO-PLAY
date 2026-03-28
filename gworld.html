@@ -9138,7 +9138,7 @@ function _aucGC(grade) {
 function _aucItemCard(key, data, mode) {
   // mode: 'buy' | 'mine'
   const gc = _aucGC(data.grade);
-  const isSelf   = data.seller === gwUN();
+  const isSelf   = data.seller === gwUN() && (!data.sellerJob || data.sellerJob === G.job);
   const selected = _aucSelected === key;
   const border   = selected ? `2px solid ${gc}` : `1px solid ${gc}33`;
   const bg       = selected ? `${gc}18` : `${gc}0a`;
@@ -9251,7 +9251,7 @@ function _aucUpdateBuyBar() {
   const item = _aucItems.find(i=>i.key===_aucSelected);
   if(!item) { bar.innerHTML=''; return; }
   const gc = _aucGC(item.grade);
-  const isMine = item.seller === gwUN();
+  const isMine = item.seller === gwUN() && (!item.sellerJob || item.sellerJob === G.job);
   bar.innerHTML = `
     <div style="background:${isMine?'rgba(251,191,36,.06)':'rgba(52,211,153,.06)'};
       border:1px solid ${isMine?'rgba(251,191,36,.2)':'rgba(52,211,153,.2)'};border-radius:10px;padding:12px 14px;">
@@ -9276,7 +9276,7 @@ function _aucUpdateBuyBar() {
 async function aucBuy(key) {
   const item = _aucItems.find(i=>i.key===key);
   if(!item) { gwT('아이템을 찾을 수 없습니다.'); return; }
-  if(item.seller === gwUN()) { gwT('자신의 아이템은 구매할 수 없습니다.'); return; }
+  if(item.seller === gwUN() && (!item.sellerJob || item.sellerJob === G.job)) { gwT('자신의 아이템은 구매할 수 없습니다.'); return; }
   if(G.gold < item.price) { gwT(`골드 부족! (${Number(item.price).toLocaleString()}G 필요)`); return; }
 
   const ref = _aucRef('items/' + key);
@@ -9322,7 +9322,7 @@ async function aucBuy(key) {
 function _renderAucSell() {
   const el = document.getElementById('gw-aucbody'); if(!el) return;
   const myName = gwUN();
-  const myListings = _aucItems.filter(i=>i.seller===myName).length;
+  const myListings = _aucItems.filter(i=>i.seller===myName && (i.sellerJob===G.job||!i.sellerJob)).length;
   const remaining = AUC_MAX_LISTINGS - myListings;
 
   // 인벤에서 판매 가능한 아이템 (포션/재료 제외, 기본 등급 제외)
@@ -9410,12 +9410,12 @@ async function aucRegister(uid) {
   const currentSnap = await ref.get().catch(()=>null);
   let currentItems = [];
   if(currentSnap && currentSnap.exists()) currentSnap.forEach(ch=>currentItems.push({key:ch.key,...ch.val()}));
-  const myListings = currentItems.filter(i=>i.seller===myName).length;
+  const myListings = currentItems.filter(i=>i.seller===myName && (i.sellerJob===G.job||!i.sellerJob)).length;
   if(myListings >= AUC_MAX_LISTINGS) { gwT(`최대 ${AUC_MAX_LISTINGS}개까지 등록 가능합니다.`); return; }
 
   // 아이템 데이터 구성
   const listing = {
-    seller: myName, price, regAt: Date.now(),
+    seller: myName, sellerJob: G.job, price, regAt: Date.now(),
     n: it.n, e: it.e, type: it.type, grade: it.grade,
     slot: it.slot||null, enh: it.enh||0,
   };
@@ -9469,7 +9469,9 @@ async function _renderAucMine() {
     _aucItems = allItems;
   }
 
-  const mine = allItems.filter(i => i.seller === myName);
+  const curJob = G.job;
+  // 현재 직업(캐릭터)으로 등록한 것만 표시 — sellerJob 없는 구버전 데이터는 seller만 일치 시 포함
+  const mine = allItems.filter(i => i.seller === myName && (i.sellerJob === curJob || !i.sellerJob));
 
   let html='';
 
@@ -9507,6 +9509,8 @@ async function _renderAucMine() {
 async function aucCancel(key) {
   const item = _aucItems.find(i=>i.key===key);
   if(!item||item.seller!==gwUN()) { gwT('취소 권한이 없습니다.'); return; }
+  // 다른 직업 캐릭터가 등록한 아이템은 취소 불가 (sellerJob 없는 구버전은 허용)
+  if(item.sellerJob && item.sellerJob !== G.job) { gwT('⚠️ 해당 아이템은 다른 직업 캐릭터가 등록한 매물입니다.\n해당 직업으로 전환 후 취소하세요.'); return; }
   if(!confirm(`[${item.n}] 판매 등록을 취소하시겠습니까?
 아이템이 인벤토리로 반환됩니다.`)) return;
 
