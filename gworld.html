@@ -9953,7 +9953,7 @@ const LINK_DEFS = {
     ]
   },
   archer: {
-    label:'공격 속도 감소', stat:'spd', unit:'초',
+    label:'공격 속도 증가', stat:'spd', unit:'초',
     milestones:[
       {lv:10,  val:0.01},
       {lv:30,  val:0.03},
@@ -10049,7 +10049,7 @@ function renderLinkPanel() {
         ${bonus.atk > 0     ? `<span style="padding:2px 8px;background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.3);border-radius:5px;color:#c084fc;">⚔️ 공격력 +${bonus.atk}%</span>` : ''}
         ${bonus.def > 0     ? `<span style="padding:2px 8px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:5px;color:#fbbf24;">🛡️ 방어력 +${bonus.def}%</span>` : ''}
         ${bonus.critDmg > 0 ? `<span style="padding:2px 8px;background:rgba(148,163,184,.15);border:1px solid rgba(148,163,184,.3);border-radius:5px;color:#94a3b8;">🗡️ 치명타 대미지 +${bonus.critDmg}%</span>` : ''}
-        ${bonus.spd > 0     ? `<span style="padding:2px 8px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:5px;color:#34d399;">🏹 공격속도 -${bonus.spd}초</span>` : ''}
+        ${bonus.spd > 0     ? `<span style="padding:2px 8px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:5px;color:#34d399;">🏹 공격속도 +${bonus.spd}초 빠름</span>` : ''}
         ${Object.values(bonus).every(v=>v===0) ? '<span style="color:#475569">아직 획득한 링크 효과가 없습니다.</span>' : ''}
       </div>
     </div>`;
