@@ -1544,7 +1544,13 @@ const DROPS = [
   {n:'초월의 반지(방어)', e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_def',  def:100,     grade:'초월', sellPrice:48000},
   {n:'초월의 반지(경험)', e:'💠', type:'accessory', slot:'ring', subType:'ring', ringType:'ring_exp',  expBonus:120,grade:'초월', sellPrice:48000},
 
-  // ── 절대자 등급 장비 (제작으로만 획득 가능한 최종 등급) ──
+  // ── 비약 제조 재료 (사냥터 드롭 전용) ──
+  {n:'나뭇가지', e:'🪵', type:'mat', subType:'craft_mat', grade:'일반', val:50,   sellPrice:50,   qty:1},
+  {n:'수박',     e:'🍉', type:'mat', subType:'craft_mat', grade:'희귀', val:200,  sellPrice:200,  qty:1},
+  {n:'치즈',     e:'🧀', type:'mat', subType:'craft_mat', grade:'레어', val:500,  sellPrice:500,  qty:1},
+  {n:'복숭아',   e:'🍑', type:'mat', subType:'craft_mat', grade:'에픽', val:2000, sellPrice:2000, qty:1},
+
+// ── 절대자 등급 장비 (제작으로만 획득 가능한 최종 등급) ──
   {n:'절대자의 대검',      e:'🌟', type:'weapon', slot:'weapon', atk:420,def:70,  grade:'절대자', sellPrice:500000, jobType:['warrior','paladin']},
   {n:'절대자의 성검',      e:'🌟', type:'weapon', slot:'weapon', atk:440,def:130, grade:'절대자', sellPrice:550000, jobType:['paladin']},
   {n:'절대자의 신궁',      e:'🌟', type:'weapon', slot:'weapon', atk:430,def:20,  grade:'절대자', sellPrice:500000, jobType:['archer']},
@@ -2833,6 +2839,23 @@ function mobDead(){
       blog(`<span class="li">✨ <span style="color:${gc}">[${it.grade}]</span> ${it.e} ${it.n} 획득!</span>`);
     }
   }
+  // ── 비약 재료 드롭 (나뭇가지15% / 수박10% / 치즈5% / 복숭아1%) ──
+  const MAT_DROPS = [
+    {n:'복숭아', e:'🍑', prob:0.01, grade:'에픽', val:2000, sellPrice:2000},
+    {n:'치즈',   e:'🧀', prob:0.05, grade:'레어', val:500,  sellPrice:500},
+    {n:'수박',   e:'🍉', prob:0.10, grade:'희귀', val:200,  sellPrice:200},
+    {n:'나뭇가지',e:'🪵', prob:0.15, grade:'일반', val:50,   sellPrice:50},
+  ];
+  for(const mat of MAT_DROPS) {
+    if(Math.random() < mat.prob) {
+      const ex = G.inv.find(i=>i.n===mat.n);
+      if(ex) ex.qty=(ex.qty||0)+1;
+      else G.inv.push({n:mat.n,e:mat.e,type:'mat',subType:'craft_mat',grade:mat.grade,val:mat.val,sellPrice:mat.sellPrice,qty:1,_id:Date.now()+Math.random()});
+      blog(`<span class="li">🌿 ${mat.e} ${mat.n} 획득!</span>`);
+      break; // 1번에 1개만 드롭
+    }
+  }
+
   G.quests.forEach(q=>{
     if(G.qclaim[q.id])return;
     if(q.type==='kill'){
@@ -3179,8 +3202,26 @@ function openItemAction(idx){
     }
     showItemModal(idx,it);return;
   }
+  // 비약 (경험치 포션)
+  if(it.type==='elixir'){
+    if(confirm(`⚗️ ${it.n}을 사용하시겠습니까?\n경험치 +${(it.expVal||0).toLocaleString()}`)){
+      G.exp += it.expVal||0;
+      let lvUp=0;
+      while(G.exp>=expNeed(G.lv)&&G.lv<200){G.exp-=expNeed(G.lv);G.lv++;lvUp++;}
+      if(lvUp>0){const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;G.atk=b.atk+equipBonus().atk;G.def=b.def+equipBonus().def;G.hp=G.mHP;G.mp=G.mMP;}
+      it.qty--;
+      if(it.qty<=0) G.inv.splice(idx,1);
+      hud();saveG();renderInv();
+      gwT(`⚗️ ${it.n} 사용! 경험치 +${(it.expVal||0).toLocaleString()}${lvUp>0?' / 레벨업 '+lvUp+'회!':''}`);
+    }
+    return;
+  }
   // 재료
   if(it.type==='mat'){
+    if(it.subType==='craft_mat'){
+      gwT(`${it.e} ${it.n} — 비약 제작 재료입니다. 제작 메뉴를 이용하세요.`);
+      return;
+    }
     if(confirm(`💎 ${it.n} 판매? (+${it.sellPrice||it.val||10} G)`)){
       const sp=it.sellPrice||it.val||10;
       G.gold+=sp*it.qty;
@@ -8913,13 +8954,37 @@ function getAbsoluteItemForSlot(slot, subType, ringType, jobType) {
       );
 }
 
+// 현재 제작 탭 상태
+let _craftTab = 'absolute';
+
 // 패널 열기
 function openCraft() {
-  renderCraftPanel();
   openP('gw-pcraft');
+  craftTab(_craftTab);
 }
 
-// 패널 렌더
+// 탭 전환
+function craftTab(tab) {
+  _craftTab = tab;
+  ['absolute','elixir'].forEach(t => {
+    const btn = document.getElementById('craft-tab-'+t);
+    if(!btn) return;
+    const active = t === tab;
+    if(active) {
+      btn.style.background   = t==='absolute' ? 'rgba(255,180,220,.2)' : 'rgba(52,211,153,.2)';
+      btn.style.color        = t==='absolute' ? '#ffb3de' : '#34d399';
+      btn.style.borderBottom = t==='absolute' ? '2px solid rgba(255,180,220,.6)' : '2px solid #34d399';
+    } else {
+      btn.style.background   = 'rgba(124,58,237,.06)';
+      btn.style.color        = '#64748b';
+      btn.style.borderBottom = '2px solid transparent';
+    }
+  });
+  if(tab==='absolute') renderCraftPanel();
+  else                 renderElixirPanel();
+}
+
+// 패널 렌더 (절대자)
 function renderCraftPanel() {
   const el = document.getElementById('gw-craftbody');
   if(!el) return;
@@ -8936,6 +9001,16 @@ function renderCraftPanel() {
   const GRADE_COL  = {초월:'#a78bfa'};
 
   let html = `
+    <!-- 탭 버튼 -->
+    <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:1px solid rgba(124,58,237,.15);">
+      <button id="craft-tab-absolute" onclick="craftTab('absolute')"
+        style="flex:1;padding:8px;background:rgba(255,180,220,.2);color:#ffb3de;border:none;
+        border-bottom:2px solid rgba(255,180,220,.6);font-size:11px;font-family:'Orbitron',sans-serif;
+        cursor:pointer;font-weight:700;">🌟 절대자</button>
+      <button id="craft-tab-elixir" onclick="craftTab('elixir')"
+        style="flex:1;padding:8px;background:rgba(124,58,237,.06);color:#64748b;border:none;
+        border-bottom:2px solid transparent;font-size:11px;font-family:'Orbitron',sans-serif;cursor:pointer;">⚗️ 비약</button>
+    </div>
     <!-- 안내 섹션 -->
     <div style="${absoluteCardStyle()}border-radius:12px;padding:12px 14px;margin-bottom:14px;">
       <div style="${absoluteGradeStyle('13px','900')}margin-bottom:6px;">🌟 절대자 등급 제작</div>
@@ -9107,6 +9182,182 @@ function showCraftResult(success, result, srcItem) {
 
 // ════════════════════════════════════════════════════════
 //  제작 시스템 끝
+// ════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════
+//  비약 제조 시스템
+// ════════════════════════════════════════════════════════
+
+// 비약 정의
+const ELIXIR_DEFS = [
+  {
+    id:'elixir_basic', name:'초급 성장의 비약', e:'⚗️', grade:'일반',
+    expVal:10000,
+    mats:[{n:'나뭇가지',e:'🪵',qty:10}], gold:10000,
+    desc:'경험치 10,000 획득',
+  },
+  {
+    id:'elixir_mid', name:'중급 성장의 비약', e:'🧪', grade:'희귀',
+    expVal:1000000,
+    mats:[{n:'수박',e:'🍉',qty:15}], gold:50000,
+    desc:'경험치 1,000,000 획득',
+  },
+  {
+    id:'elixir_high', name:'상급 성장의 비약', e:'💜', grade:'레어',
+    expVal:10000000,
+    mats:[{n:'치즈',e:'🧀',qty:20}], gold:100000,
+    desc:'경험치 10,000,000 획득',
+  },
+  {
+    id:'elixir_max', name:'최상급 성장의 비약', e:'🌟', grade:'전설',
+    expVal:100000000,
+    mats:[{n:'복숭아',e:'🍑',qty:30}], gold:1000000,
+    desc:'경험치 100,000,000 획득',
+  },
+];
+
+const GRADE_COL_EL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24'};
+
+// 비약 패널 렌더
+function renderElixirPanel() {
+  const el = document.getElementById('gw-craftbody');
+  if(!el) return;
+
+  let html = `
+    <!-- 탭 버튼 -->
+    <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:1px solid rgba(124,58,237,.15);">
+      <button id="craft-tab-absolute" onclick="craftTab('absolute')"
+        style="flex:1;padding:8px;background:rgba(124,58,237,.06);color:#64748b;border:none;
+        border-bottom:2px solid transparent;font-size:11px;font-family:'Orbitron',sans-serif;cursor:pointer;">🌟 절대자</button>
+      <button id="craft-tab-elixir" onclick="craftTab('elixir')"
+        style="flex:1;padding:8px;background:rgba(52,211,153,.2);color:#34d399;border:none;
+        border-bottom:2px solid #34d399;font-size:11px;font-family:'Orbitron',sans-serif;cursor:pointer;font-weight:700;">⚗️ 비약</button>
+    </div>
+    <!-- 안내 -->
+    <div style="background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);border-radius:10px;
+      padding:10px 12px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:#34d399;font-family:'Orbitron',sans-serif;margin-bottom:4px;">⚗️ 성장의 비약 제조</div>
+      <div style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;line-height:1.7;">
+        사냥터에서 재료를 모아 경험치 비약을 제조합니다.<br>
+        <span style="color:#fbbf24;">나뭇가지(15%) · 수박(10%) · 치즈(5%) · 복숭아(1%)</span>
+      </div>
+    </div>
+    <!-- 보유 재료 현황 -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:14px;">`;
+
+  const matList = [
+    {n:'나뭇가지',e:'🪵',grade:'일반'},
+    {n:'수박',e:'🍉',grade:'희귀'},
+    {n:'치즈',e:'🧀',grade:'레어'},
+    {n:'복숭아',e:'🍑',grade:'에픽'},
+  ];
+  matList.forEach(m => {
+    const ex = G.inv.find(i=>i.n===m.n);
+    const qty = ex ? (ex.qty||0) : 0;
+    const gc = GRADE_COL_EL[m.grade]||'#94a3b8';
+    html += `<div style="text-align:center;padding:6px 4px;background:rgba(255,255,255,.03);
+      border:1px solid ${gc}33;border-radius:8px;">
+      <div style="font-size:18px;">${m.e}</div>
+      <div style="font-size:9px;color:${gc};margin-top:2px;font-family:'Orbitron',sans-serif;">${m.n}</div>
+      <div style="font-size:11px;font-weight:700;color:${qty>0?'#e2e8f0':'#475569'};">${qty}개</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // 비약 목록
+  ELIXIR_DEFS.forEach(def => {
+    const gc = GRADE_COL_EL[def.grade]||'#94a3b8';
+    // 재료 보유 체크
+    const canMake = def.mats.every(m => {
+      const ex = G.inv.find(i=>i.n===m.n);
+      return ex && (ex.qty||0) >= m.qty;
+    }) && G.gold >= def.gold;
+
+    const matHtml = def.mats.map(m => {
+      const ex = G.inv.find(i=>i.n===m.n);
+      const have = ex ? (ex.qty||0) : 0;
+      const ok = have >= m.qty;
+      return `<span style="font-size:9px;color:${ok?'#34d399':'#ef4444'};">${m.e}${m.n} ${have}/${m.qty}</span>`;
+    }).join('  ');
+
+    const goldOk = G.gold >= def.gold;
+
+    html += `
+    <div style="border:1px solid ${gc}30;border-radius:12px;padding:12px 14px;margin-bottom:8px;
+      background:${gc}08;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="font-size:28px;line-height:1;">${def.e}</div>
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:700;color:${gc};font-family:'Orbitron',sans-serif;">${def.name}</div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px;">${def.desc}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="font-size:9px;font-family:'Noto Sans KR',sans-serif;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          ${matHtml}
+          <span style="color:${goldOk?'#fbbf24':'#ef4444'};">💰${def.gold.toLocaleString()}G</span>
+        </div>
+        <button onclick="makeElixir('${def.id}')"
+          ${canMake?'':'disabled'}
+          style="${canMake
+            ? `background:linear-gradient(135deg,${gc},${gc}99);border:1px solid ${gc};color:#000;cursor:pointer;`
+            : 'background:rgba(71,85,105,.2);border:1px solid #334155;color:#475569;cursor:not-allowed;'}
+          padding:6px 14px;border-radius:8px;font-size:10px;font-family:'Orbitron',sans-serif;font-weight:700;white-space:nowrap;flex-shrink:0;">
+          ⚗️ 제조
+        </button>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+// 비약 제조 실행
+function makeElixir(defId) {
+  const def = ELIXIR_DEFS.find(d=>d.id===defId);
+  if(!def) return;
+
+  // 재료 검증
+  for(const m of def.mats) {
+    const ex = G.inv.find(i=>i.n===m.n);
+    if(!ex || (ex.qty||0) < m.qty) {
+      gwT(`⚠️ ${m.n}이 부족합니다. (필요: ${m.qty}개)`);
+      return;
+    }
+  }
+  if(G.gold < def.gold) {
+    gwT(`💰 골드가 부족합니다. (필요: ${def.gold.toLocaleString()}G)`);
+    return;
+  }
+
+  // 재료 차감
+  G.gold -= def.gold;
+  for(const m of def.mats) {
+    const ex = G.inv.find(i=>i.n===m.n);
+    ex.qty -= m.qty;
+    if(ex.qty <= 0) G.inv.splice(G.inv.indexOf(ex), 1);
+  }
+
+  // 비약 인벤 추가
+  const gc = GRADE_COL_EL[def.grade]||'#94a3b8';
+  const existing = G.inv.find(i=>i.n===def.name&&i.type==='elixir');
+  if(existing) {
+    existing.qty = (existing.qty||0) + 1;
+  } else {
+    G.inv.push({
+      n:def.name, e:def.e, type:'elixir', grade:def.grade,
+      expVal:def.expVal, desc:def.desc,
+      qty:1, sellPrice:0, _id:Date.now()
+    });
+  }
+
+  hud(); saveG();
+  gwT(`✅ ${def.e} ${def.name} 제조 완료! (인벤토리에 추가됨)`);
+  renderElixirPanel();
+}
+
+// ════════════════════════════════════════════════════════
+//  비약 제조 시스템 끝
 // ════════════════════════════════════════════════════════
 
 // ════════════════════════════════════════════════════════
