@@ -6241,7 +6241,7 @@ function wbRollGearDrops(wb, job, rng, invArr) {
 
 /* ── 보상 결과 화면 ── */
 function showWbResult(gold, exp, stones, gear, lvUp, essence) {
-  const GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff'};
+  const GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff',초월:'#a78bfa'};
   const el = document.getElementById('gw-wbbody');
   if(!el) return;
 
@@ -7012,7 +7012,7 @@ function towerMobForFloor(floor) {
     defBase = isBoss ? 310   + ex * 8   : 155   + ex * 4;
     expBase = isBoss ? 3200  + ex * 200 : 1280  + ex * 80;
     gBase   = isBoss ? 5500  + ex * 300 : 1600  + ex * 100;
-  } else {
+  } else if(floor <= 200) {
     // 151~200층: 더욱 급격한 상승
     const ex = floor - 150; // 초과분 1~50
     hpBase  = isBoss ? 42800 + ex * 1800 : 14200 + ex * 600;
@@ -7020,6 +7020,38 @@ function towerMobForFloor(floor) {
     defBase = isBoss ? 710   + ex * 22   : 355   + ex * 11;
     expBase = isBoss ? 13200 + ex * 800  : 5280  + ex * 320;
     gBase   = isBoss ? 20500 + ex * 1000 : 6600  + ex * 400;
+  } else if(floor <= 300) {
+    // 201~300층: 강력한 도약
+    const ex = floor - 200;
+    hpBase  = isBoss ? 133800 + ex * 4000 : 44200 + ex * 1400;
+    atkBase = isBoss ? 4930   + ex * 120  : 2315  + ex * 55;
+    defBase = isBoss ? 1810   + ex * 55   : 905   + ex * 27;
+    expBase = isBoss ? 53200  + ex * 2000 : 21280 + ex * 800;
+    gBase   = isBoss ? 70500  + ex * 3000 : 26600 + ex * 1200;
+  } else if(floor <= 400) {
+    // 301~400층: 극한의 난이도
+    const ex = floor - 300;
+    hpBase  = isBoss ? 533800 + ex * 10000 : 184200 + ex * 3500;
+    atkBase = isBoss ? 16930  + ex * 300   : 7815   + ex * 140;
+    defBase = isBoss ? 7310   + ex * 150   : 3605   + ex * 75;
+    expBase = isBoss ? 253200 + ex * 5000  : 101280 + ex * 2000;
+    gBase   = isBoss ? 370500 + ex * 8000  : 146600 + ex * 3500;
+  } else if(floor <= 450) {
+    // 401~450층: 절대의 경지
+    const ex = floor - 400;
+    hpBase  = isBoss ? 1533800 + ex * 25000 : 534200 + ex * 9000;
+    atkBase = isBoss ? 46930   + ex * 800   : 21815  + ex * 380;
+    defBase = isBoss ? 22310   + ex * 400   : 11105  + ex * 200;
+    expBase = isBoss ? 753200  + ex * 15000 : 301280 + ex * 6000;
+    gBase   = isBoss ? 1170500 + ex * 25000 : 496600 + ex * 11000;
+  } else {
+    // 451~500층: 천공의 정점
+    const ex = floor - 450;
+    hpBase  = isBoss ? 2783800 + ex * 60000 : 984200 + ex * 22000;
+    atkBase = isBoss ? 86930   + ex * 2000  : 40815  + ex * 950;
+    defBase = isBoss ? 42310   + ex * 1000  : 21105  + ex * 500;
+    expBase = isBoss ? 1503200 + ex * 40000 : 601280 + ex * 16000;
+    gBase   = isBoss ? 2420500 + ex * 65000 : 1046600 + ex * 28000;
   }
 
   const BOSS_MOBS = ['👑','🐉','💀','👹','🗿','🧟','🔱','⚡','🌑','🔥','🌌','☀️','💠','🔮','🌠','⚜️','🌀','👼','🦋','🌟'];
@@ -7027,8 +7059,8 @@ function towerMobForFloor(floor) {
   const bossIdx = Math.floor((floor-1)/10) % BOSS_MOBS.length;
   const normIdx = (floor-1) % NORM_MOBS.length;
 
-  // 101층 이상 명칭
-  const tierName = floor > 150 ? '심연의 ' : floor > 100 ? '공허의 ' : '';
+  // 층별 명칭
+  const tierName = floor > 450 ? '천공의 ' : floor > 400 ? '절대의 ' : floor > 300 ? '극한의 ' : floor > 200 ? '파멸의 ' : floor > 150 ? '심연의 ' : floor > 100 ? '공허의 ' : '';
 
   return {
     n:    isBoss ? `${floor}층 ${tierName}수호자` : `${floor}층 ${tierName}몬스터`,
@@ -7075,13 +7107,36 @@ function towerPickGrade(floor) {
     if(r < 0.42) return '에픽';
     if(r < 0.67) return '레어';
     return '희귀';
-  } else {
+  } else if(floor <= 200) {
     // 151~200층: 희귀25% 레어25% 에픽23% 전설17% 신화10%
     if(r < 0.10) return '신화';
     if(r < 0.27) return '전설';
     if(r < 0.50) return '에픽';
     if(r < 0.75) return '레어';
     return '희귀';
+  } else if(floor <= 300) {
+    // 201~300층: 레어40% 에픽30% 전설20% 신화10%
+    if(r < 0.10) return '신화';
+    if(r < 0.30) return '전설';
+    if(r < 0.60) return '에픽';
+    return '레어';
+  } else if(floor <= 400) {
+    // 301~400층: 에픽60% 전설25% 신화15%
+    if(r < 0.15) return '신화';
+    if(r < 0.40) return '전설';
+    return '에픽';
+  } else if(floor <= 450) {
+    // 401~450층: 에픽70% 전설15% 신화10% 레전드리5%
+    if(r < 0.05) return '레전드리';
+    if(r < 0.15) return '신화';
+    if(r < 0.30) return '전설';
+    return '에픽';
+  } else {
+    // 451~500층: 전설60% 신화25% 레전드리10% 초월5%
+    if(r < 0.05) return '초월';
+    if(r < 0.15) return '레전드리';
+    if(r < 0.40) return '신화';
+    return '전설';
   }
 }
 
@@ -7091,8 +7146,12 @@ function towerStoneAmt(floor) {
   if(floor <= 70)  return 30  + Math.floor(Math.random()*71);   // 30~100
   if(floor <= 90)  return 50  + Math.floor(Math.random()*51);   // 50~100
   if(floor <= 100) return 70  + Math.floor(Math.random()*31);   // 70~100
-  if(floor <= 150) return 100 + Math.floor(Math.random()*51);   // 100~150
-  return 100 + Math.floor(Math.random()*101);                    // 100~200
+  if(floor <= 150) return 100 + Math.floor(Math.random()*51);    // 100~150
+  if(floor <= 200) return 100 + Math.floor(Math.random()*101);   // 100~200
+  if(floor <= 300) return 100 + Math.floor(Math.random()*201);   // 100~300
+  if(floor <= 400) return 100 + Math.floor(Math.random()*401);   // 100~500
+  if(floor <= 450) return 100 + Math.floor(Math.random()*601);   // 100~700
+  return 100 + Math.floor(Math.random()*901);                    // 100~1000
 }
 
 // ── 층별 골드/경험치 보상 ──
@@ -7105,10 +7164,26 @@ function towerGoldExp(floor) {
     const ex = floor - 100;
     goldBase = 8200  + ex * 500;   // 100층(8200G) → 150층(33200G)
     expBase  = 5100  + ex * 300;   // 100층(5100) → 150층(20100)
-  } else {
+  } else if(floor <= 200) {
     const ex = floor - 150;
-    goldBase = 33200 + ex * 2000;  // 150층(33200G) → 200층(133200G)
-    expBase  = 20100 + ex * 1200;  // 150층(20100) → 200층(80100)
+    goldBase = 33200  + ex * 2000;    // 150→200층: 33,200G→133,200G
+    expBase  = 20100  + ex * 1200;    // 150→200층: 20,100→80,100
+  } else if(floor <= 300) {
+    const ex = floor - 200;
+    goldBase = 100000 + ex * 4000;    // 201→300층: 10만G→50만G
+    expBase  = 100000 + ex * 4000;    // 201→300층: 10만→50만
+  } else if(floor <= 400) {
+    const ex = floor - 300;
+    goldBase = 500000 + ex * 5000;    // 301→400층: 50만G→100만G
+    expBase  = 500000 + ex * 5000;    // 301→400층: 50만→100만
+  } else if(floor <= 450) {
+    const ex = floor - 400;
+    goldBase = 1000000 + ex * 180000; // 401→450층: 100만G→1000만G
+    expBase  = 1000000 + ex * 80000;  // 401→450층: 100만→500만
+  } else {
+    const ex = floor - 450;
+    goldBase = 10000000 + ex * 400000;// 451→500층: 1000만G→3000만G
+    expBase  = 5000000  + ex * 100000;// 451→500층: 500만→1000만
   }
   const gold = Math.floor(goldBase * (1 + Math.random()*0.4));
   const exp  = Math.floor(expBase  * (1 + Math.random()*0.4) * tExpRate());
@@ -7128,7 +7203,7 @@ function renderTowerPanel() {
   const GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff'};
 
   // 진행도 바
-  const pct = Math.min(100, (cleared.size / 200 * 100)).toFixed(0);
+  const pct = Math.min(100, (cleared.size / 500 * 100)).toFixed(0);
 
   let html = `<div style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;
     padding:6px 10px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);
@@ -7138,7 +7213,7 @@ function renderTowerPanel() {
     <div style="margin-bottom:12px;padding:12px 14px;background:rgba(251,191,36,.06);
       border:1px solid rgba(251,191,36,.2);border-radius:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <span style="font-size:11px;font-weight:700;color:#fbbf24;font-family:'Orbitron',sans-serif;">진행: ${cleared.size}/200층</span>
+        <span style="font-size:11px;font-weight:700;color:#fbbf24;font-family:'Orbitron',sans-serif;">진행: ${cleared.size}/500층</span>
         <span style="font-size:10px;color:#64748b;font-family:'Orbitron',sans-serif;">${pct}%</span>
       </div>
       <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;">
@@ -7146,10 +7221,10 @@ function renderTowerPanel() {
       </div>
     </div>`;
 
-  if(cleared.size >= 200) {
+  if(cleared.size >= 500) {
     html += `<div style="text-align:center;padding:20px;">
       <div style="font-size:40px;margin-bottom:8px;">🏆</div>
-      <div style="font-family:'Orbitron',sans-serif;font-size:14px;color:#fbbf24;font-weight:900;">천공의 탑 완전 정복! (200층)</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:14px;color:#fbbf24;font-weight:900;">천공의 탑 완전 정복! (500층) 🌟</div>
     </div>`;
     el.innerHTML = html; return;
   }
@@ -7189,19 +7264,32 @@ function renderTowerPanel() {
     ? '희귀40% 레어30% 에픽15% 전설10% 신화5%'
     : nextFloor <= 150
     ? '희귀33% 레어25% 에픽20% 전설15% 신화7%'
-    : '희귀25% 레어25% 에픽23% 전설17% 신화10%';
+    : nextFloor <= 200
+    ? '희귀25% 레어25% 에픽23% 전설17% 신화10%'
+    : nextFloor <= 300
+    ? '레어40% 에픽30% 전설20% 신화10%'
+    : nextFloor <= 400
+    ? '에픽60% 전설25% 신화15%'
+    : nextFloor <= 450
+    ? '에픽70% 전설15% 신화10% 레전드리5%'
+    : '전설60% 신화25% 레전드리10% 초월5%';
 
   const stoneInfo = nextFloor <= 50  ? '10~50개'
     : nextFloor <= 70  ? '30~100개'
     : nextFloor <= 90  ? '50~100개'
     : nextFloor <= 100 ? '70~100개'
     : nextFloor <= 150 ? '100~150개'
-    : '100~200개';
+    : nextFloor <= 200 ? '100~200개'
+    : nextFloor <= 300 ? '100~300개'
+    : nextFloor <= 400 ? '100~500개'
+    : nextFloor <= 450 ? '100~700개'
+    : '100~1,000개';
+  const alchInfo = nextFloor >= 201 ? ' · 연금석 10~100개' : '';
 
   html += `<div style="padding:8px 12px;background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.15);border-radius:8px;margin-bottom:12px;">
     <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;line-height:1.7;">
       🎁 <span style="color:#34d399">${nextFloor}층 보상:</span> 장비 드롭 (${gradeInfo})<br>
-      💎 <span style="color:#34d399">마법석:</span> ${stoneInfo}
+      💎 <span style="color:#34d399">마법석:</span> ${stoneInfo}${alchInfo||''}
     </div>
   </div>`;
 
@@ -7373,9 +7461,18 @@ function towerMobDead() {
   if(stoneEx) stoneEx.qty=(stoneEx.qty||0)+stoneAmt;
   else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:stoneAmt,_id:Date.now()-10});
 
-  // 장비 드롭 (60% 확률)
+  // 연금석 드롭 (201층 이상)
   const droppedItems = [];
   droppedItems.push({n:'마법석',e:'💎',grade:'희귀',qty:stoneAmt,_isMat:true});
+  if(floor >= 201) {
+    const alchAmt = 10 + Math.floor(Math.random()*91); // 10~100개
+    const alchEx = G.inv.find(i=>i.n==='연금석');
+    if(alchEx) alchEx.qty=(alchEx.qty||0)+alchAmt;
+    else G.inv.push({n:'연금석',e:'🧪',type:'mat',val:100,grade:'희귀',sellPrice:100,qty:alchAmt,_id:Date.now()-8});
+    droppedItems.push({n:'연금석',e:'🧪',grade:'희귀',qty:alchAmt,_isMat:true});
+  }
+
+  // 장비 드롭 (60% 확률)
 
   if(Math.random() < 0.60) {
     const grade = towerPickGrade(floor);
@@ -7384,7 +7481,9 @@ function towerMobDead() {
       if(d.grade !== grade) return false;
       if(d.type==='pot'||d.type==='mat') return false;
       if(d.type==='accessory') return false;  // 목걸이·반지 제외
-      if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월'||d.grade==='절대자') return false;
+      if(d.grade==='절대자') return false;    // 절대자는 제작 전용
+      // 201층 미만: 레전드리·초월 드롭 제외
+      if(floor < 201 && (d.grade==='레전드리'||d.grade==='초월')) return false;
       if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
       return true;
     });
@@ -7392,6 +7491,32 @@ function towerMobDead() {
       const it = {...validDrops[Math.floor(Math.random()*validDrops.length)], qty:1, _id:Date.now()};
       G.inv.push(it); droppedItems.push(it);
     }
+  }
+
+  // ── 500층 완전정복 특별 보상 ──
+  if(floor === 500) {
+    const bonus500G    = 500000000; // 5억 골드
+    const bonus500Mag  = 1000;
+    const bonus500Alch = 1000;
+    G.gold += bonus500G;
+    const m500 = G.inv.find(i=>i.n==='마법석');
+    if(m500) m500.qty=(m500.qty||0)+bonus500Mag; else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:bonus500Mag,_id:Date.now()-3});
+    const a500 = G.inv.find(i=>i.n==='연금석');
+    if(a500) a500.qty=(a500.qty||0)+bonus500Alch; else G.inv.push({n:'연금석',e:'🧪',type:'mat',val:100,grade:'희귀',sellPrice:100,qty:bonus500Alch,_id:Date.now()-2});
+    const e500 = G.inv.find(i=>i.n==='빛의 정수');
+    if(e500) e500.qty=(e500.qty||0)+100; else G.inv.push({n:'빛의 정수',e:'✨',type:'mat',val:500,grade:'전설',sellPrice:500,qty:100,_id:Date.now()-1});
+    // 초월 장비 랜덤 1개
+    const transcendPool = DROPS.filter(d=>d.grade==='초월'&&d.type!=='mat'&&d.type!=='pot'&&d.type!=='accessory'&&(!d.jobType||d.jobType.includes(G.job)));
+    if(transcendPool.length) {
+      const tw = {...transcendPool[Math.floor(Math.random()*transcendPool.length)], qty:1, _id:Date.now()};
+      G.inv.push(tw);
+      droppedItems.push(tw);
+    }
+    droppedItems.push({n:'빛의 정수',e:'✨',grade:'전설',qty:100,_isMat:true});
+    droppedItems.push({n:'마법석',e:'💎',grade:'희귀',qty:bonus500Mag,_isMat:true,_extra:true});
+    droppedItems.push({n:'연금석',e:'🧪',grade:'희귀',qty:bonus500Alch,_isMat:true,_extra:true});
+    droppedItems.push({n:'골드',e:'💰',grade:'전설',qty:bonus500G,_isMat:true,_extra:true});
+    towerBlog(`<span style="color:#fbbf24;font-weight:700">🏆🏆🏆 천공의 탑 500층 완전 정복! 전설적인 위업 달성! 🏆🏆🏆</span>`);
   }
 
   saveG();
@@ -7431,7 +7556,7 @@ function showTowerResult(floor, gold, exp, items, lvUp) {
 
   // 100층이면 다음 층 버튼 숨김
   const nextBtn = document.getElementById('tr-next-btn');
-  if(nextBtn) nextBtn.style.display = floor >= 200 ? 'none' : '';
+  if(nextBtn) nextBtn.style.display = floor >= 500 ? 'none' : '';
 
   hud();
 }
@@ -7439,7 +7564,7 @@ function showTowerResult(floor, gold, exp, items, lvUp) {
 // ── 다음 층 도전 ──
 function towerNextFloor() {
   const nextFloor = _tower.floor + 1;
-  if(nextFloor > 200) { towerExit(); return; }
+  if(nextFloor > 500) { towerExit(); return; }
   enterTower(nextFloor);
 }
 
@@ -9199,19 +9324,19 @@ const ELIXIR_DEFS = [
   {
     id:'elixir_mid', name:'중급 성장의 비약', e:'🧪', grade:'희귀',
     expVal:1000000,
-    mats:[{n:'수박',e:'🍉',qty:15}], gold:50000,
+    mats:[{n:'수박',e:'🍉',qty:15}], gold:100000,
     desc:'경험치 1,000,000 획득',
   },
   {
     id:'elixir_high', name:'상급 성장의 비약', e:'💜', grade:'레어',
     expVal:10000000,
-    mats:[{n:'치즈',e:'🧀',qty:20}], gold:100000,
+    mats:[{n:'치즈',e:'🧀',qty:20}], gold:1000000,
     desc:'경험치 10,000,000 획득',
   },
   {
     id:'elixir_max', name:'최상급 성장의 비약', e:'🌟', grade:'전설',
     expVal:100000000,
-    mats:[{n:'복숭아',e:'🍑',qty:30}], gold:1000000,
+    mats:[{n:'복숭아',e:'🍑',qty:30}], gold:10000000,
     desc:'경험치 100,000,000 획득',
   },
 ];
