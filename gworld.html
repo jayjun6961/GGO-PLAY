@@ -7575,6 +7575,20 @@ const RELIC_DEFS = [
     vals:{일반:5, 희귀:10, 레어:15, 에픽:22, 전설:30},
     unit:'%',
   },
+  {
+    id:'diary', name:'모쏠의 일기장', e:'📔',
+    desc:'회피율 증가',
+    stat:'dodge_bonus',
+    vals:{일반:2, 희귀:4, 레어:7, 에픽:11, 전설:16},
+    unit:'%',
+  },
+  {
+    id:'cream', name:'달콤한 크림', e:'🍦',
+    desc:'보스 대미지 증가',
+    stat:'bossDmg_bonus',
+    vals:{일반:4, 희귀:8, 레어:13, 에픽:19, 전설:27},
+    unit:'%',
+  },
 ];
 
 const RELIC_GRADE_COL = {일반:'#94a3b8',희귀:'#34d399',레어:'#60a5fa',에픽:'#a855f7',전설:'#fbbf24',신화:'#f97316',레전드리:'#e2c4ff'};
@@ -7984,8 +7998,8 @@ const RDUN_LIST = [
   { day:2, dayName:'화요일', name:'제르바투스의 요새',  boss:{n:'제르바투스',  e:'⚡', hp:115000, atk:317, def:125}, relics:['figure'] },
   { day:3, dayName:'수요일', name:'드라카엘의 빙원',    boss:{n:'드라카엘',    e:'❄️', hp:112000, atk:333, def:130}, relics:['toy'] },
   { day:4, dayName:'목요일', name:'벨카로스의 화산',    boss:{n:'벨카로스',    e:'🌋', hp:118000, atk:350, def:122}, relics:['taco'] },
-  { day:5, dayName:'금요일', name:'오르테시온의 탑',    boss:{n:'오르테시온',  e:'🌪️', hp:120000, atk:367, def:128}, relics:['will'] },
-  { day:6, dayName:'토요일', name:'말디온의 심해',      boss:{n:'말디온',      e:'🐙', hp:125000, atk:383, def:135}, relics:['ttunga'] },
+  { day:5, dayName:'금요일', name:'오르테시온의 탑',    boss:{n:'오르테시온',  e:'🌪️', hp:120000, atk:367, def:128}, relics:['will','diary'] },
+  { day:6, dayName:'토요일', name:'말디온의 심해',      boss:{n:'말디온',      e:'🐙', hp:125000, atk:383, def:135}, relics:['ttunga','cream'] },
 ];
 
 // 오늘 요일 기준 던전
