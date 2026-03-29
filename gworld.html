@@ -581,9 +581,12 @@
 
 <!-- 패널: 퀘스트 -->
 <div class="gw-pov" id="gw-pq" onclick="if(event.target===this)closeP('gw-pq')">
-  <div class="gw-pbox">
+  <div class="gw-pbox" style="max-height:88vh;display:flex;flex-direction:column;">
     <div class="gw-phdr"><div class="gw-pttl">📜 NPC 퀘스트 — <span style="color:var(--accent-cyan)">허리케인</span></div><button class="gw-px" onclick="closeP('gw-pq')">✕</button></div>
-    <div class="gw-pbdy" id="gw-qbody"></div>
+    <!-- 탭 고정 영역 -->
+    <div id="gw-qtabs" style="display:flex;gap:3px;padding:8px 12px 0;flex-shrink:0;border-bottom:1px solid rgba(124,58,237,.15);"></div>
+    <!-- 퀘스트 내용 스크롤 영역 -->
+    <div id="gw-qbody" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;"></div>
   </div>
 </div>
 
@@ -1903,13 +1906,15 @@ function makeWeeklyQ(){
 function checkDailyQuestReset(){
   const todayKey = getTodayKey();
   const savedKey = localStorage.getItem('gwo_quest_date_'+gwUN());
-  if(savedKey !== todayKey){
+  // 날짜 변경 OR 구형 퀘스트 포맷(zone 타입 없음) 감지 시 갱신
+  const hasZoneQuest = (G.quests||[]).some(q => q.type === 'zone');
+  if(savedKey !== todayKey || !hasZoneQuest){
     localStorage.setItem('gwo_quest_date_'+gwUN(), todayKey);
     G.quests = makeQ();
     G.qprog  = {};
     G.qclaim = {};
     saveG();
-    gwT('📅 일일 퀘스트가 초기화되었습니다!');
+    if(savedKey !== todayKey) gwT('📅 일일 퀘스트가 초기화되었습니다!');
   }
   // 주간 퀘스트 리셋 체크
   const weekKey  = getWeekKey();
@@ -3693,13 +3698,18 @@ function renderQ(){
     return html;
   }
 
-  body.innerHTML=
-    `<div style="display:flex;gap:3px;margin-bottom:10px;overflow-x:auto;">
-       <button style="${tabStyle(_qTab==='daily')}"   onclick="_qTab='daily';  renderQ()">📅 일일</button>
+  // 탭 버튼을 고정 헤더 영역에 렌더 (스크롤 시 사라지지 않음)
+  const tabsEl = document.getElementById('gw-qtabs');
+  if(tabsEl) {
+    tabsEl.innerHTML =
+      `<button style="${tabStyle(_qTab==='daily')}"   onclick="_qTab='daily';  renderQ()">📅 일일</button>
        <button style="${tabStyle(_qTab==='weekly')}"  onclick="_qTab='weekly'; renderQ()">📆 주간</button>
        <button style="${tabStyle(_qTab==='enhance')}" onclick="_qTab='enhance';renderQ()">⚒️ 강화</button>
-       <button style="${tabStyle(_qTab==='level')}"   onclick="_qTab='level';  renderQ()">🎖️ 직업</button>
-     </div>`+
+       <button style="${tabStyle(_qTab==='level')}"   onclick="_qTab='level';  renderQ()">🎖️ 직업</button>`;
+  }
+
+  // 내용은 스크롤 영역에만 렌더
+  body.innerHTML =
     (_qTab==='daily'   ? renderDaily()   :
      _qTab==='weekly'  ? renderWeekly()  :
      _qTab==='enhance' ? renderEnhQ()    : renderLvQ());
@@ -10426,6 +10436,10 @@ async function renderTowerRank() {
   const el = document.getElementById('gw-towerbody'); if(!el) return;
   el.innerHTML = `<div style="text-align:center;padding:20px;color:#64748b;font-size:11px;font-family:'Noto Sans KR',sans-serif;">🔄 순위 불러오는 중...</div>`;
 
+  // 순위 탭 열 때 현재 기록을 Firebase에 즉시 동기화
+  const curCleared = getTowerCleared();
+  if(curCleared.size > 0) _towerUploadRank(curCleared);
+
   const myName   = gwUN();
   const weekKey  = wbWeekKey();
   const lastKey  = wbLastWeekKey();
@@ -10449,6 +10463,15 @@ async function renderTowerRank() {
     const snap = await ref.get();
     if(snap && snap.exists()) snap.forEach(ch => allData.push(ch.val()));
   } catch(e) { console.warn('[탑순위]', e); }
+
+  // 내 로컬 기록이 Firebase에 없으면 병합 (업로드 지연 대비)
+  const myMaxFloor = getTowerMaxFloor();
+  if(myMaxFloor > 0 && myName) {
+    const alreadyIn = allData.some(r => r.user === myName && r.job === G.job);
+    if(!alreadyIn) {
+      allData.push({ floor: myMaxFloor, ts: Date.now(), user: myName, job: G.job, lv: G.lv });
+    }
+  }
 
   // 직업별 필터 + 정렬
   const jobData = allData
