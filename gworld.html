@@ -1791,8 +1791,9 @@ const WEEKLY_QUEST_POOL = [
 // ── 강화 퀘스트: 총 강화 횟수 누적 (초기화 없음, 10회 단위 갱신) ──
 // G.enhQTotal: 총 강화 횟수 누적 (캐릭터 저장에 포함)
 function getEnhQTarget() {
-  const total = G.enhQTotal || 0;
-  return Math.max(10, Math.ceil((total + 1) / 10) * 10);
+  // 수령 완료 단계 이후 다음 목표: (enhQClaimed+1)*10
+  const claimed = G.enhQClaimed || 0;
+  return (claimed + 1) * 10;
 }
 function getEnhQReward(target) {
   // 10회=10000G, 20회=25000G, 30회=50000G... 단계마다 증가
@@ -1814,7 +1815,7 @@ function claimEnhQ() {
   G.enhQClaimed = (G.enhQClaimed || 0) + 1; // 몇 번째 수령인지 기록
   saveG(); hud();
   gwT(`⚒️ 강화 퀘스트 완료! (${target}회 달성) +${reward.toLocaleString()}G`);
-  renderQ();
+  renderQ(); renderQdot();
 }
 
 // ── 직업 퀘스트: 레벨 10단계마다 보상 (Lv.10, 20, ... 200) ──
@@ -3940,8 +3941,7 @@ function enhSlot(slot){
     it.def=(it.def||0)+2;
   }
   recalcStats();hud();
-  enhQuestProgress(); // 강화 퀘스트 누적 진행
-  saveG();renderEnh();
+  saveG(); renderEnh(); renderQdot(); // 강화 퀘스트 알림 갱신
   gwT(`⚒️ ${it.n} +${it.enh} 강화 완료! (다음 비용: ${enhCost(it.enh, it.grade).toLocaleString()}G)`);
 }
 function enhItem(i){/* deprecated - 하위 호환용 */const it=G.inv[i];if(!it)return;}
