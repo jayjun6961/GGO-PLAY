@@ -1608,6 +1608,7 @@ const gSet = (k,v)=>localStorage.setItem(gKey(k),JSON.stringify(v));
 let G={sc:'intro',job:null,lv:1,hp:0,mHP:0,mp:0,mMP:0,atk:0,def:0,
        exp:0,gold:0,inv:[],qprog:{},qclaim:{},sk:{},
        wquests:[],wqprog:{},wqclaim:{},  // 주간 퀘스트
+       enhQuestTotal:{},lvQuestClaimed:{},  // 강화/직업 퀘스트
        zone:null,mob:null,mhp:0,mmhp:0,buffs:{},defBuff:false,
        tick:null,quests:[],
        relics:[null,null,null,null,null],  // 유물 슬롯 5개
@@ -1641,7 +1642,7 @@ function tDef(){
   return d;
 }
 
-function saveG(){gSet('save',{job:G.job,lv:G.lv,hp:G.hp,mp:G.mp,exp:G.exp,gold:G.gold,inv:G.inv,qprog:G.qprog,qclaim:G.qclaim,sk:G.sk,quests:G.quests,equip:G.equip||{},wquests:G.wquests,wqprog:G.wqprog,wqclaim:G.wqclaim,relics:G.relics||[null,null,null,null,null]}); if(G.job && typeof saveCurrentChar==='function') saveCurrentChar(); _scheduleCloudSync(); }
+function saveG(){gSet('save',{job:G.job,lv:G.lv,hp:G.hp,mp:G.mp,exp:G.exp,gold:G.gold,inv:G.inv,qprog:G.qprog,qclaim:G.qclaim,sk:G.sk,quests:G.quests,equip:G.equip||{},wquests:G.wquests,wqprog:G.wqprog,wqclaim:G.wqclaim,relics:G.relics||[null,null,null,null,null],enhQTotal:G.enhQTotal||0,enhQClaimed:G.enhQClaimed||0,lvQClaim:G.lvQClaim||{}}); if(G.job && typeof saveCurrentChar==='function') saveCurrentChar(); _scheduleCloudSync(); }
 
 // ── 클라우드 동기화 (5초 debounce) ──
 let _cloudSyncTimer = null;
@@ -1726,43 +1727,128 @@ function loadG(){
     exp:s.exp||0,gold:s.gold||0,inv:s.inv||[],qprog:s.qprog||{},qclaim:s.qclaim||{},
     sk:s.sk||{},quests:s.quests||makeQ(),
     wquests:s.wquests||makeWeeklyQ(),wqprog:s.wqprog||{},wqclaim:s.wqclaim||{},
-    relics:s.relics||[null,null,null,null,null]});return true;
+    enhQTotal:s.enhQTotal||0,enhQClaimed:s.enhQClaimed||0,lvQClaim:s.lvQClaim||{},
+    relics:s.relics||[null,null,null,null,null],enhQuestTotal:s.enhQuestTotal||{},lvQuestClaimed:s.lvQuestClaimed||{}});return true;
 }
-// ── 일일 퀘스트 풀 (날짜 시드로 매일 4개 랜덤 선택) ──
-// ── 일일 퀘스트 풀 (사냥 / 도장 / 장비강화) ──
-const QUEST_POOL = [
-  // 몬스터 사냥
-  {id:'qs1', title:'슬라임 퇴치',      desc:'슬라임 10마리 처치',         type:'kill',    target:'슬라임',  need:10, eR:200,  gR:100},
-  {id:'qs2', title:'고블린 토벌',      desc:'고블린 5마리 처치',           type:'kill',    target:'고블린',  need:5,  eR:300,  gR:150},
-  {id:'qs3', title:'오크 정벌',        desc:'오크 5마리 처치',             type:'kill',    target:'오크',    need:5,  eR:500,  gR:200},
-  {id:'qs4', title:'스켈레톤 처리',    desc:'스켈레톤 8마리 처치',         type:'kill',    target:'스켈레톤',need:8,  eR:350,  gR:160},
-  {id:'qs5', title:'드래곤 알 파괴',   desc:'드래곤을 10마리 처치',        type:'kill',    target:'드래곤',  need:10, eR:600,  gR:300},
-  {id:'qs6', title:'마수 토벌',        desc:'강력한 마수 3마리 처치',      type:'kill',    target:'마수',    need:3,  eR:400,  gR:200},
-  {id:'qs7', title:'몬스터 헌터',      desc:'어떤 몬스터든 20마리 처치',   type:'kill',    target:'*',       need:20, eR:400,  gR:180},
-  {id:'qs8', title:'대규모 토벌',      desc:'몬스터 30마리 처치',          type:'kill',    target:'*',       need:30, eR:600,  gR:250},
-  {id:'qs9', title:'초원의 위협',      desc:'초원 사냥터에서 15마리 처치', type:'zone',    target:'prairie', need:15, eR:350,  gR:150},
-  {id:'qs10',title:'숲속 탐험',        desc:'숲 사냥터에서 10마리 처치',   type:'zone',    target:'forest',  need:10, eR:400,  gR:180},
-  {id:'qs11',title:'동굴 탐사',        desc:'동굴 사냥터에서 8마리 처치',  type:'zone',    target:'cave',    need:8,  eR:450,  gR:200},
-  {id:'qs12',title:'폐허 조사',        desc:'폐허 사냥터에서 8마리 처치',  type:'zone',    target:'ruin',    need:8,  eR:500,  gR:220},
-  {id:'qs13',title:'화산 도전',        desc:'화산 사냥터에서 5마리 처치',  type:'zone',    target:'volcano', need:5,  eR:600,  gR:280},
-  // 도장
-  {id:'qs14',title:'도장 수련',        desc:'도장에 1회 입장하기',         type:'dojo',    target:'dojo',    need:1,  eR:500,  gR:200},
-  // 장비 강화
-  {id:'qs18',title:'장비 강화 입문',   desc:'장비 3회 강화하기',           type:'enhance', target:'any',     need:3,  eR:400,  gR:180},
-  {id:'qs19',title:'장비 강화 수련',   desc:'장비 5회 강화하기',           type:'enhance', target:'any',     need:5,  eR:600,  gR:280},
-  {id:'qs20',title:'장비 강화 숙련',   desc:'장비 8회 강화하기',           type:'enhance', target:'any',     need:8,  eR:900,  gR:400},
+// ════════════════════════════════════════════════════════
+//  NPC 퀘스트 시스템 (직업별 독립)
+// ════════════════════════════════════════════════════════
+
+// ── 일일 퀘스트: 사냥터별 몬스터 처치 (매일 초기화, 사냥터에 맞게 4개 배정) ──
+const DAILY_QUEST_POOL = [
+  {id:'dq_prairie',    title:'초원 탐험',         desc:'초원에서 몬스터 10마리 처치',          type:'zone', target:'prairie',    need:10,  eR:500,      gR:300},
+  {id:'dq_forest',     title:'숲 수색',           desc:'숲에서 몬스터 15마리 처치',            type:'zone', target:'forest',     need:15,  eR:1000,     gR:600},
+  {id:'dq_cave',       title:'동굴 소탕',         desc:'동굴에서 몬스터 20마리 처치',          type:'zone', target:'cave',       need:20,  eR:2500,     gR:1500},
+  {id:'dq_ruin',       title:'폐허 조사',         desc:'폐허에서 몬스터 25마리 처치',          type:'zone', target:'ruin',       need:25,  eR:5000,     gR:3000},
+  {id:'dq_volcano',    title:'화산 정벌',         desc:'화산에서 몬스터 25마리 처치',          type:'zone', target:'volcano',    need:25,  eR:10000,    gR:6000},
+  {id:'dq_abyss',      title:'균열 토벌',         desc:'심연의 균열에서 몬스터 20마리 처치',   type:'zone', target:'abyss',      need:20,  eR:25000,    gR:15000},
+  {id:'dq_skytemple',  title:'천공 신전 수호',    desc:'천공 신전에서 몬스터 20마리 처치',     type:'zone', target:'skytemple',  need:20,  eR:50000,    gR:30000},
+  {id:'dq_shadowrealm',title:'어둠 속의 사냥',   desc:'어둠의 영역에서 몬스터 15마리 처치',   type:'zone', target:'shadowrealm',need:15,  eR:100000,   gR:60000},
+  {id:'dq_dragonspire',title:'용의 위협 제거',   desc:'용의 첨탑에서 몬스터 15마리 처치',     type:'zone', target:'dragonspire',need:15,  eR:200000,   gR:120000},
+  {id:'dq_godplane',   title:'신의 영역 침입자', desc:'신들의 영역에서 몬스터 15마리 처치',   type:'zone', target:'godplane',   need:15,  eR:350000,   gR:200000},
+  {id:'dq_voidrift',   title:'공허 정화',        desc:'공허의 균열에서 몬스터 10마리 처치',   type:'zone', target:'voidrift',   need:10,  eR:600000,   gR:350000},
+  {id:'dq_abyssgate',  title:'관문 수호자 처치', desc:'심연의 관문에서 몬스터 10마리 처치',   type:'zone', target:'abyssgate',  need:10,  eR:1000000,  gR:600000},
+  {id:'dq_chaosrealm', title:'혼돈의 진압',      desc:'혼돈의 왕국에서 몬스터 10마리 처치',   type:'zone', target:'chaosrealm', need:10,  eR:1800000,  gR:1000000},
+  {id:'dq_eternity',   title:'영원의 파수꾼',    desc:'영원의 경계에서 몬스터 8마리 처치',    type:'zone', target:'eternity',   need:8,   eR:3000000,  gR:1800000},
+  {id:'dq_etercenter', title:'영원의 핵심 파괴', desc:'영원의 중심에서 몬스터 8마리 처치',    type:'zone', target:'etercenter', need:8,   eR:5000000,  gR:3000000},
+  {id:'dq_eterdepth',  title:'심부의 군주 사냥', desc:'영원의 심부에서 몬스터 5마리 처치',    type:'zone', target:'eterdepth',  need:5,   eR:8000000,  gR:5000000},
+  {id:'dq_eldrfield',  title:'엘드라니아의 분신',desc:'영원의 엘드라니아에서 몬스터 5마리 처치',type:'zone',target:'eldrfield', need:5,   eR:15000000, gR:9000000},
 ];
 
-// ── 주간 퀘스트 (던전 + 월드보스, 매주 월요일 초기화) ──
-const WEEKLY_QUEST_LIST = [
-  {id:'wq1', title:'던전 정복자 I',    desc:'던전 1회 클리어',             type:'dungeon',   target:'any', need:1,  eR:1500, gR:800},
-  {id:'wq2', title:'던전 정복자 II',   desc:'던전 3회 클리어',             type:'dungeon',   target:'any', need:3,  eR:3000, gR:1500},
-  {id:'wq3', title:'월드보스 도전',    desc:'월드보스 1회 파견 참가',      type:'worldboss', target:'wb',  need:1,  eR:2000, gR:1000},
-  {id:'wq4', title:'영웅의 시험',      desc:'던전 1회 + 월드보스 1회',     type:'dungeon',   target:'any', need:1,  eR:2500, gR:1200},
-  {id:'wq5', title:'주간 던전 탐험',   desc:'고블린 던전 1회 클리어',      type:'dungeon',   target:'goblin', need:1, eR:1800, gR:900},
-  {id:'wq6', title:'오크 요새 공략',   desc:'오크 던전 1회 클리어',        type:'dungeon',   target:'orc',    need:1, eR:2200, gR:1100},
-  {id:'wq7', title:'보스 레이드',      desc:'월드보스 2회 파견 참가',      type:'worldboss', target:'wb',  need:2,  eR:4000, gR:2000},
+// ── 주간 퀘스트 풀: 던전/월드보스/유물던전/군단장 (매주 월요일 초기화, 5개 랜덤 선택) ──
+const WEEKLY_QUEST_POOL = [
+  // 던전 (상위일수록 마법석 보상↑)
+  {id:'wq_dun_goblin',   title:'고블린 소굴 공략',      desc:'고블린 던전 1회 클리어',         type:'dungeon',  target:'goblin',    need:1, eR:50000,   gR:30000,   magicR:100},
+  {id:'wq_dun_orc',      title:'오크 요새 공략',        desc:'오크 던전 1회 클리어',           type:'dungeon',  target:'orc',       need:1, eR:100000,  gR:60000,   magicR:150},
+  {id:'wq_dun_lizard',   title:'리자드 던전 정복',      desc:'리자드 던전 1회 클리어',         type:'dungeon',  target:'lizard',    need:1, eR:200000,  gR:120000,  magicR:200},
+  {id:'wq_dun_undead',   title:'언데드 무덤 소탕',      desc:'언데드 던전 1회 클리어',         type:'dungeon',  target:'undead',    need:1, eR:350000,  gR:200000,  magicR:300},
+  {id:'wq_dun_abyss',    title:'심해 던전 탐험',        desc:'심해 던전 1회 클리어',           type:'dungeon',  target:'abyss',     need:1, eR:600000,  gR:350000,  magicR:450},
+  {id:'wq_dun_dragon',   title:'드래곤 굴 정벌',        desc:'드래곤 던전 1회 클리어',         type:'dungeon',  target:'dragon',    need:1, eR:1000000, gR:600000,  magicR:600},
+  // 월드보스
+  {id:'wq_wb_baldrix',   title:'발드릭스 토벌',         desc:'발드릭스 파견 참가',             type:'worldboss',target:'baldrix',   need:1, eR:80000,   gR:50000,   magicR:150},
+  {id:'wq_wb_dimension', title:'차원의 문 봉인',        desc:'차원의 문 파견 참가',            type:'worldboss',target:'dimension', need:1, eR:150000,  gR:90000,   magicR:200},
+  {id:'wq_wb_eldrania',  title:'엘드라니아 격퇴',       desc:'엘드라니아 파견 참가',           type:'worldboss',target:'eldrania',  need:1, eR:300000,  gR:180000,  magicR:300},
+  {id:'wq_wb_azarc',     title:'흑룡 아자르크 토벌',    desc:'아자르크 파견 참가',             type:'worldboss',target:'azarc',     need:1, eR:500000,  gR:300000,  magicR:400},
+  {id:'wq_wb_astraел',   title:'아스트라엘 격퇴',       desc:'아스트라엘 파견 참가',           type:'worldboss',target:'astraель',  need:1, eR:700000,  gR:420000,  magicR:500},
+  {id:'wq_wb_orphion',   title:'오르피온 격퇴',         desc:'오르피온 파견 참가',             type:'worldboss',target:'orphion',   need:1, eR:900000,  gR:540000,  magicR:700},
+  {id:'wq_wb_seraphiel', title:'세라피엘 토벌',         desc:'세라피엘 파견 참가',             type:'worldboss',target:'seraphiel', need:1, eR:1500000, gR:900000,  magicR:1000},
+  // 유물던전
+  {id:'wq_rdun1',        title:'유물 던전 탐험',        desc:'유물 던전 1회 클리어',           type:'rdungeon', target:'any',       need:1, eR:200000,  gR:120000,  magicR:250},
+  {id:'wq_rdun3',        title:'유물 던전 완전 정복',   desc:'유물 던전 3회 클리어',           type:'rdungeon', target:'any',       need:3, eR:700000,  gR:420000,  magicR:600},
+  // 군단장
+  {id:'wq_lg_vulcan',    title:'발칸 군단 토벌',        desc:'군단장 발칸 1회 클리어',         type:'legion',   target:'vulcan',    need:1, eR:150000,  gR:90000,   magicR:200},
+  {id:'wq_lg_dominion',  title:'도미니온 격퇴',         desc:'군단장 도미니온 1회 클리어',     type:'legion',   target:'dominion',  need:1, eR:250000,  gR:150000,  magicR:280},
+  {id:'wq_lg_asmodeus',  title:'아스모데우스 격퇴',     desc:'군단장 아스모데우스 1회 클리어', type:'legion',   target:'asmodeus',  need:1, eR:380000,  gR:220000,  magicR:380},
+  {id:'wq_lg_mammon',    title:'마몬 토벌',             desc:'군단장 마몬 1회 클리어',         type:'legion',   target:'mammon',    need:1, eR:550000,  gR:330000,  magicR:500},
+  {id:'wq_lg_leviathan', title:'레비아탄 격퇴',         desc:'군단장 레비아탄 1회 클리어',     type:'legion',   target:'leviathan', need:1, eR:750000,  gR:450000,  magicR:650},
+  {id:'wq_lg_belphegor', title:'벨페고르 격퇴',         desc:'군단장 벨페고르 1회 클리어',     type:'legion',   target:'belphegor', need:1, eR:1000000, gR:600000,  magicR:800},
+  {id:'wq_lg_beelzebub', title:'베엘제부브 격퇴',       desc:'군단장 베엘제부브 1회 클리어',   type:'legion',   target:'beelzebub', need:1, eR:1500000, gR:900000,  magicR:1000},
 ];
+
+// ── 강화 퀘스트: 총 강화 횟수 누적 (초기화 없음, 10회 단위 갱신) ──
+// G.enhQTotal: 총 강화 횟수 누적 (캐릭터 저장에 포함)
+function getEnhQTarget() {
+  const total = G.enhQTotal || 0;
+  return Math.max(10, Math.ceil((total + 1) / 10) * 10);
+}
+function getEnhQReward(target) {
+  // 10회=10000G, 20회=25000G, 30회=50000G... 단계마다 증가
+  const step = target / 10;
+  return Math.floor(10000 * step * (1 + (step - 1) * 0.5));
+}
+function checkEnhQuest() {
+  const total  = G.enhQTotal || 0;
+  const target = getEnhQTarget();
+  if(total >= target) return; // 아직 미도달
+  // 강화 횟수 증가는 enhSlot에서 호출
+}
+function claimEnhQ() {
+  const total  = G.enhQTotal || 0;
+  const target = getEnhQTarget();
+  if(total < target) { gwT(`⚒️ 강화 횟수 부족 (${total}/${target}회)`); return; }
+  const reward = getEnhQReward(target);
+  G.gold += reward;
+  G.enhQClaimed = (G.enhQClaimed || 0) + 1; // 몇 번째 수령인지 기록
+  saveG(); hud();
+  gwT(`⚒️ 강화 퀘스트 완료! (${target}회 달성) +${reward.toLocaleString()}G`);
+  renderQ();
+}
+
+// ── 직업 퀘스트: 레벨 10단계마다 보상 (Lv.10, 20, ... 200) ──
+function getLvQMilestones() {
+  const milestones = [];
+  for(let lv = 10; lv <= 200; lv += 10) {
+    const step = lv / 10;
+    milestones.push({
+      lv,
+      id: 'lvq_' + lv,
+      title: `레벨 ${lv} 달성`,
+      desc: `${lv}레벨 달성 시 보상 수령`,
+      gR:     Math.floor(10000 * step * (1 + (step - 1) * 0.6)),
+      magicR: Math.floor(10   * step * (1 + (step - 1) * 0.5)),
+      alchR:  Math.floor(3    * step * (1 + (step - 1) * 0.4)),
+    });
+  }
+  return milestones;
+}
+function claimLvQ(lvTarget) {
+  if(!G.lvQClaim) G.lvQClaim = {};
+  if(G.lvQClaim[lvTarget]) { gwT('이미 수령한 보상입니다.'); return; }
+  if(G.lv < lvTarget) { gwT(`레벨 ${lvTarget} 달성 후 수령 가능합니다.`); return; }
+  const ms = getLvQMilestones().find(m => m.lv === lvTarget);
+  if(!ms) return;
+  G.lvQClaim[lvTarget] = true;
+  G.gold += ms.gR;
+  const magicEx = G.inv.find(i=>i.n==='마법석');
+  if(magicEx) magicEx.qty=(magicEx.qty||0)+ms.magicR;
+  else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:ms.magicR,_id:Date.now()-2});
+  const alchEx = G.inv.find(i=>i.n==='연금석');
+  if(alchEx) alchEx.qty=(alchEx.qty||0)+ms.alchR;
+  else G.inv.push({n:'연금석',e:'🧪',type:'mat',val:100,grade:'희귀',sellPrice:100,qty:ms.alchR,_id:Date.now()-1});
+  saveG(); hud();
+  gwT(`🎉 Lv.${lvTarget} 달성 보상! +${ms.gR.toLocaleString()}G, 💎${ms.magicR}개, 🧪${ms.alchR}개`);
+  renderQ();
+}
 
 function getTodayKey() {
   const d = new Date();
@@ -1770,18 +1856,21 @@ function getTodayKey() {
 }
 
 function makeQ(){
-  // 날짜 시드로 매일 다른 4개 퀘스트 선택 (사냥/도장/강화 풀)
+  // 현재 레벨에 맞는 사냥터 + 인접 사냥터 퀘스트 4개 선택
+  const lv = G.lv || 1;
+  // 접근 가능한 사냥터 풀 (레벨 범위 포함 또는 이미 진입 가능)
+  const accessible = DAILY_QUEST_POOL.filter(q => {
+    const zone = ZONES.find(z => z.id === q.target);
+    return zone && lv >= zone.min;
+  });
+  const pool = accessible.length > 0 ? accessible : DAILY_QUEST_POOL.slice(0, 3);
+  // 날짜+직업 시드로 최대 4개 선택 (중복 없이)
   const dateKey = getTodayKey();
-  const seed = dateKey.split('-').reduce((s,n)=>s*100+parseInt(n),0);
+  const jobSeed = (G.job||'warrior').split('').reduce((s,c)=>s+c.charCodeAt(0),0);
+  const seed = dateKey.split('-').reduce((s,n)=>s*100+parseInt(n),0) + jobSeed;
   const rng = (n=>{let s=seed^(n*2654435761);s^=s>>>16;s*=0x45d9f3b;s^=s>>>16;return(s>>>0)/0xffffffff;});
-  const pool = [...QUEST_POOL];
-  const selected = [];
-  for(let i=0;i<4;i++){
-    const idx = Math.floor(rng(i*7+1)*pool.length);
-    selected.push({...pool[idx], id:'dq'+(i+1)});
-    pool.splice(idx,1);
-  }
-  return selected;
+  const shuffled = [...pool].sort((_,__) => rng(Math.random()*100|0) - 0.5);
+  return shuffled.slice(0, Math.min(4, shuffled.length)).map((q,i) => ({...q, id:'dq'+(i+1)}));
 }
 
 function getWeekKey(){
@@ -1795,13 +1884,14 @@ function getWeekKey(){
 }
 
 function makeWeeklyQ(){
-  // 주간 퀘스트: 주 시드로 3개 선택
+  // 주간 퀘스트: 풀에서 5개 랜덤 선택 (직업+주 시드)
   const weekKey = getWeekKey();
-  const seed = weekKey.split('-').reduce((s,n)=>s*100+parseInt(n),0);
+  const jobSeed = (G.job||'warrior').split('').reduce((s,c)=>s+c.charCodeAt(0),0);
+  const seed = weekKey.split('-').reduce((s,n)=>s*100+parseInt(n),0) + jobSeed;
   const rng = (n=>{let s=seed^(n*2654435761);s^=s>>>16;s*=0x45d9f3b;s^=s>>>16;return(s>>>0)/0xffffffff;});
-  const pool = [...WEEKLY_QUEST_LIST];
+  const pool = [...WEEKLY_QUEST_POOL];
   const selected = [];
-  const count = Math.min(3, pool.length);
+  const count = Math.min(5, pool.length);
   for(let i=0;i<count;i++){
     const idx = Math.floor(rng(i*13+3)*pool.length);
     selected.push({...pool[idx], id:'wq'+(i+1)});
@@ -2637,6 +2727,8 @@ function goTown(){
 function renderQdot(){
   const hasDaily  = G.quests.some(q=>!G.qclaim[q.id]&&(G.qprog[q.id]||0)>=q.need);
   const hasWeekly = (G.wquests||[]).some(q=>!G.wqclaim[q.id]&&(G.wqprog[q.id]||0)>=q.need);
+  const hasEnhQ   = (G.enhQTotal||0) >= getEnhQTarget();
+  const hasLvQ    = getLvQMilestones().some(ms=>G.lv>=ms.lv&&!(G.lvQClaim||{})[ms.lv]);
   const d=document.getElementById('gw-qdot');if(d)d.style.display=(hasDaily||hasWeekly)?'block':'none';
 }
 
@@ -2859,38 +2951,37 @@ function mobDead(){
   blog(`<span class="li">💀 ${m.n} 처치! +${_gainedExp}EXP +${_goldGained}G</span>`);
   if(Math.random()<m.drop){
     // 사냥터별 드롭 등급 확률 테이블
-    // [일반, 희귀, 레어, 에픽, 전설] 누적 확률 (0~1)
+    // [일반, 희귀, 레어, 에픽] 누적 확률 (0~1) — 전설 이상은 사냥터 드롭 없음
     const ZONE_DROP_TABLE = {
-      prairie:    [0.55, 0.83, 0.96, 1.00, 1.00], // 일반55 희귀28 레어13 에픽4
-      forest:     [0.50, 0.80, 0.94, 1.00, 1.00], // 일반50 희귀30 레어14 에픽6
-      cave:       [0.45, 0.77, 0.93, 1.00, 1.00], // 일반45 희귀32 레어16 에픽7
-      ruin:       [0.40, 0.73, 0.91, 1.00, 1.00], // 일반40 희귀33 레어18 에픽9
-      volcano:    [0.35, 0.68, 0.89, 1.00, 1.00], // 일반35 희귀33 레어21 에픽11
-      abyss:      [0.30, 0.62, 0.86, 1.00, 1.00], // 일반30 희귀32 레어24 에픽14
-      skytemple:  [0.25, 0.56, 0.83, 1.00, 1.00], // 일반25 희귀31 레어27 에픽17
-      shadowrealm:[0.20, 0.50, 0.79, 1.00, 1.00], // 일반20 희귀30 레어29 에픽21
-      dragonspire:[0.15, 0.44, 0.74, 1.00, 1.00], // 일반15 희귀29 레어30 에픽26
-      // 신들의 영역부터 전설 추가
-      godplane:   [0.10, 0.35, 0.63, 0.92, 1.00], // 일반10 희귀25 레어28 에픽29 전설8
-      voidrift:   [0.08, 0.28, 0.55, 0.87, 1.00], // 일반8  희귀20 레어27 에픽32 전설13
-      abyssgate:  [0.06, 0.22, 0.46, 0.80, 1.00], // 일반6  희귀16 레어24 에픽34 전설20
-      chaosrealm: [0.04, 0.16, 0.37, 0.72, 1.00], // 일반4  희귀12 레어21 에픽35 전설28
-      eternity:   [0.02, 0.10, 0.27, 0.62, 1.00], // 일반2  희귀8  레어17 에픽35 전설38
+      prairie:    [0.55, 0.83, 0.96, 1.00], // 일반55 희귀28 레어13 에픽4
+      forest:     [0.50, 0.80, 0.94, 1.00], // 일반50 희귀30 레어14 에픽6
+      cave:       [0.45, 0.76, 0.93, 1.00], // 일반45 희귀31 레어17 에픽7
+      ruin:       [0.40, 0.72, 0.91, 1.00], // 일반40 희귀32 레어19 에픽9
+      volcano:    [0.35, 0.67, 0.89, 1.00], // 일반35 희귀32 레어22 에픽11
+      abyss:      [0.30, 0.61, 0.86, 1.00], // 일반30 희귀31 레어25 에픽14
+      skytemple:  [0.25, 0.55, 0.83, 1.00], // 일반25 희귀30 레어28 에픽17
+      shadowrealm:[0.20, 0.49, 0.79, 1.00], // 일반20 희귀29 레어30 에픽21
+      dragonspire:[0.15, 0.43, 0.74, 1.00], // 일반15 희귀28 레어31 에픽26
+      godplane:   [0.10, 0.34, 0.66, 1.00], // 일반10 희귀24 레어32 에픽34
+      voidrift:   [0.08, 0.27, 0.60, 1.00], // 일반8  희귀19 레어33 에픽40
+      abyssgate:  [0.06, 0.21, 0.54, 1.00], // 일반6  희귀15 레어33 에픽46
+      chaosrealm: [0.04, 0.15, 0.47, 1.00], // 일반4  희귀11 레어32 에픽53
+      eternity:   [0.02, 0.09, 0.38, 1.00], // 일반2  희귀7  레어29 에픽62
     };
     const zid = G.zone?.id || 'prairie';
     const thresholds = ZONE_DROP_TABLE[zid] || ZONE_DROP_TABLE['prairie'];
-    const grades = ['일반','희귀','레어','에픽','전설'];
+    const grades = ['일반','희귀','레어','에픽']; // 전설 이상 제외
     const r = Math.random();
     let gradeFilter = '일반';
     for(let gi=0; gi<thresholds.length; gi++){
       if(r < thresholds[gi]){ gradeFilter = grades[gi]; break; }
     }
 
-    // 직업에 맞는 장비 풀 (포션/재료/장신구/신화 제외)
+    // 직업에 맞는 장비 풀 (포션/재료/장신구/전설이상 제외)
     const eqPool = DROPS.filter(d => {
       if(d.type==='pot'||d.type==='mat') return false;
       if(d.type==='accessory') return false;  // 반지·목걸이는 월드보스 전용
-      if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월'||d.grade==='절대자') return false;
+      if(d.grade==='전설'||d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월'||d.grade==='절대자') return false;
       if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
       return true;
     });
@@ -2935,6 +3026,7 @@ function mobDead(){
     const sk=JOBS[G.job].skills.find(s=>s.lv===G.lv);
     blog(`<span class="ll">★ LEVEL UP! Lv.${G.lv}${sk?' ['+sk.name+'] 스킬 해금!':''}</span>`);
     if(sk)showLvUp(G.lv,sk.name);
+    checkLvQuest(); // 직업 레벨 퀘스트 체크
   }
   hud();saveG();renderQdot();
   setTimeout(()=>{if(G.sc!=='battle')return;G.buffs={};spawnMob();startAuto();},900);
@@ -3454,109 +3546,165 @@ function useItem(i){
 let _qTab = 'daily'; // 'daily' | 'weekly'
 function renderQ(){
   checkDailyQuestReset();
-  if(!G.wquests||G.wquests.length===0) G.wquests = makeWeeklyQ();
+  if(!G.wquests||G.wquests.length===0) G.wquests=makeWeeklyQ();
 
-  const now = new Date();
-  // 자정까지
-  const midnight = new Date(now); midnight.setHours(24,0,0,0);
-  const diffMs = midnight - now;
-  const diffH = Math.floor(diffMs/3600000), diffM = Math.floor((diffMs%3600000)/60000);
-  const resetStr = `${diffH}시간 ${diffM}분 후 초기화`;
-  // 다음 월요일까지
-  const day = now.getDay();
-  const daysToMon = day===0 ? 1 : (8-day)%7||7;
-  const nextMon = new Date(now); nextMon.setDate(now.getDate()+daysToMon); nextMon.setHours(0,0,0,0);
-  const wDiffMs = nextMon - now;
-  const wDiffD = Math.floor(wDiffMs/86400000), wDiffH = Math.floor((wDiffMs%86400000)/3600000);
-  const wResetStr = `${wDiffD}일 ${wDiffH}시간 후 초기화`;
+  const now=new Date();
+  const midnight=new Date(now); midnight.setHours(24,0,0,0);
+  const diffMs=midnight-now;
+  const diffH=Math.floor(diffMs/3600000),diffM=Math.floor((diffMs%3600000)/60000);
+  const resetStr=`${diffH}시간 ${diffM}분 후 초기화`;
+  const day=now.getDay();
+  const daysToMon=day===0?1:(8-day)%7||7;
+  const nextMon=new Date(now);nextMon.setDate(now.getDate()+daysToMon);nextMon.setHours(0,0,0,0);
+  const wDiffMs=nextMon-now;
+  const wDiffD=Math.floor(wDiffMs/86400000),wDiffH=Math.floor((wDiffMs%86400000)/3600000);
+  const wResetStr=`${wDiffD}일 ${wDiffH}시간 후 초기화`;
 
-  const TYPE_ICON = {kill:'⚔️', zone:'🗺️', dojo:'🎯', dungeon:'🏯', worldboss:'👻', enhance:'⚒️'};
-
-  // 몬스터 → 출현 사냥터 매핑 (ZONES에서 자동 생성)
-  const MOB_ZONE_MAP = {};
-  ZONES.forEach(z => {
-    z.mobs.forEach(m => {
-      if(!MOB_ZONE_MAP[m.n]) MOB_ZONE_MAP[m.n] = [];
-      MOB_ZONE_MAP[m.n].push({name:z.name, emoji:z.emoji, min:z.min, max:z.max});
-    });
-  });
-
-  // 퀘스트 위치 힌트 생성
-  function getLocationHint(q) {
-    if(q.type === 'kill') {
-      if(q.target === '*') return `<span style="color:#64748b;font-size:9px;">📍 모든 사냥터</span>`;
-      const zones = MOB_ZONE_MAP[q.target];
-      if(!zones) return '';
-      return zones.map(z =>
-        `<span style="display:inline-flex;align-items:center;gap:2px;font-size:9px;
-          padding:1px 6px;border-radius:5px;background:rgba(124,58,237,.1);
-          border:1px solid rgba(124,58,237,.2);color:#a78bfa;">
-          ${z.emoji} ${z.name} <span style="color:#64748b">Lv.${z.min}~${z.max}</span>
-        </span>`
-      ).join(' ');
-    }
-    if(q.type === 'zone') {
-      const z = ZONES.find(z => z.id === q.target);
-      if(!z) return '';
-      return `<span style="display:inline-flex;align-items:center;gap:2px;font-size:9px;
-        padding:1px 6px;border-radius:5px;background:rgba(124,58,237,.1);
-        border:1px solid rgba(124,58,237,.2);color:#a78bfa;">
-        ${z.emoji} ${z.name} <span style="color:#64748b">Lv.${z.min}~${z.max}</span>
-      </span>`;
-    }
-    if(q.type === 'dungeon')   return `<span style="font-size:9px;color:#64748b;">📍 마을 → 던전</span>`;
-    if(q.type === 'dojo')      return `<span style="font-size:9px;color:#64748b;">📍 마을 → 도장</span>`;
-    if(q.type === 'worldboss') return `<span style="font-size:9px;color:#64748b;">📍 마을 → 월드보스</span>`;
-    if(q.type === 'enhance')   return `<span style="font-size:9px;color:#64748b;">📍 마을 → 장비 강화</span>`;
-    return '';
-  }
-
-  const body = document.getElementById('gw-qbody');
+  const body=document.getElementById('gw-qbody');
   if(!body) return;
 
-  function renderQItems(quests, prog, claim, claimFn, resetLabel, resetTime) {
-    return `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
-       margin-bottom:10px;padding:6px 10px;background:rgba(251,191,36,.06);
-       border:1px solid rgba(251,191,36,.15);border-radius:8px;display:flex;justify-content:space-between;">
-       <span>${resetLabel}</span>
-       <span style="color:#fbbf24">⏱ ${resetTime}</span>
-     </div>` +
-    quests.map(q=>{
-      const p=prog[q.id]||0, done=p>=q.need, cl=claim[q.id];
-      const pct=Math.min(100,p/q.need*100);
-      const icon=TYPE_ICON[q.type]||'📌';
-      const statusIcon=cl?'✅':done?'🎁':icon;
-      const bgColor=cl?'rgba(52,211,153,.06)':done?'rgba(251,191,36,.06)':'rgba(124,58,237,.04)';
-      const borderColor=cl?'rgba(52,211,153,.2)':done?'rgba(251,191,36,.2)':'rgba(124,58,237,.1)';
-      const locationHint = getLocationHint(q);
-      return`<div class="gw-qi" style="background:${bgColor};border-color:${borderColor}">
-        <div class="gw-qi-t">${statusIcon} ${q.title}</div>
-        <div class="gw-qi-d">${q.desc}</div>
-        ${locationHint ? `<div style="margin:4px 0 2px;">${locationHint}</div>` : ''}
-        <div style="display:flex;align-items:center;gap:7px;">
-          <div class="gw-qi-bar"><div class="gw-qi-f" style="width:${pct}%"></div></div>
-          <span class="gw-qi-cnt">${Math.min(p,q.need)}/${q.need}</span>
-        </div>
-        <div class="gw-qi-rew">보상: EXP +${q.eR.toLocaleString()} / Gold +${q.gR}G</div>
-        ${done&&!cl?`<button class="gw-qi-claim" onclick="${claimFn}('${q.id}')">보상 수령</button>`:''}
-      </div>`;
-    }).join('');
-  }
-
-  const tabStyle = (active) => `padding:6px 14px;border-radius:8px 8px 0 0;font-size:11px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;border:none;
+  const tabStyle=(active)=>`padding:5px 10px;border-radius:6px 6px 0 0;font-size:10px;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;border:none;white-space:nowrap;
     background:${active?'rgba(124,58,237,.25)':'rgba(124,58,237,.06)'};
     color:${active?'#c084fc':'#64748b'};
     border-bottom:2px solid ${active?'#a855f7':'transparent'};`;
 
-  body.innerHTML =
-    `<div style="display:flex;gap:4px;margin-bottom:10px;">
-       <button style="${tabStyle(_qTab==='daily')}"   onclick="_qTab='daily';  renderQ()">📅 일일 퀘스트</button>
-       <button style="${tabStyle(_qTab==='weekly')}"  onclick="_qTab='weekly'; renderQ()">📆 주간 퀘스트</button>
-     </div>` +
-    (_qTab === 'daily'
-      ? renderQItems(G.quests,  G.qprog,  G.qclaim,  'claimQ',  '📅 일일 퀘스트', resetStr)
-      : renderQItems(G.wquests, G.wqprog, G.wqclaim, 'claimWQ', '📆 주간 퀘스트', wResetStr));
+  const TYPE_ICON={kill:'⚔️',zone:'🗺️',dojo:'🎯',dungeon:'🏯',worldboss:'👻',enhance:'⚒️',rdungeon:'🏺',legion:'⚡'};
+
+  const MOB_ZONE_MAP={};
+  ZONES.forEach(z=>{z.mobs.forEach(m=>{if(!MOB_ZONE_MAP[m.n])MOB_ZONE_MAP[m.n]=[];MOB_ZONE_MAP[m.n].push({name:z.name,emoji:z.emoji,min:z.min,max:z.max});});});
+
+  function getLocationHint(q){
+    if(q.type==='zone'){const z=ZONES.find(z=>z.id===q.target);if(!z)return'';return`<span style="font-size:9px;padding:1px 6px;border-radius:5px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);color:#a78bfa;">${z.emoji} ${z.name}</span>`;}
+    if(q.type==='dungeon')   return`<span style="font-size:9px;color:#64748b;">📍 마을 → 던전</span>`;
+    if(q.type==='worldboss') return`<span style="font-size:9px;color:#64748b;">📍 마을 → 월드보스</span>`;
+    if(q.type==='rdungeon')  return`<span style="font-size:9px;color:#64748b;">📍 마을 → 유물던전</span>`;
+    if(q.type==='legion')    return`<span style="font-size:9px;color:#64748b;">📍 마을 → 군단장</span>`;
+    return'';
+  }
+
+  // ── 일일 퀘스트 렌더 ──
+  function renderDaily(){
+    return`<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
+       margin-bottom:10px;padding:6px 10px;background:rgba(251,191,36,.06);
+       border:1px solid rgba(251,191,36,.15);border-radius:8px;display:flex;justify-content:space-between;">
+       <span>📅 일일 퀘스트</span><span style="color:#fbbf24">⏱ ${resetStr}</span>
+     </div>`+
+    G.quests.map(q=>{
+      const p=G.qprog[q.id]||0,done=p>=q.need,cl=G.qclaim[q.id];
+      const pct=Math.min(100,p/q.need*100);
+      const statusIcon=cl?'✅':done?'🎁':(TYPE_ICON[q.type]||'📌');
+      const bg=cl?'rgba(52,211,153,.06)':done?'rgba(251,191,36,.06)':'rgba(124,58,237,.04)';
+      const bc=cl?'rgba(52,211,153,.2)':done?'rgba(251,191,36,.2)':'rgba(124,58,237,.1)';
+      return`<div class="gw-qi" style="background:${bg};border-color:${bc}">
+        <div class="gw-qi-t">${statusIcon} ${q.title}</div>
+        <div class="gw-qi-d">${q.desc}</div>
+        <div style="margin:4px 0 2px;">${getLocationHint(q)}</div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <div class="gw-qi-bar"><div class="gw-qi-f" style="width:${pct}%"></div></div>
+          <span class="gw-qi-cnt">${Math.min(p,q.need)}/${q.need}</span>
+        </div>
+        <div class="gw-qi-rew">보상: EXP +${q.eR.toLocaleString()} / Gold +${q.gR.toLocaleString()}G</div>
+        ${done&&!cl?`<button class="gw-qi-claim" onclick="claimQ('${q.id}')">보상 수령</button>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  // ── 주간 퀘스트 렌더 ──
+  function renderWeekly(){
+    return`<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
+       margin-bottom:10px;padding:6px 10px;background:rgba(96,165,250,.06);
+       border:1px solid rgba(96,165,250,.15);border-radius:8px;display:flex;justify-content:space-between;">
+       <span>📆 주간 퀘스트</span><span style="color:#60a5fa">⏱ ${wResetStr}</span>
+     </div>`+
+    (G.wquests||[]).map(q=>{
+      const p=G.wqprog[q.id]||0,done=p>=q.need,cl=G.wqclaim[q.id];
+      const pct=Math.min(100,p/q.need*100);
+      const statusIcon=cl?'✅':done?'🎁':(TYPE_ICON[q.type]||'📌');
+      const bg=cl?'rgba(52,211,153,.06)':done?'rgba(251,191,36,.06)':'rgba(96,165,250,.03)';
+      const bc=cl?'rgba(52,211,153,.2)':done?'rgba(251,191,36,.2)':'rgba(96,165,250,.12)';
+      const rewTxt=`EXP +${q.eR.toLocaleString()} / Gold +${q.gR.toLocaleString()}G${q.magicR?` / 💎${q.magicR}개`:''}`;
+      return`<div class="gw-qi" style="background:${bg};border-color:${bc}">
+        <div class="gw-qi-t">${statusIcon} ${q.title}</div>
+        <div class="gw-qi-d">${q.desc}</div>
+        <div style="margin:4px 0 2px;">${getLocationHint(q)}</div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <div class="gw-qi-bar"><div class="gw-qi-f" style="width:${pct}%"></div></div>
+          <span class="gw-qi-cnt">${Math.min(p,q.need)}/${q.need}</span>
+        </div>
+        <div class="gw-qi-rew">보상: ${rewTxt}</div>
+        ${done&&!cl?`<button class="gw-qi-claim" onclick="claimWQ('${q.id}')">보상 수령</button>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  // ── 강화 퀘스트 렌더 ──
+  function renderEnhQ(){
+    const total  = G.enhQTotal||0;
+    const target = getEnhQTarget();
+    const reward = getEnhQReward(target);
+    const pct    = Math.min(100, total/target*100);
+    const canClaim = total >= target;
+    const claimed  = (G.enhQClaimed||0);
+    return`<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
+       margin-bottom:10px;padding:6px 10px;background:rgba(249,115,22,.06);
+       border:1px solid rgba(249,115,22,.15);border-radius:8px;">
+       <span>⚒️ 강화 퀘스트</span><span style="color:#f97316;margin-left:8px;font-size:9px;">누적 ${total}회 · ${claimed}단계 완료</span>
+     </div>
+     <div class="gw-qi" style="background:${canClaim?'rgba(251,191,36,.06)':'rgba(249,115,22,.04)'};border-color:${canClaim?'rgba(251,191,36,.2)':'rgba(249,115,22,.15)'}">
+       <div class="gw-qi-t">${canClaim?'🎁':'⚒️'} 장비 강화 ${target}회 달성</div>
+       <div class="gw-qi-d">장비를 총 ${target}회 강화하세요 (누적, 초기화 없음)</div>
+       <div style="display:flex;align-items:center;gap:7px;margin-top:6px;">
+         <div class="gw-qi-bar"><div class="gw-qi-f" style="width:${pct}%"></div></div>
+         <span class="gw-qi-cnt">${total}/${target}</span>
+       </div>
+       <div class="gw-qi-rew">보상: Gold +${reward.toLocaleString()}G</div>
+       ${canClaim?`<button class="gw-qi-claim" onclick="claimEnhQ()">보상 수령</button>`:''}
+     </div>
+     <div style="font-size:9px;color:#475569;font-family:'Noto Sans KR',sans-serif;margin-top:6px;text-align:center;">
+       다음: ${target+10}회 달성 시 Gold +${getEnhQReward(target+10).toLocaleString()}G
+     </div>`;
+  }
+
+  // ── 직업 퀘스트 렌더 ──
+  function renderLvQ(){
+    const milestones = getLvQMilestones();
+    if(!G.lvQClaim) G.lvQClaim={};
+    const JOB_COL={warrior:'#ef4444',archer:'#34d399',mage:'#60a5fa',rogue:'#a855f7',paladin:'#fbbf24'};
+    const jc=JOB_COL[G.job]||'#94a3b8';
+    let html=`<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
+       margin-bottom:10px;padding:6px 10px;background:${jc}11;
+       border:1px solid ${jc}33;border-radius:8px;">
+       <span style="color:${jc}">🎖️ ${JOBS[G.job]?.name||G.job} 직업 퀘스트</span>
+       <span style="color:#64748b;margin-left:8px;font-size:9px;">레벨 10단계마다 보상 · 초기화 없음</span>
+     </div>`;
+    milestones.forEach(ms=>{
+      const cl=G.lvQClaim[ms.lv];
+      const reached=G.lv>=ms.lv;
+      const canClaim=reached&&!cl;
+      const bg=cl?'rgba(52,211,153,.04)':canClaim?'rgba(251,191,36,.06)':'rgba(255,255,255,.02)';
+      const bc=cl?'rgba(52,211,153,.15)':canClaim?'rgba(251,191,36,.2)':'rgba(255,255,255,.04)';
+      html+=`<div class="gw-qi" style="background:${bg};border-color:${bc}">
+        <div class="gw-qi-t">${cl?'✅':canClaim?'🎁':'🔒'} ${ms.title}</div>
+        <div class="gw-qi-d">Lv.${ms.lv} 달성 · ${G.lv>=ms.lv?'달성':'미달성 (현재 Lv.'+G.lv+')'}</div>
+        <div class="gw-qi-rew">보상: Gold +${ms.gR.toLocaleString()}G / 💎${ms.magicR}개 / 🧪${ms.alchR}개</div>
+        ${canClaim?`<button class="gw-qi-claim" onclick="claimLvQ(${ms.lv})">보상 수령</button>`:''}
+      </div>`;
+    });
+    return html;
+  }
+
+  body.innerHTML=
+    `<div style="display:flex;gap:3px;margin-bottom:10px;overflow-x:auto;">
+       <button style="${tabStyle(_qTab==='daily')}"   onclick="_qTab='daily';  renderQ()">📅 일일</button>
+       <button style="${tabStyle(_qTab==='weekly')}"  onclick="_qTab='weekly'; renderQ()">📆 주간</button>
+       <button style="${tabStyle(_qTab==='enhance')}" onclick="_qTab='enhance';renderQ()">⚒️ 강화</button>
+       <button style="${tabStyle(_qTab==='level')}"   onclick="_qTab='level';  renderQ()">🎖️ 직업</button>
+     </div>`+
+    (_qTab==='daily'   ? renderDaily()   :
+     _qTab==='weekly'  ? renderWeekly()  :
+     _qTab==='enhance' ? renderEnhQ()    : renderLvQ());
 }
+
 function claimQ(qid){
   const q=G.quests.find(x=>x.id===qid);if(!q||G.qclaim[qid])return;
   G.qclaim[qid]=true;
@@ -3570,9 +3718,73 @@ function claimWQ(qid){
   const q=G.wquests.find(x=>x.id===qid);if(!q||G.wqclaim[qid])return;
   G.wqclaim[qid]=true;
   const gainedExp=Math.floor(q.eR*tExpRate());
-  G.exp+=gainedExp;G.gold+=q.gR;
+  G.exp+=gainedExp; G.gold+=q.gR;
+  if(q.magicR){const mEx=G.inv.find(i=>i.n==='마법석');if(mEx)mEx.qty=(mEx.qty||0)+q.magicR;else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:q.magicR,_id:Date.now()});}
   while(G.exp>=expNeed(G.lv)&&G.lv<200){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
-  gwT(`🎉 주간 퀘스트 완료! +${gainedExp}EXP +${q.gR}G`);hud();saveG();renderQ();renderQdot();
+  gwT(`🎉 주간 퀘스트 완료! +${gainedExp.toLocaleString()}EXP +${q.gR.toLocaleString()}G${q.magicR?' +💎'+q.magicR:''}`);
+  hud();saveG();renderQ();renderQdot();
+}
+
+function renderEnhanceQuest() {
+  const { total, nextTarget, stage, reward } = getEnhQuestData();
+  const pct = Math.min(100, (total % 10) / 10 * 100);
+  const cur = total % 10;
+  const JOB_NAME = {warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'};
+  return `
+  <div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:12px;margin-bottom:10px;">
+    <div style="font-size:11px;color:#fbbf24;font-family:'Orbitron',sans-serif;font-weight:700;margin-bottom:6px;">
+      ⚒️ ${JOB_NAME[G.job]||G.job} 장비 강화 퀘스트
+    </div>
+    <div style="font-size:10px;color:#94a3b8;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">
+      총 누적 강화 횟수: <strong style="color:#e2e8f0;">${total}회</strong> · 현재 단계: <strong style="color:#fbbf24;">${stage}단계</strong>
+    </div>
+    <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:6px;">
+      🎯 목표: ${nextTarget}회 강화 달성 (${cur}/10회 진행)
+    </div>
+    <div style="height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;margin-bottom:8px;">
+      <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#fbbf24,#f59e0b);transition:width .3s;"></div>
+    </div>
+    <div style="font-size:10px;color:#34d399;font-family:'Noto Sans KR',sans-serif;">
+      🎁 달성 보상: <strong>+${reward.toLocaleString()}G</strong> (자동 지급)
+    </div>
+    <div style="font-size:9px;color:#475569;margin-top:6px;font-family:'Noto Sans KR',sans-serif;">
+      💡 장비를 강화할 때마다 자동으로 누적됩니다. 10회마다 보상이 자동 지급됩니다.
+    </div>
+  </div>`;
+}
+
+// ── 직업 레벨 퀘스트 렌더 ──
+function renderLvQuest() {
+  if(!G.lvQuestClaimed) G.lvQuestClaimed = {};
+  const claimed = G.lvQuestClaimed[G.job] || 0;
+  const JOB_NAME = {warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'};
+  let html = `<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px;">
+    ⬆️ ${JOB_NAME[G.job]||G.job} 레벨 달성 보상 (10레벨 구간마다 자동 지급)
+  </div>`;
+  const milestones = [];
+  for(let lv=10;lv<=200;lv+=10) milestones.push(lv);
+  milestones.forEach(lv => {
+    const r = getLvQuestReward(lv);
+    const done = claimed >= lv;
+    const cur  = G.lv >= lv;
+    const gc   = done ? '#34d399' : cur ? '#fbbf24' : '#475569';
+    const bg   = done ? 'rgba(52,211,153,.06)' : cur ? 'rgba(251,191,36,.06)' : 'rgba(255,255,255,.02)';
+    const bd   = done ? 'rgba(52,211,153,.2)' : cur ? 'rgba(251,191,36,.2)' : 'rgba(255,255,255,.05)';
+    const icon = done ? '✅' : cur ? '🎁' : '🔒';
+    html += `<div style="background:${bg};border:1px solid ${bd};border-radius:8px;padding:8px 12px;margin-bottom:4px;
+      display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:${gc};font-family:'Orbitron',sans-serif;">${icon} Lv.${lv} 달성</div>
+        <div style="font-size:9px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-top:2px;">
+          +${r.gold.toLocaleString()}G · 마법석 ${r.stone}개 · 연금석 ${r.alch}개
+        </div>
+      </div>
+      <div style="font-size:10px;color:${done?'#34d399':cur?'#fbbf24':'#475569'};font-family:'Orbitron',sans-serif;">
+        ${done ? '수령완료' : cur ? '자동지급' : `Lv.${lv}~`}
+      </div>
+    </div>`;
+  });
+  return html;
 }
 
 // ── 퀘스트 진행 훅 ──
@@ -3688,6 +3900,7 @@ function enhSlot(slot){
   if(G.gold<cost){gwT(`골드 부족 (${cost}G 필요)`);return;}
   G.gold-=cost;
   it.enh=(it.enh||0)+1;
+  G.enhQTotal=(G.enhQTotal||0)+1; // 강화 퀘스트 누적
   // 장비 타입별 강화 효과
   if(it.type==='weapon'||it.slot==='weapon'){
     it.atk=(it.atk||0)+2;
@@ -3712,7 +3925,7 @@ function enhSlot(slot){
     it.def=(it.def||0)+2;
   }
   recalcStats();hud();
-  questProgress('enhance','any'); // 일일 장비강화 퀘스트 진행
+  enhQuestProgress(); // 강화 퀘스트 누적 진행
   saveG();renderEnh();
   gwT(`⚒️ ${it.n} +${it.enh} 강화 완료! (다음 비용: ${enhCost(it.enh, it.grade).toLocaleString()}G)`);
 }
@@ -4198,8 +4411,8 @@ function dunFight() {
   if(_dun.bossHp<=0){ dunBossDead(); return; }
   // 보스 공격 (방어 관통 공식: 60%는 방어 무시, 40%는 방어 절반만 적용)
   // → 아무리 방어가 높아도 보스 공격의 60%는 반드시 들어옴
-  const bPenetrate = Math.floor(boss.atk * 0.6);
-  const bResisted  = Math.max(0, Math.floor(boss.atk * 0.4) - Math.floor(tDef() * 0.5));
+  const bPenetrate = Math.floor(boss.atk * 0.45);
+  const bResisted  = Math.max(0, Math.floor(boss.atk * 0.55) - Math.floor(tDef() * 0.5));
   const bVariance  = Math.floor(Math.random() * Math.max(2, Math.floor(boss.atk * 0.05)));
   // 던전 보스 회피율 체크
   if(tDodge()>0 && Math.random()*100 < tDodge()){
@@ -5641,10 +5854,10 @@ function buyCashItem(itemId) {
 const WB_LIST = [
   { id:'baldrix',   name:'유령기사 발드릭스', emoji:'👻', minLv:50,  fbPath:'world_boss',   cycle:'daily' },
   { id:'dimension', name:'차원의 문',          emoji:'🌀', minLv:90,  fbPath:'world_boss_2', cycle:'daily' },
-  { id:'eldrania',  name:'빛을 찢은 여왕, 타락신 "엘드라니아"', emoji:'👑', minLv:120, fbPath:'world_boss_3', cycle:'weekly' },
-  { id:'azarc',     name:'흑룡 "아자르크"',                       emoji:'🐲', minLv:140, fbPath:'world_boss_4', cycle:'weekly' },
-  { id:'astraель',  name:'별을 삼키는 자 "아스트라엘"',           emoji:'🌠', minLv:160, fbPath:'world_boss_5', cycle:'weekly' },
-  { id:'orphion',   name:'시간의 파괴자 "오르피온"',               emoji:'⏳', minLv:180, fbPath:'world_boss_6', cycle:'weekly' },
+  { id:'eldrania',  name:'빛을 찢은 여왕, 타락신 "엘드라니아"', emoji:'👑', minLv:120, fbPath:'world_boss_3', cycle:'daily' },
+  { id:'azarc',     name:'흑룡 "아자르크"',                       emoji:'🐲', minLv:140, fbPath:'world_boss_4', cycle:'daily' },
+  { id:'astraель',  name:'별을 삼키는 자 "아스트라엘"',           emoji:'🌠', minLv:160, fbPath:'world_boss_5', cycle:'daily' },
+  { id:'orphion',   name:'시간의 파괴자 "오르피온"',               emoji:'⏳', minLv:180, fbPath:'world_boss_6', cycle:'daily' },
   { id:'seraphiel', name:'타락한 절대자 "세라피엘"',               emoji:'😇', minLv:200, fbPath:'world_boss_7', cycle:'weekly' },
 ];
 // 직업 목록 (월드보스 직업별 파티용)
@@ -5993,6 +6206,9 @@ function renderWbClaimSection(username, partyInfo, wb=WB_LIST[0], jobId=null) {
   const job = jobId || partyInfo.job || G.job;
   const jobName = WB_JOB_NAMES[job] || job;
   const jobEmoji = WB_JOB_EMOJI[job] || '?';
+  // 세라피엘(주간): 다음 월요일 00시, 일반(일간): 오늘 자정 이후 수령 가능
+  const isWeekly = wb.cycle === 'weekly';
+  const claimTimeLabel = isWeekly ? '다음 월요일 00시' : '오늘 자정(00:00)';
   // 현재 플레이 중인 직업만 버튼 활성화
   const isCurJob = (job === G.job);
   const btnStyle = isCurJob
@@ -6092,8 +6308,9 @@ function wbClaimReward(date, wbId, jobId=null) {
   const claimKey = _wbKey('claimed_' + wb.id + '_' + job + '_' + date + '_' + username);
   if(localStorage.getItem(claimKey)) { gwT(`${WB_JOB_NAMES[job]||job} — 이미 보상을 수령했습니다.`); return; }
 
-  // weekly 보스: 월요일 00시 이후만 수령 가능
+  // 수령 가능 시간 체크
   if(wb.cycle === 'weekly') {
+    // 세라피엘: 다음 월요일 00시 이후만 수령 가능
     const now = new Date();
     const day = now.getDay();
     const daysSinceMon = day === 0 ? 6 : day - 1;
@@ -6102,7 +6319,27 @@ function wbClaimReward(date, wbId, jobId=null) {
     monStart.setHours(0,0,0,0);
     const joinDate = new Date(date);
     if(joinDate >= monStart) {
-      gwT('⏳ 이번 주 월요일 00시 이후 수령 가능합니다.');
+      // 다음 월요일까지 남은 시간 계산
+      const nextMon = new Date(monStart);
+      nextMon.setDate(monStart.getDate() + 7);
+      const diff = nextMon - now;
+      const daysLeft = Math.floor(diff / 86400000);
+      const hoursLeft = Math.floor((diff % 86400000) / 3600000);
+      gwT(`⏳ 다음 월요일 00시 이후 수령 가능합니다. (${daysLeft}일 ${hoursLeft}시간 후)`);
+      return;
+    }
+  } else {
+    // 일반 보스: 다음날 00시 이후만 수령 가능
+    const today = wbTodayKey();
+    if(date >= today) {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setDate(now.getDate() + 1);
+      midnight.setHours(0,0,0,0);
+      const diff = midnight - now;
+      const hoursLeft = Math.floor(diff / 3600000);
+      const minsLeft  = Math.floor((diff % 3600000) / 60000);
+      gwT(`⏳ 내일 00시 이후 수령 가능합니다. (${hoursLeft}시간 ${minsLeft}분 후)`);
       return;
     }
   }
@@ -7083,7 +7320,9 @@ function _towerUploadRank(set) {
   if(maxFloor <= 0) return;
   const weekKey = wbWeekKey();
   // 기존 기록보다 높을 때만 업데이트 (먼저 도달한 사람 우선: timestamp 보존)
-  const ref = window._gwDB.ref('tower_rank/' + weekKey + '/' + username);
+  // 직업별 독립 경로: tower_rank/{weekKey}/{username}_{job}
+  const rankKey = username + '_' + G.job;
+  const ref = window._gwDB.ref('tower_rank/' + weekKey + '/' + rankKey);
   ref.get().then(snap => {
     const cur = snap && snap.exists() ? snap.val() : null;
     if(!cur || maxFloor > (cur.floor||0)) {
@@ -7520,8 +7759,8 @@ function towerFight() {
   if(_tower.mobHp<=0){ towerMobDead(); return; }
 
   // 몬스터 공격
-  const bPen  = Math.floor(mob.atk*0.6);
-  const bRes  = Math.max(0, Math.floor(mob.atk*0.4)-Math.floor(tDef()*0.5));
+  const bPen  = Math.floor(mob.atk*0.45);
+  const bRes  = Math.max(0, Math.floor(mob.atk*0.55)-Math.floor(tDef()*0.5));
   const bVar  = Math.floor(Math.random()*Math.max(2,Math.floor(mob.atk*0.05)));
   // 플레이어 공격에 보스대미지 % 추가 반영은 던전보스 처치 시 dmg 계산에서 처리
   const md    = Math.min(Math.max(1,bPen+bRes+bVar), Math.floor(G.mHP*0.6));
@@ -8234,7 +8473,10 @@ function relicEnhSlot(slotIdx) {
   }
   r.enh = enh + 1;
 
-  recalcStats(); hud(); saveG();
+  recalcStats(); hud();
+  // 강화 퀘스트 누적 카운트
+  G.enhQTotal = (G.enhQTotal||0) + 1;
+  saveG();
   gwT(`🔮 [${r.name||r.n}] +${r.enh} 강화 완료!`);
   renderRelicEnh();
 }
@@ -8493,8 +8735,8 @@ function rdunFight() {
     rdunBlog(`<span style="color:#34d399">💨 회피! 보스 공격을 피했습니다!</span>`);
     rdunHud(); return;
   }
-  const bPen  = Math.floor(boss.atk*0.6);
-  const bRes  = Math.max(0, Math.floor(boss.atk*0.4)-Math.floor(tDef()*0.5));
+  const bPen  = Math.floor(boss.atk*0.45);
+  const bRes  = Math.max(0, Math.floor(boss.atk*0.55)-Math.floor(tDef()*0.5));
   const bVar  = Math.floor(Math.random()*Math.max(2,Math.floor(boss.atk*0.05)));
   const md    = Math.min(Math.max(1,bPen+bRes+bVar), Math.floor(G.mHP*0.6));
   G.hp = Math.max(0, G.hp-md);
@@ -8513,6 +8755,7 @@ function rdunFight() {
 // ── 보스 처치 ──
 function rdunBossDead() {
   clearInterval(_rdun.tick); clearInterval(_rdun.timerInt);
+  questProgress('rdungeon','any'); // 유물던전 클리어 퀘스트
   const rdun   = _rdunDay || getTodayRdun();
   const boss   = _rdun.boss;
   const m=Math.floor(_rdun.timerSec/60), s=_rdun.timerSec%60;
@@ -8951,7 +9194,7 @@ function legionFight() {
   if(_legion.bossHp<=0){ legionBossDead(); return; }
 
   // 보스 공격: 방어무시(pen) + 방어 경감 부분
-  const bPen = boss.pen;
+  const bPen = Math.floor(boss.pen * 0.75);  // 군단장 방어무시도 25% 완화
   const bRes = Math.max(0, Math.floor((boss.atk-boss.pen)*0.5) - Math.floor(tDef()*0.4));
   const bVar = Math.floor(Math.random()*Math.max(2,Math.floor(boss.atk*0.03)));
   const md   = Math.min(Math.max(1,bPen+bRes+bVar), Math.floor(G.mHP*0.6));
@@ -8974,6 +9217,9 @@ function legionFight() {
 
 // ── 보스 처치 ──
 function legionBossDead() {
+  // 군단장 클리어 퀘스트
+  const legionId = (_legion && _legion.boss && _legion.boss.id) ? _legion.boss.id : 'any';
+  questProgress('legion', legionId);
   clearInterval(_legion.tick); clearInterval(_legion.timerInt);
   const boss = _legionBossData;
   addLegionCount(boss.id);
@@ -10141,11 +10387,11 @@ function _towerRankRef(key) {
 
 // 이번 주 보상 수령 여부 키
 function _towerRankClaimKey() {
-  return 'gwo_tower_rank_claim_' + wbWeekKey() + '_' + gwUN();
+  return 'gwo_tower_rank_claim_' + wbWeekKey() + '_' + G.job + '_' + gwUN();
 }
 // 지난 주 보상 수령 여부 키
 function _towerRankLastClaimKey() {
-  return 'gwo_tower_rank_claim_' + wbLastWeekKey() + '_' + gwUN();
+  return 'gwo_tower_rank_claim_' + wbLastWeekKey() + '_' + G.job + '_' + gwUN();
 }
 
 // 순위 보상 연금석 계산
@@ -10169,75 +10415,78 @@ function towerTab(tab) {
     btn.style.borderBottom = active ? '2px solid #fbbf24'     : '2px solid transparent';
   });
   if(tab === 'info') renderTowerPanel();
-  else               renderTowerRank();
+  else { _towerRankJob = G.job; renderTowerRank(); } // 순위 탭 클릭 시 현재 직업으로 초기화
 }
 
-// ── 순위 패널 렌더 ──
+// 직업 탭 상태
+let _towerRankJob = null; // null이면 현재 직업
+
+// ── 순위 패널 렌더 (직업별 탭) ──
 async function renderTowerRank() {
   const el = document.getElementById('gw-towerbody'); if(!el) return;
   el.innerHTML = `<div style="text-align:center;padding:20px;color:#64748b;font-size:11px;font-family:'Noto Sans KR',sans-serif;">🔄 순위 불러오는 중...</div>`;
 
-  const myName  = gwUN();
-  const weekKey = wbWeekKey();
-  const lastKey = wbLastWeekKey();
+  const myName   = gwUN();
+  const weekKey  = wbWeekKey();
+  const lastKey  = wbLastWeekKey();
+  const viewJob  = _towerRankJob || G.job; // 보고 있는 직업 탭
 
-  // 이번 주 순위 조회
+  const JOB_EMO  = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
+  const JOB_NAME = {warrior:'전사',archer:'궁수',mage:'마법사',rogue:'도적',paladin:'성기사'};
+  const JOB_COL  = {warrior:'#ef4444',archer:'#34d399',mage:'#60a5fa',rogue:'#a855f7',paladin:'#fbbf24'};
+  const JOBS_ALL = ['warrior','archer','mage','rogue','paladin'];
+  const MEDAL    = ['🥇','🥈','🥉'];
+
   const ref = _towerRankRef(weekKey);
   if(!ref) {
     el.innerHTML = `<div style="padding:20px;text-align:center;color:#475569;font-size:11px;">Firebase 연결 없음</div>`;
     return;
   }
 
-  let rankData = [];
+  // 전체 기록 조회 → 직업별로 분류
+  let allData = [];
   try {
     const snap = await ref.get();
-    if(snap && snap.exists()) {
-      snap.forEach(ch => { rankData.push(ch.val()); });
-    }
+    if(snap && snap.exists()) snap.forEach(ch => allData.push(ch.val()));
   } catch(e) { console.warn('[탑순위]', e); }
 
-  // 정렬: floor 내림차순, 같으면 ts 오름차순 (먼저 도달한 사람 우선)
-  rankData.sort((a,b) => b.floor - a.floor || a.ts - b.ts);
+  // 직업별 필터 + 정렬
+  const jobData = allData
+    .filter(r => r.job === viewJob)
+    .sort((a,b) => b.floor - a.floor || a.ts - b.ts);
 
-  const myRankIdx = rankData.findIndex(r => r.user === myName);
+  const myRankIdx = jobData.findIndex(r => r.user === myName);
   const myRank    = myRankIdx >= 0 ? myRankIdx + 1 : null;
-  const myData    = myRankIdx >= 0 ? rankData[myRankIdx] : null;
+  const myData    = myRankIdx >= 0 ? jobData[myRankIdx] : null;
 
-  // 지난 주 보상 수령 가능 여부
+  // 지난 주 보상 (현재 직업 기준)
   const lastClaimed  = localStorage.getItem(_towerRankLastClaimKey());
-  const canLastClaim = !lastClaimed;
-  let lastRankData = [];
-  let lastMyRank   = null;
-  let lastAlch     = 0;
+  const canLastClaim = !lastClaimed && viewJob === G.job;
+  let lastMyRank = null, lastAlch = 0;
   if(canLastClaim) {
     try {
       const lastSnap = await _towerRankRef(lastKey)?.get();
       if(lastSnap && lastSnap.exists()) {
-        lastSnap.forEach(ch => { lastRankData.push(ch.val()); });
-        lastRankData.sort((a,b) => b.floor - a.floor || a.ts - b.ts);
-        const lastIdx = lastRankData.findIndex(r => r.user === myName);
-        if(lastIdx >= 0) {
-          lastMyRank = lastIdx + 1;
-          lastAlch   = _towerRankReward(lastMyRank);
-        }
+        let lastJobData = [];
+        lastSnap.forEach(ch => lastJobData.push(ch.val()));
+        lastJobData = lastJobData.filter(r=>r.job===G.job).sort((a,b)=>b.floor-a.floor||a.ts-b.ts);
+        const li = lastJobData.findIndex(r=>r.user===myName);
+        if(li >= 0) { lastMyRank = li+1; lastAlch = _towerRankReward(lastMyRank); }
       }
     } catch(e) {}
   }
 
-  const JOB_EMO = {warrior:'⚔️',archer:'🏹',mage:'🔮',rogue:'🗡️',paladin:'🛡️'};
-  const MEDAL   = ['🥇','🥈','🥉'];
-
   let html = '';
 
-  // 지난 주 보상 수령 섹션
+  // ── 지난 주 보상 ──
   if(canLastClaim && lastMyRank !== null) {
     html += `
     <div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);
-      border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+      border-radius:10px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
       <div>
         <div style="font-size:11px;color:#34d399;font-family:'Orbitron',sans-serif;font-weight:700;">🎁 지난 주 보상 수령 가능</div>
         <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;margin-top:3px;">
-          지난 주 <strong style="color:#fbbf24;">${lastMyRank}위</strong> · 연금석 <strong style="color:#34d399;">${lastAlch}개</strong>
+          ${JOB_EMO[G.job]} ${JOB_NAME[G.job]} · <strong style="color:#fbbf24;">${lastMyRank}위</strong> · 연금석 <strong style="color:#34d399;">${lastAlch}개</strong>
         </div>
       </div>
       <button onclick="towerRankClaim(${lastAlch})"
@@ -10245,56 +10494,69 @@ async function renderTowerRank() {
         color:#fff;padding:7px 14px;border-radius:8px;font-size:10px;
         font-family:'Orbitron',sans-serif;cursor:pointer;font-weight:700;">수령</button>
     </div>`;
-  } else if(canLastClaim && lastMyRank === null && lastRankData.length > 0) {
-    // 지난 주 기록 없음
-    html += `<div style="font-size:9px;color:#475569;text-align:center;margin-bottom:8px;font-family:'Noto Sans KR',sans-serif;">지난 주 탑 기록이 없어 보상이 없습니다.</div>`;
   }
 
-  // 내 현황
+  // ── 직업 탭 ──
+  html += `<div style="display:flex;gap:3px;margin-bottom:12px;overflow-x:auto;">`;
+  JOBS_ALL.forEach(job => {
+    const active = job === viewJob;
+    const jc = JOB_COL[job];
+    const jobAllData = allData.filter(r=>r.job===job).sort((a,b)=>b.floor-a.floor||a.ts-b.ts);
+    const myJobRank = jobAllData.findIndex(r=>r.user===myName);
+    const rankBadge = myJobRank >= 0 ? `<span style="font-size:8px;color:${jc};margin-left:2px;">${myJobRank+1}위</span>` : '';
+    html += `<button onclick="_towerRankJob='${job}';renderTowerRank();"
+      style="flex:1;min-width:44px;padding:6px 4px;border:1px solid ${active?jc+'88':'rgba(255,255,255,.06)'};
+      border-radius:8px;background:${active?jc+'22':'rgba(255,255,255,.02)'};
+      color:${active?jc:'#475569'};font-size:${active?'13':'11'}px;cursor:pointer;white-space:nowrap;
+      font-family:'Orbitron',sans-serif;">
+      ${JOB_EMO[job]}${rankBadge}
+    </button>`;
+  });
+  html += `</div>`;
+
+  // ── 내 현황 ──
+  const jc = JOB_COL[viewJob];
   html += `
     <div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);
-      border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+      border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;">
-        📊 이번 주 내 순위
+        ${JOB_EMO[viewJob]} ${JOB_NAME[viewJob]} 내 순위
       </div>
       <div style="font-family:'Orbitron',sans-serif;font-size:12px;color:#fbbf24;font-weight:700;">
         ${myRank ? `${myRank}위 · ${myData?.floor||0}층` : '기록 없음'}
-        ${myRank ? `<span style="font-size:9px;color:#64748b;margin-left:5px;">(보상: 연금석 ${_towerRankReward(myRank)}개)</span>` : ''}
+        ${myRank ? `<span style="font-size:9px;color:#64748b;margin-left:5px;">(연금석 ${_towerRankReward(myRank)}개)</span>` : ''}
       </div>
     </div>`;
 
   // 주간 초기화 안내
   const now = new Date();
-  const dayOfWeek = now.getDay();
-  const daysLeft = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+  const daysLeft = now.getDay() === 0 ? 0 : 7 - now.getDay();
   html += `<div style="font-size:9px;color:#475569;text-align:right;font-family:'Orbitron',sans-serif;margin-bottom:8px;">
     🔄 주간 초기화: ${daysLeft}일 후 (월요일 00시)
   </div>`;
 
-  // 순위표
+  // ── 순위표 ──
   html += `<div style="font-size:10px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:6px;">
-    🏆 이번 주 순위 (${rankData.length}명)
+    🏆 ${JOB_EMO[viewJob]} ${JOB_NAME[viewJob]} 순위 (${jobData.length}명)
   </div>`;
 
-  if(rankData.length === 0) {
+  if(jobData.length === 0) {
     html += `<div style="text-align:center;padding:30px;color:#475569;font-size:11px;font-family:'Noto Sans KR',sans-serif;">
-      아직 이번 주 기록이 없습니다.</div>`;
+      아직 이번 주 ${JOB_NAME[viewJob]} 기록이 없습니다.</div>`;
   } else {
-    rankData.slice(0, 50).forEach((r, idx) => {
-      const rank    = idx + 1;
-      const isMe    = r.user === myName;
-      const medal   = MEDAL[idx] || '';
-      const reward  = _towerRankReward(rank);
-      const gc      = rank <= 3 ? ['#fbbf24','#94a3b8','#c97c3a'][rank-1] : (isMe ? '#34d399' : '#475569');
+    jobData.slice(0, 50).forEach((r, idx) => {
+      const rank   = idx + 1;
+      const isMe   = r.user === myName;
+      const medal  = MEDAL[idx] || '';
+      const reward = _towerRankReward(rank);
+      const gc     = rank <= 3 ? ['#fbbf24','#94a3b8','#c97c3a'][rank-1] : (isMe ? '#34d399' : '#475569');
 
       html += `
       <div style="background:${isMe?'rgba(52,211,153,.07)':rank<=3?'rgba(251,191,36,.05)':'rgba(255,255,255,.02)'};
         border:1px solid ${isMe?'rgba(52,211,153,.3)':rank<=3?'rgba(251,191,36,.15)':'rgba(255,255,255,.05)'};
-        border-radius:8px;padding:8px 12px;margin-bottom:4px;
-        display:flex;align-items:center;gap:8px;">
-        <div style="width:28px;text-align:center;font-family:'Orbitron',sans-serif;font-size:${rank<=3?'16':'11'}px;
-          color:${gc};font-weight:700;flex-shrink:0;">${medal||rank}</div>
-        <div style="font-size:10px;">${JOB_EMO[r.job]||'👤'}</div>
+        border-radius:8px;padding:8px 12px;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+        <div style="width:28px;text-align:center;font-family:'Orbitron',sans-serif;
+          font-size:${rank<=3?'16':'11'}px;color:${gc};font-weight:700;flex-shrink:0;">${medal||rank}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:11px;font-weight:700;color:${isMe?'#34d399':'#e2e8f0'};font-family:'Noto Sans KR',sans-serif;">
             ${r.user}${isMe?' <span style="color:#34d399;font-size:9px;">▶ 나</span>':''}
@@ -10307,9 +10569,8 @@ async function renderTowerRank() {
         </div>
       </div>`;
     });
-    if(rankData.length > 50) {
+    if(jobData.length > 50)
       html += `<div style="text-align:center;font-size:9px;color:#475569;padding:8px;font-family:'Noto Sans KR',sans-serif;">상위 50위까지 표시</div>`;
-    }
   }
 
   el.innerHTML = html;
