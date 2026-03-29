@@ -1836,11 +1836,14 @@ function getLvQMilestones() {
 }
 function claimLvQ(lvTarget) {
   if(!G.lvQClaim) G.lvQClaim = {};
-  if(G.lvQClaim[lvTarget]) { gwT('이미 수령한 보상입니다.'); return; }
+  // 직업별 독립: G.lvQClaim[job][lv]
+  const job = G.job || 'warrior';
+  if(!G.lvQClaim[job]) G.lvQClaim[job] = {};
+  if(G.lvQClaim[job][lvTarget]) { gwT('이미 수령한 보상입니다.'); return; }
   if(G.lv < lvTarget) { gwT(`레벨 ${lvTarget} 달성 후 수령 가능합니다.`); return; }
   const ms = getLvQMilestones().find(m => m.lv === lvTarget);
   if(!ms) return;
-  G.lvQClaim[lvTarget] = true;
+  G.lvQClaim[job][lvTarget] = true;
   G.gold += ms.gR;
   const magicEx = G.inv.find(i=>i.n==='마법석');
   if(magicEx) magicEx.qty=(magicEx.qty||0)+ms.magicR;
@@ -2733,7 +2736,7 @@ function renderQdot(){
   const hasDaily  = G.quests.some(q=>!G.qclaim[q.id]&&(G.qprog[q.id]||0)>=q.need);
   const hasWeekly = (G.wquests||[]).some(q=>!G.wqclaim[q.id]&&(G.wqprog[q.id]||0)>=q.need);
   const hasEnhQ   = (G.enhQTotal||0) >= getEnhQTarget();
-  const hasLvQ    = getLvQMilestones().some(ms=>G.lv>=ms.lv&&!(G.lvQClaim||{})[ms.lv]);
+  const _lvjob = G.job||'warrior'; const hasLvQ = getLvQMilestones().some(ms=>G.lv>=ms.lv&&!((G.lvQClaim||{})[_lvjob]||{})[ms.lv]);
   const d=document.getElementById('gw-qdot');if(d)d.style.display=(hasDaily||hasWeekly)?'block':'none';
 }
 
@@ -3674,16 +3677,18 @@ function renderQ(){
   function renderLvQ(){
     const milestones = getLvQMilestones();
     if(!G.lvQClaim) G.lvQClaim={};
+    const job = G.job || 'warrior';
+    if(!G.lvQClaim[job]) G.lvQClaim[job]={};
     const JOB_COL={warrior:'#ef4444',archer:'#34d399',mage:'#60a5fa',rogue:'#a855f7',paladin:'#fbbf24'};
     const jc=JOB_COL[G.job]||'#94a3b8';
     let html=`<div style="font-size:10px;color:#64748b;font-family:'Noto Sans KR',sans-serif;
        margin-bottom:10px;padding:6px 10px;background:${jc}11;
        border:1px solid ${jc}33;border-radius:8px;">
        <span style="color:${jc}">🎖️ ${JOBS[G.job]?.name||G.job} 직업 퀘스트</span>
-       <span style="color:#64748b;margin-left:8px;font-size:9px;">레벨 10단계마다 보상 · 초기화 없음</span>
+       <span style="color:#64748b;margin-left:8px;font-size:9px;">레벨 10단계마다 보상 · 직업별 독립</span>
      </div>`;
     milestones.forEach(ms=>{
-      const cl=G.lvQClaim[ms.lv];
+      const cl=G.lvQClaim[job]?.[ms.lv];
       const reached=G.lv>=ms.lv;
       const canClaim=reached&&!cl;
       const bg=cl?'rgba(52,211,153,.04)':canClaim?'rgba(251,191,36,.06)':'rgba(255,255,255,.02)';
