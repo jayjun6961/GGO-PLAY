@@ -2140,7 +2140,25 @@
 
     let data;
     try {
-      data = JSON.parse(decodeURIComponent(escape(atob(raw))));
+      // 내보내기: btoa(unescape(encodeURIComponent(JSON))) 의 정확한 역변환
+      // decodeURIComponent(escape(...)) 는 모바일에서 불안정 → TextDecoder 방식으로 교체
+      let decoded;
+      try {
+        // 방법1: 내보내기와 완전 대칭 (unescape/encodeURIComponent 역순)
+        decoded = decodeURIComponent(Array.prototype.map.call(atob(raw), function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+      } catch(e1) {
+        try {
+          // 방법2: TextDecoder (구형 데이터 호환)
+          const bytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+          decoded = new TextDecoder('utf-8').decode(bytes);
+        } catch(e2) {
+          // 방법3: 기존 방식 fallback
+          decoded = decodeURIComponent(escape(atob(raw)));
+        }
+      }
+      data = JSON.parse(decoded);
     } catch(e) {
       msg.style.cssText = 'display:block;color:#f87171';
       msg.textContent = '❌ 코드가 올바르지 않습니다. 다시 확인해주세요.';
