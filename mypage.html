@@ -448,7 +448,11 @@
       <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:#c084fc;margin-bottom:6px">📤 데이터 내보내기</div>
       <div style="font-size:11px;color:#64748b;margin-bottom:16px;line-height:1.6">아래 코드를 복사해서 다른 기기의 <b style="color:#a78bfa">데이터 가져오기</b>에 붙여넣으세요.<br>루비·크리스탈·GP·꾸미기·낚시·G월드(모든 직업 캐릭터·천공의 탑·유물·퀘스트 등) 기록이 모두 포함됩니다.</div>
       <div style="position:relative;">
-        <textarea id="sync-export-code" readonly style="width:100%;height:120px;background:#07040e;border:1px solid rgba(124,58,237,.3);border-radius:10px;color:#e2e8f0;font-size:11px;font-family:monospace;padding:10px;resize:none;outline:none;line-height:1.5"></textarea>
+        <textarea id="sync-export-code" readonly style="width:100%;height:80px;background:#07040e;border:1px solid rgba(124,58,237,.3);border-radius:10px;color:#e2e8f0;font-size:10px;font-family:monospace;padding:10px;resize:none;outline:none;line-height:1.5" placeholder="코드 생성 중..."></textarea>
+        <div style="font-size:10px;color:#64748b;margin-top:4px;font-family:'Noto Sans KR',sans-serif;">
+          ⚠️ 코드가 길어 미리보기만 표시됩니다. <strong style="color:#a78bfa;">[코드 복사] 버튼으로 전체 복사</strong>하세요.
+          <span id="sync-export-len" style="color:#475569;margin-left:8px;"></span>
+        </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:12px;">
         <button onclick="copyExportCode()" id="copy-btn" style="flex:1;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:none;color:#fff;padding:12px;border-radius:10px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s">
@@ -2090,7 +2094,13 @@
       // 코드 생성
       const data = collectAllSyncData();
       const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-      document.getElementById('sync-export-code').value = encoded;
+      window._syncExportCode = encoded; // 전체 코드 보존 (복사 시 잘림 방지)
+      // textarea에는 미리보기용으로 앞부분만 표시
+      const preview = encoded.length > 500
+        ? encoded.substring(0, 300) + '... (' + encoded.length + '자)'
+        : encoded;
+      document.getElementById('sync-export-code').value = preview;
+      document.getElementById('sync-export-len').textContent = '총 ' + encoded.length + '자';
       document.getElementById('copy-ok').style.display = 'none';
     } else {
       exportPanel.style.display = 'none';
@@ -2110,27 +2120,46 @@
   }
 
   function copyExportCode() {
-    const ta = document.getElementById('sync-export-code');
-    ta.select();
-    ta.setSelectionRange(0, 99999);
-    try {
-      navigator.clipboard.writeText(ta.value).catch(() => {
-        document.execCommand('copy');
-      });
-    } catch(e) {
-      document.execCommand('copy');
-    }
+    // textarea.select() 방식은 긴 코드에서 잘릴 수 있음
+    // → 전체 문자열을 직접 clipboard API로 복사
+    const code = window._syncExportCode || document.getElementById('sync-export-code').value;
     const btn = document.getElementById('copy-btn');
     const ok  = document.getElementById('copy-ok');
-    btn.textContent = '✅ 복사됨!';
-    ok.style.display = 'block';
-    setTimeout(() => { btn.textContent = '📋 코드 복사'; }, 2500);
+
+    const doSuccess = () => {
+      btn.textContent = '✅ 복사됨!';
+      ok.style.display = 'block';
+      setTimeout(() => { btn.textContent = '📋 코드 복사'; }, 2500);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(doSuccess).catch(() => {
+        // fallback: 임시 textarea 방식
+        const tmp = document.createElement('textarea');
+        tmp.value = code;
+        tmp.style.position = 'fixed'; tmp.style.opacity = '0';
+        document.body.appendChild(tmp);
+        tmp.focus(); tmp.select();
+        try { document.execCommand('copy'); doSuccess(); } catch(e) {}
+        document.body.removeChild(tmp);
+      });
+    } else {
+      const tmp = document.createElement('textarea');
+      tmp.value = code;
+      tmp.style.position = 'fixed'; tmp.style.opacity = '0';
+      document.body.appendChild(tmp);
+      tmp.focus(); tmp.select();
+      try { document.execCommand('copy'); doSuccess(); } catch(e) {}
+      document.body.removeChild(tmp);
+    }
   }
 
   function doImport() {
-    // 모든 공백문자(개행, 탭 등) 제거 + Base64 패딩 보정
-    let raw = document.getElementById('sync-import-code').value.replace(/\s/g, '');
-    // Base64 패딩 보정 (모바일 복사 시 = 잘리는 경우 대비)
+    // 모든 공백/개행/탭 제거 + Base64 패딩 보정
+    let raw = document.getElementById('sync-import-code').value
+      .replace(/[\s\n\r\t]/g, '') // 줄바꿈, 공백 전부 제거
+      .replace(/[^A-Za-z0-9+/=]/g, ''); // Base64 유효 문자만 남김
+    // Base64 패딩 보정
     const padNeeded = raw.length % 4;
     if (padNeeded) raw += '='.repeat(4 - padNeeded);
     const msg = document.getElementById('import-msg');
