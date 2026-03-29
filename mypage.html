@@ -2128,7 +2128,11 @@
   }
 
   function doImport() {
-    const raw = document.getElementById('sync-import-code').value.trim();
+    // 모든 공백문자(개행, 탭 등) 제거 + Base64 패딩 보정
+    let raw = document.getElementById('sync-import-code').value.replace(/\s/g, '');
+    // Base64 패딩 보정 (모바일 복사 시 = 잘리는 경우 대비)
+    const padNeeded = raw.length % 4;
+    if (padNeeded) raw += '='.repeat(4 - padNeeded);
     const msg = document.getElementById('import-msg');
     msg.style.display = 'none';
 
