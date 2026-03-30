@@ -9160,7 +9160,7 @@ function renderLegionPanel() {
           const pct  = Math.round((boss.thresh[i]-prev)*100)+'%';
           return `<span style="color:${GC[g]||'#94a3b8'}">${g} ${pct}</span>`;
         }).join(' / ')}
-        ${boss.essence ? `<span style="color:#a78bfa"> · ✨빛의 정수 ${boss.essence.amt}개(${Math.round(boss.essence.prob*100)}%)</span>` : ''}
+        ${boss.essence ? `<span style="color:#a78bfa"> · ${boss.essence.emoji||'✨'}${boss.essence.name||'빛의 정수'} ${boss.essence.amt}개(${Math.round(boss.essence.prob*100)}%)</span>` : ''}
       </div>
       <!-- 입장 상태 + 버튼 -->
       <div style="display:flex;justify-content:space-between;align-items:center;">
