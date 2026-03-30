@@ -3035,7 +3035,7 @@ function mobDead(){
     const sk=JOBS[G.job].skills.find(s=>s.lv===G.lv);
     blog(`<span class="ll">★ LEVEL UP! Lv.${G.lv}${sk?' ['+sk.name+'] 스킬 해금!':''}</span>`);
     if(sk)showLvUp(G.lv,sk.name);
-    checkLvQuest(); // 직업 레벨 퀘스트 체크
+    renderQdot(); // 직업 레벨 퀘스트 알림 갱신
   }
   hud();saveG();renderQdot();
   setTimeout(()=>{if(G.sc!=='battle')return;G.buffs={};spawnMob();startAuto();},900);
@@ -7334,8 +7334,7 @@ function _towerUploadRank(set) {
   const maxFloor = set.size === 0 ? 0 : Math.max(...[...set]);
   if(maxFloor <= 0) return;
   const weekKey = wbWeekKey();
-  // 기존 기록보다 높을 때만 업데이트 (먼저 도달한 사람 우선: timestamp 보존)
-  // 직업별 독립 경로: tower_rank/{weekKey}/{username}_{job}
+  // 현재 직업 업로드
   const rankKey = username + '_' + G.job;
   const ref = window._gwDB.ref('tower_rank/' + weekKey + '/' + rankKey);
   ref.get().then(snap => {
@@ -7345,6 +7344,36 @@ function _towerUploadRank(set) {
         .catch(e => console.warn('[탑순위] 업로드 실패:', e));
     }
   }).catch(()=>{});
+}
+
+// 모든 보유 직업의 탑 기록을 Firebase에 일괄 업로드
+function _towerUploadAllJobs() {
+  if(!window._gwDB) return;
+  const username = gwUN();
+  if(!username || username === '_g') return;
+  const weekKey = wbWeekKey();
+  const JOBS_ALL = ['warrior','archer','mage','rogue','paladin'];
+  JOBS_ALL.forEach(jobId => {
+    // 해당 직업의 클리어 키로 최고층 계산
+    const key = 'gwo_tower_cleared_' + jobId + '_' + username;
+    let floors;
+    try { floors = JSON.parse(localStorage.getItem(key)||'[]'); } catch { floors = []; }
+    if(!floors.length) return;
+    const maxFloor = Math.max(...floors);
+    if(maxFloor <= 0) return;
+    // 해당 직업의 레벨 가져오기
+    const charData = getCharData(jobId);
+    const lv = (jobId === G.job) ? G.lv : (charData?.lv || 1);
+    const rankKey = username + '_' + jobId;
+    const ref = window._gwDB.ref('tower_rank/' + weekKey + '/' + rankKey);
+    ref.get().then(snap => {
+      const cur = snap && snap.exists() ? snap.val() : null;
+      if(!cur || maxFloor > (cur.floor||0)) {
+        ref.set({ floor: maxFloor, ts: Date.now(), user: username, job: jobId, lv })
+          .catch(e => console.warn('[탑순위] 업로드 실패:', jobId, e));
+      }
+    }).catch(()=>{});
+  });
 }
 function getTowerMaxFloor() {
   const cleared = getTowerCleared();
@@ -10441,9 +10470,8 @@ async function renderTowerRank() {
   const el = document.getElementById('gw-towerbody'); if(!el) return;
   el.innerHTML = `<div style="text-align:center;padding:20px;color:#64748b;font-size:11px;font-family:'Noto Sans KR',sans-serif;">🔄 순위 불러오는 중...</div>`;
 
-  // 순위 탭 열 때 현재 기록을 Firebase에 즉시 동기화
-  const curCleared = getTowerCleared();
-  if(curCleared.size > 0) _towerUploadRank(curCleared);
+  // 순위 탭 열 때 모든 직업 기록을 Firebase에 일괄 동기화
+  _towerUploadAllJobs();
 
   const myName   = gwUN();
   const weekKey  = wbWeekKey();
@@ -10469,14 +10497,22 @@ async function renderTowerRank() {
     if(snap && snap.exists()) snap.forEach(ch => allData.push(ch.val()));
   } catch(e) { console.warn('[탑순위]', e); }
 
-  // 내 로컬 기록이 Firebase에 없으면 병합 (업로드 지연 대비)
-  const myMaxFloor = getTowerMaxFloor();
-  if(myMaxFloor > 0 && myName) {
-    const alreadyIn = allData.some(r => r.user === myName && r.job === G.job);
+  // 내 모든 직업 로컬 기록이 Firebase에 없으면 병합 (업로드 지연 대비)
+  const JOBS_ALL2 = ['warrior','archer','mage','rogue','paladin'];
+  JOBS_ALL2.forEach(jobId => {
+    const key = 'gwo_tower_cleared_' + jobId + '_' + myName;
+    let floors2;
+    try { floors2 = JSON.parse(localStorage.getItem(key)||'[]'); } catch { floors2 = []; }
+    if(!floors2.length) return;
+    const mf = Math.max(...floors2);
+    if(mf <= 0) return;
+    const alreadyIn = allData.some(r => r.user === myName && r.job === jobId);
     if(!alreadyIn) {
-      allData.push({ floor: myMaxFloor, ts: Date.now(), user: myName, job: G.job, lv: G.lv });
+      const charData2 = getCharData(jobId);
+      const lv2 = (jobId === G.job) ? G.lv : (charData2?.lv || 1);
+      allData.push({ floor: mf, ts: Date.now(), user: myName, job: jobId, lv: lv2 });
     }
-  }
+  });
 
   // 직업별 필터 + 정렬
   const jobData = allData
@@ -10659,6 +10695,8 @@ function saveCurrentChar() {
     qprog:G.qprog, qclaim:G.qclaim, quests:G.quests,
     wquests:G.wquests, wqprog:G.wqprog, wqclaim:G.wqclaim,
     relics:G.relics||[null,null,null,null,null],
+    enhQTotal:G.enhQTotal||0,    // 직업별 강화 횟수 누적
+    enhQClaimed:G.enhQClaimed||0, // 직업별 강화 보상 수령 횟수
     savedAt: Date.now()
   };
   saveCharData(G.job, data);
@@ -10756,6 +10794,8 @@ function selectCharJob(jobId) {
     G.relics = G.relics || [null,null,null,null,null];
     G.inv = G.inv || [];
     G.sk = G.sk || {};
+    G.enhQTotal   = G.enhQTotal   || 0; // 직업별 강화 횟수
+    G.enhQClaimed = G.enhQClaimed || 0; // 직업별 강화 보상 수령
   } else {
     // 신규 캐릭터 생성
     const b = cBase(jobId, 1);
@@ -10767,6 +10807,7 @@ function selectCharJob(jobId) {
     G.qprog = {}; G.qclaim = {}; G.quests = [];
     G.wquests = []; G.wqprog = {}; G.wqclaim = {};
     G.relics = [null,null,null,null,null];
+    G.enhQTotal = 0; G.enhQClaimed = 0; // 직업별 강화 퀘스트 초기화
     // 기본 장비 지급
     if(j.weapon) G.equip.weapon = {...j.weapon, type:'weapon', slot:'weapon', def:0, grade:'기본', enh:0, _id:1};
     if(j.armor)  G.equip.armor  = {...j.armor,  type:'armor',  slot:'armor',  atk:0, grade:'기본', enh:0, _id:2};
