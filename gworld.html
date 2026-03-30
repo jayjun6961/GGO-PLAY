@@ -1980,137 +1980,353 @@ function drawIntro(cv){
 }
 
 function drawTown(cv){
-  if(!cv)return;const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  if(!cv)return;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
   ctx.clearRect(0,0,W,H);
+  ctx.imageSmoothingEnabled=false; // 픽셀아트 선명하게
 
-  // ── 낮 하늘 그라데이션 ──
-  const sky=ctx.createLinearGradient(0,0,0,H*.58);
-  sky.addColorStop(0,'#1a6bbf');sky.addColorStop(.5,'#3b8fe0');sky.addColorStop(1,'#87ceeb');
-  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H*.58);
+  // ── 픽셀 단위 블록 크기 ──
+  const P=Math.max(2,Math.floor(W/160)); // 기본 픽셀 단위
+
+  function px(x,y,w,h,color){
+    ctx.fillStyle=color;
+    ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));
+  }
+
+  // ── 하늘 (픽셀 그라디언트) ──
+  const skyColors=['#5b8dd9','#6a9ee8','#7ab0f5','#8ec2ff','#9eceff'];
+  const bandH=H*0.55/skyColors.length;
+  skyColors.forEach((c,i)=>px(0,i*bandH,W,bandH+1,c));
 
   // ── 태양 ──
-  const sunX=W*.82,sunY=H*.13;
-  const sunG=ctx.createRadialGradient(sunX,sunY,2,sunX,sunY,32);
-  sunG.addColorStop(0,'rgba(255,255,200,1)');sunG.addColorStop(.4,'rgba(255,220,60,.9)');sunG.addColorStop(1,'rgba(255,180,0,0)');
-  ctx.fillStyle=sunG;ctx.beginPath();ctx.arc(sunX,sunY,32,0,Math.PI*2);ctx.fill();
-  // 태양 광선
-  ctx.strokeStyle='rgba(255,220,60,.35)';ctx.lineWidth=1.5;
-  for(let a=0;a<8;a++){const ang=a*Math.PI/4;ctx.beginPath();ctx.moveTo(sunX+Math.cos(ang)*20,sunY+Math.sin(ang)*20);ctx.lineTo(sunX+Math.cos(ang)*42,sunY+Math.sin(ang)*42);ctx.stroke();}
+  const sunX=W*0.84,sunY=H*0.10;
+  const sunR=Math.max(12,Math.floor(W*0.045));
+  // 태양 광선 (픽셀 선)
+  ctx.strokeStyle='#ffe066';ctx.lineWidth=P;
+  for(let a=0;a<8;a++){
+    const ang=a*Math.PI/4;
+    ctx.beginPath();
+    ctx.moveTo(sunX+Math.cos(ang)*(sunR+P*2),sunY+Math.sin(ang)*(sunR+P*2));
+    ctx.lineTo(sunX+Math.cos(ang)*(sunR+P*7),sunY+Math.sin(ang)*(sunR+P*7));
+    ctx.stroke();
+  }
+  px(sunX-sunR,sunY-sunR,sunR*2,sunR*2,'#ffe44d');
+  px(sunX-sunR+P,sunY-sunR+P,(sunR-P)*2,(sunR-P)*2,'#fff176');
 
-  // ── 구름 ──
-  function cloud(x,y,s){
-    ctx.fillStyle='rgba(255,255,255,.88)';
-    [[0,0,s*1.1],[s*.7,-s*.35,s*.8],[s*-.6,-s*.3,s*.75],[s*1.35,-s*.25,s*.65],[s*-.25,-s*.55,s*.55]].forEach(([dx,dy,r])=>{
-      ctx.beginPath();ctx.arc(x+dx,y+dy,r,0,Math.PI*2);ctx.fill();
+  // ── 픽셀 구름 ──
+  function pixelCloud(cx,cy,scale){
+    const c=[
+      [0,0,4,2],[1,-1,2,1],[-1,-1,2,1],[2,-1,1,1],[-2,0,1,2],[4,0,1,1]
+    ];
+    c.forEach(([dx,dy,w,h])=>{
+      px(cx+dx*scale*P,cy+dy*scale*P,w*scale*P,h*scale*P,'rgba(255,255,255,0.92)');
     });
   }
-  cloud(W*.1,H*.1,18);cloud(W*.35,H*.07,14);cloud(W*.6,H*.12,20);cloud(W*.78,H*.22,12);
+  pixelCloud(W*0.08,H*0.09,3);
+  pixelCloud(W*0.32,H*0.07,2.5);
+  pixelCloud(W*0.58,H*0.11,3.5);
+  pixelCloud(W*0.78,H*0.18,2);
 
-  // ── 원거리 산 ──
-  ctx.fillStyle='#5b8a6e';
-  [[W*.0,H*.42,W*.18,H*.22],[W*.12,H*.45,W*.16,H*.18],[W*.55,H*.40,W*.22,H*.26],[W*.7,H*.43,W*.18,H*.20],[W*.88,H*.44,W*.16,H*.17]].forEach(([x,base,w,hh])=>{
-    ctx.beginPath();ctx.moveTo(x,base);ctx.lineTo(x+w/2,base-hh);ctx.lineTo(x+w,base);ctx.closePath();ctx.fill();
-  });
-  // 산 설경(흰 봉우리)
-  ctx.fillStyle='rgba(255,255,255,.65)';
-  [[W*.09,H*.23,W*.05,H*.07],[W*.665,H*.14,W*.06,H*.08]].forEach(([x,base,w,hh])=>{
-    ctx.beginPath();ctx.moveTo(x,base);ctx.lineTo(x+w/2,base-hh);ctx.lineTo(x+w,base);ctx.closePath();ctx.fill();
-  });
+  // ── 원거리 산 (픽셀 삼각형) ──
+  function pixelMtn(bx,by,bw,bh,col,snowCol){
+    // 산 삼각형을 픽셀로
+    for(let row=0;row<bh;row+=P){
+      const progress=1-row/bh;
+      const rowW=bw*progress;
+      px(bx+bw/2-rowW/2,by-row,rowW,P,col);
+    }
+    // 설경
+    if(snowCol){
+      for(let row=0;row<bh*0.28;row+=P){
+        const progress=1-row/(bh*0.28);
+        const rowW=bw*0.35*progress;
+        px(bx+bw/2-rowW/2,by-bh+row,rowW,P,snowCol);
+      }
+    }
+  }
+  const mtnBase=H*0.50;
+  pixelMtn(W*0.0, mtnBase,W*0.20,H*0.22,'#4a7a5e','rgba(255,255,255,0.7)');
+  pixelMtn(W*0.12,mtnBase,W*0.17,H*0.18,'#3d6b50',null);
+  pixelMtn(W*0.52,mtnBase,W*0.24,H*0.26,'#4a7a5e','rgba(255,255,255,0.65)');
+  pixelMtn(W*0.70,mtnBase,W*0.18,H*0.19,'#3d6b50',null);
+  pixelMtn(W*0.85,mtnBase,W*0.17,H*0.16,'#4a7a5e',null);
 
-  // ── 잔디 언덕 ──
-  const hill=ctx.createLinearGradient(0,H*.52,0,H);
-  hill.addColorStop(0,'#3a7d44');hill.addColorStop(.3,'#2d6235');hill.addColorStop(1,'#1a3d20');
-  ctx.fillStyle=hill;ctx.fillRect(0,H*.58,W,H);
-  ctx.fillStyle='#4a9454';ctx.fillRect(0,H*.58,W,6);
-  ctx.fillStyle='#5aa864';ctx.fillRect(0,H*.58,W,2);
+  // ── 잔디 지면 (픽셀 레이어) ──
+  const gndY=H*0.58;
+  px(0,gndY,W,H-gndY,'#2d7a3a');
+  px(0,gndY,W,P*2,'#52c46a');
+  px(0,gndY+P*2,W,P,'#3fa050');
+  // 잔디 디테일 픽셀
+  for(let gx=0;gx<W;gx+=P*6){
+    px(gx,gndY-P,P*2,P*2,'#52c46a');
+    px(gx+P*3,gndY-P,P,P*3,'#3fa050');
+  }
+  // 어두운 잔디 바닥
+  px(0,H*0.78,W,H-H*0.78,'#1a5226');
+  px(0,H*0.85,W,H-H*0.85,'#143d1c');
 
-  // ── 돌길 (중앙) ──
-  ctx.fillStyle='#8b7355';ctx.fillRect(W/2-28,H*.58,56,H*.42);
+  // ── 돌길 ──
+  const rdX=W/2-P*14,rdW=P*28;
+  px(rdX,gndY,rdW,H-gndY,'#8b7355');
+  // 돌 패턴
   ctx.fillStyle='#7a6248';
-  for(let ry=H*.60;ry<H;ry+=22){
-    ctx.fillRect(W/2-27,ry,54,2);
-    ctx.fillStyle='#6e5840';ctx.fillRect(W/2-24,ry+5,18,1);ctx.fillRect(W/2+6,ry+5,18,1);
-    ctx.fillStyle='#7a6248';
+  for(let ry=gndY+P*4;ry<H;ry+=P*10){
+    px(rdX+P*2,ry,rdW-P*4,P,'#7a6248');
+    px(rdX+P*3,ry+P*3,P*10,P,'#6e5840');
+    px(rdX+P*15,ry+P*3,P*10,P,'#6e5840');
   }
 
-  // ── 나무들 ──
-  function tree(x,y,sz){
-    ctx.fillStyle='#5c3d1e';ctx.fillRect(x-sz*.12,y,sz*.24,sz*.55);
-    // 잎 3단
-    [[0,sz*.25,sz*.7],[0,sz*.1,sz*.55],[-sz*.05,-sz*.1,sz*.42]].forEach(([ox,oy,w])=>{
-      ctx.fillStyle='#2e7d32';ctx.beginPath();ctx.moveTo(x+ox-w/2,y+oy);ctx.lineTo(x+ox,y+oy-sz*.55);ctx.lineTo(x+ox+w/2,y+oy);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#388e3c';ctx.beginPath();ctx.moveTo(x+ox-w*.4,y+oy);ctx.lineTo(x+ox,y+oy-sz*.45);ctx.lineTo(x+ox+w*.4,y+oy);ctx.closePath();ctx.fill();
+  // ── 픽셀 나무 ──
+  function pixelTree(tx,ty,sz){
+    const ps=Math.max(1,Math.floor(sz/12));
+    // 기둥
+    for(let i=0;i<6;i++) px(tx-ps,ty-ps*i,ps*2,ps,'#5c3d1e');
+    // 잎 3단 (피라미드)
+    [[0,8,6],[0,5,5],[0,2,3]].forEach(([ox,oy,hw])=>{
+      px(tx-hw*ps,ty-oy*ps-sz*0.2,hw*2*ps,ps*2,'#2d6b32');
+      px(tx-(hw-1)*ps,ty-(oy+1)*ps-sz*0.2,(hw-1)*2*ps,ps*2,'#388e3c');
+      px(tx-(hw-2)*ps,ty-(oy+2)*ps-sz*0.2,(hw-2)*2*ps,ps*2,'#43a047');
     });
   }
-  tree(W*.04,H*.74,38);tree(W*.93,H*.72,34);tree(W*.88,H*.78,28);tree(W*.06,H*.80,26);
-  // 꽃 장식
-  ctx.fillStyle='#ffeb3b';[[W*.38,H*.62],[W*.42,H*.65],[W*.62,H*.63],[W*.66,H*.66]].forEach(([fx,fy])=>{
-    ctx.beginPath();ctx.arc(fx,fy,3,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#ff5722';ctx.beginPath();ctx.arc(fx+6,fy+4,2.5,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#ffeb3b';
+  pixelTree(W*0.03,H*0.76,36); pixelTree(W*0.92,H*0.74,32);
+  pixelTree(W*0.87,H*0.79,26); pixelTree(W*0.07,H*0.82,24);
+  // 작은 나무
+  pixelTree(W*0.22,H*0.72,20); pixelTree(W*0.77,H*0.71,18);
+
+  // ── 픽셀 꽃 ──
+  [[W*.34,H*.63,'#ff5252'],[W*.40,H*.66,'#ffeb3b'],[W*.60,H*.64,'#ff80ab'],[W*.67,H*.67,'#80cbc4']].forEach(([fx,fy,fc])=>{
+    px(fx,fy,P*2,P,'#2d6b32'); // 줄기
+    px(fx-P,fy-P*2,P*4,P*3,fc); // 꽃
+    px(fx,fy-P*3,P*2,P,'#fff'); // 하이라이트
   });
 
-  // ── 건물 그리기 (크고 판타지스럽게) ──
-  function bldg(x,y,w,h,wall,roof,lbl,winColor){
-    // 본체
-    ctx.fillStyle=wall;ctx.fillRect(x,y,w,h);
-    // 문
-    ctx.fillStyle='#3e2000';ctx.fillRect(x+w/2-10,y+h-28,20,28);
-    ctx.fillStyle='rgba(255,200,80,.3)';ctx.fillRect(x+w/2-9,y+h-27,19,27);
-    // 창문들
-    const wc=winColor||'rgba(255,220,120,.55)';
-    ctx.fillStyle=wc;
-    [[x+10,y+14,16,12],[x+w-26,y+14,16,12],[x+10,y+36,16,12],[x+w-26,y+36,16,12]].forEach(([wx,wy,ww,wh])=>ctx.fillRect(wx,wy,ww,wh));
-    // 창문 테두리
-    ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;
-    [[x+10,y+14,16,12],[x+w-26,y+14,16,12],[x+10,y+36,16,12],[x+w-26,y+36,16,12]].forEach(([wx,wy,ww,wh])=>ctx.strokeRect(wx,wy,ww,wh));
+  // ── 픽셀 건물 (판타지 성 스타일) ──
+  function pixelBldg(bx,by,bw,bh,wallCol,roofCol,label,winCol){
+    // 벽
+    px(bx,by,bw,bh,wallCol);
+    // 벽돌 패턴
+    const brickCol=wallCol+'aa';
+    for(let row=0;row<bh;row+=P*5){
+      const offset=(Math.floor(row/(P*5))%2)*P*4;
+      for(let col=offset;col<bw;col+=P*8){
+        px(bx+col,by+row,P*7,P*4,'rgba(0,0,0,0.08)');
+      }
+    }
+    // 탑 (양쪽)
+    const tw=bw*0.28,th=bh*0.5;
+    px(bx-tw*0.15,by-th,tw,th+bh*0.3,wallCol);
+    px(bx+bw-tw*0.85,by-th,tw,th+bh*0.3,wallCol);
+    // 탑 꼭대기 톱니
+    for(let ti=0;ti<3;ti++){
+      px(bx-tw*0.15+ti*(tw/3),by-th-P*5,tw/3-P,P*5,wallCol);
+    }
+    for(let ti=0;ti<3;ti++){
+      px(bx+bw-tw*0.85+ti*(tw/3),by-th-P*5,tw/3-P,P*5,wallCol);
+    }
     // 지붕
-    ctx.fillStyle=roof;
-    ctx.beginPath();ctx.moveTo(x-6,y);ctx.lineTo(x+w/2,y-h*.45);ctx.lineTo(x+w+6,y);ctx.closePath();ctx.fill();
-    // 지붕 라인
-    ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(x-6,y);ctx.lineTo(x+w/2,y-h*.45);ctx.lineTo(x+w+6,y);ctx.stroke();
-    // 굴뚝
-    ctx.fillStyle='#5a3e28';ctx.fillRect(x+w*.7,y-h*.3,10,h*.22);
-    ctx.fillStyle='rgba(180,180,180,.35)';
-    ctx.beginPath();ctx.ellipse(x+w*.7+5,y-h*.3,7,4,0,Math.PI,0);ctx.fill();
+    const roofH=bh*0.4;
+    for(let rr=0;rr<roofH;rr+=P){
+      const prog=1-rr/roofH;
+      const rw=bw*prog;
+      px(bx+bw/2-rw/2,by-rr-P,rw,P,roofCol);
+    }
     // 깃발
-    ctx.strokeStyle='#aaa';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(x+w/2,y-h*.45);ctx.lineTo(x+w/2,y-h*.45-22);ctx.stroke();
-    ctx.fillStyle=roof;ctx.beginPath();ctx.moveTo(x+w/2,y-h*.45-22);ctx.lineTo(x+w/2+14,y-h*.45-15);ctx.lineTo(x+w/2,y-h*.45-8);ctx.fill();
+    ctx.strokeStyle='#aaa';ctx.lineWidth=P;
+    ctx.beginPath();ctx.moveTo(bx+bw/2,by-roofH-P);ctx.lineTo(bx+bw/2,by-roofH-P*14);ctx.stroke();
+    px(bx+bw/2,by-roofH-P*14,P*10,P*6,roofCol);
+    // 창문 (픽셀 아치)
+    if(winCol){
+      [[bx+bw*0.18,by+bh*0.15],[bx+bw*0.62,by+bh*0.15],
+       [bx+bw*0.18,by+bh*0.45],[bx+bw*0.62,by+bh*0.45]].forEach(([wx,wy])=>{
+        px(wx,wy,P*8,P*8,winCol);
+        px(wx+P,wy-P,P*6,P*2,'rgba(255,255,255,0.3)'); // 창문 하이라이트
+      });
+    }
+    // 문 (픽셀 아치)
+    px(bx+bw/2-P*6,by+bh*0.65,P*12,bh*0.36,'#2c1810');
+    px(bx+bw/2-P*5,by+bh*0.65,P*10,bh*0.3,'#3d2415');
     // 간판
-    ctx.fillStyle='rgba(50,30,10,.85)';ctx.fillRect(x+w/2-22,y-10,44,16);
-    ctx.fillStyle='#ffd700';ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.fillText(lbl,x+w/2,y+2);
+    px(bx+bw/2-P*14,by-P*4,P*28,P*10,'rgba(40,20,5,0.9)');
+    ctx.fillStyle='#ffd700';ctx.font=`bold ${P*5}px monospace`;ctx.textAlign='center';
+    ctx.fillText(label,bx+bw/2,by+P*3);
   }
 
-  // 여관 (왼쪽)
-  bldg(18, H*.25, 106, H*.33, '#4a3060','#7c3aed','⚔️ 여관','rgba(255,200,100,.6)');
-  // 상점 (왼쪽 두번째)
-  bldg(140,H*.28,88,H*.30,'#1e3a5f','#0ea5e9','🛒 상점','rgba(100,200,255,.55)');
-  // 길드 (오른쪽)
-  bldg(W-130,H*.25,106,H*.33,'#3a1e1e','#ef4444','🏛️ 길드','rgba(255,120,80,.5)');
+  const bldgH=H*0.38;
+  pixelBldg(12,H*0.60-bldgH,W*0.18,bldgH,'#3d2060','#6b21a8','⚔️ 여관','rgba(255,180,80,0.5)');
+  pixelBldg(W*0.22,H*0.61-bldgH*0.85,W*0.14,bldgH*0.85,'#1a2e4a','#0284c7','🛒 상점','rgba(100,210,255,0.5)');
+  pixelBldg(W-W*0.22,H*0.60-bldgH,W*0.18,bldgH,'#3d1a1a','#b91c1c','🏛️ 길드','rgba(255,100,60,0.5)');
 
-  // 우물
-  const wx=W*.47,wy=H*.66;
-  ctx.fillStyle='#5a5050';ctx.fillRect(wx-16,wy-8,32,18);
-  ctx.fillStyle='#3a3030';ctx.fillRect(wx-14,wy-6,28,14);
-  ctx.fillStyle='#222';ctx.beginPath();ctx.ellipse(wx,wy-7,12,5,0,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='#7a6a6a';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(wx-16,wy-8);ctx.lineTo(wx-16,wy-22);ctx.moveTo(wx+16,wy-8);ctx.lineTo(wx+16,wy-22);ctx.stroke();
-  ctx.fillStyle='#5a4a4a';ctx.fillRect(wx-18,wy-24,36,4);
+  // ── 픽셀 우물 ──
+  const wx2=W*0.465,wy2=H*0.70;
+  px(wx2-P*10,wy2,P*20,P*12,'#6b5344'); // 우물 몸통
+  px(wx2-P*8,wy2+P*2,P*16,P*8,'#4a3828'); // 우물 내부
+  px(wx2-P*2,wy2+P*4,P*4,P*6,'#1a0f0a'); // 물
+  // 지붕 기둥
+  ctx.strokeStyle='#8b6f47';ctx.lineWidth=P*2;
+  ctx.beginPath();ctx.moveTo(wx2-P*10,wy2);ctx.lineTo(wx2-P*10,wy2-P*16);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(wx2+P*10,wy2);ctx.lineTo(wx2+P*10,wy2-P*16);ctx.stroke();
+  px(wx2-P*12,wy2-P*16,P*24,P*4,'#6b5344');
 
-  // NPC 마법사 (2배 크기)
-  const nx=W*.52,ny=H*.72;
-  pxCharBig(ctx,nx,ny,'#a855f7',false);
-  ctx.font='22px serif';ctx.textAlign='center';ctx.fillText('🧙',nx,ny-42);
-  ctx.fillStyle='rgba(192,132,252,.85)';ctx.font='bold 9px Orbitron,monospace';ctx.textAlign='center';ctx.fillText('허리케인',nx,ny-62);
+  // ── 픽셀 황금 별/장식 ──
+  [[W*0.44,H*0.61],[W*0.56,H*0.61]].forEach(([sx,sy])=>{
+    px(sx,sy,P*2,P*2,'#ffd700');
+    px(sx-P,sy+P,P*4,P,'#ffa000');
+  });
 
-  // 플레이어 (2배 크기)
-  const plyX=W*.38,plyY=H*.73;
-  pxCharBig(ctx,plyX,plyY,JOBS[G.job]?.color||'#7c3aed',true);
-  // 이름
+  // ── NPC 마법사 (고퀄 픽셀) ──
+  const nx2=W*0.53,ny2=H*0.85;
+  pxCharHD(ctx,nx2,ny2,P,'#a855f7','#7c3aed','#fcd9b0','#5a3d8a',false);
+  ctx.fillStyle='rgba(216,180,254,0.9)';ctx.font=`bold ${P*4}px "Orbitron",monospace`;
+  ctx.textAlign='center';ctx.fillText('허리케인',nx2,ny2-P*24);
+  // 대화 아이콘
+  px(nx2+P*8,ny2-P*30,P*14,P*10,'rgba(255,255,255,0.9)');
+  px(nx2+P*8,ny2-P*20,P*4,P*4,'rgba(255,255,255,0.9)');
+  ctx.fillStyle='#333';ctx.font=`${P*4}px monospace`;ctx.textAlign='center';
+  ctx.fillText('NPC',nx2+P*15,ny2-P*22);
+
+  // ── 플레이어 (고퀄 픽셀) ──
+  const plyX2=W*0.37,plyY2=H*0.85;
+  const jobColor=JOBS[G.job]?.color||'#7c3aed';
+  const jobDark=jobColor+'bb';
+  pxCharHD(ctx,plyX2,plyY2,P,jobColor,jobDark,'#fcd9b0','#3e2a10',true);
+
+  // 이름표
   const un=sessionStorage.getItem('ggo_username')||'';
-  if(un){ctx.fillStyle='rgba(255,255,255,.7)';ctx.font='bold 8px Orbitron,monospace';ctx.textAlign='center';ctx.fillText(un,plyX,plyY-62);}
+  if(un){
+    const nw=un.length*P*4+P*8;
+    px(plyX2-nw/2,plyY2-P*28,nw,P*7,'rgba(0,0,0,0.65)');
+    ctx.fillStyle='#fff';ctx.font=`bold ${P*4}px "Noto Sans KR",sans-serif`;
+    ctx.textAlign='center';ctx.fillText(un,plyX2,plyY2-P*23);
+  }
+  // X 마을 표시
+  ctx.fillStyle='rgba(255,255,255,0.55)';
+  ctx.font=`${P*4}px "Orbitron",monospace`;
+  ctx.textAlign='center';ctx.fillText('✕ 마을',plyX2,plyY2-P*33);
+}
+
+function pxCharHD(ctx,x,y,P,bodyCol,bodyDark,skinCol,hairCol,isPlayer){
+  // 고퀄 픽셀 캐릭터 (16x24 픽셀 스케일)
+  const S=P*1.5;
+  // 그림자
+  ctx.fillStyle='rgba(0,0,0,0.2)';
+  ctx.beginPath();ctx.ellipse(x,y,S*5,S*2,0,0,Math.PI*2);ctx.fill();
+
+  // 신발
+  ctx.fillStyle='#2c1810';
+  ctx.fillRect(x-S*4,y-S*2,S*3.5,S*2);
+  ctx.fillRect(x+S*0.5,y-S*2,S*3.5,S*2);
+  ctx.fillStyle='#3d2415';
+  ctx.fillRect(x-S*4.5,y-S*2.5,S*4,S);
+  ctx.fillRect(x+S*0.5,y-S*2.5,S*4,S);
+
+  // 다리 (픽셀)
+  ctx.fillStyle=bodyDark;
+  ctx.fillRect(x-S*3.5,y-S*9,S*3,S*7);
+  ctx.fillRect(x+S*0.5,y-S*9,S*3,S*7);
+  ctx.fillStyle=bodyCol;
+  ctx.fillRect(x-S*3,y-S*9,S*2,S*6);
+  ctx.fillRect(x+S,y-S*9,S*2,S*6);
+
+  // 몸통
+  ctx.fillStyle=bodyDark;
+  ctx.fillRect(x-S*4,y-S*21,S*8,S*12);
+  ctx.fillStyle=bodyCol;
+  ctx.fillRect(x-S*3.5,y-S*21,S*7,S*11);
+  // 몸통 디테일
+  ctx.fillStyle='rgba(255,255,255,0.15)';
+  ctx.fillRect(x-S*3,y-S*20,S*2.5,S*4);
+
+  // 팔
+  ctx.fillStyle=bodyDark;
+  ctx.fillRect(x-S*7,y-S*20,S*3,S*9);
+  ctx.fillRect(x+S*4,y-S*20,S*3,S*9);
+  ctx.fillStyle=bodyCol;
+  ctx.fillRect(x-S*6.5,y-S*20,S*2.5,S*8);
+  ctx.fillRect(x+S*4,y-S*20,S*2.5,S*8);
+
+  // 손
+  ctx.fillStyle=skinCol;
+  ctx.fillRect(x-S*7,y-S*12,S*3,S*3);
+  ctx.fillRect(x+S*4,y-S*12,S*3,S*3);
+
+  // 목
+  ctx.fillStyle=skinCol;
+  ctx.fillRect(x-S*1.5,y-S*23,S*3,S*2);
+
+  // 머리
+  ctx.fillStyle=skinCol;
+  ctx.fillRect(x-S*5,y-S*33,S*10,S*10);
+  // 얼굴 하이라이트
+  ctx.fillStyle='rgba(255,255,255,0.2)';
+  ctx.fillRect(x-S*4,y-S*33,S*4,S*3);
+
+  // 눈
+  ctx.fillStyle='#1a1a2e';
+  ctx.fillRect(x-S*3,y-S*28,S*2,S*2);
+  ctx.fillRect(x+S,y-S*28,S*2,S*2);
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  ctx.fillRect(x-S*3+S*0.5,y-S*28,S*0.8,S*0.8);
+  ctx.fillRect(x+S+S*0.5,y-S*28,S*0.8,S*0.8);
+  // 눈썹
+  ctx.fillStyle='#3d2415';
+  ctx.fillRect(x-S*3.5,y-S*30,S*2.5,S);
+  ctx.fillRect(x+S*0.5,y-S*30,S*2.5,S);
+  // 입
+  ctx.fillStyle='#cc6655';
+  ctx.fillRect(x-S,y-S*24,S*2,S);
+
+  // 머리카락
+  ctx.fillStyle=hairCol;
+  ctx.fillRect(x-S*5,y-S*33,S*10,S*3);
+  ctx.fillRect(x-S*5,y-S*33,S*2,S*5);
+  ctx.fillRect(x+S*3,y-S*33,S*2,S*4);
+  // 앞머리
+  ctx.fillRect(x-S*4,y-S*31,S*3,S);
+  ctx.fillRect(x+S,y-S*31,S*2,S);
+
+  // 직업별 모자/헬멧
+  if(isPlayer && G.job){
+    if(G.job==='warrior'||G.job==='paladin'){
+      ctx.fillStyle='#607d8b';
+      ctx.fillRect(x-S*5.5,y-S*36,S*11,S*5);
+      ctx.fillStyle='#455a64';
+      ctx.fillRect(x-S*6,y-S*32,S*12,S*2);
+      // 반사
+      ctx.fillStyle='rgba(255,255,255,0.3)';
+      ctx.fillRect(x-S*4,y-S*36,S*4,S*2);
+    } else if(G.job==='mage'){
+      // 마법사 모자
+      ctx.fillStyle='#4a1f8a';
+      for(let mh=0;mh<8;mh+=1){
+        const prog=1-mh/8;
+        ctx.fillRect(x-S*4*prog,y-S*33-mh*S,S*8*prog,S);
+      }
+      ctx.fillStyle='#6d28d9';
+      ctx.fillRect(x-S*6,y-S*34,S*12,S*2);
+      // 별
+      ctx.fillStyle='#ffd700';
+      ctx.fillRect(x-S,y-S*39,S*2,S*2);
+    } else if(G.job==='archer'){
+      // 머리띠
+      ctx.fillStyle='#2e7d32';
+      ctx.fillRect(x-S*5.5,y-S*32,S*11,S*2);
+      ctx.fillStyle='#388e3c';
+      ctx.fillRect(x+S*2,y-S*34,S*3,S*4); // 깃털
+    } else if(G.job==='rogue'){
+      // 두건
+      ctx.fillStyle='#1a1a2e';
+      ctx.fillRect(x-S*5,y-S*35,S*10,S*7);
+      ctx.fillStyle='#212144';
+      ctx.fillRect(x-S*5,y-S*35,S*10,S*2);
+    }
+
+    // 무기 (오른손)
+    const j=JOBS[G.job];
+    if(j?.weapon){
+      ctx.font=`${S*8}px serif`;ctx.textAlign='center';
+      ctx.fillText(j.weapon.emoji,x+S*10,y-S*14);
+    }
+  }
 }
 
 function pxBldg(c,x,y,w,h,wall,roof,lbl){
@@ -2122,28 +2338,9 @@ function pxBldg(c,x,y,w,h,wall,roof,lbl){
 }
 
 function pxCharBig(c,x,y,color,isPlayer){
-  const S=2; // 2배 크기
-  // 다리
-  c.fillStyle=color;c.fillRect(x-S*4,y-S*8,S*3,S*8);c.fillRect(x+S*1,y-S*8,S*3,S*8);
-  // 신발
-  c.fillStyle='#3e2a10';c.fillRect(x-S*5,y-S*2,S*4,S*2);c.fillRect(x,y-S*2,S*4,S*2);
-  // 몸통
-  c.fillStyle=color;c.fillRect(x-S*5,y-S*22,S*10,S*14);
-  // 팔
-  c.fillStyle=color;c.fillRect(x-S*8,y-S*20,S*3,S*10);c.fillRect(x+S*5,y-S*20,S*3,S*10);
-  // 손
-  c.fillStyle='#fcd9b0';c.fillRect(x-S*8,y-S*11,S*3,S*3);c.fillRect(x+S*5,y-S*11,S*3,S*3);
-  // 머리
-  c.fillStyle='#fcd9b0';c.fillRect(x-S*5,y-S*34,S*10,S*12);
-  // 눈
-  c.fillStyle='#333';c.fillRect(x-S*3,y-S*29,S*2,S*2);c.fillRect(x+S*1,y-S*29,S*2,S*2);
-  // 머리카락
-  c.fillStyle='#5c3d1e';c.fillRect(x-S*5,y-S*34,S*10,S*3);
-  if(isPlayer&&G.job){
-    const j=JOBS[G.job];
-    c.font='18px serif';c.textAlign='center';
-    if(j.weapon)c.fillText(j.weapon.emoji,x+22,y-22);
-  }
+  // 레거시 호환 - pxCharHD로 위임
+  const P=2;
+  pxCharHD(c,x,y,P,color,color+'bb','#fcd9b0','#5c3d1e',isPlayer);
 }
 
 function pxChar(c,x,y,color,isPlayer){
