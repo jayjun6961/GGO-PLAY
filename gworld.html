@@ -3186,7 +3186,7 @@ function mobDead(){
     // 직업에 맞는 장비 풀 (포션/재료/장신구/전설이상 제외)
     const eqPool = DROPS.filter(d => {
       if(d.type==='pot'||d.type==='mat') return false;
-      if(d.type==='accessory') return false;  // 반지·목걸이는 월드보스 전용
+      if(d.type==='accessory'||d.type==='necklace'||d.type==='ring') return false;  // 반지·목걸이는 월드보스 전용
       if(d.grade==='전설'||d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월'||d.grade==='절대자') return false;
       if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
       return true;
@@ -4752,7 +4752,7 @@ function dunBossDead() {
   // 던전: 무기/방패/갑옷/장갑/신발만 드롭 (목걸이·반지는 월드보스 전용)
   const validDrops=DROPS.filter(d=>{
     if(d.type==='pot'||d.type==='mat') return false;
-    if(d.type==='accessory') return false;  // 목걸이·반지 → 월드보스 전용
+    if(d.type==='accessory'||d.type==='necklace'||d.type==='ring') return false;  // 목걸이·반지 → 월드보스 전용
     if(d.grade==='신화'||d.grade==='레전드리'||d.grade==='초월'||d.grade==='절대자') return false;
     if(d.type==='weapon') return !d.jobType||d.jobType.includes(G.job);
     return true; // weapon/shield/armor/boots/gloves
@@ -8136,7 +8136,7 @@ function towerMobDead() {
     const validDrops = DROPS.filter(d=>{
       if(d.grade !== grade) return false;
       if(d.type==='pot'||d.type==='mat') return false;
-      if(d.type==='accessory') return false;  // 목걸이·반지 제외
+      if(d.type==='accessory'||d.type==='necklace'||d.type==='ring') return false;  // 목걸이·반지 제외
       if(d.grade==='절대자') return false;    // 절대자는 제작 전용
       // 201층 미만: 레전드리·초월 드롭 제외
       if(floor < 201 && (d.grade==='레전드리'||d.grade==='초월')) return false;
