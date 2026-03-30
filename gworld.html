@@ -1796,9 +1796,9 @@ function getEnhQTarget() {
   return (claimed + 1) * 10;
 }
 function getEnhQReward(target) {
-  // 10회=10000G, 20회=25000G, 30회=50000G... 단계마다 증가
+  // 10회=10000G, 이후 단계마다 1000G씩 증가 (20회=11000G, 30회=12000G...)
   const step = target / 10;
-  return Math.floor(10000 * step * (1 + (step - 1) * 0.5));
+  return 10000 + (step - 1) * 1000;
 }
 function checkEnhQuest() {
   const total  = G.enhQTotal || 0;
