@@ -3284,7 +3284,12 @@ function tSpdMin() {
 }
 function tSpd(){ const base=G.job==='archer'?1300:1500; return Math.max(tSpdMin(), base-(equipBonus().spd||0)-getLinkSpdReduce()); }
 // 치명타 확률 (%) - 기본 5%
-function tCritRate(){ const base=G.job==='rogue'?10:5; return base+(equipBonus().critRate||0); }
+function tCritRate(){
+  const base = G.job==='rogue' ? 10 : 5;
+  const rawStat = base + (equipBonus().critRate||0);
+  // 치명타 확률 스탯 1%당 실제 적용은 0.2% (100%→20%, 200%→40%, 300%→60%)
+  return rawStat * 0.2;
+}
 // 치명타 대미지 배율 (%) - 기본 150%
 function tCritDmg(){ return 100+(equipBonus().critDmg||0)+getLinkCritDmgBonus(); }
 // 회피율 (%) - 유물로만 증가
@@ -3960,7 +3965,7 @@ function renderStat(){
       <div class="gw-stat-row"><span class="gw-stat-l">공격력</span><span class="gw-stat-v">${tAtk()} <span style="color:#34d399;font-size:10px">${eq.atk>0?'(+'+eq.atk+')':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">방어력</span><span class="gw-stat-v">${tDef()} <span style="color:#60a5fa;font-size:10px">${eq.def>0?'(+'+eq.def+')':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">공격 속도</span><span class="gw-stat-v">${(spd/1000).toFixed(2)}초 <span style="color:#34d399;font-size:10px">${eq.spd>0?'(-'+eq.spd+'ms)':''}</span><span style="color:#475569;font-size:9px;margin-left:4px">(최소 ${(tSpdMin()/1000).toFixed(2)}초)</span></span></div>
-      <div class="gw-stat-row"><span class="gw-stat-l">치명타 확률</span><span class="gw-stat-v">${cr}% <span style="color:#f97316;font-size:10px">${eq.critRate>0?'(+'+eq.critRate+'%)':''}</span></span></div>
+      <div class="gw-stat-row"><span class="gw-stat-l">치명타 확률</span><span class="gw-stat-v">${cr.toFixed(1)}% <span style="color:#f97316;font-size:10px">${eq.critRate>0?'(스탯 '+eq.critRate+'% → 실적용)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">치명타 대미지</span><span class="gw-stat-v">${cd}% <span style="color:#f97316;font-size:10px">${eq.critDmg>0?'(+'+eq.critDmg+'%)':''}</span></span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">경험치 획득량</span><span class="gw-stat-v" style="color:#34d399">×${tExpRate().toFixed(2)} <span style="color:#34d399;font-size:10px">${eq.expBonus>0?'(반지+'+eq.expBonus+'%)':''}</span>${G.lv>30?`<span style="color:#f87171;font-size:10px"> 효율${G.lv<=50?85:G.lv<=70?65:G.lv<=85?45:30}%</span>`:''}</span></div>
       <div class="gw-stat-row"><span class="gw-stat-l">회피율</span><span class="gw-stat-v" style="color:#34d399">${tDodge()}% <span style="color:#475569;font-size:10px">${tDodge()===0?'(유물로 증가 가능)':''}</span></span></div>
