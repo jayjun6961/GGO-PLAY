@@ -876,7 +876,8 @@
       grid-template-columns: 1fr;
       padding: 16px;
     }
-    .col-right { display: none; }
+    /* 모바일: col-right를 숨기지 않고 col-left 아래에 표시 */
+    .col-right { display: flex; }
   }
 
   @media (max-width: 640px) {
@@ -890,6 +891,8 @@
     .game-cards-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .topbar { padding: 14px 16px; }
     .greeting h2 { font-size: 12px; }
+    /* 모바일: col-right 너비 100% */
+    .col-right { width: 100%; max-width: 100%; }
   }
 
   /* ── ANIMATIONS ── */
