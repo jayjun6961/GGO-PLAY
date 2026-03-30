@@ -3880,23 +3880,42 @@ function renderEnh(){
     .filter(([,it])=>it!=null)
     .map(([slot,it])=>{
       const enh=it.enh||0;
-            const cost=enhCost(enh, it.grade);
+            const cost=enhCost(enh, it.grade, it.slot||slot);
       let stat='',nextStat='';
-      if(it.type==='weapon'||it.slot==='weapon'){
+      const itype = it.type||'';
+      const islot  = it.slot||slot;
+      if(itype==='weapon'||islot==='weapon'){
         stat=`ATK +${it.atk||0}`; nextStat=`ATK +${(it.atk||0)+2}`;
-      } else if(it.type==='shield'){
+      } else if(itype==='shield'||islot==='shield'){
         stat=`DEF +${it.def||0}`; nextStat=`DEF +${(it.def||0)+3}`;
-      } else if(it.type==='armor'){
+      } else if(itype==='armor'||islot==='armor'){
         stat=`ATK +${it.atk||0} / DEF +${it.def||0}`; nextStat=`ATK +${(it.atk||0)+1} / DEF +${(it.def||0)+2}`;
-      } else if(it.type==='boots'){
+      } else if(itype==='boots'||islot==='boots'){
         stat=`공격속도 -${it.spd||0}ms`; nextStat=`공격속도 -${(it.spd||0)+10}ms`;
-      } else if(it.type==='gloves'){
+      } else if(itype==='gloves'||islot==='gloves'){
         stat=`ATK +${it.atk||0}`; nextStat=`ATK +${(it.atk||0)+2}`;
-      } else if(it.type==='accessory'){
+      } else if(islot==='shoulder'||itype==='shoulder'){
+        stat=`DEF +${it.def||0}, 치명타대미지 +${(it.critDmg||0).toFixed(1)}%`;
+        nextStat=`DEF +${(it.def||0)+1}, 치명타대미지 +${((it.critDmg||0)+0.1).toFixed(1)}%`;
+      } else if(islot==='bracelet'||itype==='bracelet'){
+        stat=`보스치명타확률 +${(it.bossCritRate||0).toFixed(1)}%`;
+        nextStat=`보스치명타확률 +${((it.bossCritRate||0)+0.1).toFixed(1)}%`;
+      } else if(islot==='earring'||itype==='earring'){
+        stat=`보스치명타대미지 +${(it.bossCritDmg||0).toFixed(1)}%`;
+        nextStat=`보스치명타대미지 +${((it.bossCritDmg||0)+0.1).toFixed(1)}%`;
+      } else if(itype==='necklace'||islot==='necklace'){
+        // 목걸이: 치명타확률
+        stat=`치명타확률 +${it.critRate||0}%`; nextStat=`치명타확률 +${(it.critRate||0)+1}%`;
+      } else if(itype==='ring'||islot==='ring'||islot==='ring1'||islot==='ring2'||islot==='ring3'){
+        // 반지: ringType으로 세분화
+        if(it.ringType==='ring_crit'){stat=`치명타대미지 +${it.critDmg||0}%`;nextStat=`치명타대미지 +${(it.critDmg||0)+5}%`;}
+        else if(it.ringType==='ring_atk'){stat=`ATK +${it.atk||0}`;nextStat=`ATK +${(it.atk||0)+1}`;}
+        else if(it.ringType==='ring_def'){stat=`DEF +${it.def||0}`;nextStat=`DEF +${(it.def||0)+1}`;}
+        else if(it.ringType==='ring_exp'){stat=`경험치 +${it.expBonus||0}%`;nextStat=`경험치 +${(it.expBonus||0)+2}%`;}
+        else{stat=`치명타대미지 +${it.critDmg||0}%`;nextStat=`치명타대미지 +${(it.critDmg||0)+5}%`;}
+      } else if(itype==='accessory'){
+        // 구형 accessory 타입 (하위 호환)
         if(it.subType==='necklace'){stat=`치명타확률 +${it.critRate||0}%`;nextStat=`치명타확률 +${(it.critRate||0)+1}%`;}
-        else if(it.slot==='shoulder'){stat=`DEF +${it.def||0}, 치명타대미지 +${(it.critDmg||0).toFixed(1)}%`;nextStat=`DEF +${(it.def||0)+1}, 치명타대미지 +${((it.critDmg||0)+0.1).toFixed(1)}%`;}
-        else if(it.slot==='bracelet'){stat=`보스치명타확률 +${(it.bossCritRate||0).toFixed(1)}%`;nextStat=`보스치명타확률 +${((it.bossCritRate||0)+0.1).toFixed(1)}%`;}
-        else if(it.slot==='earring'){stat=`보스치명타대미지 +${(it.bossCritDmg||0).toFixed(1)}%`;nextStat=`보스치명타대미지 +${((it.bossCritDmg||0)+0.1).toFixed(1)}%`;}
         else if(it.subType==='ring'){
           if(it.ringType==='ring_crit'){stat=`치명타대미지 +${it.critDmg||0}%`;nextStat=`치명타대미지 +${(it.critDmg||0)+5}%`;}
           else if(it.ringType==='ring_atk'){stat=`ATK +${it.atk||0}`;nextStat=`ATK +${(it.atk||0)+1}`;}
@@ -3905,11 +3924,16 @@ function renderEnh(){
           else{stat=`치명타대미지 +${it.critDmg||0}%`;nextStat=`치명타대미지 +${(it.critDmg||0)+5}%`;}
         } else{stat=`ATK +${it.atk||0}`;nextStat=`ATK +${(it.atk||0)+1}`;}
       } else {
-        stat=`DEF +${it.def||0}`; nextStat=`DEF +${(it.def||0)+2}`;
+        // 알 수 없는 타입: 보유 스탯 자동 표시
+        if(it.atk)      { stat=`ATK +${it.atk}`; nextStat=`ATK +${it.atk+1}`; }
+        else if(it.def) { stat=`DEF +${it.def}`; nextStat=`DEF +${it.def+1}`; }
+        else if(it.critRate) { stat=`치명타확률 +${it.critRate}%`; nextStat=`치명타확률 +${it.critRate+1}%`; }
+        else if(it.critDmg)  { stat=`치명타대미지 +${it.critDmg}%`; nextStat=`치명타대미지 +${it.critDmg+5}%`; }
+        else { stat=`DEF +${it.def||0}`; nextStat=`DEF +${(it.def||0)+1}`; }
       }
       const GRADE_COL2={'기본':'#94a3b8','일반':'#ffffff','희귀':'#34d399','레어':'#60a5fa','에픽':'#a855f7','전설':'#fbbf24','신화':'#f97316','레전드리':'#ef4444','초월':'#a78bfa','절대자':'#ffb3de'};
       const gc2 = GRADE_COL2[it.grade||'일반']||'#94a3b8';
-      const maxEnh = getEnhMax(it.grade);
+      const maxEnh = getEnhMax(it.grade, it.slot||slot);
       const isMax  = enh >= maxEnh;
       const enhBadge=enh>0?`<span style="font-size:9px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-left:4px">+${enh}</span>`:'';
       const maxBadge=isMax?`<span style="font-size:9px;color:#f87171;font-family:'Orbitron',sans-serif;margin-left:4px">MAX</span>`:'';
@@ -3937,9 +3961,9 @@ function enhSlot(slot){
   const it=(G.equip||{})[slot];
   if(!it){gwT('해당 슬롯에 장비 없음');return;}
   const enh=it.enh||0;
-  const maxEnh=getEnhMax(it.grade);
+  const maxEnh=getEnhMax(it.grade, it.slot||slot);
   if(enh>=maxEnh){gwT(`⚠️ 최대 강화 횟수 도달 (+${maxEnh} / ${it.grade})`);return;}
-  const cost=enhCost(enh, it.grade);
+  const cost=enhCost(enh, it.grade, it.slot||slot);
   if(G.gold<cost){gwT(`골드 부족 (${cost}G 필요)`);return;}
   G.gold-=cost;
   it.enh=(it.enh||0)+1;
@@ -3961,7 +3985,17 @@ function enhSlot(slot){
     it.bossCritRate=(it.bossCritRate||0)+0.1; // 팔찌: 보스치명타확률+0.1%
   } else if(it.slot==='earring'){
     it.bossCritDmg=(it.bossCritDmg||0)+0.1; // 귀걸이: 보스치명타대미지+0.1%
+  } else if(it.type==='necklace'||it.slot==='necklace'){
+    it.critRate=(it.critRate||0)+1; // 목걸이: 치명타확률+1
+  } else if(it.type==='ring'||it.slot==='ring'||it.slot==='ring1'||it.slot==='ring2'||it.slot==='ring3'){
+    // 반지: ringType별 강화 효과
+    if(it.ringType==='ring_crit')     it.critDmg=(it.critDmg||0)+5;
+    else if(it.ringType==='ring_atk') it.atk=(it.atk||0)+1;
+    else if(it.ringType==='ring_def') it.def=(it.def||0)+1;
+    else if(it.ringType==='ring_exp') it.expBonus=(it.expBonus||0)+2;
+    else it.critDmg=(it.critDmg||0)+5;
   } else if(it.type==='accessory'){
+    // 구형 accessory 타입 (하위 호환)
     if(it.subType==='necklace') it.critRate=(it.critRate||0)+1;
     else if(it.subType==='ring'){
       if(it.ringType==='ring_crit')     it.critDmg=(it.critDmg||0)+5;
@@ -3975,7 +4009,7 @@ function enhSlot(slot){
   }
   recalcStats();hud();
   saveG(); renderEnh(); renderQdot(); // 강화 퀘스트 알림 갱신
-  gwT(`⚒️ ${it.n} +${it.enh} 강화 완료! (다음 비용: ${enhCost(it.enh, it.grade).toLocaleString()}G)`);
+  gwT(`⚒️ ${it.n} +${it.enh} 강화 완료! (다음 비용: ${enhCost(it.enh, it.grade, it.slot||slot).toLocaleString()}G)`);
 }
 function enhItem(i){/* deprecated - 하위 호환용 */const it=G.inv[i];if(!it)return;}
 
