@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🎰 도박장 — GGO PLAY</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06030f;--bg2:#0d0820;--bg3:#140b28;
+  --gold:#fbbf24;--gold2:#f59e0b;--gold3:#fde68a;
+  --red:#ef4444;--red2:#dc2626;--green:#22c55e;--green2:#16a34a;
+  --purple:#a855f7;--purple2:#7c3aed;--cyan:#22d3ee;
+  --text:#f1e8ff;--dim:#6b5f80;--sub:#9d8fc0;
+  --card:rgba(20,11,40,.95);--border:rgba(168,85,247,.2);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;display:flex;flex-direction:column;}
+
+/* 별 배경 */
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 80% 50% at 20% 20%,rgba(168,85,247,.06),transparent),
+  radial-gradient(ellipse 60% 40% at 80% 80%,rgba(251,191,36,.05),transparent);
+  pointer-events:none;z-index:0;}
+
+/* HUD */
+.hud{position:relative;z-index:10;background:rgba(6,3,15,.97);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.hud-title{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;background:linear-gradient(90deg,var(--gold),#fff,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hud-chips{display:flex;align-items:center;gap:6px;margin-left:auto;}
+.chip-badge{display:flex;align-items:center;gap:4px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:20px;padding:4px 12px;font-family:'Orbitron',monospace;font-size:12px;color:var(--gold);}
+
+/* 탭 */
+.tabs{position:relative;z-index:10;display:flex;background:rgba(6,3,15,.97);border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab-btn{flex:1;padding:10px 4px;font-size:10px;font-family:'Orbitron',monospace;color:var(--dim);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.tab-btn .ti{font-size:18px;}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* 메인 */
+.main{flex:1;overflow:hidden;position:relative;z-index:1;}
+.tab-content{display:none;height:100%;overflow-y:auto;padding:16px;}
+.tab-content.active{display:block;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:rgba(168,85,247,.3);}
+
+/* ── 공통 카드 ── */
+.game-panel{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:14px;}
+.game-title{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--gold);text-align:center;margin-bottom:4px;}
+.game-sub{font-size:11px;color:var(--dim);text-align:center;margin-bottom:18px;}
+
+/* 베팅 인풋 */
+.bet-row{display:flex;gap:6px;align-items:center;margin-bottom:12px;}
+.bet-input{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--gold);font-family:'Orbitron',monospace;font-size:14px;outline:none;text-align:center;}
+.bet-input:focus{border-color:rgba(251,191,36,.5);}
+.bet-quick{display:flex;gap:4px;}
+.bq{padding:6px 10px;border:1px solid rgba(251,191,36,.25);border-radius:8px;background:rgba(251,191,36,.06);color:var(--gold);font-size:10px;font-family:'Orbitron',monospace;cursor:pointer;transition:.15s;}
+.bq:hover{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.5);}
+
+/* 버튼 */
+.btn-go{width:100%;padding:14px;border:none;border-radius:12px;font-family:'Orbitron',monospace;font-size:14px;font-weight:700;cursor:pointer;transition:.15s;letter-spacing:1px;}
+.btn-gold{background:linear-gradient(135deg,#d97706,var(--gold),#fde68a);color:#000;}
+.btn-gold:hover{opacity:.9;transform:translateY(-1px);}
+.btn-gold:active{transform:scale(.97);}
+.btn-gold:disabled{background:rgba(255,255,255,.08);color:var(--dim);cursor:default;transform:none;}
+.btn-red{background:linear-gradient(135deg,var(--red2),var(--red));color:#fff;}
+.btn-green-c{background:linear-gradient(135deg,var(--green2),var(--green));color:#fff;}
+
+/* 결과 배지 */
+.result-badge{text-align:center;padding:14px;border-radius:14px;font-family:'Orbitron',monospace;font-size:16px;font-weight:700;margin-top:12px;animation:pop .3s ease;}
+.result-win{background:rgba(34,197,94,.12);border:2px solid var(--green);color:var(--green);}
+.result-lose{background:rgba(239,68,68,.1);border:2px solid var(--red);color:var(--red);}
+@keyframes pop{from{transform:scale(.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+/* ════ 슬롯머신 ════ */
+.slot-machine{background:linear-gradient(180deg,#1a0a30,#0d0518);border:2px solid rgba(251,191,36,.4);border-radius:20px;padding:20px 16px;margin-bottom:16px;position:relative;overflow:hidden;}
+.slot-machine::before{content:'★ LUCKY CASINO ★';position:absolute;top:8px;left:50%;transform:translateX(-50%);font-family:'Orbitron',monospace;font-size:9px;color:rgba(251,191,36,.5);letter-spacing:3px;white-space:nowrap;}
+.slot-reels{display:flex;gap:8px;justify-content:center;margin:20px 0 16px;}
+.reel{width:72px;height:88px;background:rgba(0,0,0,.5);border:2px solid rgba(251,191,36,.3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:44px;line-height:1;overflow:hidden;position:relative;}
+.reel.spinning{animation:spin-reel .08s linear infinite;}
+.reel.stopping{animation:none;}
+@keyframes spin-reel{0%{transform:translateY(0);}50%{transform:translateY(-8px);}100%{transform:translateY(0);}}
+.reel-glow{position:absolute;inset:0;border-radius:10px;pointer-events:none;}
+.reel.win-reel .reel-glow{background:radial-gradient(ellipse at center,rgba(251,191,36,.25),transparent);animation:glow-pulse .5s ease infinite alternate;}
+@keyframes glow-pulse{from{opacity:.5;}to{opacity:1;}}
+
+.slot-payouts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.payout-item{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;}
+.payout-syms{font-size:14px;}
+.payout-mul{font-family:'Orbitron',monospace;font-size:11px;color:var(--gold);}
+
+/* 잭팟 이펙트 */
+.jackpot-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;align-items:center;justify-content:center;flex-direction:column;}
+.jackpot-overlay.show{display:flex;animation:fadeIn .3s;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.jackpot-text{font-family:'Orbitron',monospace;font-size:48px;font-weight:900;background:linear-gradient(90deg,#fbbf24,#fff,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:jackpot-bounce .4s ease infinite alternate;text-shadow:0 0 40px rgba(251,191,36,.8);}
+@keyframes jackpot-bounce{from{transform:scale(1);}to{transform:scale(1.08);}}
+.coin-shower{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.coin{position:absolute;top:-40px;font-size:24px;animation:coin-fall linear forwards;}
+@keyframes coin-fall{from{top:-40px;opacity:1;}to{top:110%;opacity:.3;}}
+
+/* ════ 지뢰찾기 ════ */
+.mine-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:14px 0;}
+.mine-cell{aspect-ratio:1;border-radius:10px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;position:relative;overflow:hidden;}
+.mine-cell:hover:not(.opened):not(.disabled){border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.08);transform:scale(1.05);}
+.mine-cell.opened.safe{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.4);animation:cell-open .2s ease;}
+.mine-cell.opened.mine{background:rgba(239,68,68,.2);border-color:var(--red);animation:cell-explode .3s ease;}
+.mine-cell.disabled{cursor:default;}
+@keyframes cell-open{from{transform:scale(.8);opacity:0;}to{transform:scale(1);opacity:1;}}
+@keyframes cell-explode{0%{transform:scale(1);}30%{transform:scale(1.2);}100%{transform:scale(1);}}
+
+.mine-stats{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.04);border-radius:10px;padding:10px 14px;margin-bottom:12px;}
+.mine-stat{text-align:center;}
+.mine-stat .sv{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;}
+.mine-stat .sl{font-size:9px;color:var(--dim);margin-top:2px;}
+
+.mine-controls{display:flex;gap:8px;margin-bottom:12px;}
+.mine-diff-btn{flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--dim);font-size:10px;font-family:'Orbitron',monospace;cursor:pointer;transition:.15s;}
+.mine-diff-btn.active{border-color:rgba(251,191,36,.5);color:var(--gold);background:rgba(251,191,36,.08);}
+
+/* ════ 주사위 ════ */
+.dice-area{display:flex;justify-content:center;gap:16px;margin:16px 0;}
+.dice{width:80px;height:80px;border-radius:14px;background:linear-gradient(145deg,#1a0a30,#0d0518);border:2px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:42px;position:relative;transition:.3s;}
+.dice.rolling{animation:dice-roll .1s ease infinite alternate;}
+@keyframes dice-roll{from{transform:rotate(-8deg) scale(.95);}to{transform:rotate(8deg) scale(1.05);}}
+.dice-result-num{font-family:'Orbitron',monospace;font-size:48px;font-weight:900;text-align:center;margin:8px 0;}
+.dice-history{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;min-height:28px;margin-bottom:10px;}
+.dh-badge{padding:3px 8px;border-radius:6px;font-size:11px;font-family:'Orbitron',monospace;font-weight:700;}
+.dh-high{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+.dh-low{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);}
+
+.hl-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.hl-btn{padding:14px;border-radius:12px;border:2px solid;font-family:'Orbitron',monospace;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;text-align:center;}
+.hl-btn.high{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08);color:var(--green);}
+.hl-btn.high:hover{background:rgba(34,197,94,.18);border-color:var(--green);}
+.hl-btn.low{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:var(--red);}
+.hl-btn.low:hover{background:rgba(239,68,68,.15);border-color:var(--red);}
+.hl-btn:disabled{opacity:.4;cursor:default;}
+
+.streak-bar{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border-radius:10px;padding:10px 14px;margin-bottom:12px;}
+.streak-dots{display:flex;gap:4px;flex:1;}
+.streak-dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.1);transition:.2s;}
+.streak-dot.win{background:var(--green);box-shadow:0 0 6px rgba(34,197,94,.5);}
+.streak-dot.lose{background:var(--red);box-shadow:0 0 6px rgba(239,68,68,.4);}
+.streak-mul{font-family:'Orbitron',monospace;font-size:13px;color:var(--gold);font-weight:700;}
+
+/* 토스트 */
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(20,11,40,.97);border:1px solid var(--gold);border-radius:20px;padding:10px 22px;font-family:'Orbitron',monospace;font-size:12px;color:var(--gold);opacity:0;transition:.3s;pointer-events:none;z-index:400;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* 금고 연동 안내 */
+.no-login{text-align:center;padding:40px 20px;color:var(--dim);}
+.no-login .nl-emoji{font-size:48px;margin-bottom:12px;}
+.no-login .nl-text{font-size:13px;line-height:1.8;}
+
+/* 스크롤 */
+.tab-content::-webkit-scrollbar{width:3px;}
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div class="hud">
+  <div class="hud-title">🎰 도박장</div>
+  <div class="hud-chips">
+    <div class="chip-badge">💵 <span id="hud-money">0</span></div>
+    <div class="chip-badge">🪙 <span id="hud-gp">0</span></div>
+    <button onclick="switchTab('shop')" style="padding:4px 12px;border:1px solid rgba(251,191,36,.4);border-radius:20px;background:rgba(251,191,36,.1);color:var(--gold);font-family:'Orbitron',monospace;font-size:10px;cursor:pointer;white-space:nowrap;">🏪 환전</button>
+  </div>
+</div>
+
+<!-- 탭 -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('slot')" id="tb-slot"><span class="ti">🎰</span>슬롯머신</button>
+  <button class="tab-btn" onclick="switchTab('mine')" id="tb-mine"><span class="ti">💣</span>지뢰찾기</button>
+  <button class="tab-btn" onclick="switchTab('dice')" id="tb-dice"><span class="ti">🎲</span>주사위</button>
+  <button class="tab-btn" onclick="switchTab('shop')" id="tb-shop"><span class="ti">🏪</span>환전소</button>
+</div>
+
+<div class="main">
+
+<!-- ① 슬롯머신 -->
+<div class="tab-content active" id="tab-slot">
+  <div class="game-panel">
+    <div class="game-title">🎰 LUCKY SLOT</div>
+    <div class="game-sub">3개 일치 시 대박! 777은 잭팟!</div>
+
+    <div class="slot-machine">
+      <div class="slot-reels">
+        <div class="reel" id="reel-0"><span id="sym-0">🍒</span><div class="reel-glow"></div></div>
+        <div class="reel" id="reel-1"><span id="sym-1">🍋</span><div class="reel-glow"></div></div>
+        <div class="reel" id="reel-2"><span id="sym-2">⭐</span><div class="reel-glow"></div></div>
+      </div>
+    </div>
+
+    <div class="slot-payouts">
+      <div class="payout-item"><span class="payout-syms">7️⃣7️⃣7️⃣</span><span class="payout-mul" style="color:#ef4444;">×50 JACKPOT</span></div>
+      <div class="payout-item"><span class="payout-syms">💎💎💎</span><span class="payout-mul">×20</span></div>
+      <div class="payout-item"><span class="payout-syms">⭐⭐⭐</span><span class="payout-mul">×10</span></div>
+      <div class="payout-item"><span class="payout-syms">🍇🍇🍇</span><span class="payout-mul">×8</span></div>
+      <div class="payout-item"><span class="payout-syms">🍊🍊🍊</span><span class="payout-mul">×5</span></div>
+      <div class="payout-item"><span class="payout-syms">🍋🍋🍋</span><span class="payout-mul">×4</span></div>
+      <div class="payout-item"><span class="payout-syms">🍒🍒🍒</span><span class="payout-mul">×3</span></div>
+      <div class="payout-item"><span class="payout-syms">🍒🍒 ×</span><span class="payout-mul">×1.5</span></div>
+    </div>
+
+    <div class="bet-row">
+      <input class="bet-input" type="number" id="slot-bet" value="100" min="10" max="99999"/>
+      <div class="bet-quick">
+        <div class="bq" onclick="setBet('slot-bet',100)">100</div>
+        <div class="bq" onclick="setBet('slot-bet',500)">500</div>
+        <div class="bq" onclick="setBet('slot-bet',1000)">1K</div>
+        <div class="bq" onclick="slotMaxBet()">MAX</div>
+      </div>
+    </div>
+
+    <button class="btn-go btn-gold" id="slot-spin-btn" onclick="spinSlot()">🎰 SPIN!</button>
+    <div id="slot-result" style="display:none;"></div>
+  </div>
+
+  <!-- 슬롯 통계 -->
+  <div class="game-panel" style="padding:14px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;">
+      <div><div style="font-family:'Orbitron',monospace;font-size:16px;color:var(--green);" id="slot-wins">0</div><div style="font-size:9px;color:var(--dim);">총 획득</div></div>
+      <div><div style="font-family:'Orbitron',monospace;font-size:16px;color:var(--red);" id="slot-losses">0</div><div style="font-size:9px;color:var(--dim);">총 손실</div></div>
+      <div><div style="font-family:'Orbitron',monospace;font-size:16px;color:var(--gold);" id="slot-net">0</div><div style="font-size:9px;color:var(--dim);">순손익</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ② 지뢰찾기 배팅 -->
+<div class="tab-content" id="tab-mine">
+  <div class="game-panel">
+    <div class="game-title">💣 MINE SWEEP</div>
+    <div class="game-sub">타일을 열수록 배당이 올라가지만 지뢰를 밟으면 전부 잃음!</div>
+
+    <!-- 난이도 -->
+    <div class="mine-controls">
+      <button class="mine-diff-btn active" onclick="setMineDiff(this,'easy',3)" id="md-easy">🟢 EASY<br><span style="font-size:8px;">지뢰 3개</span></button>
+      <button class="mine-diff-btn" onclick="setMineDiff(this,'normal',5)" id="md-normal">🟡 NORMAL<br><span style="font-size:8px;">지뢰 5개</span></button>
+      <button class="mine-diff-btn" onclick="setMineDiff(this,'hard',8)" id="md-hard">🔴 HARD<br><span style="font-size:8px;">지뢰 8개</span></button>
+    </div>
+
+    <!-- 배팅 -->
+    <div class="bet-row" id="mine-bet-row">
+      <input class="bet-input" type="number" id="mine-bet" value="200" min="10"/>
+      <div class="bet-quick">
+        <div class="bq" onclick="setBet('mine-bet',200)">200</div>
+        <div class="bq" onclick="setBet('mine-bet',500)">500</div>
+        <div class="bq" onclick="setBet('mine-bet',1000)">1K</div>
+        <div class="bq" onclick="mineMaxBet()">MAX</div>
+      </div>
+    </div>
+    <button class="btn-go btn-gold" id="mine-start-btn" onclick="startMine()" style="margin-bottom:12px;">💣 게임 시작</button>
+
+    <!-- 통계 -->
+    <div class="mine-stats">
+      <div class="mine-stat"><div class="sv" style="color:var(--gold);" id="mine-multi">×1.00</div><div class="sl">현재 배당</div></div>
+      <div class="mine-stat"><div class="sv" style="color:var(--green);" id="mine-profit">+0</div><div class="sl">예상 수령</div></div>
+      <div class="mine-stat"><div class="sv" style="color:var(--cyan);" id="mine-opened">0/22</div><div class="sl">열린 타일</div></div>
+    </div>
+
+    <!-- 그리드 -->
+    <div class="mine-grid" id="mine-grid"></div>
+
+    <!-- 수령 버튼 -->
+    <button class="btn-go btn-green-c" id="mine-cash-btn" onclick="cashOutMine()" style="display:none;margin-bottom:8px;">💰 지금 수령하기</button>
+    <div id="mine-result" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ③ 주사위 하이로우 -->
+<div class="tab-content" id="tab-dice">
+  <div class="game-panel">
+    <div class="game-title">🎲 HIGH or LOW</div>
+    <div class="game-sub">1~6 주사위 · HIGH(4~6) 또는 LOW(1~3) 예측!</div>
+
+    <!-- 주사위 -->
+    <div class="dice-area">
+      <div class="dice" id="dice-el"><span id="dice-face">🎲</span></div>
+    </div>
+    <div class="dice-result-num" id="dice-num" style="color:var(--gold);display:none;"></div>
+
+    <!-- 연속 스트릭 -->
+    <div class="streak-bar">
+      <div style="font-size:10px;color:var(--dim);font-family:'Orbitron',monospace;white-space:nowrap;">STREAK</div>
+      <div class="streak-dots" id="streak-dots">
+        <div class="streak-dot"></div><div class="streak-dot"></div><div class="streak-dot"></div>
+        <div class="streak-dot"></div><div class="streak-dot"></div>
+      </div>
+      <div class="streak-mul" id="streak-mul">×1.00</div>
+    </div>
+
+    <!-- 히스토리 -->
+    <div class="dice-history" id="dice-history"></div>
+
+    <!-- 베팅 -->
+    <div class="bet-row">
+      <input class="bet-input" type="number" id="dice-bet" value="100" min="10"/>
+      <div class="bet-quick">
+        <div class="bq" onclick="setBet('dice-bet',100)">100</div>
+        <div class="bq" onclick="setBet('dice-bet',300)">300</div>
+        <div class="bq" onclick="setBet('dice-bet',1000)">1K</div>
+        <div class="bq" onclick="diceMaxBet()">MAX</div>
+      </div>
+    </div>
+
+    <!-- 하이/로우 버튼 -->
+    <div class="hl-btns">
+      <button class="hl-btn high" id="btn-high" onclick="rollDice('high')">
+        📈 HIGH<br><span style="font-size:9px;opacity:.7;">4 · 5 · 6</span><br>
+        <span style="font-size:11px;" id="high-mul">×1.9</span>
+      </button>
+      <button class="hl-btn low" id="btn-low" onclick="rollDice('low')">
+        📉 LOW<br><span style="font-size:9px;opacity:.7;">1 · 2 · 3</span><br>
+        <span style="font-size:11px;" id="low-mul">×1.9</span>
+      </button>
+    </div>
+
+    <div id="dice-result" style="display:none;"></div>
+
+    <!-- 통계 -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;background:rgba(255,255,255,.03);border-radius:10px;padding:12px;margin-top:4px;">
+      <div><div style="font-family:'Orbitron',monospace;font-size:15px;color:var(--green);" id="dice-wins">0</div><div style="font-size:9px;color:var(--dim);">승</div></div>
+      <div><div style="font-family:'Orbitron',monospace;font-size:15px;color:var(--red);" id="dice-losses">0</div><div style="font-size:9px;color:var(--dim);">패</div></div>
+      <div><div style="font-family:'Orbitron',monospace;font-size:15px;color:var(--gold);" id="dice-streak-best">0</div><div style="font-size:9px;color:var(--dim);">최고연승</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ④ 환전소 탭 -->
+<div class="tab-content" id="tab-shop">
+  <div class="game-panel">
+    <div class="game-title">🏪 카지노 환전소</div>
+    <div class="game-sub">GP ↔ 머니 교환</div>
+
+    <!-- 잔액 카드 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:14px;padding:16px;text-align:center;">
+        <div style="font-size:28px;">💵</div>
+        <div style="font-family:'Orbitron',monospace;font-size:20px;font-weight:700;color:#22c55e;margin:4px 0;" id="shop-money">0</div>
+        <div style="font-size:10px;color:var(--dim);">보유 머니</div>
+      </div>
+      <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:14px;padding:16px;text-align:center;">
+        <div style="font-size:28px;">🪙</div>
+        <div style="font-family:'Orbitron',monospace;font-size:20px;font-weight:700;color:var(--gold);margin:4px 0;" id="shop-gp">0</div>
+        <div style="font-size:10px;color:var(--dim);">보유 GP</div>
+      </div>
+    </div>
+
+    <!-- GP → 머니 -->
+    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(251,191,36,.2);border-radius:14px;padding:16px;margin-bottom:12px;">
+      <div style="font-family:'Orbitron',monospace;font-size:12px;color:var(--gold);margin-bottom:6px;">🪙 GP → 💵 머니</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.7;">
+        100GP 단위로만 교환 가능<br>
+        <span style="color:var(--gold);">100 GP = 10,000 머니</span>
+      </div>
+      <div class="bet-row" style="margin-bottom:8px;">
+        <input class="bet-input" type="number" id="gp-input" placeholder="GP 입력 (100 단위)" min="100" step="100" oninput="previewGPtoMoney()"/>
+      </div>
+      <div style="text-align:center;font-size:12px;color:var(--sub);margin-bottom:10px;">
+        → 💵 <span style="color:#22c55e;font-family:'Orbitron',monospace;" id="gp-preview">0</span> 머니
+      </div>
+      <div style="display:flex;gap:5px;margin-bottom:10px;">
+        <div class="bq" onclick="document.getElementById('gp-input').value=100;previewGPtoMoney()">100GP</div>
+        <div class="bq" onclick="document.getElementById('gp-input').value=500;previewGPtoMoney()">500GP</div>
+        <div class="bq" onclick="document.getElementById('gp-input').value=1000;previewGPtoMoney()">1000GP</div>
+        <div class="bq" onclick="setGPMax()">MAX</div>
+      </div>
+      <button class="btn-go btn-gold" onclick="exchangeGPtoMoney()" style="padding:11px;font-size:12px;">💱 GP → 머니 교환</button>
+    </div>
+
+    <!-- 머니 → GP -->
+    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(34,197,94,.2);border-radius:14px;padding:16px;">
+      <div style="font-family:'Orbitron',monospace;font-size:12px;color:#22c55e;margin-bottom:6px;">💵 머니 → 🪙 GP</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.7;">
+        1,000 머니 = 1 GP (소수점 버림)<br>
+        <span style="color:#22c55e;">1,000 머니 = 1 GP</span>
+      </div>
+      <div class="bet-row" style="margin-bottom:8px;">
+        <input class="bet-input" type="number" id="money-input" placeholder="머니 입력" min="1000" step="1000" oninput="previewMoneyToGP()"/>
+      </div>
+      <div style="text-align:center;font-size:12px;color:var(--sub);margin-bottom:10px;">
+        → 🪙 <span style="color:var(--gold);font-family:'Orbitron',monospace;" id="money-preview">0</span> GP
+      </div>
+      <div style="display:flex;gap:5px;margin-bottom:10px;">
+        <div class="bq" onclick="document.getElementById('money-input').value=10000;previewMoneyToGP()">1만</div>
+        <div class="bq" onclick="document.getElementById('money-input').value=100000;previewMoneyToGP()">10만</div>
+        <div class="bq" onclick="document.getElementById('money-input').value=1000000;previewMoneyToGP()">100만</div>
+        <div class="bq" onclick="setMoneyMax()">MAX</div>
+      </div>
+      <button class="btn-go" onclick="exchangeMoneyToGP()" style="background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;padding:11px;font-size:12px;">💱 머니 → GP 교환</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- 로그인 오버레이 -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;background:rgba(6,3,15,.97);z-index:600;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;">
+  <div style="font-size:64px;margin-bottom:16px;">🎰</div>
+  <div style="font-family:'Orbitron',monospace;font-size:20px;font-weight:700;color:var(--gold);margin-bottom:10px;">로그인 필요</div>
+  <div style="font-size:13px;color:var(--dim);line-height:1.8;margin-bottom:24px;">카지노는 GGO PLAY 로그인 후<br>이용할 수 있습니다.</div>
+  <button onclick="location.href='index.html'" style="padding:13px 32px;border:none;border-radius:12px;background:linear-gradient(135deg,#d97706,var(--gold));color:#000;font-family:'Orbitron',monospace;font-size:13px;font-weight:700;cursor:pointer;">🏠 로그인하러 가기</button>
+</div>
+
+<!-- 잭팟 오버레이 -->
+<div class="jackpot-overlay" id="jackpot-overlay" onclick="closeJackpot()">
+  <div class="coin-shower" id="coin-shower"></div>
+  <div class="jackpot-text">🎰 JACKPOT! 🎰</div>
+  <div style="font-family:'Orbitron',monospace;font-size:24px;color:var(--gold);margin:16px 0;" id="jackpot-amount"></div>
+  <div style="font-size:13px;color:var(--dim);margin-top:8px;">화면을 탭하여 닫기</div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════
+//  유저 / 재화 관리
+// ════════════════════════════════════
+function getUN() { return sessionStorage.getItem('ggo_username') || localStorage.getItem('ggo_username') || ''; }
+
+// ── 머니: 카지노 전용 (ggo_casino_money_{username}) 기본 1000 ──
+function getMoney() {
+  const un = getUN(); if(!un) return 0;
+  const key = 'ggo_casino_money_' + un;
+  const stored = localStorage.getItem(key);
+  if(stored === null) { localStorage.setItem(key, '1000'); return 1000; }
+  return parseInt(stored) || 0;
+}
+function setMoney(n) {
+  const un = getUN(); if(!un) return;
+  localStorage.setItem('ggo_casino_money_' + un, Math.max(0, n));
+}
+function addMoney(n) { setMoney(getMoney() + n); updateHUD(); }
+
+// ── GP: GGO PLAY 공통 재화 ──
+function getGPObj() {
+  const un = getUN(); if(!un) return { 루비:0, 크리스탈:0, GP:0 };
+  try { return JSON.parse(localStorage.getItem('ggo_currency_'+un)||'{"루비":0,"크리스탈":0,"GP":0}'); }
+  catch { return { 루비:0, 크리스탈:0, GP:0 }; }
+}
+function saveGPObj(c) {
+  const un = getUN(); if(!un) return;
+  localStorage.setItem('ggo_currency_'+un, JSON.stringify(c));
+}
+function getGP() { return getGPObj()['GP'] || 0; }
+function addGP(n) {
+  const c = getGPObj(); c['GP'] = Math.max(0, (c['GP']||0) + n);
+  saveGPObj(c); updateHUD();
+}
+
+function updateHUD() {
+  document.getElementById('hud-money').textContent = fmtN(getMoney());
+  document.getElementById('hud-gp').textContent = fmtN(getGP());
+}
+
+function fmtN(n) {
+  if(n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if(n >= 1000) return (n/1000).toFixed(1) + 'K';
+  return n.toLocaleString();
+}
+
+function casinoToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+// ════════════════════════════════════
+//  탭 전환
+// ════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('tb-'+tab).classList.add('active');
+}
+
+function setBet(id, val) { document.getElementById(id).value = val; }
+function slotMaxBet() { setBet('slot-bet', Math.min(getMoney(), 9999)); }
+function mineMaxBet() { setBet('mine-bet', Math.min(getMoney(), 9999)); }
+function diceMaxBet() { setBet('dice-bet', Math.min(getMoney(), 9999)); }
+
+// ════════════════════════════════════
+//  ① 슬롯머신
+// ════════════════════════════════════
+const SLOT_SYMS = ['🍒','🍋','🍊','🍇','⭐','💎','7️⃣'];
+const SLOT_WEIGHTS = [30, 25, 20, 15, 5, 3, 2]; // 낮을수록 희귀
+const SLOT_PAYS = {
+  '7️⃣7️⃣7️⃣': 50, '💎💎💎': 20, '⭐⭐⭐': 10,
+  '🍇🍇🍇': 8,  '🍊🍊🍊': 5,  '🍋🍋🍋': 4,
+  '🍒🍒🍒': 3,
+};
+
+let slotSpinning = false;
+let slotWins = 0, slotLosses = 0;
+
+function slotRand() {
+  const total = SLOT_WEIGHTS.reduce((a,b)=>a+b,0);
+  let r = Math.random()*total;
+  for(let i=0;i<SLOT_SYMS.length;i++) { r -= SLOT_WEIGHTS[i]; if(r<=0) return SLOT_SYMS[i]; }
+  return SLOT_SYMS[0];
+}
+
+async function spinSlot() {
+  if(slotSpinning) return;
+  const bet = parseInt(document.getElementById('slot-bet').value)||0;
+  if(bet < 10) { casinoToast('최소 10 머니 베팅!'); return; }
+  if(bet > getMoney()) { casinoToast('머니가 부족합니다!'); return; }
+
+  slotSpinning = true;
+  addMoney(-bet);
+  slotLosses += bet;
+  document.getElementById('slot-spin-btn').disabled = true;
+  document.getElementById('slot-result').style.display = 'none';
+
+  // 릴 회전 시작
+  [0,1,2].forEach(i => document.getElementById('reel-'+i).classList.add('spinning'));
+
+  // 최종 결과 미리 결정
+  const results = [slotRand(), slotRand(), slotRand()];
+
+  // 순서대로 멈추기
+  for(let i=0;i<3;i++) {
+    await sleep(600 + i*400);
+    document.getElementById('reel-'+i).classList.remove('spinning');
+    document.getElementById('sym-'+i).textContent = results[i];
+  }
+  await sleep(200);
+
+  // 결과 판정
+  const key = results.join('');
+  let multi = 0;
+
+  if(SLOT_PAYS[key]) {
+    multi = SLOT_PAYS[key];
+  } else if(results[0]===results[1] && results[0]==='🍒') {
+    multi = 1.5; // 체리 2개
+  } else if(results[0]===results[1] || results[1]===results[2]) {
+    multi = 1.2; // 2개 일치
+  }
+
+  const el = document.getElementById('slot-result');
+  el.style.display = 'block';
+
+  if(multi > 0) {
+    const win = Math.floor(bet * multi);
+    addMoney(win);
+    slotWins += win;
+    slotLosses -= bet; // 이미 뺐으므로 원래대로
+
+    // 윈 릴 반짝임
+    [0,1,2].forEach(i=>document.getElementById('reel-'+i).classList.add('win-reel'));
+
+    el.innerHTML = `<div class="result-badge result-win">🎉 WIN! ×${multi} → +${win.toLocaleString()} 머니</div>`;
+
+    if(multi >= 50) {
+      showJackpot(win);
+    } else {
+      casinoToast(`🎉 +${win.toLocaleString()} 머니!`);
+    }
+  } else {
+    [0,1,2].forEach(i=>document.getElementById('reel-'+i).classList.remove('win-reel'));
+    el.innerHTML = `<div class="result-badge result-lose">💸 MISS — -${bet.toLocaleString()} 머니</div>`;
+    casinoToast(`💸 -${bet.toLocaleString()} 머니`);
+  }
+
+  updateSlotStats();
+  slotSpinning = false;
+  document.getElementById('slot-spin-btn').disabled = false;
+  updateHUD();
+}
+
+function updateSlotStats() {
+  const net = slotWins - slotLosses;
+  document.getElementById('slot-wins').textContent = '+'+fmtN(slotWins);
+  document.getElementById('slot-losses').textContent = '-'+fmtN(slotLosses);
+  document.getElementById('slot-net').textContent = (net>=0?'+':'')+fmtN(net);
+  document.getElementById('slot-net').style.color = net >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+function showJackpot(amount) {
+  document.getElementById('jackpot-amount').textContent = '+' + amount.toLocaleString() + ' 머니!';
+  document.getElementById('jackpot-overlay').classList.add('show');
+  // 코인 샤워
+  const shower = document.getElementById('coin-shower');
+  shower.innerHTML = '';
+  const coins = ['🪙','💰','💎','⭐','🎰'];
+  for(let i=0;i<30;i++) {
+    const c = document.createElement('div');
+    c.className='coin';
+    c.textContent = coins[Math.floor(Math.random()*coins.length)];
+    c.style.left = (Math.random()*100) + '%';
+    c.style.animationDuration = (1+Math.random()*2) + 's';
+    c.style.animationDelay = (Math.random()*1) + 's';
+    shower.appendChild(c);
+  }
+}
+function closeJackpot() { document.getElementById('jackpot-overlay').classList.remove('show'); }
+
+// ════════════════════════════════════
+//  ② 지뢰찾기
+// ════════════════════════════════════
+let mineState = { active:false, mines:[], opened:[], bet:0, mineCount:3 };
+
+const MINE_MULTIPLIERS = {
+  easy:   [1.12,1.25,1.40,1.57,1.76,1.98,2.23,2.52,2.85,3.23,3.66,4.16,4.74,5.41,6.19,7.10,8.17,9.42,10.90,12.65,14.71,17.14],
+  normal: [1.20,1.44,1.73,2.08,2.50,3.00,3.61,4.33,5.20,6.24,7.49,8.99,10.79,12.95,15.54,18.65,22.38,26.86,32.23,38.68,46.41,55.69],
+  hard:   [1.35,1.82,2.46,3.32,4.48,6.05,8.17,11.03,14.89,20.10,27.14,36.64,49.46,66.77,90.15,121.7,164.3,221.8,299.5,404.3,546.0,737.1],
+};
+let currentDiff = 'easy';
+
+function setMineDiff(btn, diff, count) {
+  document.querySelectorAll('.mine-diff-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentDiff = diff;
+  mineState.mineCount = count;
+  if(!mineState.active) resetMineGrid();
+}
+
+function resetMineGrid() {
+  const grid = document.getElementById('mine-grid');
+  grid.innerHTML = '';
+  for(let i=0;i<25;i++) {
+    const cell = document.createElement('div');
+    cell.className = 'mine-cell disabled';
+    cell.textContent = '❓';
+    grid.appendChild(cell);
+  }
+  document.getElementById('mine-multi').textContent = '×1.00';
+  document.getElementById('mine-profit').textContent = '+0';
+  document.getElementById('mine-opened').textContent = '0/22';
+  document.getElementById('mine-cash-btn').style.display = 'none';
+  document.getElementById('mine-result').style.display = 'none';
+}
+
+function startMine() {
+  const bet = parseInt(document.getElementById('mine-bet').value)||0;
+  if(bet < 10) { casinoToast('최소 10 머니 베팅!'); return; }
+  if(bet > getMoney()) { casinoToast('머니가 부족합니다!'); return; }
+
+  addMoney(-bet);
+  updateHUD();
+
+  // 지뢰 위치 결정
+  const mines = new Set();
+  while(mines.size < mineState.mineCount) mines.add(Math.floor(Math.random()*25));
+
+  mineState = { active:true, mines:[...mines], opened:[], bet, mineCount: mineState.mineCount };
+
+  // 그리드 활성화
+  const grid = document.getElementById('mine-grid');
+  grid.innerHTML = '';
+  for(let i=0;i<25;i++) {
+    const cell = document.createElement('div');
+    cell.className = 'mine-cell';
+    cell.textContent = '❓';
+    cell.onclick = () => clickMineCell(i, cell);
+    grid.appendChild(cell);
+  }
+
+  document.getElementById('mine-start-btn').disabled = true;
+  document.getElementById('mine-bet-row').style.opacity = '.5';
+  document.getElementById('mine-bet-row').style.pointerEvents = 'none';
+  document.getElementById('mine-result').style.display = 'none';
+  updateMineStats();
+  casinoToast('💣 지뢰찾기 시작! 타일을 열어보세요!');
+}
+
+function clickMineCell(idx, cell) {
+  if(!mineState.active || mineState.opened.includes(idx)) return;
+
+  cell.classList.add('opened', 'disabled');
+  mineState.opened.push(idx);
+
+  if(mineState.mines.includes(idx)) {
+    // 💥 지뢰!
+    cell.classList.add('mine');
+    cell.textContent = '💥';
+    // 모든 지뢰 공개
+    const allCells = document.getElementById('mine-grid').children;
+    mineState.mines.forEach(m => {
+      allCells[m].textContent = '💣';
+      allCells[m].classList.add('opened','mine');
+    });
+    endMine(false);
+  } else {
+    cell.classList.add('safe');
+    cell.textContent = '✅';
+    updateMineStats();
+
+    const maxSafe = 25 - mineState.mineCount;
+    if(mineState.opened.length >= maxSafe) {
+      // 전부 클리어!
+      cashOutMine();
+    } else {
+      document.getElementById('mine-cash-btn').style.display = 'block';
+    }
+  }
+}
+
+function updateMineStats() {
+  const opened = mineState.opened.length;
+  const muls = MINE_MULTIPLIERS[currentDiff];
+  const mul = opened < muls.length ? muls[opened] : muls[muls.length-1];
+  const profit = Math.floor(mineState.bet * mul);
+  const maxSafe = 25 - mineState.mineCount;
+
+  document.getElementById('mine-multi').textContent = '×' + mul.toFixed(2);
+  document.getElementById('mine-profit').textContent = '+' + profit.toLocaleString();
+  document.getElementById('mine-opened').textContent = opened + '/' + maxSafe;
+}
+
+function cashOutMine() {
+  if(!mineState.active) return;
+  const opened = mineState.opened.length;
+  if(opened === 0) { casinoToast('먼저 타일을 하나 열어주세요!'); return; }
+  const muls = MINE_MULTIPLIERS[currentDiff];
+  const mul = opened < muls.length ? muls[opened] : muls[muls.length-1];
+  const win = Math.floor(mineState.bet * mul);
+  endMine(true, win, mul);
+}
+
+function endMine(success, win=0, mul=1) {
+  mineState.active = false;
+  // 모든 셀 비활성화
+  document.getElementById('mine-grid').querySelectorAll('.mine-cell:not(.opened)').forEach(c=>{
+    c.classList.add('disabled');
+    c.onclick = null;
+  });
+
+  document.getElementById('mine-cash-btn').style.display = 'none';
+  document.getElementById('mine-start-btn').disabled = false;
+  document.getElementById('mine-bet-row').style.opacity = '1';
+  document.getElementById('mine-bet-row').style.pointerEvents = '';
+
+  const el = document.getElementById('mine-result');
+  el.style.display = 'block';
+
+  if(success) {
+    addMoney(win);
+    updateHUD();
+    el.innerHTML = `<div class="result-badge result-win">💰 수령! ×${mul.toFixed(2)} → +${win.toLocaleString()} 머니</div>`;
+    casinoToast(`💰 +${win.toLocaleString()} 머니 수령!`);
+  } else {
+    el.innerHTML = `<div class="result-badge result-lose">💥 지뢰! -${mineState.bet.toLocaleString()} 머니</div>`;
+    casinoToast(`💥 지뢰 밟음! -${mineState.bet.toLocaleString()} 머니`);
+  }
+}
+
+// ════════════════════════════════════
+//  ③ 주사위 하이로우
+// ════════════════════════════════════
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+let diceRolling = false;
+let diceWins = 0, diceLosses = 0, diceStreak = 0, diceBestStreak = 0;
+const MAX_STREAK = 5;
+
+function getStreakMul() {
+  // 스트릭에 따라 배당 증가
+  const muls = [1.9, 2.2, 2.6, 3.2, 4.0, 5.5];
+  return muls[Math.min(diceStreak, muls.length-1)];
+}
+
+function updateStreakUI() {
+  const dots = document.getElementById('streak-dots').children;
+  // 스트릭 표시 - 최근 5판 결과
+  const mul = getStreakMul();
+  document.getElementById('streak-mul').textContent = '×' + mul.toFixed(1);
+  document.getElementById('high-mul').textContent = '×' + mul.toFixed(1);
+  document.getElementById('low-mul').textContent = '×' + mul.toFixed(1);
+}
+
+async function rollDice(choice) {
+  if(diceRolling) return;
+  const bet = parseInt(document.getElementById('dice-bet').value)||0;
+  if(bet < 10) { casinoToast('최소 10 머니 베팅!'); return; }
+  if(bet > getMoney()) { casinoToast('머니가 부족합니다!'); return; }
+
+  diceRolling = true;
+  addMoney(-bet);
+  document.getElementById('btn-high').disabled = true;
+  document.getElementById('btn-low').disabled = true;
+  document.getElementById('dice-result').style.display = 'none';
+  document.getElementById('dice-num').style.display = 'none';
+
+  const dice = document.getElementById('dice-el');
+  dice.classList.add('rolling');
+
+  // 굴리기 애니메이션
+  let rollCount = 0;
+  const rollInterval = setInterval(()=>{
+    const r = Math.floor(Math.random()*6);
+    document.getElementById('dice-face').textContent = DICE_FACES[r];
+    rollCount++;
+    if(rollCount > 15) {
+      clearInterval(rollInterval);
+      dice.classList.remove('rolling');
+      // 최종 결과
+      const result = Math.floor(Math.random()*6) + 1; // 1~6
+      document.getElementById('dice-face').textContent = DICE_FACES[result-1];
+      document.getElementById('dice-num').textContent = result;
+      document.getElementById('dice-num').style.display = 'block';
+      showDiceResult(choice, result, bet);
+    }
+  }, 80);
+}
+
+function showDiceResult(choice, result, bet) {
+  const isHigh = result >= 4;
+  const won = (choice === 'high' && isHigh) || (choice === 'low' && !isHigh);
+
+  const el = document.getElementById('dice-result');
+  el.style.display = 'block';
+
+  // 히스토리 추가
+  addDiceHistory(result, isHigh);
+
+  if(won) {
+    diceStreak++;
+    diceWins++;
+    if(diceStreak > diceBestStreak) diceBestStreak = diceStreak;
+    const mul = getStreakMul();
+    const win = Math.floor(bet * mul);
+    addMoney(win);
+    updateHUD();
+    el.innerHTML = `<div class="result-badge result-win">🎲 ${result}! ${isHigh?'HIGH📈':'LOW📉'} 적중! ×${mul.toFixed(1)} → +${win.toLocaleString()} 머니</div>`;
+    casinoToast(`🎲 +${win.toLocaleString()} 머니! 연승 ${diceStreak}회`);
+  } else {
+    diceStreak = 0;
+    diceLosses++;
+    el.innerHTML = `<div class="result-badge result-lose">🎲 ${result}! ${isHigh?'HIGH📈':'LOW📉'} — -${bet.toLocaleString()} 머니</div>`;
+    casinoToast(`💸 -${bet.toLocaleString()} 머니`);
+  }
+
+  // 스트릭 도트 업데이트
+  updateStreakDots(won);
+  updateStreakUI();
+  updateDiceStats();
+
+  diceRolling = false;
+  document.getElementById('btn-high').disabled = false;
+  document.getElementById('btn-low').disabled = false;
+}
+
+let diceResultHistory = []; // true=win, false=lose (최근 5개)
+function updateStreakDots(won) {
+  diceResultHistory.push(won);
+  if(diceResultHistory.length > 5) diceResultHistory.shift();
+  const dots = document.getElementById('streak-dots').children;
+  for(let i=0;i<5;i++) {
+    dots[i].className = 'streak-dot';
+    if(i < diceResultHistory.length) {
+      dots[i].classList.add(diceResultHistory[i] ? 'win' : 'lose');
+    }
+  }
+}
+
+let diceHistoryItems = [];
+function addDiceHistory(num, isHigh) {
+  diceHistoryItems.unshift({num, isHigh});
+  if(diceHistoryItems.length > 10) diceHistoryItems.pop();
+  const el = document.getElementById('dice-history');
+  el.innerHTML = diceHistoryItems.map(h=>
+    `<span class="dh-badge ${h.isHigh?'dh-high':'dh-low'}">${h.num}</span>`
+  ).join('');
+}
+
+function updateDiceStats() {
+  document.getElementById('dice-wins').textContent = diceWins;
+  document.getElementById('dice-losses').textContent = diceLosses;
+  document.getElementById('dice-streak-best').textContent = diceBestStreak;
+}
+
+// ════════════════════════════════════
+//  유틸
+// ════════════════════════════════════
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+// ════════════════════════════════════
+//  환전소
+// ════════════════════════════════════
+function setGPMax() {
+  const maxGP = Math.floor(getGP() / 100) * 100;
+  document.getElementById('gp-input').value = maxGP;
+  previewGPtoMoney();
+}
+function setMoneyMax() {
+  document.getElementById('money-input').value = getMoney();
+  previewMoneyToGP();
+}
+function renderShop() {
+  document.getElementById('shop-money').textContent = getMoney().toLocaleString();
+  document.getElementById('shop-gp').textContent = getGP().toLocaleString();
+}
+function previewGPtoMoney() {
+  const gp = parseInt(document.getElementById('gp-input').value)||0;
+  document.getElementById('gp-preview').textContent = (gp * 100).toLocaleString();
+}
+function previewMoneyToGP() {
+  const money = parseInt(document.getElementById('money-input').value)||0;
+  document.getElementById('money-preview').textContent = Math.floor(money / 1000).toLocaleString();
+}
+function exchangeGPtoMoney() {
+  const gp = parseInt(document.getElementById('gp-input').value)||0;
+  if(gp <= 0) { casinoToast('GP 수량을 입력하세요'); return; }
+  if(gp % 100 !== 0) { casinoToast('100GP 단위로만 교환 가능합니다'); return; }
+  if(gp > getGP()) { casinoToast('GP가 부족합니다!'); return; }
+  const money = gp * 100; // 100GP = 10000머니 → 1GP = 100머니
+  addGP(-gp);
+  addMoney(money);
+  casinoToast(`✅ ${gp.toLocaleString()} GP → 💵 ${money.toLocaleString()} 머니 교환 완료!`);
+  renderShop();
+  document.getElementById('gp-input').value = '';
+  document.getElementById('gp-preview').textContent = '0';
+}
+function exchangeMoneyToGP() {
+  const money = parseInt(document.getElementById('money-input').value)||0;
+  if(money <= 0) { casinoToast('머니 수량을 입력하세요'); return; }
+  if(money < 1000) { casinoToast('최소 1,000 머니부터 교환 가능합니다'); return; }
+  const gp = Math.floor(money / 1000);
+  if(money > getMoney()) { casinoToast('머니가 부족합니다!'); return; }
+  const usedMoney = gp * 1000;
+  addMoney(-usedMoney);
+  addGP(gp);
+  casinoToast(`✅ 💵 ${usedMoney.toLocaleString()} 머니 → ${gp.toLocaleString()} GP 교환 완료!`);
+  renderShop();
+  document.getElementById('money-input').value = '';
+  document.getElementById('money-preview').textContent = '0';
+}
+
+// ════════════════════════════════════
+//  초기화
+// ════════════════════════════════════
+window.addEventListener('DOMContentLoaded', ()=>{
+  const un = getUN();
+  if(!un) {
+    // 로그인 안됨 → 오버레이 표시
+    document.getElementById('login-overlay').style.display = 'flex';
+    return;
+  }
+  // 첫 방문 시 머니 1000 지급 (getMoney 내부에서 처리)
+  getMoney();
+  updateHUD();
+  resetMineGrid();
+  updateStreakUI();
+  renderShop();
+});
+</script>
+</body>
+</html>
