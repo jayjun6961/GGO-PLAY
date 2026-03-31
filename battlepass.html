@@ -2086,6 +2086,7 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="sync.js"></script>
 <script>
 (function(){
   try {
@@ -3371,12 +3372,8 @@
     const claimKey = 'ggo_bp_claimed_' + username;
     let claimed = JSON.parse(localStorage.getItem(claimKey)||'[]'); // [step, ...]
 
-    // ── 시즌 초기화: 점수가 0이면 claimed 리셋 ──
-    // 시트에서 점수를 0으로 입력하면 자동 초기화
-    if(isLoggedIn && username && myScore === 0 && claimed.length > 0) {
-      claimed = [];
-      localStorage.setItem(claimKey, '[]');
-    }
+    // ── 시즌 초기화: 점수가 0이면 claimed 리셋 제거 (점수 로딩 전 초기화 버그 방지) ──
+    // myScore===0일 때 초기화하지 않음 — Firebase 로딩 지연으로 0이 될 수 있음
 
     // 안내 텍스트
     if(isLoggedIn && username) {
@@ -3477,9 +3474,7 @@
     // 수령 처리
     const claimKey = 'ggo_bp_claimed_' + username;
     let claimed  = JSON.parse(localStorage.getItem(claimKey)||'[]');
-    // 점수가 0이면 수령 내역 초기화 후 진행
-    const myScore = window._bpScoreCache?.[username] || 0;
-    if(myScore === 0) { claimed = []; }
+    // 이미 수령한 보상이면 중복 지급 방지
     if(claimed.includes(step)) return;
     claimed.push(step);
     localStorage.setItem(claimKey, JSON.stringify(claimed));
