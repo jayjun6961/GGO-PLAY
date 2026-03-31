@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🃏 카드게임 — GGO PLAY</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+:root{
+  --bg:#07040e;--bg2:#0e0820;--bg3:#130d24;
+  --purple:#7c3aed;--p2:#a855f7;--p3:#c084fc;
+  --gold:#fbbf24;--green:#34d399;--red:#ef4444;--blue:#60a5fa;--cyan:#22d3ee;
+  --text:#e2e8f0;--dim:#64748b;--sub:#94a3b8;
+  --card-bg:rgba(19,13,36,.95);--border:rgba(124,58,237,.18);
+  --fn:'Orbitron',monospace;--fn2:'Noto Sans KR',sans-serif;
+  /* 등급 컬러 */
+  --c-common:#94a3b8;--c-rare:#34d399;--c-rleg:#60a5fa;--c-epic:#a855f7;
+  --c-legend:#fbbf24;--c-myth:#f97316;--c-legendary:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--fn2);display:flex;flex-direction:column;}
+
+/* HUD */
+.hud{background:rgba(7,4,14,.97);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.hud-title{font-family:var(--fn);font-size:15px;font-weight:900;background:linear-gradient(90deg,#fff,var(--p3),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hud-stat{display:flex;align-items:center;gap:3px;font-size:11px;background:rgba(124,58,237,.1);border:1px solid var(--border);border-radius:12px;padding:3px 8px;}
+.hud-stat b{color:var(--gold);font-family:var(--fn);}
+.hud-rank{font-family:var(--fn);font-size:10px;padding:3px 10px;border-radius:12px;border:1px solid;}
+
+/* 탭 */
+.tabs{display:flex;background:rgba(7,4,14,.97);border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab-btn{flex:1;padding:9px 2px;font-size:10px;font-family:var(--fn);color:var(--dim);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;display:flex;flex-direction:column;align-items:center;gap:1px;}
+.tab-btn.active{color:var(--p3);border-bottom-color:var(--p3);}
+.tab-btn .ti{font-size:16px;}
+
+/* 메인 */
+.main{flex:1;overflow:hidden;}
+.tab-content{display:none;height:100%;overflow-y:auto;padding:12px;}
+.tab-content.active{display:block;}
+
+/* ── 카드 컴포넌트 ── */
+.card-mini{border-radius:10px;border:2px solid;padding:8px 6px;text-align:center;cursor:pointer;transition:.15s;position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;user-select:none;}
+.card-mini:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.4);}
+.card-mini:active{transform:scale(.96);}
+.card-mini .cm-emoji{font-size:26px;line-height:1;}
+.card-mini .cm-name{font-size:9px;font-weight:700;font-family:var(--fn);line-height:1.2;}
+.card-mini .cm-type{font-size:8px;opacity:.6;}
+.card-mini .cm-stats{display:flex;gap:4px;font-size:8px;margin-top:2px;}
+.card-mini .cm-stats span{background:rgba(0,0,0,.3);border-radius:4px;padding:1px 4px;}
+.card-mini .cm-grade{position:absolute;top:4px;right:4px;font-size:7px;font-family:var(--fn);font-weight:700;}
+.card-mini .cm-count{position:absolute;top:4px;left:4px;background:rgba(0,0,0,.7);border-radius:6px;font-size:9px;padding:1px 5px;font-family:var(--fn);color:var(--gold);}
+.card-mini.selected{box-shadow:0 0 0 2px var(--gold),0 0 12px rgba(251,191,36,.4);}
+.card-mini.in-deck::after{content:'✓';position:absolute;top:3px;right:3px;font-size:10px;color:var(--green);}
+
+/* 큰 카드 */
+.card-full{border-radius:16px;border:2px solid;padding:14px 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;}
+.card-full .cf-emoji{font-size:52px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5));}
+.card-full .cf-name{font-family:var(--fn);font-size:14px;font-weight:700;}
+.card-full .cf-type{font-size:10px;opacity:.6;}
+.card-full .cf-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px;width:100%;}
+.cf-stat-item{background:rgba(0,0,0,.3);border-radius:8px;padding:5px;text-align:center;}
+.cf-stat-item .sv{font-family:var(--fn);font-size:13px;font-weight:700;}
+.cf-stat-item .sl{font-size:9px;color:var(--dim);}
+.card-full .cf-skill{background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.25);border-radius:8px;padding:6px 8px;width:100%;font-size:10px;color:var(--sub);line-height:1.5;}
+.card-full .cf-grade{position:absolute;top:8px;right:10px;font-size:9px;font-family:var(--fn);font-weight:700;}
+
+/* 등급별 색상 함수 */
+.g-common{border-color:var(--c-common)!important;color:var(--c-common);}
+.g-rare{border-color:var(--c-rare)!important;color:var(--c-rare);}
+.g-rleg{border-color:var(--c-rleg)!important;color:var(--c-rleg);}
+.g-epic{border-color:var(--c-epic)!important;color:var(--c-epic);}
+.g-legend{border-color:var(--c-legend)!important;color:var(--c-legend);}
+.g-myth{border-color:var(--c-myth)!important;color:var(--c-myth);}
+.g-legendary{border-color:var(--c-legendary)!important;color:var(--c-legendary);}
+
+/* ── 대전 화면 ── */
+.battle-scene{background:linear-gradient(180deg,#0a0118 0%,#1a0a3a 50%,#0a0118 100%);border-radius:16px;padding:12px;margin-bottom:10px;min-height:300px;position:relative;overflow:hidden;}
+.battle-scene::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 50%,rgba(124,58,237,.08),transparent);}
+.battle-vs{display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:10px;}
+.battle-hp-bar{height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;margin:4px 0;}
+.battle-hp-fill{height:100%;border-radius:4px;transition:.4s;}
+.battle-field{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;min-height:90px;align-items:center;}
+.battle-card{border-radius:10px;border:2px solid;padding:6px;text-align:center;width:68px;position:relative;transition:.3s;}
+.battle-card .bc-emoji{font-size:22px;}
+.battle-card .bc-name{font-size:8px;font-family:var(--fn);margin-top:2px;line-height:1.2;}
+.battle-card .bc-hp{font-size:8px;color:var(--green);font-family:var(--fn);}
+.battle-card.attacking{animation:attack .35s ease-in-out;}
+.battle-card.hit{animation:hit-anim .3s ease-in-out;}
+.battle-card.dead{opacity:.3;filter:grayscale(1);}
+@keyframes attack{0%{transform:translateY(0);}40%{transform:translateY(-12px) scale(1.05);}100%{transform:translateY(0);}}
+@keyframes hit-anim{0%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}100%{transform:translateX(0);}}
+.battle-log{background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:10px;padding:8px 10px;height:100px;overflow-y:auto;font-size:10px;line-height:1.8;font-family:var(--fn2);}
+.battle-log::-webkit-scrollbar{width:3px;}
+.battle-log::-webkit-scrollbar-thumb{background:var(--purple);}
+.dmg-pop{position:absolute;font-family:var(--fn);font-size:14px;font-weight:700;pointer-events:none;animation:dmg-float 1s ease-out forwards;z-index:10;}
+@keyframes dmg-float{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-40px) scale(1.3);}}
+
+/* ── 뽑기 ── */
+.gacha-panel{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:12px;text-align:center;}
+.gacha-orb{font-size:64px;margin:16px 0;filter:drop-shadow(0 0 20px rgba(168,85,247,.6));animation:orb-pulse 2s infinite alternate;}
+@keyframes orb-pulse{from{filter:drop-shadow(0 0 12px rgba(168,85,247,.4));}to{filter:drop-shadow(0 0 28px rgba(168,85,247,.8));}}
+.gacha-result-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:12px;}
+.gacha-card{border-radius:10px;border:2px solid;padding:8px 4px;text-align:center;animation:card-reveal .4s ease-out both;}
+@keyframes card-reveal{from{opacity:0;transform:rotateY(90deg) scale(.8);}to{opacity:1;transform:rotateY(0) scale(1);}}
+.gacha-card .gc-emoji{font-size:24px;}
+.gacha-card .gc-name{font-size:8px;font-family:var(--fn);margin-top:2px;}
+.gacha-card .gc-grade{font-size:7px;font-family:var(--fn);}
+
+/* ── 덱 빌더 ── */
+.deck-area{display:flex;gap:10px;flex-direction:column;}
+.deck-slots{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:12px;padding:10px;}
+.deck-slot{border-radius:8px;border:1px dashed rgba(124,58,237,.3);aspect-ratio:.7;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:.15s;position:relative;}
+.deck-slot.filled{border-style:solid;}
+.deck-slot:hover{border-color:var(--p2);}
+.deck-slot .ds-remove{position:absolute;top:-6px;right:-6px;background:#ef4444;border-radius:50%;width:16px;height:16px;font-size:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;}
+.collection-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.filter-btn{padding:4px 10px;border-radius:12px;border:1px solid var(--border);font-size:10px;font-family:var(--fn);color:var(--dim);cursor:pointer;background:none;transition:.15s;}
+.filter-btn.active{border-color:var(--p3);color:var(--p3);background:rgba(124,58,237,.1);}
+
+/* ── 스토리 ── */
+.story-chapter{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;cursor:pointer;transition:.15s;}
+.story-chapter:hover{border-color:var(--p2);background:rgba(124,58,237,.06);}
+.story-chapter.locked{opacity:.4;cursor:default;}
+.story-chapter.locked:hover{border-color:var(--border);background:var(--card-bg);}
+.story-chapter.cleared{border-color:rgba(52,211,153,.3);}
+.sc-num{font-family:var(--fn);font-size:20px;font-weight:700;color:var(--p3);width:36px;text-align:center;}
+.sc-info{flex:1;}
+.sc-title{font-family:var(--fn);font-size:13px;}
+.sc-desc{font-size:10px;color:var(--dim);margin-top:2px;}
+.sc-reward{font-size:10px;color:var(--gold);}
+.sc-badge{font-size:16px;flex-shrink:0;}
+
+/* ── 랭킹 ── */
+.rank-tier-badge{display:inline-block;padding:3px 12px;border-radius:12px;font-size:10px;font-family:var(--fn);border:1px solid;}
+.rank-item{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+
+/* ── 카드 상세 모달 ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:flex-end;justify-content:center;z-index:200;}
+.modal-ov.show{display:flex;}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:420px;padding:20px 16px 36px;max-height:85vh;overflow-y:auto;}
+.modal-title{font-family:var(--fn);font-size:14px;color:var(--p3);text-align:center;margin-bottom:14px;}
+.modal-close{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.04);color:var(--sub);font-family:var(--fn);font-size:12px;cursor:pointer;margin-top:12px;}
+
+/* ── 토스트 ── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(19,13,36,.97);border:1px solid var(--p2);border-radius:20px;padding:9px 20px;font-family:var(--fn);font-size:12px;color:var(--p3);opacity:0;transition:.3s;pointer-events:none;z-index:300;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* 공통 버튼 */
+.btn-primary{padding:10px 20px;border:none;border-radius:10px;font-family:var(--fn);font-size:12px;cursor:pointer;background:linear-gradient(135deg,var(--purple),var(--p2));color:#fff;transition:.15s;}
+.btn-primary:hover{opacity:.9;}
+.btn-primary:disabled{background:rgba(255,255,255,.08);color:var(--dim);cursor:default;}
+.btn-gold{background:linear-gradient(135deg,#d97706,var(--gold));color:#000;}
+.btn-green{background:linear-gradient(135deg,#059669,var(--green));color:#fff;}
+
+/* 스크롤바 */
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(124,58,237,.3);border-radius:2px;}
+
+/* 반응형 */
+@media(max-width:380px){.collection-grid{grid-template-columns:repeat(3,1fr);}.gacha-result-grid{grid-template-columns:repeat(5,1fr);}}
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div class="hud">
+  <div class="hud-title">🃏 CARD</div>
+  <div class="hud-stat">💎<b id="hud-stone">0</b></div>
+  <div class="hud-stat">🃏<b id="hud-cards">0</b>종</div>
+  <div class="hud-stat">⚔️<b id="hud-wins">0</b>승</div>
+  <div id="hud-tier" class="hud-rank" style="border-color:#94a3b8;color:#94a3b8;">🌱 새싹</div>
+</div>
+
+<!-- 탭 -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('battle')" id="tb-battle"><span class="ti">⚔️</span>대전</button>
+  <button class="tab-btn" onclick="switchTab('story')" id="tb-story"><span class="ti">📜</span>스토리</button>
+  <button class="tab-btn" onclick="switchTab('deck')" id="tb-deck"><span class="ti">📚</span>덱 편성</button>
+  <button class="tab-btn" onclick="switchTab('collection')" id="tb-collection"><span class="ti">🎴</span>도감</button>
+  <button class="tab-btn" onclick="switchTab('gacha')" id="tb-gacha"><span class="ti">🎰</span>뽑기</button>
+  <button class="tab-btn" onclick="switchTab('rank')" id="tb-rank"><span class="ti">🏆</span>랭킹</button>
+</div>
+
+<!-- 메인 -->
+<div class="main">
+
+<!-- ① 대전 탭 -->
+<div class="tab-content active" id="tab-battle">
+  <div id="battle-lobby" style="display:block;">
+    <div style="text-align:center;padding:20px 0 12px;">
+      <div style="font-family:var(--fn);font-size:20px;color:var(--p3);margin-bottom:6px;">⚔️ 랭크 대전</div>
+      <div style="font-size:11px;color:var(--dim);">내 덱으로 AI와 대전합니다</div>
+    </div>
+    <!-- 내 덱 미리보기 -->
+    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
+      <div style="font-family:var(--fn);font-size:11px;color:var(--p3);margin-bottom:10px;">📚 현재 덱 (<span id="lobby-deck-count">0</span>/20장)</div>
+      <div id="lobby-deck-preview" style="display:flex;flex-wrap:wrap;gap:5px;min-height:32px;"></div>
+    </div>
+    <!-- 대전 버튼 -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn-primary" id="pvp-btn" onclick="startBattle('ai_rank')" style="width:100%;padding:14px;">⚔️ AI 랭크 대전 시작</button>
+      <button class="btn-primary btn-gold" onclick="startBattle('ai_easy')" style="width:100%;padding:12px;font-size:11px;">🤖 연습 대전 (무보정 AI)</button>
+    </div>
+    <div style="margin-top:16px;background:rgba(124,58,237,.06);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">
+      <div style="font-family:var(--fn);font-size:11px;color:var(--p3);margin-bottom:6px;">📊 내 전적</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+        <div><div style="font-family:var(--fn);font-size:16px;color:var(--green);" id="stat-wins">0</div><div style="font-size:9px;color:var(--dim);">승</div></div>
+        <div><div style="font-family:var(--fn);font-size:16px;color:var(--red);" id="stat-losses">0</div><div style="font-size:9px;color:var(--dim);">패</div></div>
+        <div><div style="font-family:var(--fn);font-size:16px;color:var(--gold);" id="stat-winrate">0%</div><div style="font-size:9px;color:var(--dim);">승률</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 배틀 진행 화면 -->
+  <div id="battle-arena" style="display:none;">
+    <div class="battle-scene">
+      <!-- 상대 -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:18px;" id="enemy-avatar">🤖</span>
+        <div style="flex:1;">
+          <div style="font-family:var(--fn);font-size:11px;" id="enemy-name">AI</div>
+          <div class="battle-hp-bar"><div class="battle-hp-fill" id="enemy-hp-fill" style="width:100%;background:linear-gradient(90deg,#ef4444,#f97316);"></div></div>
+          <div style="font-size:9px;color:var(--red);font-family:var(--fn);" id="enemy-hp-text">HP 30</div>
+        </div>
+      </div>
+      <!-- 상대 필드 -->
+      <div class="battle-field" id="enemy-field"></div>
+      <!-- VS -->
+      <div style="text-align:center;font-family:var(--fn);font-size:11px;color:var(--dim);margin:6px 0;">── 전장 ──</div>
+      <!-- 내 필드 -->
+      <div class="battle-field" id="my-field"></div>
+      <!-- 내 HP -->
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <div style="flex:1;">
+          <div class="battle-hp-bar"><div class="battle-hp-fill" id="my-hp-fill" style="width:100%;background:linear-gradient(90deg,#34d399,#22d3ee);"></div></div>
+          <div style="font-size:9px;color:var(--green);font-family:var(--fn);" id="my-hp-text">HP 30</div>
+        </div>
+        <span style="font-size:18px;" id="my-avatar">👤</span>
+      </div>
+    </div>
+    <!-- 손패 -->
+    <div style="margin-bottom:8px;">
+      <div style="font-family:var(--fn);font-size:10px;color:var(--dim);margin-bottom:6px;">🃏 내 손패 — 카드를 선택해 배치하세요</div>
+      <div id="hand-area" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;"></div>
+    </div>
+    <!-- 배치 버튼 -->
+    <div style="display:flex;gap:8px;">
+      <button class="btn-primary" id="deploy-btn" onclick="deploySelected()" style="flex:1;" disabled>배치하기</button>
+      <button class="btn-primary" onclick="endTurn()" style="flex:1;background:rgba(255,255,255,.08);color:var(--sub);" id="end-turn-btn">턴 종료</button>
+    </div>
+    <!-- 전투 로그 -->
+    <div style="margin-top:8px;">
+      <div style="font-family:var(--fn);font-size:9px;color:var(--dim);margin-bottom:4px;">📋 전투 로그</div>
+      <div class="battle-log" id="battle-log"></div>
+    </div>
+    <!-- 턴 표시 -->
+    <div style="text-align:center;font-family:var(--fn);font-size:11px;color:var(--p3);margin-top:8px;" id="turn-display">턴 1</div>
+  </div>
+</div>
+
+<!-- ② 스토리 탭 -->
+<div class="tab-content" id="tab-story">
+  <div style="text-align:center;padding:12px 0;font-family:var(--fn);font-size:14px;color:var(--p3);">📜 스토리 모드</div>
+  <div id="story-list"></div>
+</div>
+
+<!-- ③ 덱 편성 탭 -->
+<div class="tab-content" id="tab-deck">
+  <div style="font-family:var(--fn);font-size:13px;color:var(--p3);margin-bottom:10px;">📚 덱 편성 <span style="font-size:10px;color:var(--dim);" id="deck-count-display">(0/20)</span></div>
+  <!-- 덱 슬롯 -->
+  <div class="deck-slots" id="deck-slots"></div>
+  <div style="display:flex;gap:8px;margin:10px 0;">
+    <button class="btn-primary btn-green" onclick="saveDeck()" style="flex:1;padding:10px;font-size:11px;">💾 덱 저장</button>
+    <button class="btn-primary" onclick="clearDeck()" style="flex:1;padding:10px;font-size:11px;background:rgba(239,68,68,.2);color:var(--red);">🗑️ 초기화</button>
+  </div>
+  <!-- 카드 필터 -->
+  <div class="filter-row" id="deck-filter-row">
+    <button class="filter-btn active" onclick="setDeckFilter('all')">전체</button>
+    <button class="filter-btn" onclick="setDeckFilter('character')">👤 캐릭터</button>
+    <button class="filter-btn" onclick="setDeckFilter('monster')">👹 몬스터</button>
+    <button class="filter-btn" onclick="setDeckFilter('skill')">✨ 스킬</button>
+  </div>
+  <div style="font-size:10px;color:var(--dim);margin-bottom:8px;">보유 카드를 탭하면 덱에 추가됩니다</div>
+  <div class="collection-grid" id="deck-collection"></div>
+</div>
+
+<!-- ④ 도감 탭 -->
+<div class="tab-content" id="tab-collection">
+  <div style="font-family:var(--fn);font-size:13px;color:var(--p3);margin-bottom:10px;">🎴 카드 도감 <span style="font-size:10px;color:var(--dim);" id="coll-count">(0종)</span></div>
+  <div class="filter-row" id="coll-filter-row">
+    <button class="filter-btn active" onclick="setCollFilter('all')">전체</button>
+    <button class="filter-btn" onclick="setCollFilter('character')">👤 캐릭터</button>
+    <button class="filter-btn" onclick="setCollFilter('monster')">👹 몬스터</button>
+    <button class="filter-btn" onclick="setCollFilter('skill')">✨ 스킬</button>
+  </div>
+  <div class="collection-grid" id="coll-grid"></div>
+</div>
+
+<!-- ⑤ 뽑기 탭 -->
+<div class="tab-content" id="tab-gacha">
+  <div class="gacha-panel">
+    <div style="font-family:var(--fn);font-size:16px;color:var(--p3);">🎰 카드 소환</div>
+    <div class="gacha-orb">🔮</div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:16px;">보유 마법석: <span style="color:var(--gold);font-family:var(--fn);" id="gacha-stone-count">0</span>개</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn-primary" onclick="doGacha(1,'normal')" style="width:100%;padding:11px;">
+        🎴 일반 소환 ×1 — <span style="color:var(--gold);">💎 50개</span>
+      </button>
+      <button class="btn-primary" onclick="doGacha(1,'premium')" style="width:100%;padding:11px;">
+        🌟 프리미엄 소환 ×1 — <span style="color:var(--gold);">💎 150개</span>
+      </button>
+      <button class="btn-primary btn-gold" onclick="doGacha(10,'normal')" style="width:100%;padding:11px;">
+        🎴 10연 소환 — <span>💎 1,400개</span> (전설 1장 보장)
+      </button>
+    </div>
+    <!-- 천장 -->
+    <div style="margin-top:12px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:10px;padding:8px 12px;font-size:10px;color:var(--sub);">
+      ⚠️ 천장: <span style="color:var(--gold);font-family:var(--fn);" id="pity-count">0</span>/100회 (신화 보장)
+    </div>
+  </div>
+  <!-- 뽑기 결과 -->
+  <div id="gacha-result" style="display:none;">
+    <div style="font-family:var(--fn);font-size:13px;color:var(--p3);text-align:center;margin-bottom:10px;">✨ 소환 결과</div>
+    <div class="gacha-result-grid" id="gacha-result-grid"></div>
+    <button class="btn-primary" onclick="closeGachaResult()" style="width:100%;margin-top:12px;padding:10px;">확인</button>
+  </div>
+  <!-- 확률 안내 -->
+  <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-top:8px;">
+    <div style="font-family:var(--fn);font-size:11px;color:var(--p3);margin-bottom:8px;">📊 소환 확률</div>
+    <div style="font-size:10px;color:var(--sub);line-height:2;">
+      <div>일반 소환: 일반 55% · 희귀 30% · 레어 12% · 에픽 3%</div>
+      <div>프리미엄 소환: 레어 50% · 에픽 30% · 전설 15% · 신화 5%</div>
+      <div>10연 소환: 전설 1장 보장 포함</div>
+    </div>
+  </div>
+</div>
+
+<!-- ⑥ 랭킹 탭 -->
+<div class="tab-content" id="tab-rank">
+  <div style="font-family:var(--fn);font-size:13px;color:var(--p3);margin-bottom:6px;">🏆 랭크 현황</div>
+  <div id="my-rank-card" style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;"></div>
+  <div style="font-size:10px;color:var(--dim);margin-bottom:8px;font-family:var(--fn);">승수 기준 · 실시간 업데이트</div>
+  <div id="rank-list"></div>
+</div>
+
+</div><!-- /main -->
+
+<!-- 카드 상세 모달 -->
+<div class="modal-ov" id="card-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="card-modal-title">카드 정보</div>
+    <div id="card-modal-body"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;" id="card-modal-actions"></div>
+    <button class="modal-close" onclick="closeCardModal()">닫기</button>
+  </div>
+</div>
+
+<!-- 배틀 결과 모달 -->
+<div class="modal-ov" id="result-modal">
+  <div class="modal-box" style="text-align:center;">
+    <div style="font-size:52px;margin-bottom:10px;" id="result-emoji">🏆</div>
+    <div style="font-family:var(--fn);font-size:20px;margin-bottom:8px;" id="result-title">승리!</div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:16px;" id="result-desc"></div>
+    <div id="result-rewards" style="background:rgba(124,58,237,.08);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
+    <button class="btn-primary" onclick="closeResult()" style="width:100%;padding:12px;">확인</button>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+//  카드 데이터베이스
+// ═══════════════════════════════════════════
+const CARD_DB = [
+  // ── 캐릭터 카드 ──
+  {id:'warrior_c',   name:'전사',        emoji:'⚔️', type:'character', grade:'rare',
+   hp:18, atk:8, def:4, spd:5, skill:{name:'강타',desc:'단일 공격력 150%',eff:'hit_single',val:1.5}},
+  {id:'archer_c',    name:'궁수',        emoji:'🏹', type:'character', grade:'rare',
+   hp:12, atk:10, def:2, spd:8, skill:{name:'연속화살',desc:'3회 연속 공격력 80%',eff:'hit_triple',val:0.8}},
+  {id:'mage_c',      name:'마법사',      emoji:'🔮', type:'character', grade:'epic',
+   hp:10, atk:14, def:1, spd:6, skill:{name:'파이어볼',desc:'광역 공격력 120%',eff:'hit_aoe',val:1.2}},
+  {id:'rogue_c',     name:'도적',        emoji:'🗡️', type:'character', grade:'epic',
+   hp:11, atk:12, def:2, spd:10, skill:{name:'급습',desc:'단일 공격+치명타 확정',eff:'crit_single',val:2.0}},
+  {id:'paladin_c',   name:'성기사',      emoji:'🛡️', type:'character', grade:'legend',
+   hp:22, atk:7, def:8, spd:4, skill:{name:'신성 타격',desc:'공격+아군 HP 회복',eff:'hit_heal',val:1.2}},
+  {id:'hero_warrior',name:'영웅 전사',   emoji:'⚔️', type:'character', grade:'legend',
+   hp:25, atk:13, def:7, spd:6, skill:{name:'광전사',desc:'10초간 공격력 2배',eff:'berserk',val:2.0}},
+  {id:'archmage',    name:'대마법사',    emoji:'🌟', type:'character', grade:'myth',
+   hp:15, atk:20, def:2, spd:7, skill:{name:'메테오',desc:'전체 적에게 공격력 200%',eff:'hit_all',val:2.0}},
+  {id:'dark_knight', name:'흑기사',      emoji:'🦹', type:'character', grade:'legendary',
+   hp:30, atk:18, def:10, spd:7, skill:{name:'죽음의 낙인',desc:'공격+적 방어력 반감',eff:'debuff_def',val:1.8}},
+
+  // ── 몬스터 카드 ──
+  {id:'slime',       name:'슬라임',      emoji:'🟢', type:'monster', grade:'common',
+   hp:6,  atk:3, def:1, spd:3, skill:{name:'독액',desc:'독 2턴 지속',eff:'poison',val:2}},
+  {id:'goblin',      name:'고블린',      emoji:'👺', type:'monster', grade:'common',
+   hp:8,  atk:5, def:1, spd:6, skill:{name:'기습',desc:'SPD+3 (1턴)',eff:'buff_spd',val:3}},
+  {id:'orc',         name:'오크',        emoji:'👹', type:'monster', grade:'rare',
+   hp:14, atk:7, def:3, spd:4, skill:{name:'돌격',desc:'단일 공격력 130%+스턴',eff:'stun_hit',val:1.3}},
+  {id:'skeleton',    name:'해골 전사',   emoji:'💀', type:'monster', grade:'rare',
+   hp:10, atk:8, def:2, spd:5, skill:{name:'뼈 방패',desc:'DEF+4 (2턴)',eff:'buff_def',val:4}},
+  {id:'dragon',      name:'드래곤',      emoji:'🐉', type:'monster', grade:'epic',
+   hp:20, atk:12, def:4, spd:5, skill:{name:'화염 브레스',desc:'전체 적 공격력 140%+화상',eff:'aoe_burn',val:1.4}},
+  {id:'lich',        name:'리치',        emoji:'🧙', type:'monster', grade:'epic',
+   hp:16, atk:13, def:2, spd:6, skill:{name:'죽음의 손길',desc:'적 HP 30% 직접 감소',eff:'drain',val:0.3}},
+  {id:'giant',       name:'거인족',      emoji:'🗿', type:'monster', grade:'legend',
+   hp:28, atk:11, def:8, spd:2, skill:{name:'대지 진동',desc:'전체 적 스턴 1턴',eff:'stun_all',val:1}},
+  {id:'phoenix',     name:'불사조',      emoji:'🦅', type:'monster', grade:'legend',
+   hp:18, atk:14, def:3, spd:9, skill:{name:'부활의 불꽃',desc:'처치 시 HP 8 회복 후 부활',eff:'revive',val:8}},
+  {id:'mammon',      name:'마몬',        emoji:'💰', type:'monster', grade:'myth',
+   hp:26, atk:16, def:6, spd:5, skill:{name:'황금 폭풍',desc:'적 전체 공격+아군 HP 회복',eff:'aoe_heal',val:1.5}},
+  {id:'leviathan',   name:'레비아탄',    emoji:'🌊', type:'monster', grade:'legendary',
+   hp:35, atk:18, def:8, spd:4, skill:{name:'심해 폭풍',desc:'전체 공격력 180%+빙결',eff:'aoe_freeze',val:1.8}},
+
+  // ── 스킬 카드 ──
+  {id:'fireball',    name:'파이어볼',    emoji:'🔥', type:'skill', grade:'common',
+   hp:0, atk:8, def:0, spd:0, skill:{name:'파이어볼',desc:'적 단일에게 8 마법 피해',eff:'magic_hit',val:8}},
+  {id:'heal',        name:'치유',        emoji:'💚', type:'skill', grade:'common',
+   hp:0, atk:0, def:0, spd:0, skill:{name:'치유',desc:'아군 카드 HP 6 회복',eff:'heal_ally',val:6}},
+  {id:'shield',      name:'방패 강화',   emoji:'🛡️', type:'skill', grade:'rare',
+   hp:0, atk:0, def:0, spd:0, skill:{name:'방패 강화',desc:'아군 전체 DEF +3 (2턴)',eff:'buff_all_def',val:3}},
+  {id:'lightning',   name:'라이트닝',    emoji:'⚡', type:'skill', grade:'rare',
+   hp:0, atk:0, def:0, spd:0, skill:{name:'라이트닝',desc:'적 전체에 6 피해+스턴',eff:'aoe_stun',val:6}},
+  {id:'meteor',      name:'메테오',      emoji:'☄️', type:'skill', grade:'epic',
+   hp:0, atk:0, def:0, spd:0, skill:{name:'메테오',desc:'적 전체 15 피해+화상 2턴',eff:'aoe_burn_skill',val:15}},
+  {id:'resurrection',name:'부활',        emoji:'✨', type:'skill', grade:'legend',
+   hp:0, atk:0, def:0, spd:0, skill:{name:'부활',desc:'처치된 아군 카드 HP 10으로 부활',eff:'resurrect',val:10}},
+];
+
+const GRADE_ORDER = ['common','rare','rleg','epic','legend','myth','legendary'];
+const GRADE_NAME  = {common:'일반',rare:'희귀',rleg:'레어',epic:'에픽',legend:'전설',myth:'신화',legendary:'레전드리'};
+const GRADE_COLOR = {common:'var(--c-common)',rare:'var(--c-rare)',rleg:'var(--c-rleg)',epic:'var(--c-epic)',legend:'var(--c-legend)',myth:'var(--c-myth)',legendary:'var(--c-legendary)'};
+
+// ═══════════════════════════════════════════
+//  스토리 챕터
+// ═══════════════════════════════════════════
+const CHAPTERS = [
+  {id:1,  title:'고블린 던전',     desc:'고블린 킹의 소굴에 침투하라!', boss:'goblin_king',
+   bossName:'고블린 킹', bossEmoji:'👺', bossHp:20, bossDeck:['goblin','goblin','slime','slime','goblin'],
+   reward:{stone:50, card:'orc'}, minCards:5},
+  {id:2,  title:'리자드 왕국',     desc:'리자드맨의 왕국을 정복하라!', boss:'lizard_king',
+   bossName:'리자드 킹', bossEmoji:'🦎', bossHp:25, bossDeck:['orc','skeleton','goblin','slime','orc'],
+   reward:{stone:80, card:'lich'}, minCards:8},
+  {id:3,  title:'언데드 묘지',     desc:'리치의 저주를 물리쳐라!', boss:'lich_lord',
+   bossName:'리치 군주', bossEmoji:'🧙', bossHp:30, bossDeck:['lich','skeleton','skeleton','goblin','slime'],
+   reward:{stone:120, card:'dragon'}, minCards:10},
+  {id:4,  title:'화산의 드래곤',   desc:'레드 드래곤을 토벌하라!', boss:'red_dragon',
+   bossName:'레드 드래곤', bossEmoji:'🐉', bossHp:40, bossDeck:['dragon','orc','lich','skeleton','goblin'],
+   reward:{stone:200, card:'phoenix'}, minCards:12},
+  {id:5,  title:'거인의 요새',     desc:'거인족의 왕을 물리쳐라!', boss:'giant_king',
+   bossName:'거인 대왕', bossEmoji:'🗿', bossHp:50, bossDeck:['giant','dragon','lich','orc','skeleton'],
+   reward:{stone:300, card:'mammon'}, minCards:14},
+  {id:6,  title:'불사조의 화염',   desc:'불사조를 제압하라!', boss:'phoenix_lord',
+   bossName:'불사 군주', bossEmoji:'🦅', bossHp:55, bossDeck:['phoenix','dragon','giant','lich','orc'],
+   reward:{stone:400, card:'hero_warrior'}, minCards:16},
+  {id:7,  title:'탐욕의 악마',     desc:'군단장 마몬에게 도전하라!', boss:'mammon_lord',
+   bossName:'마몬', bossEmoji:'💰', bossHp:65, bossDeck:['mammon','phoenix','dragon','giant','lich'],
+   reward:{stone:600, card:'archmage'}, minCards:18},
+  {id:8,  title:'심연의 레비아탄', desc:'레비아탄을 처치하라!', boss:'levi_lord',
+   bossName:'레비아탄', bossEmoji:'🌊', bossHp:80, bossDeck:['leviathan','mammon','phoenix','dragon','giant'],
+   reward:{stone:1000, card:'dark_knight'}, minCards:20},
+];
+
+// ═══════════════════════════════════════════
+//  저장 / 로드
+// ═══════════════════════════════════════════
+const SAVE_KEY = 'ggo_card_save';
+let C;
+
+function defaultSave() {
+  return {
+    cards: {warrior_c:3, archer_c:3, goblin:3, slime:3, fireball:3, heal:3}, // 초기 카드
+    deck: ['warrior_c','archer_c','goblin','slime','fireball','heal'],
+    wins:0, losses:0,
+    stone: 200, // 시작 마법석
+    pity: 0,    // 천장 카운터
+    storyCleared: [], // 클리어한 챕터 id
+    rankPoints: 0,
+    lastSave: Date.now(),
+  };
+}
+
+function saveC() { C.lastSave=Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(C)); uploadRank(); }
+function loadC() {
+  try { const s=localStorage.getItem(SAVE_KEY); C = s ? JSON.parse(s) : defaultSave(); }
+  catch(e) { C = defaultSave(); }
+  if(!C.cards) C.cards={};
+  if(!C.deck) C.deck=[];
+  if(!C.pity) C.pity=0;
+  if(!C.storyCleared) C.storyCleared=[];
+  if(!C.rankPoints) C.rankPoints=0;
+}
+
+// ═══════════════════════════════════════════
+//  유틸
+// ═══════════════════════════════════════════
+function cardUN() { return sessionStorage.getItem('ggo_username')||localStorage.getItem('ggo_username')||''; }
+
+function cardToast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+function gradeClass(g) { return 'g-'+g; }
+function gradeCol(g) { return GRADE_COLOR[g]||'#94a3b8'; }
+
+function getCardById(id) { return CARD_DB.find(c=>c.id===id); }
+
+function getTier() {
+  const w = C.wins;
+  if(w >= 50) return {name:'👑 레전드', color:'#fbbf24', border:'#fbbf24'};
+  if(w >= 30) return {name:'💎 다이아', color:'#60a5fa', border:'#60a5fa'};
+  if(w >= 18) return {name:'🥇 골드',  color:'#fbbf24', border:'#fbbf24'};
+  if(w >= 10) return {name:'🥈 실버',  color:'#94a3b8', border:'#94a3b8'};
+  if(w >= 4)  return {name:'🥉 브론즈', color:'#c97c3a', border:'#c97c3a'};
+  return {name:'🌱 새싹', color:'#94a3b8', border:'#64748b'};
+}
+
+function updateHUD() {
+  document.getElementById('hud-stone').textContent = C.stone.toLocaleString();
+  document.getElementById('hud-cards').textContent = Object.keys(C.cards).filter(k=>C.cards[k]>0).length;
+  document.getElementById('hud-wins').textContent = C.wins;
+  const tier = getTier();
+  const el = document.getElementById('hud-tier');
+  el.textContent = tier.name; el.style.color=tier.color; el.style.borderColor=tier.border;
+  document.getElementById('pity-count').textContent = C.pity;
+  document.getElementById('gacha-stone-count').textContent = C.stone.toLocaleString();
+}
+
+// ═══════════════════════════════════════════
+//  탭 전환
+// ═══════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('tb-'+tab).classList.add('active');
+  if(tab==='battle')     renderBattleLobby();
+  else if(tab==='story') renderStory();
+  else if(tab==='deck')  renderDeckBuilder();
+  else if(tab==='collection') renderCollection();
+  else if(tab==='gacha') updateHUD();
+  else if(tab==='rank')  renderRank();
+}
+
+// ═══════════════════════════════════════════
+//  카드 렌더 헬퍼
+// ═══════════════════════════════════════════
+function renderCardMini(card, opts={}) {
+  const gc = gradeCol(card.grade);
+  const qty = C.cards[card.id] || 0;
+  const inDeck = C.deck.filter(d=>d===card.id).length;
+  return `<div class="card-mini ${gradeClass(card.grade)}" 
+    onclick="${opts.onclick||''}" 
+    style="background:rgba(0,0,0,.3);">
+    ${qty > 1 ? `<div class="cm-count">×${qty}</div>` : ''}
+    <div class="cm-emoji">${card.emoji}</div>
+    <div class="cm-name" style="color:${gc};">${card.name}</div>
+    <div class="cm-type">${card.type==='character'?'👤':card.type==='monster'?'👹':'✨'}</div>
+    ${card.type!=='skill' ? `<div class="cm-stats">
+      <span>❤️${card.hp}</span><span>⚔️${card.atk}</span><span>🛡️${card.def}</span>
+    </div>` : `<div class="cm-stats"><span>✨${card.skill.name}</span></div>`}
+    ${opts.showDeckCount && inDeck > 0 ? `<div style="position:absolute;bottom:3px;right:3px;background:rgba(52,211,153,.8);border-radius:6px;font-size:8px;padding:1px 4px;font-family:var(--fn);">덱${inDeck}</div>` : ''}
+  </div>`;
+}
+
+function renderCardFull(card) {
+  const gc = gradeCol(card.grade);
+  return `<div class="card-full ${gradeClass(card.grade)}" style="background:rgba(0,0,0,.4);">
+    <div class="cf-grade" style="color:${gc};">${GRADE_NAME[card.grade]}</div>
+    <div class="cf-emoji">${card.emoji}</div>
+    <div class="cf-name" style="color:${gc};">${card.name}</div>
+    <div class="cf-type">${card.type==='character'?'👤 캐릭터':card.type==='monster'?'👹 몬스터':'✨ 스킬'}</div>
+    ${card.type!=='skill' ? `<div class="cf-stats">
+      <div class="cf-stat-item"><div class="sv" style="color:#ef4444;">❤️ ${card.hp}</div><div class="sl">HP</div></div>
+      <div class="cf-stat-item"><div class="sv" style="color:#f97316;">⚔️ ${card.atk}</div><div class="sl">ATK</div></div>
+      <div class="cf-stat-item"><div class="sv" style="color:#60a5fa;">🛡️ ${card.def}</div><div class="sl">DEF</div></div>
+      <div class="cf-stat-item"><div class="sv" style="color:#34d399;">💨 ${card.spd}</div><div class="sl">SPD</div></div>
+    </div>` : ''}
+    <div class="cf-skill">⚡ <b>${card.skill.name}</b><br>${card.skill.desc}</div>
+    <div style="font-size:10px;color:var(--dim);">보유: ${C.cards[card.id]||0}장 · 덱: ${C.deck.filter(d=>d===card.id).length}장</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  ① 대전 로비
+// ═══════════════════════════════════════════
+function renderBattleLobby() {
+  // 덱 미리보기
+  const preview = document.getElementById('lobby-deck-preview');
+  document.getElementById('lobby-deck-count').textContent = C.deck.length;
+  preview.innerHTML = C.deck.map(id => {
+    const card = getCardById(id);
+    if(!card) return '';
+    return `<span style="font-size:18px;" title="${card.name}">${card.emoji}</span>`;
+  }).join('');
+  // 전적
+  const total = C.wins + C.losses;
+  document.getElementById('stat-wins').textContent = C.wins;
+  document.getElementById('stat-losses').textContent = C.losses;
+  document.getElementById('stat-winrate').textContent = total ? Math.round(C.wins/total*100)+'%' : '0%';
+}
+
+// ═══════════════════════════════════════════
+//  ② 배틀 엔진
+// ═══════════════════════════════════════════
+let _battle = null;
+let _battleType = 'ai_rank';
+
+function startBattle(type) {
+  if(C.deck.length < 5) { cardToast('덱에 최소 5장 이상 필요합니다!'); return; }
+  _battleType = type;
+  // AI 덱 생성
+  let aiDeck;
+  if(type === 'ai_easy') {
+    aiDeck = ['goblin','slime','goblin','slime','goblin'];
+  } else {
+    // 랭크 AI: 내 티어에 맞는 난이도
+    const w = C.wins;
+    if(w >= 30)      aiDeck = ['leviathan','mammon','phoenix','dark_knight','dragon','giant','lich','dragon','phoenix','mammon'];
+    else if(w >= 18) aiDeck = ['mammon','phoenix','dragon','giant','lich','hero_warrior','archmage','skeleton','orc','goblin'];
+    else if(w >= 10) aiDeck = ['dragon','phoenix','giant','lich','orc','skeleton','warrior_c','archer_c','goblin','slime'];
+    else if(w >= 4)  aiDeck = ['orc','skeleton','goblin','goblin','slime','fireball','heal','warrior_c','goblin','slime'];
+    else             aiDeck = ['goblin','slime','goblin','slime','fireball','slime','goblin','goblin','slime','slime'];
+  }
+
+  _battle = {
+    myHp: 30, enemyHp: 30,
+    myDeck: [...C.deck].sort(()=>Math.random()-.5),
+    enemyDeck: aiDeck.sort(()=>Math.random()-.5),
+    myHand: [], enemyHand: [],
+    myField: [], enemyField: [],
+    myDiscard: [], enemyDiscard: [],
+    turn: 1, phase: 'draw',
+    selectedCard: null,
+    gameOver: false,
+    skillUsed: false, // 스킬 카드 발동 여부
+  };
+
+  document.getElementById('battle-lobby').style.display = 'none';
+  document.getElementById('battle-arena').style.display = 'block';
+  document.getElementById('turn-display').textContent = '턴 1';
+  clearBattleLog();
+  battleLog('⚔️ 대전 시작!', '#a855f7');
+  drawCards(3);
+  renderBattleArena();
+}
+
+function drawCards(n) {
+  for(let i=0;i<n;i++) {
+    if(_battle.myDeck.length > 0) _battle.myHand.push(_battle.myDeck.pop());
+    else if(_battle.myDiscard.length > 0) { _battle.myDeck=[..._battle.myDiscard].sort(()=>Math.random()-.5); _battle.myDiscard=[]; _battle.myHand.push(_battle.myDeck.pop()); }
+    if(_battle.enemyDeck.length > 0) _battle.enemyHand.push(_battle.enemyDeck.pop());
+    else if(_battle.enemyDiscard.length > 0) { _battle.enemyDeck=[..._battle.enemyDiscard].sort(()=>Math.random()-.5); _battle.enemyDiscard=[]; _battle.enemyHand.push(_battle.enemyDeck.pop()); }
+  }
+}
+
+function renderBattleArena() {
+  if(!_battle) return;
+  // HP 업데이트
+  const myPct = Math.max(0, _battle.myHp/30*100);
+  const enPct = Math.max(0, _battle.enemyHp/30*100);
+  document.getElementById('my-hp-fill').style.width = myPct+'%';
+  document.getElementById('enemy-hp-fill').style.width = enPct+'%';
+  document.getElementById('my-hp-text').textContent = 'HP '+Math.max(0,_battle.myHp);
+  document.getElementById('enemy-hp-text').textContent = 'HP '+Math.max(0,_battle.enemyHp);
+
+  // 필드 렌더
+  renderField_battle('my-field', _battle.myField, false);
+  renderField_battle('enemy-field', _battle.enemyField, true);
+
+  // 손패 렌더
+  const hand = document.getElementById('hand-area');
+  hand.innerHTML = _battle.myHand.map((id,i) => {
+    const card = getCardById(id);
+    if(!card) return '';
+    const gc = gradeCol(card.grade);
+    const sel = _battle.selectedCard === i;
+    return `<div class="card-mini ${gradeClass(card.grade)} ${sel?'selected':''}"
+      style="min-width:62px;background:rgba(0,0,0,.4);${sel?'transform:translateY(-6px);':''}"
+      onclick="selectHandCard(${i})">
+      <div class="cm-emoji">${card.emoji}</div>
+      <div class="cm-name" style="color:${gc};font-size:8px;">${card.name}</div>
+      ${card.type!=='skill' ? `<div class="cm-stats"><span>❤️${card.hp}</span><span>⚔️${card.atk}</span></div>` : `<div class="cm-type">✨스킬</div>`}
+    </div>`;
+  }).join('');
+
+  document.getElementById('deploy-btn').disabled = _battle.selectedCard === null || _battle.phase !== 'deploy';
+  document.getElementById('end-turn-btn').disabled = _battle.phase === 'battle' || _battle.gameOver;
+}
+
+function renderField_battle(elId, field, isEnemy) {
+  const el = document.getElementById(elId);
+  el.innerHTML = field.map((fc,i) => {
+    const card = getCardById(fc.id);
+    if(!card) return '';
+    const gc = gradeCol(card.grade);
+    const hpPct = Math.max(0, fc.hp / card.hp * 100);
+    return `<div class="battle-card ${gradeClass(card.grade)} ${fc.dead?'dead':''}" id="bcard-${isEnemy?'e':'m'}-${i}" style="background:rgba(0,0,0,.5);">
+      <div class="bc-emoji">${card.emoji}</div>
+      <div class="bc-name" style="color:${gc};">${card.name}</div>
+      <div class="bc-hp">❤️${fc.hp}</div>
+      ${fc.poison?'<div style="font-size:7px;color:#a855f7;">☠️독</div>':''}
+      ${fc.burn?'<div style="font-size:7px;color:#f97316;">🔥화상</div>':''}
+      ${fc.frozen?'<div style="font-size:7px;color:#60a5fa;">❄️빙결</div>':''}
+      ${fc.stunned?'<div style="font-size:7px;color:#fbbf24;">⚡스턴</div>':''}
+    </div>`;
+  }).join('') || `<div style="font-size:11px;color:var(--dim);padding:8px;">빈 필드</div>`;
+}
+
+function selectHandCard(idx) {
+  if(_battle.phase !== 'deploy') return;
+  _battle.selectedCard = _battle.selectedCard === idx ? null : idx;
+  renderBattleArena();
+}
+
+function deploySelected() {
+  if(_battle.selectedCard === null || _battle.phase !== 'deploy') return;
+  const idx = _battle.selectedCard;
+  const id = _battle.myHand[idx];
+  const card = getCardById(id);
+  if(!card) return;
+
+  _battle.myHand.splice(idx, 1);
+  _battle.selectedCard = null;
+
+  if(card.type === 'skill') {
+    // 스킬 카드 즉시 발동
+    activateSkill(card, false);
+    _battle.myDiscard.push(id);
+    battleLog(`✨ ${card.name} 발동! — ${card.skill.desc}`, '#a855f7');
+  } else {
+    _battle.myField.push({id, hp:card.hp, maxHp:card.hp, atk:card.atk, def:card.def, spd:card.spd, revived:false});
+    battleLog(`✅ ${card.emoji} ${card.name} 배치! (HP:${card.hp} ATK:${card.atk})`, '#34d399');
+  }
+  renderBattleArena();
+}
+
+function endTurn() {
+  if(_battle.gameOver) return;
+  _battle.phase = 'battle';
+  renderBattleArena();
+  // AI 배치
+  aiDeploy();
+  setTimeout(()=>runCombat(), 400);
+}
+
+function aiDeploy() {
+  const toDeploy = Math.min(2, _battle.enemyHand.length);
+  for(let i=0;i<toDeploy;i++) {
+    const id = _battle.enemyHand.shift();
+    const card = getCardById(id);
+    if(!card) continue;
+    if(card.type === 'skill') {
+      activateSkill(card, true);
+      _battle.enemyDiscard.push(id);
+    } else {
+      _battle.enemyField.push({id, hp:card.hp, maxHp:card.hp, atk:card.atk, def:card.def, spd:card.spd, revived:false});
+      battleLog(`🤖 ${card.emoji} ${card.name} 배치`, '#64748b');
+    }
+  }
+}
+
+async function runCombat() {
+  // SPD 순 정렬 (내 카드 + 상대 카드 합산)
+  const allCards = [
+    ..._battle.myField.filter(c=>!c.dead).map(c=>({...c, owner:'my'})),
+    ..._battle.enemyField.filter(c=>!c.dead).map(c=>({...c, owner:'enemy'})),
+  ].sort((a,b)=>b.spd-a.spd);
+
+  for(const attacker of allCards) {
+    if(_battle.gameOver) break;
+    if(attacker.dead || attacker.frozen || attacker.stunned) {
+      if(attacker.stunned) attacker.stunned = false;
+      if(attacker.frozen) attacker.frozen = false;
+      continue;
+    }
+    const targets = attacker.owner==='my' ? _battle.enemyField.filter(c=>!c.dead) : _battle.myField.filter(c=>!c.dead);
+    if(targets.length > 0) {
+      const target = targets[Math.floor(Math.random()*targets.length)];
+      const dmg = Math.max(1, attacker.atk - target.def);
+      target.hp = Math.max(0, target.hp - dmg);
+      const card = getCardById(attacker.id);
+      const tcard = getCardById(target.id);
+      battleLog(`${attacker.owner==='my'?'⚔️':'🤖'} ${card?.emoji||''} ${card?.name||''} → ${tcard?.name||''} ${dmg} 피해!`,
+        attacker.owner==='my'?'#60a5fa':'#f97316');
+      // 독/화상 처리
+      if(attacker.poison) { target.hp = Math.max(0,target.hp-2); battleLog('☠️ 독 2 피해!','#a855f7'); }
+      if(attacker.burn)   { target.hp = Math.max(0,target.hp-3); battleLog('🔥 화상 3 피해!','#f97316'); }
+      // 처치 체크
+      if(target.hp <= 0) {
+        // 부활 체크
+        const tcard2 = getCardById(target.id);
+        if(tcard2?.skill?.eff==='revive' && !target.revived) {
+          target.hp = tcard2.skill.val;
+          target.revived = true;
+          battleLog(`✨ ${tcard2.name} 부활! (HP ${target.hp})`, '#fbbf24');
+        } else {
+          target.dead = true;
+          battleLog(`💀 ${tcard2?.name||''} 처치!`, '#94a3b8');
+          if(attacker.owner==='my') _battle.enemyDiscard.push(target.id);
+          else _battle.myDiscard.push(target.id);
+        }
+      }
+      renderBattleArena();
+      await sleep(350);
+    } else {
+      // 필드 카드 없으면 본진 공격
+      const dmg = Math.max(1, attacker.atk);
+      if(attacker.owner==='my') {
+        _battle.enemyHp -= dmg;
+        battleLog(`⚔️ 본진 공격! 상대 HP -${dmg}`, '#ef4444');
+      } else {
+        _battle.myHp -= dmg;
+        battleLog(`🤖 본진 공격! 내 HP -${dmg}`, '#f97316');
+      }
+      renderBattleArena();
+      await sleep(300);
+    }
+    // 게임 오버 체크
+    if(_battle.myHp <= 0 || _battle.enemyHp <= 0) { endBattle(); return; }
+  }
+
+  // 다음 턴 준비
+  if(!_battle.gameOver) {
+    _battle.myField = _battle.myField.filter(c=>!c.dead);
+    _battle.enemyField = _battle.enemyField.filter(c=>!c.dead);
+    _battle.turn++;
+    document.getElementById('turn-display').textContent = '턴 '+_battle.turn;
+    _battle.phase = 'deploy';
+    drawCards(2);
+    battleLog(`── 턴 ${_battle.turn} 시작 ──`, '#475569');
+    renderBattleArena();
+  }
+}
+
+function activateSkill(card, isEnemy) {
+  const eff = card.skill.eff;
+  const val = card.skill.val;
+  const myField = isEnemy ? _battle.enemyField : _battle.myField;
+  const enemyField = isEnemy ? _battle.myField : _battle.enemyField;
+
+  switch(eff) {
+    case 'magic_hit':
+      if(enemyField.length > 0) { const t=enemyField[0]; t.hp=Math.max(0,t.hp-val); }
+      else { if(isEnemy) _battle.myHp-=Math.floor(val*.5); else _battle.enemyHp-=Math.floor(val*.5); }
+      break;
+    case 'heal_ally':
+      myField.forEach(c=>c.hp=Math.min(c.hp+val, getCardById(c.id)?.hp||c.hp));
+      break;
+    case 'buff_all_def':
+      myField.forEach(c=>c.def+=val);
+      break;
+    case 'aoe_stun':
+      enemyField.forEach(c=>{c.hp=Math.max(0,c.hp-val);c.stunned=true;});
+      break;
+    case 'aoe_burn_skill':
+      enemyField.forEach(c=>{c.hp=Math.max(0,c.hp-val);c.burn=true;});
+      break;
+    case 'resurrect':
+      // 처치된 카드 부활은 버린 패에서 복구
+      if(isEnemy && _battle.enemyDiscard.length > 0) {
+        const id = _battle.enemyDiscard.pop();
+        const c = getCardById(id);
+        if(c) _battle.enemyField.push({id,hp:val,maxHp:c.hp,atk:c.atk,def:c.def,spd:c.spd,revived:true});
+      } else if(!isEnemy && _battle.myDiscard.length > 0) {
+        const id = _battle.myDiscard.pop();
+        const c = getCardById(id);
+        if(c) _battle.myField.push({id,hp:val,maxHp:c.hp,atk:c.atk,def:c.def,spd:c.spd,revived:true});
+      }
+      break;
+  }
+}
+
+function endBattle() {
+  _battle.gameOver = true;
+  const won = _battle.myHp > 0 && _battle.enemyHp <= 0;
+  if(won) {
+    C.wins++;
+    if(_battleType==='ai_rank') C.rankPoints = (C.rankPoints||0)+10;
+    const stoneReward = 30 + Math.floor(C.wins/5)*10;
+    C.stone += stoneReward;
+    saveC(); updateHUD();
+    showResult(true, `🪙 마법석 +${stoneReward}개 획득!`);
+  } else {
+    C.losses++;
+    if(_battleType==='ai_rank' && C.rankPoints > 0) C.rankPoints -= 5;
+    saveC(); updateHUD();
+    showResult(false, '다음엔 꼭 승리하세요!');
+  }
+}
+
+function showResult(won, desc) {
+  document.getElementById('result-emoji').textContent = won ? '🏆' : '💔';
+  document.getElementById('result-title').textContent = won ? '승리!' : '패배...';
+  document.getElementById('result-title').style.color = won ? 'var(--green)' : 'var(--red)';
+  document.getElementById('result-desc').textContent = desc;
+  document.getElementById('result-rewards').innerHTML = `<div style="font-size:12px;color:var(--sub);">전적: ${C.wins}승 ${C.losses}패 · 티어: ${getTier().name}</div>`;
+  document.getElementById('result-modal').classList.add('show');
+}
+
+function closeResult() {
+  document.getElementById('result-modal').classList.remove('show');
+  document.getElementById('battle-lobby').style.display='block';
+  document.getElementById('battle-arena').style.display='none';
+  _battle = null;
+  renderBattleLobby();
+}
+
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+function battleLog(msg, color='#e2e8f0') {
+  const el=document.getElementById('battle-log');
+  el.innerHTML += `<div style="color:${color};">${msg}</div>`;
+  el.scrollTop=el.scrollHeight;
+}
+function clearBattleLog() { document.getElementById('battle-log').innerHTML=''; }
+
+// ═══════════════════════════════════════════
+//  ③ 스토리 모드
+// ═══════════════════════════════════════════
+function renderStory() {
+  const list = document.getElementById('story-list');
+  list.innerHTML = CHAPTERS.map((ch,i) => {
+    const cleared = C.storyCleared.includes(ch.id);
+    const locked = i > 0 && !C.storyCleared.includes(CHAPTERS[i-1].id);
+    const rewardCard = getCardById(ch.reward.card);
+    return `<div class="story-chapter ${locked?'locked':''} ${cleared?'cleared':''}"
+      onclick="${locked?'':('startStoryBattle('+ch.id+')')}">
+      <div class="sc-num">${ch.id}</div>
+      <div class="sc-info">
+        <div class="sc-title">${ch.title}</div>
+        <div class="sc-desc">${ch.desc}</div>
+        <div class="sc-reward">🎁 ${ch.reward.stone}💎 + ${rewardCard?.emoji||'🃏'}${rewardCard?.name||''} 카드${locked?' (이전 챕터 클리어 필요)':''}</div>
+      </div>
+      <div class="sc-badge">${cleared?'✅':locked?'🔒':'▶️'}</div>
+    </div>`;
+  }).join('');
+}
+
+function startStoryBattle(chId) {
+  const ch = CHAPTERS.find(c=>c.id===chId);
+  if(!ch) return;
+  if(C.deck.length < ch.minCards) { cardToast(`덱에 최소 ${ch.minCards}장 필요합니다!`); return; }
+
+  _battleType = 'story_'+chId;
+  _battle = {
+    myHp:30, enemyHp:ch.bossHp,
+    myDeck:[...C.deck].sort(()=>Math.random()-.5),
+    enemyDeck:[...ch.bossDeck].sort(()=>Math.random()-.5),
+    myHand:[], enemyHand:[],
+    myField:[], enemyField:[],
+    myDiscard:[], enemyDiscard:[],
+    turn:1, phase:'deploy', selectedCard:null, gameOver:false,
+    storyChId: chId,
+  };
+  // HP 바 최대값 조정
+  document.getElementById('enemy-hp-fill').style.width='100%';
+  document.getElementById('battle-lobby').style.display='none';
+  document.getElementById('battle-arena').style.display='block';
+  document.getElementById('enemy-name').textContent = ch.bossName;
+  document.getElementById('enemy-avatar').textContent = ch.bossEmoji;
+  switchTab('battle');
+  clearBattleLog();
+  battleLog(`📜 챕터 ${chId}: ${ch.title}`, '#fbbf24');
+  battleLog(`👹 ${ch.bossName}이(가) 나타났다!`, '#ef4444');
+  drawCards(3);
+
+  // endBattle 오버라이드
+  const origEnd = endBattle;
+  _battle._customEnd = (won) => {
+    if(won && !C.storyCleared.includes(chId)) {
+      C.storyCleared.push(chId);
+      const rewardCard = getCardById(ch.reward.card);
+      C.stone += ch.reward.stone;
+      C.cards[ch.reward.card] = (C.cards[ch.reward.card]||0) + 1;
+      C.wins++;
+      saveC(); updateHUD();
+      document.getElementById('result-emoji').textContent='🏆';
+      document.getElementById('result-title').textContent='챕터 클리어!';
+      document.getElementById('result-title').style.color='var(--green)';
+      document.getElementById('result-desc').textContent=`챕터 ${chId} ${ch.title} 완료!`;
+      document.getElementById('result-rewards').innerHTML=`
+        <div style="text-align:center;">
+          <div style="font-size:11px;color:var(--gold);margin-bottom:6px;">🎁 보상 획득!</div>
+          <div style="font-size:13px;">💎 마법석 +${ch.reward.stone}개</div>
+          <div style="font-size:22px;margin-top:6px;">${rewardCard?.emoji||'🃏'}</div>
+          <div style="font-size:12px;color:var(--p3);">${rewardCard?.name||''} 카드 획득!</div>
+        </div>`;
+      document.getElementById('result-modal').classList.add('show');
+    } else if(!won) {
+      C.losses++; saveC();
+      showResult(false,'다시 도전해보세요!');
+    } else {
+      showResult(true,'이미 클리어한 챕터입니다!');
+    }
+  };
+  renderBattleArena();
+}
+
+// endBattle을 커스텀 핸들러 지원으로 재정의
+function endBattle() {
+  if(!_battle) return;
+  _battle.gameOver = true;
+  const won = _battle.myHp > 0 && _battle.enemyHp <= 0;
+  if(_battle._customEnd) { _battle._customEnd(won); return; }
+  if(won) {
+    C.wins++;
+    if(_battleType==='ai_rank') C.rankPoints=(C.rankPoints||0)+10;
+    const stoneReward=30+Math.floor(C.wins/5)*10;
+    C.stone+=stoneReward;
+    saveC(); updateHUD();
+    showResult(true,`마법석 +${stoneReward}개 획득!`);
+  } else {
+    C.losses++;
+    if(_battleType==='ai_rank'&&C.rankPoints>0) C.rankPoints-=5;
+    saveC(); updateHUD();
+    showResult(false,'다음엔 꼭 승리하세요!');
+  }
+}
+
+// ═══════════════════════════════════════════
+//  ④ 덱 빌더
+// ═══════════════════════════════════════════
+let _deckFilter = 'all';
+
+function setDeckFilter(f) {
+  _deckFilter = f;
+  document.querySelectorAll('#deck-filter-row .filter-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderDeckBuilder();
+}
+
+function renderDeckBuilder() {
+  // 덱 슬롯
+  const slotsEl = document.getElementById('deck-slots');
+  let slotsHtml = '';
+  for(let i=0;i<20;i++) {
+    const id = C.deck[i];
+    const card = id ? getCardById(id) : null;
+    if(card) {
+      const gc = gradeCol(card.grade);
+      slotsHtml += `<div class="deck-slot filled ${gradeClass(card.grade)}" style="background:rgba(0,0,0,.4);">
+        <div class="ds-remove" onclick="removeFromDeck(${i})">✕</div>
+        <div style="font-size:20px;">${card.emoji}</div>
+        <div style="font-size:7px;color:${gc};font-family:var(--fn);text-align:center;line-height:1.2;">${card.name}</div>
+      </div>`;
+    } else {
+      slotsHtml += `<div class="deck-slot"><span style="font-size:10px;color:var(--dim);">${i+1}</span></div>`;
+    }
+  }
+  slotsEl.innerHTML = slotsHtml;
+  document.getElementById('deck-count-display').textContent = `(${C.deck.length}/20)`;
+
+  // 보유 카드 목록
+  const owned = CARD_DB.filter(c => (C.cards[c.id]||0)>0);
+  const filtered = _deckFilter==='all' ? owned : owned.filter(c=>c.type===_deckFilter);
+  const grid = document.getElementById('deck-collection');
+  grid.innerHTML = filtered.map(c => {
+    const inDeck = C.deck.filter(d=>d===c.id).length;
+    const maxInDeck = Math.min(3, C.cards[c.id]||0);
+    const canAdd = inDeck < maxInDeck && C.deck.length < 20;
+    return renderCardMini(c, {
+      onclick: canAdd ? `addToDeck('${c.id}')` : '',
+      showDeckCount: true,
+    });
+  }).join('');
+}
+
+function addToDeck(id) {
+  const card = getCardById(id);
+  if(!card) return;
+  const inDeck = C.deck.filter(d=>d===id).length;
+  const have = C.cards[id]||0;
+  if(inDeck >= 3) { cardToast('같은 카드는 최대 3장입니다'); return; }
+  if(inDeck >= have) { cardToast('보유 수량이 부족합니다'); return; }
+  if(C.deck.length >= 20) { cardToast('덱이 가득 찼습니다 (최대 20장)'); return; }
+  C.deck.push(id);
+  renderDeckBuilder();
+}
+
+function removeFromDeck(idx) {
+  C.deck.splice(idx, 1);
+  renderDeckBuilder();
+}
+
+function saveDeck() {
+  saveC();
+  cardToast('💾 덱 저장 완료!');
+  renderBattleLobby();
+}
+
+function clearDeck() {
+  if(!confirm('덱을 초기화하시겠습니까?')) return;
+  C.deck = [];
+  renderDeckBuilder();
+}
+
+// ═══════════════════════════════════════════
+//  ⑤ 도감
+// ═══════════════════════════════════════════
+let _collFilter = 'all';
+function setCollFilter(f) {
+  _collFilter=f;
+  document.querySelectorAll('#coll-filter-row .filter-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderCollection();
+}
+
+function renderCollection() {
+  const owned = CARD_DB.filter(c=>(C.cards[c.id]||0)>0);
+  const all = _collFilter==='all' ? CARD_DB : CARD_DB.filter(c=>c.type===_collFilter);
+  document.getElementById('coll-count').textContent=`(${owned.length}/${CARD_DB.length}종)`;
+  const grid = document.getElementById('coll-grid');
+  grid.innerHTML = all.map(c => {
+    const have = (C.cards[c.id]||0)>0;
+    return `<div class="card-mini ${gradeClass(c.grade)}" style="background:rgba(0,0,0,.3);${!have?'opacity:.3;filter:grayscale(1);':''}"
+      onclick="${have?`openCardModal('${c.id}')`:''}" >
+      ${(C.cards[c.id]||0)>1?`<div class="cm-count">×${C.cards[c.id]}</div>`:''}
+      <div class="cm-emoji">${c.emoji}</div>
+      <div class="cm-name" style="color:${gradeCol(c.grade)};">${c.name}</div>
+      <div class="cm-type">${c.type==='character'?'👤':c.type==='monster'?'👹':'✨'}</div>
+      ${c.type!=='skill'?`<div class="cm-stats"><span>❤️${c.hp}</span><span>⚔️${c.atk}</span></div>`:`<div class="cm-type">${c.skill.name}</div>`}
+    </div>`;
+  }).join('');
+}
+
+function openCardModal(id) {
+  const card = getCardById(id);
+  if(!card) return;
+  document.getElementById('card-modal-title').textContent = card.emoji+' '+card.name;
+  document.getElementById('card-modal-body').innerHTML = renderCardFull(card);
+  const inDeck = C.deck.filter(d=>d===id).length;
+  const canAdd = inDeck<3 && (C.cards[id]||0)>inDeck && C.deck.length<20;
+  document.getElementById('card-modal-actions').innerHTML = `
+    <button class="btn-primary ${canAdd?'':'btn-primary'}" onclick="${canAdd?`addToDeck('${id}');closeCardModal()`:''}"
+      style="flex:1;${!canAdd?'background:rgba(255,255,255,.06);color:var(--dim);cursor:default;':''}">
+      ${canAdd?'📚 덱에 추가':'덱 추가 불가'}
+    </button>`;
+  document.getElementById('card-modal').classList.add('show');
+}
+function closeCardModal() { document.getElementById('card-modal').classList.remove('show'); }
+
+// ═══════════════════════════════════════════
+//  ⑥ 뽑기 (가챠)
+// ═══════════════════════════════════════════
+const GACHA_POOLS = {
+  normal:   [{grade:'common',w:55},{grade:'rare',w:30},{grade:'rleg',w:12},{grade:'epic',w:3}],
+  premium:  [{grade:'rleg',w:50},{grade:'epic',w:30},{grade:'legend',w:15},{grade:'myth',w:5}],
+};
+
+function rollGrade(type) {
+  C.pity++;
+  if(C.pity >= 100) { C.pity=0; return 'myth'; }
+  const pool = GACHA_POOLS[type] || GACHA_POOLS.normal;
+  const total = pool.reduce((s,p)=>s+p.w,0);
+  let r = Math.random()*total;
+  for(const p of pool) { r-=p.w; if(r<=0) return p.grade; }
+  return pool[pool.length-1].grade;
+}
+
+function rollCard(grade) {
+  const pool = CARD_DB.filter(c=>c.grade===grade);
+  if(!pool.length) {
+    // 등급 없으면 한 단계 낮은 등급
+    const lower = GRADE_ORDER[Math.max(0,GRADE_ORDER.indexOf(grade)-1)];
+    return CARD_DB.filter(c=>c.grade===lower)[0] || CARD_DB[0];
+  }
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function doGacha(count, type) {
+  const costs = {normal_1:50, premium_1:150, normal_10:1400};
+  const costKey = type+'_'+count;
+  const cost = costs[costKey] || 50;
+  if(C.stone < cost) { cardToast(`💎 마법석이 부족합니다! (${cost}개 필요)`); return; }
+  C.stone -= cost;
+
+  const results = [];
+  for(let i=0;i<count;i++) {
+    let grade = rollGrade(type);
+    if(count===10 && i===count-1) grade = grade==='common'||grade==='rare'||grade==='rleg'?'legend':grade;
+    const card = rollCard(grade);
+    results.push(card);
+    C.cards[card.id] = (C.cards[card.id]||0)+1;
+  }
+  saveC(); updateHUD();
+  showGachaResult(results);
+}
+
+function showGachaResult(results) {
+  const grid = document.getElementById('gacha-result-grid');
+  grid.innerHTML = results.map((card,i) => {
+    const gc = gradeCol(card.grade);
+    return `<div class="gacha-card ${gradeClass(card.grade)}" style="background:rgba(0,0,0,.4);animation-delay:${i*0.08}s;">
+      <div class="gc-emoji">${card.emoji}</div>
+      <div class="gc-name" style="color:${gc};">${card.name}</div>
+      <div class="gc-grade" style="color:${gc};">${GRADE_NAME[card.grade]}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('gacha-result').style.display='block';
+  // 고등급 연출
+  const hasHigh = results.some(c=>['legend','myth','legendary'].includes(c.grade));
+  if(hasHigh) cardToast('✨ 고등급 카드 획득!');
+}
+
+function closeGachaResult() { document.getElementById('gacha-result').style.display='none'; }
+
+// ═══════════════════════════════════════════
+//  ⑦ 랭킹
+// ═══════════════════════════════════════════
+let _cardDB_firebase = null;
+
+function initFirebase() {
+  try {
+    const cfg={apiKey:"AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",authDomain:"ggo-play.firebaseapp.com",
+      databaseURL:"https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"ggo-play"};
+    if(!firebase.apps.length) firebase.initializeApp(cfg);
+    _cardDB_firebase = firebase.database();
+  } catch(e) { console.warn('Card Firebase init fail:',e); }
+}
+
+function uploadRank() {
+  const un = cardUN();
+  if(!un || !_cardDB_firebase) return;
+  _cardDB_firebase.ref('card_rank/'+un).set({user:un,wins:C.wins,losses:C.losses,rankPoints:C.rankPoints||0,tier:getTier().name,ts:Date.now()}).catch(()=>{});
+}
+
+async function renderRank() {
+  const un = cardUN();
+  const myCard = document.getElementById('my-rank-card');
+  const tier = getTier();
+  myCard.innerHTML = `<div style="font-family:var(--fn);font-size:12px;color:${tier.color};">${tier.name}</div>
+    <div style="margin-top:4px;font-size:11px;color:var(--sub);">${C.wins}승 ${C.losses}패 · 랭크 포인트 ${C.rankPoints||0}</div>`;
+
+  const list = document.getElementById('rank-list');
+  list.innerHTML = `<div style="text-align:center;padding:16px;color:var(--dim);font-size:11px;">불러오는 중...</div>`;
+  uploadRank();
+  if(!_cardDB_firebase) { list.innerHTML=`<div style="text-align:center;padding:16px;color:var(--dim);">Firebase 연결 없음</div>`; return; }
+  try {
+    const snap = await _cardDB_firebase.ref('card_rank').get();
+    let data=[];
+    if(snap&&snap.exists()) snap.forEach(ch=>{const v=ch.val();if(v&&v.user) data.push(v);});
+    const deduped={};
+    data.forEach(d=>{if(!deduped[d.user]||d.wins>deduped[d.user].wins) deduped[d.user]=d;});
+    data=Object.values(deduped).sort((a,b)=>b.wins-a.wins||b.rankPoints-a.rankPoints);
+    const MEDAL=['🥇','🥈','🥉'];
+    list.innerHTML = data.slice(0,30).map((d,i)=>{
+      const isMe=d.user===un;
+      return `<div class="rank-item" style="${isMe?'border-color:rgba(168,85,247,.3);background:rgba(124,58,237,.05);':''}">
+        <div style="width:28px;text-align:center;font-size:${i<3?'18':'12'}px;font-family:var(--fn);color:var(--dim);">${MEDAL[i]||i+1}</div>
+        <div style="flex:1;">
+          <div style="font-family:var(--fn);font-size:12px;color:${isMe?'var(--p3)':'var(--text)'};">${d.user}${isMe?' <span style="font-size:9px;">▶ 나</span>':''}</div>
+          <div style="font-size:9px;color:var(--dim);">${d.tier||'🌱 새싹'}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:var(--fn);font-size:12px;color:var(--green);">${d.wins}승</div>
+          <div style="font-size:9px;color:var(--dim);">${d.losses}패</div>
+        </div>
+      </div>`;
+    }).join('') || `<div style="text-align:center;padding:20px;color:var(--dim);">아직 랭킹 데이터가 없습니다</div>`;
+  } catch(e) { list.innerHTML=`<div style="text-align:center;padding:16px;color:var(--dim);">불러오기 실패</div>`; }
+}
+
+// ═══════════════════════════════════════════
+//  초기화
+// ═══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', ()=>{
+  loadC();
+  initFirebase();
+  updateHUD();
+  renderBattleLobby();
+  if(!cardUN()) setTimeout(()=>cardToast('💡 GGO PLAY 로그인 시 랭킹 기능 사용 가능'),1000);
+});
+window.addEventListener('beforeunload',()=>{if(C) saveC();});
+</script>
+</body>
+</html>
