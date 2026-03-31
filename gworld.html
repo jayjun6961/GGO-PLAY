@@ -1258,11 +1258,11 @@ const JOBS = {
     bHP:70, bATK:20,bDEF:4, bMP:110,hLv:5.0,aLv:3.0,dLv:0.9,mLv:8,
     weapon:{name:'초급 지팡이',emoji:'🪄',atk:10}, armor:null,
     skills:[
-      {id:'fire',   name:'파이어볼',  lv:10, mp:15,cd:4,  dmg:1.8,eff:'single',    desc:'공격력 180% 마법 공격'},
-      {id:'ice',    name:'아이스 스톰',lv:30, mp:25,cd:12, dmg:1.2,eff:'aoe',      desc:'광역 공격력 120%'},
-      {id:'light',  name:'라이트닝',  lv:50, mp:30,cd:8,  dmg:1.0,eff:'chain',    desc:'연쇄 공격 최대 3회'},
-      {id:'meteor', name:'메테오',    lv:100,mp:50,cd:15, dmg:3.5,eff:'meteor',    desc:'공격력 350% · 이후 3초간 화상(지속 피해)'},
-      {id:'arcane', name:'아케인 붕괴',lv:140,mp:80,cd:25, dmg:2.0,eff:'arcane',   desc:'공격력 200%로 5회 연쇄 · MP 회복 40'},
+      {id:'fire',   name:'파이어볼',  lv:10, mp:15,cd:4,  dmg:1.2,eff:'single',    desc:'공격력 120% 마법 공격'},
+      {id:'ice',    name:'아이스 스톰',lv:30, mp:25,cd:12, dmg:1.5,eff:'aoe',      desc:'광역 공격력 150%'},
+      {id:'light',  name:'라이트닝',  lv:50, mp:30,cd:8,  dmg:1.2,eff:'chain',    desc:'공격력 120%로 연속 공격 3회'},
+      {id:'meteor', name:'메테오',    lv:100,mp:50,cd:15, dmg:2.0,eff:'meteor',    desc:'공격력 200% · 이후 3초간 공격력의 70%로 화상(지속 피해)'},
+      {id:'arcane', name:'아케인 붕괴',lv:140,mp:80,cd:25, dmg:3.5,eff:'arcane',   desc:'공격력 350%로 연속 공격 5회 · MP 회복 40'},
     ]},
   rogue:{ id:'rogue',name:'도적',emoji:'🗡️',color:'#94a3b8',
     desc:'치명타 · 독 · 암살',
@@ -3305,7 +3305,7 @@ function useSkill(sid){
       G.mhp=Math.max(0,G.mhp-d);
       floatDmg(d,'#f97316');
       blog(`<span class="ls">☄️ [${sk.name}] ${d}! 화상 부여!</span>`);
-      G.buffs.burn={dmg:Math.floor(a*0.3), tick:0, max:3};
+      G.buffs.burn={dmg:Math.floor(a*0.7), tick:0, max:3}; // 공격력의 70% 화상
       break;}
     case 'arcane':{
       // 마법사 아케인 붕괴: 5회 연쇄 + MP 회복
@@ -4525,6 +4525,7 @@ let _dun = {
   dungeon: null,   // 현재 던전 정보
   bossHp: 0,
   bossMhp: 0,
+  burnTick: 0, burnDmg: 0, // 메테오 화상 지속 피해
   tick: null,
   timerSec: 0,
   timerInt: null,
@@ -4633,6 +4634,7 @@ function enterDungeon(id) {
   // 전투 시작
   if(_dun.tick) clearInterval(_dun.tick);
   if(_dun.timerInt) clearInterval(_dun.timerInt);
+  _dun.burnTick = 0; _dun.burnDmg = 0; // 화상 초기화
   _dun.tick = setInterval(dunFight, tSpd());
   _dun.timerInt = setInterval(()=>{
     _dun.timerSec++;
@@ -4688,6 +4690,12 @@ function dunFight() {
   if(isCrit) dmg = Math.floor(dmg*tCritDmg()/100);
   _dun.bossHp = Math.max(0, _dun.bossHp-dmg);
   dunBlog(`<span class="ld">⚔️ ${isCrit?'<span style="color:#f97316">💥치명타! </span>':''}${boss.n}에게 ${dmg} 데미지! (HP ${_dun.bossHp}/${_dun.bossMhp})</span>`);
+  // 화상 지속 피해 처리 (메테오 스킬)
+  if(_dun.burnTick > 0 && _dun.burnDmg > 0){
+    _dun.bossHp = Math.max(0, _dun.bossHp - _dun.burnDmg);
+    dunBlog(`<span style="color:#f97316">🔥 화상! ${_dun.burnDmg.toLocaleString()} 지속 피해!</span>`);
+    _dun.burnTick--;
+  }
   dunHud();
   if(_dun.bossHp<=0){ dunBossDead(); return; }
   // 보스 공격 (방어 관통 공식: 60%는 방어 무시, 40%는 방어 절반만 적용)
@@ -5050,7 +5058,9 @@ function useDunSkill(skId){
     case 'meteor': {
       const isCrit=Math.random()*100<tCritRate();let md=Math.max(1,Math.floor(atk*skBoostDmg)-bdef);if(isCrit)md=Math.floor(md*tCritDmg()/100);
       _dun.bossHp=Math.max(0,_dun.bossHp-md);totalDmg=md;
-      dunBlog(`<span style="color:#f97316">☄️ ${sk.name}! ${md.toLocaleString()} 피해!</span>`);showDunDmgPop(md,isCrit);break;}
+      // 화상 부여: 3초간 공격력의 70% 지속 피해 (던전 보스에도 적용)
+      const burnDmg=Math.floor(atk*0.7); _dun.burnTick=3; _dun.burnDmg=burnDmg;
+      dunBlog(`<span style="color:#f97316">☄️ ${sk.name}! ${md.toLocaleString()} 피해 + 화상 부여!</span>`);showDunDmgPop(md,isCrit);break;}
     case 'arcane': {
       let act=0;for(let i=0;i<5;i++){const d=Math.max(1,Math.floor(atk*skBoostDmg)-bdef);_dun.bossHp=Math.max(0,_dun.bossHp-d);act+=d;if(_dun.bossHp<=0)break;}
       G.mp=Math.min(G.mMP,G.mp+40);totalDmg=act;
@@ -7641,6 +7651,35 @@ function _towerUploadAllJobs() {
     }).catch(()=>{});
   });
 }
+// 모든 직업 탑 기록 업로드 (Promise 반환 - await 가능)
+async function _towerUploadAllJobsAsync() {
+  if(!window._gwDB) return;
+  const username = gwUN();
+  if(!username || username === '_g') return;
+  const weekKey = wbWeekKey();
+  const JOBS_ALL = ['warrior','archer','mage','rogue','paladin'];
+  const uploads = JOBS_ALL.map(jobId => {
+    const key = 'gwo_tower_cleared_' + jobId + '_' + username;
+    let floors;
+    try { floors = JSON.parse(localStorage.getItem(key)||'[]'); } catch { floors = []; }
+    if(!floors.length) return Promise.resolve();
+    const maxFloor = Math.max(...floors);
+    if(maxFloor <= 0) return Promise.resolve();
+    const charData = getCharData(jobId);
+    const lv = (jobId === G.job) ? G.lv : (charData?.lv || 1);
+    const rankKey = username + '_' + jobId;
+    const ref = window._gwDB.ref('tower_rank/' + weekKey + '/' + rankKey);
+    return ref.get().then(snap => {
+      const cur = snap && snap.exists() ? snap.val() : null;
+      if(!cur || maxFloor > (cur.floor||0)) {
+        return ref.set({ floor: maxFloor, ts: Date.now(), user: username, job: jobId, lv })
+          .catch(e => console.warn('[탑순위] 업로드 실패:', jobId, e));
+      }
+    }).catch(()=>{});
+  });
+  await Promise.allSettled(uploads);
+}
+
 function getTowerMaxFloor() {
   const cleared = getTowerCleared();
   if(cleared.size === 0) return 0;
@@ -10870,9 +10909,6 @@ async function renderTowerRank() {
   const el = document.getElementById('gw-towerbody'); if(!el) return;
   el.innerHTML = `<div style="text-align:center;padding:20px;color:#64748b;font-size:11px;font-family:'Noto Sans KR',sans-serif;">🔄 순위 불러오는 중...</div>`;
 
-  // 순위 탭 열 때 모든 직업 기록을 Firebase에 일괄 동기화
-  _towerUploadAllJobs();
-
   const myName   = gwUN();
   const weekKey  = wbWeekKey();
   const lastKey  = wbLastWeekKey();
@@ -10891,13 +10927,21 @@ async function renderTowerRank() {
   }
 
   // 전체 기록 조회 → 직업별로 분류
+  // 내 모든 직업 기록 Firebase에 먼저 업로드 (완료 기다림)
+  await _towerUploadAllJobsAsync();
+
   let allData = [];
   try {
     const snap = await ref.get();
-    if(snap && snap.exists()) snap.forEach(ch => allData.push(ch.val()));
+    if(snap && snap.exists()) {
+      snap.forEach(ch => {
+        const v = ch.val();
+        if(v && v.user && v.job && v.floor > 0) allData.push(v);
+      });
+    }
   } catch(e) { console.warn('[탑순위]', e); }
 
-  // 내 모든 직업 로컬 기록이 Firebase에 없으면 병합 (업로드 지연 대비)
+  // 내 로컬 기록과 Firebase 병합 (업로드 지연 대비 폴백)
   const JOBS_ALL2 = ['warrior','archer','mage','rogue','paladin'];
   JOBS_ALL2.forEach(jobId => {
     const key = 'gwo_tower_cleared_' + jobId + '_' + myName;
@@ -10906,13 +10950,23 @@ async function renderTowerRank() {
     if(!floors2.length) return;
     const mf = Math.max(...floors2);
     if(mf <= 0) return;
-    const alreadyIn = allData.some(r => r.user === myName && r.job === jobId);
-    if(!alreadyIn) {
+    const existing = allData.find(r => r.user === myName && r.job === jobId);
+    if(!existing) {
       const charData2 = getCharData(jobId);
       const lv2 = (jobId === G.job) ? G.lv : (charData2?.lv || 1);
       allData.push({ floor: mf, ts: Date.now(), user: myName, job: jobId, lv: lv2 });
+    } else if(mf > existing.floor) {
+      existing.floor = mf; // 로컬이 더 높으면 업데이트
     }
   });
+
+  // ── 중복 제거: 같은 user+job 중 floor 가장 높은 것만 유지 ──
+  const deduped = {};
+  allData.forEach(r => {
+    const k = (r.user||'') + '_' + (r.job||'');
+    if(!deduped[k] || r.floor > deduped[k].floor) deduped[k] = r;
+  });
+  allData = Object.values(deduped);
 
   // 직업별 필터 + 정렬
   const jobData = allData
