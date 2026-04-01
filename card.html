@@ -192,27 +192,45 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn2);display:flex;
 <!-- ① 대전 탭 -->
 <div class="tab-content active" id="tab-battle">
   <div id="battle-lobby" style="display:block;">
-    <div style="text-align:center;padding:20px 0 12px;">
-      <div style="font-family:var(--fn);font-size:20px;color:var(--p3);margin-bottom:6px;">⚔️ 랭크 대전</div>
-      <div style="font-size:11px;color:var(--dim);">내 덱으로 AI와 대전합니다</div>
-    </div>
     <!-- 내 덱 미리보기 -->
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
       <div style="font-family:var(--fn);font-size:11px;color:var(--p3);margin-bottom:10px;">📚 현재 덱 (<span id="lobby-deck-count">0</span>/20장)</div>
       <div id="lobby-deck-preview" style="display:flex;flex-wrap:wrap;gap:5px;min-height:32px;"></div>
     </div>
-    <!-- 대전 버튼 -->
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <button class="btn-primary" id="pvp-btn" onclick="startBattle('ai_rank')" style="width:100%;padding:14px;">⚔️ AI 랭크 대전 시작</button>
-      <button class="btn-primary btn-gold" onclick="startBattle('ai_easy')" style="width:100%;padding:12px;font-size:11px;">🤖 연습 대전 (무보정 AI)</button>
-    </div>
-    <div style="margin-top:16px;background:rgba(124,58,237,.06);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">
-      <div style="font-family:var(--fn);font-size:11px;color:var(--p3);margin-bottom:6px;">📊 내 전적</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
-        <div><div style="font-family:var(--fn);font-size:16px;color:var(--green);" id="stat-wins">0</div><div style="font-size:9px;color:var(--dim);">승</div></div>
-        <div><div style="font-family:var(--fn);font-size:16px;color:var(--red);" id="stat-losses">0</div><div style="font-size:9px;color:var(--dim);">패</div></div>
-        <div><div style="font-family:var(--fn);font-size:16px;color:var(--gold);" id="stat-winrate">0%</div><div style="font-size:9px;color:var(--dim);">승률</div></div>
+
+    <!-- 🔵 랭크 대전 -->
+    <div style="background:rgba(124,58,237,.08);border:2px solid rgba(124,58,237,.35);border-radius:16px;padding:16px;margin-bottom:10px;">
+      <div style="font-family:var(--fn);font-size:14px;color:var(--p3);margin-bottom:4px;">⚔️ 랭크 대전</div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:12px;line-height:1.6;">실제 유저의 덱과 대결! 승리 시 랭킹 포인트 획득<br>상대방은 AI가 상대방 덱으로 플레이합니다</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+        <div style="background:rgba(0,0,0,.3);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-family:var(--fn);font-size:14px;color:var(--green);" id="rank-stat-wins">0</div>
+          <div style="font-size:9px;color:var(--dim);">랭크 승</div>
+        </div>
+        <div style="background:rgba(0,0,0,.3);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-family:var(--fn);font-size:14px;color:var(--red);" id="rank-stat-losses">0</div>
+          <div style="font-size:9px;color:var(--dim);">랭크 패</div>
+        </div>
       </div>
+      <button class="btn-primary" id="rank-battle-btn" onclick="startRankBattle()" style="width:100%;padding:13px;font-size:13px;">⚔️ 랭크 대전 시작</button>
+      <div style="font-size:9px;color:var(--dim);text-align:center;margin-top:6px;" id="rank-opponent-info">상대 유저 검색 중...</div>
+    </div>
+
+    <!-- 🟡 일반 대전 -->
+    <div style="background:rgba(251,191,36,.06);border:2px solid rgba(251,191,36,.25);border-radius:16px;padding:16px;margin-bottom:10px;">
+      <div style="font-family:var(--fn);font-size:14px;color:var(--gold);margin-bottom:4px;">🤖 일반 대전</div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:12px;line-height:1.6;">AI와 연습 대전 · 승리 시 마법석 획득<br>랭킹에는 반영되지 않습니다</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+        <div style="background:rgba(0,0,0,.3);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-family:var(--fn);font-size:14px;color:var(--green);" id="normal-stat-wins">0</div>
+          <div style="font-size:9px;color:var(--dim);">일반 승</div>
+        </div>
+        <div style="background:rgba(0,0,0,.3);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-family:var(--fn);font-size:16px;color:var(--gold);" id="normal-stat-stone">0</div>
+          <div style="font-size:9px;color:var(--dim);">획득 마법석</div>
+        </div>
+      </div>
+      <button class="btn-primary btn-gold" onclick="startBattle('normal')" style="width:100%;padding:12px;">🤖 일반 대전 시작</button>
     </div>
   </div>
 
@@ -476,12 +494,14 @@ let C;
 
 function defaultSave() {
   return {
-    cards: {warrior_c:3, archer_c:3, goblin:3, slime:3, fireball:3, heal:3}, // 초기 카드
+    cards: {warrior_c:3, archer_c:3, goblin:3, slime:3, fireball:3, heal:3},
     deck: ['warrior_c','archer_c','goblin','slime','fireball','heal'],
-    wins:0, losses:0,
-    stone: 200, // 시작 마법석
-    pity: 0,    // 천장 카운터
-    storyCleared: [], // 클리어한 챕터 id
+    normalWins:0, normalLosses:0,  // 일반 대전 전적 (랭킹 미적용)
+    rankWins:0,   rankLosses:0,    // 랭크 대전 전적 (랭킹 적용)
+    wins:0, losses:0,              // 하위호환용 (총합)
+    stone: 200,
+    pity: 0,
+    storyCleared: [],
     rankPoints: 0,
     lastSave: Date.now(),
   };
@@ -507,6 +527,10 @@ function _applyCardData(data) {
   if(!C.rankPoints) C.rankPoints=0;
   if(!C.wins) C.wins=0;
   if(!C.losses) C.losses=0;
+  if(!C.normalWins) C.normalWins=0;
+  if(!C.normalLosses) C.normalLosses=0;
+  if(!C.rankWins) C.rankWins=0;
+  if(!C.rankLosses) C.rankLosses=0;
   if(!C.stone && C.stone!==0) C.stone=200;
 }
 
@@ -553,7 +577,7 @@ function gradeCol(g) { return GRADE_COLOR[g]||'#94a3b8'; }
 function getCardById(id) { return CARD_DB.find(c=>c.id===id); }
 
 function getTier() {
-  const w = C.wins;
+  const w = C.rankWins || 0; // 랭크 대전 승리만 적용
   if(w >= 50) return {name:'👑 레전드', color:'#fbbf24', border:'#fbbf24'};
   if(w >= 30) return {name:'💎 다이아', color:'#60a5fa', border:'#60a5fa'};
   if(w >= 18) return {name:'🥇 골드',  color:'#fbbf24', border:'#fbbf24'};
@@ -565,7 +589,7 @@ function getTier() {
 function updateHUD() {
   document.getElementById('hud-stone').textContent = C.stone.toLocaleString();
   document.getElementById('hud-cards').textContent = Object.keys(C.cards).filter(k=>C.cards[k]>0).length;
-  document.getElementById('hud-wins').textContent = C.wins;
+  document.getElementById('hud-wins').textContent = (C.rankWins||0);
   const tier = getTier();
   const el = document.getElementById('hud-tier');
   el.textContent = tier.name; el.style.color=tier.color; el.style.borderColor=tier.border;
@@ -632,7 +656,6 @@ function renderCardFull(card) {
 //  ① 대전 로비
 // ═══════════════════════════════════════════
 function renderBattleLobby() {
-  // 덱 미리보기
   const preview = document.getElementById('lobby-deck-preview');
   document.getElementById('lobby-deck-count').textContent = C.deck.length;
   preview.innerHTML = C.deck.map(id => {
@@ -640,56 +663,103 @@ function renderBattleLobby() {
     if(!card) return '';
     return `<span style="font-size:18px;" title="${card.name}">${card.emoji}</span>`;
   }).join('');
-  // 전적
-  const total = C.wins + C.losses;
-  document.getElementById('stat-wins').textContent = C.wins;
-  document.getElementById('stat-losses').textContent = C.losses;
-  document.getElementById('stat-winrate').textContent = total ? Math.round(C.wins/total*100)+'%' : '0%';
+  // 랭크 대전 전적
+  document.getElementById('rank-stat-wins').textContent = C.rankWins||0;
+  document.getElementById('rank-stat-losses').textContent = C.rankLosses||0;
+  // 일반 대전 전적
+  document.getElementById('normal-stat-wins').textContent = C.normalWins||0;
+  document.getElementById('normal-stat-stone').textContent = C.stone||0;
+  // 상대 검색 비동기
+  loadRankOpponent();
+}
+
+// 랭크 대전 상대 Firebase에서 미리 불러오기
+let _rankOpponent = null;
+async function loadRankOpponent() {
+  const el = document.getElementById('rank-opponent-info');
+  const un = cardUN();
+  if(!un) { el.textContent = '로그인 후 이용 가능합니다'; return; }
+  if(!_cardDB_firebase) { el.textContent = '상대 검색 실패 (Firebase 미연결)'; return; }
+  el.textContent = '🔍 상대 유저 검색 중...';
+  try {
+    const snap = await _cardDB_firebase.ref('card_rank').get();
+    let users = [];
+    if(snap && snap.exists()) snap.forEach(ch => { const v=ch.val(); if(v&&v.user&&v.user!==un&&v.deck&&v.deck.length>=5) users.push(v); });
+    if(users.length === 0) {
+      _rankOpponent = null;
+      el.textContent = '⚠️ 매칭 가능한 상대가 없습니다 (일반 대전으로 플레이)';
+      document.getElementById('rank-battle-btn').textContent = '⚔️ 랭크 대전 시작 (AI덱)';
+    } else {
+      _rankOpponent = users[Math.floor(Math.random()*users.length)];
+      el.textContent = `🎯 상대: ${_rankOpponent.user} (${_rankOpponent.tier||'🌱 새싹'} · ${_rankOpponent.wins||0}승)`;
+      document.getElementById('rank-battle-btn').textContent = '⚔️ 랭크 대전 시작';
+    }
+  } catch(e) {
+    _rankOpponent = null;
+    el.textContent = '상대 검색 실패';
+  }
 }
 
 // ═══════════════════════════════════════════
 //  ② 배틀 엔진
 // ═══════════════════════════════════════════
 let _battle = null;
-let _battleType = 'ai_rank';
+let _battleType = 'normal';
 
-function startBattle(type) {
-  if(C.deck.length < 5) { cardToast('덱에 최소 5장 이상 필요합니다!'); return; }
+// 일반 대전용 AI 덱 생성
+function _makeNormalAIDeck() {
+  const w = C.normalWins||0;
+  if(w >= 30)      return ['leviathan','mammon','phoenix','dark_knight','dragon','giant','lich','dragon','phoenix','mammon'];
+  else if(w >= 18) return ['mammon','phoenix','dragon','giant','lich','hero_warrior','archmage','skeleton','orc','goblin'];
+  else if(w >= 10) return ['dragon','phoenix','giant','lich','orc','skeleton','warrior_c','archer_c','goblin','slime'];
+  else if(w >= 4)  return ['orc','skeleton','goblin','goblin','slime','fireball','heal','warrior_c','goblin','slime'];
+  else             return ['goblin','slime','goblin','slime','fireball','slime','goblin','goblin','slime','slime'];
+}
+
+function _launchBattle(aiDeck, type, enemyName) {
   _battleType = type;
-  // AI 덱 생성
-  let aiDeck;
-  if(type === 'ai_easy') {
-    aiDeck = ['goblin','slime','goblin','slime','goblin'];
-  } else {
-    // 랭크 AI: 내 티어에 맞는 난이도
-    const w = C.wins;
-    if(w >= 30)      aiDeck = ['leviathan','mammon','phoenix','dark_knight','dragon','giant','lich','dragon','phoenix','mammon'];
-    else if(w >= 18) aiDeck = ['mammon','phoenix','dragon','giant','lich','hero_warrior','archmage','skeleton','orc','goblin'];
-    else if(w >= 10) aiDeck = ['dragon','phoenix','giant','lich','orc','skeleton','warrior_c','archer_c','goblin','slime'];
-    else if(w >= 4)  aiDeck = ['orc','skeleton','goblin','goblin','slime','fireball','heal','warrior_c','goblin','slime'];
-    else             aiDeck = ['goblin','slime','goblin','slime','fireball','slime','goblin','goblin','slime','slime'];
-  }
-
+  document.getElementById('enemy-name').textContent = enemyName || 'AI';
+  document.getElementById('enemy-avatar').textContent = type === 'rank' ? '👤' : '🤖';
   _battle = {
-    myHp: 30, enemyHp: 30,
-    myDeck: [...C.deck].sort(()=>Math.random()-.5),
-    enemyDeck: aiDeck.sort(()=>Math.random()-.5),
-    myHand: [], enemyHand: [],
-    myField: [], enemyField: [],
-    myDiscard: [], enemyDiscard: [],
-    turn: 1, phase: 'draw',
-    selectedCard: null,
-    gameOver: false,
-    skillUsed: false, // 스킬 카드 발동 여부
+    myHp:30, enemyHp:30,
+    myDeck:[...C.deck].sort(()=>Math.random()-.5),
+    enemyDeck:[...aiDeck].sort(()=>Math.random()-.5),
+    myHand:[], enemyHand:[],
+    myField:[], enemyField:[],
+    myDiscard:[], enemyDiscard:[],
+    turn:1, phase:'draw',
+    selectedCard:null, gameOver:false, skillUsed:false,
   };
-
-  document.getElementById('battle-lobby').style.display = 'none';
-  document.getElementById('battle-arena').style.display = 'block';
-  document.getElementById('turn-display').textContent = '턴 1';
+  document.getElementById('battle-lobby').style.display='none';
+  document.getElementById('battle-arena').style.display='block';
+  document.getElementById('turn-display').textContent='턴 1';
   clearBattleLog();
-  battleLog('⚔️ 대전 시작!', '#a855f7');
+  battleLog(`⚔️ ${type==='rank'?'랭크':'일반'} 대전 시작!`, '#a855f7');
   drawCards(3);
   renderBattleArena();
+}
+
+// 일반 대전 시작
+function startBattle(type) {
+  if(C.deck.length < 5) { cardToast('덱에 최소 5장 이상 필요합니다!'); return; }
+  const aiDeck = _makeNormalAIDeck();
+  _launchBattle(aiDeck, 'normal', 'AI');
+}
+
+// 랭크 대전 시작
+async function startRankBattle() {
+  if(C.deck.length < 5) { cardToast('덱에 최소 5장 이상 필요합니다!'); return; }
+  if(!cardUN()) { cardToast('로그인 후 이용 가능합니다'); return; }
+  let aiDeck, enemyName;
+  if(_rankOpponent && _rankOpponent.deck && _rankOpponent.deck.length >= 5) {
+    aiDeck = _rankOpponent.deck;
+    enemyName = _rankOpponent.user;
+  } else {
+    // 상대 없으면 일반 AI덱으로 랭크 진행
+    aiDeck = _makeNormalAIDeck();
+    enemyName = 'AI (랭크)';
+  }
+  _launchBattle(aiDeck, 'rank', enemyName);
 }
 
 function drawCards(n) {
@@ -922,17 +992,33 @@ function endBattle() {
   _battle.gameOver = true;
   const won = _battle.myHp > 0 && _battle.enemyHp <= 0;
   if(won) {
-    C.wins++;
-    if(_battleType==='ai_rank') C.rankPoints = (C.rankPoints||0)+10;
-    const stoneReward = 30 + Math.floor(C.wins/5)*10;
-    C.stone += stoneReward;
-    saveC(); updateHUD();
-    showResult(true, `🪙 마법석 +${stoneReward}개 획득!`);
+    if(_battleType === 'rank') {
+      // 랭크 대전 승리: rankWins + rankPoints + 마법석 (더 많이)
+      C.rankWins = (C.rankWins||0) + 1;
+      C.rankPoints = (C.rankPoints||0) + 15;
+      const stoneReward = 50 + Math.floor((C.rankWins||0)/3)*10;
+      C.stone += stoneReward;
+      saveC(); updateHUD(); uploadRank();
+      showResult(true, `⚔️ 랭크 승리! 마법석 +${stoneReward}개 · 랭크포인트 +15`);
+    } else {
+      // 일반 대전 승리: normalWins + 마법석 (랭킹 미적용)
+      C.normalWins = (C.normalWins||0) + 1;
+      const stoneReward = 30 + Math.floor((C.normalWins||0)/5)*5;
+      C.stone += stoneReward;
+      saveC(); updateHUD();
+      showResult(true, `🤖 승리! 마법석 +${stoneReward}개 획득!`);
+    }
   } else {
-    C.losses++;
-    if(_battleType==='ai_rank' && C.rankPoints > 0) C.rankPoints -= 5;
-    saveC(); updateHUD();
-    showResult(false, '다음엔 꼭 승리하세요!');
+    if(_battleType === 'rank') {
+      C.rankLosses = (C.rankLosses||0) + 1;
+      if(C.rankPoints > 0) C.rankPoints = Math.max(0, C.rankPoints - 5);
+      saveC(); updateHUD(); uploadRank();
+      showResult(false, '랭크 포인트 -5 · 다음엔 꼭 승리하세요!');
+    } else {
+      C.normalLosses = (C.normalLosses||0) + 1;
+      saveC(); updateHUD();
+      showResult(false, '다음엔 꼭 승리하세요!');
+    }
   }
 }
 
@@ -941,7 +1027,15 @@ function showResult(won, desc) {
   document.getElementById('result-title').textContent = won ? '승리!' : '패배...';
   document.getElementById('result-title').style.color = won ? 'var(--green)' : 'var(--red)';
   document.getElementById('result-desc').textContent = desc;
-  document.getElementById('result-rewards').innerHTML = `<div style="font-size:12px;color:var(--sub);">전적: ${C.wins}승 ${C.losses}패 · 티어: ${getTier().name}</div>`;
+  const modeLabel = _battleType==='rank' ? '⚔️ 랭크' : '🤖 일반';
+  const rankW = C.rankWins||0, rankL = C.rankLosses||0;
+  const normW = C.normalWins||0;
+  document.getElementById('result-rewards').innerHTML = `
+    <div style="font-size:11px;color:var(--sub);line-height:1.8;">
+      ${modeLabel} 대전<br>
+      랭크 전적: ${rankW}승 ${rankL}패 · 티어: ${getTier().name}<br>
+      일반 전적: ${normW}승
+    </div>`;
   document.getElementById('result-modal').classList.add('show');
 }
 
@@ -1020,7 +1114,7 @@ function startStoryBattle(chId) {
       const rewardCard = getCardById(ch.reward.card);
       C.stone += ch.reward.stone;
       C.cards[ch.reward.card] = (C.cards[ch.reward.card]||0) + 1;
-      C.wins++;
+      C.normalWins = (C.normalWins||0) + 1; // 스토리 클리어는 일반으로 집계
       saveC(); updateHUD();
       document.getElementById('result-emoji').textContent='🏆';
       document.getElementById('result-title').textContent='챕터 클리어!';
@@ -1035,7 +1129,7 @@ function startStoryBattle(chId) {
         </div>`;
       document.getElementById('result-modal').classList.add('show');
     } else if(!won) {
-      C.losses++; saveC();
+      C.normalLosses = (C.normalLosses||0) + 1; saveC();
       showResult(false,'다시 도전해보세요!');
     } else {
       showResult(true,'이미 클리어한 챕터입니다!');
@@ -1044,24 +1138,38 @@ function startStoryBattle(chId) {
   renderBattleArena();
 }
 
-// endBattle을 커스텀 핸들러 지원으로 재정의
+// endBattle 커스텀 핸들러 지원 (스토리 모드용)
 function endBattle() {
   if(!_battle) return;
   _battle.gameOver = true;
   const won = _battle.myHp > 0 && _battle.enemyHp <= 0;
   if(_battle._customEnd) { _battle._customEnd(won); return; }
   if(won) {
-    C.wins++;
-    if(_battleType==='ai_rank') C.rankPoints=(C.rankPoints||0)+10;
-    const stoneReward=30+Math.floor(C.wins/5)*10;
-    C.stone+=stoneReward;
-    saveC(); updateHUD();
-    showResult(true,`마법석 +${stoneReward}개 획득!`);
+    if(_battleType === 'rank') {
+      C.rankWins = (C.rankWins||0) + 1;
+      C.rankPoints = (C.rankPoints||0) + 15;
+      const stoneReward = 50 + Math.floor((C.rankWins||0)/3)*10;
+      C.stone += stoneReward;
+      saveC(); updateHUD(); uploadRank();
+      showResult(true, `⚔️ 랭크 승리! 마법석 +${stoneReward}개 · 랭크포인트 +15`);
+    } else {
+      C.normalWins = (C.normalWins||0) + 1;
+      const stoneReward = 30 + Math.floor((C.normalWins||0)/5)*5;
+      C.stone += stoneReward;
+      saveC(); updateHUD();
+      showResult(true, `🤖 승리! 마법석 +${stoneReward}개 획득!`);
+    }
   } else {
-    C.losses++;
-    if(_battleType==='ai_rank'&&C.rankPoints>0) C.rankPoints-=5;
-    saveC(); updateHUD();
-    showResult(false,'다음엔 꼭 승리하세요!');
+    if(_battleType === 'rank') {
+      C.rankLosses = (C.rankLosses||0) + 1;
+      if(C.rankPoints > 0) C.rankPoints = Math.max(0, C.rankPoints - 5);
+      saveC(); updateHUD(); uploadRank();
+      showResult(false, '랭크 포인트 -5 · 다음엔 꼭 승리하세요!');
+    } else {
+      C.normalLosses = (C.normalLosses||0) + 1;
+      saveC(); updateHUD();
+      showResult(false, '다음엔 꼭 승리하세요!');
+    }
   }
 }
 
@@ -1269,7 +1377,15 @@ function initFirebase() {
 function uploadRank() {
   const un = cardUN();
   if(!un || !_cardDB_firebase) return;
-  _cardDB_firebase.ref('card_rank/'+un).set({user:un,wins:C.wins,losses:C.losses,rankPoints:C.rankPoints||0,tier:getTier().name,ts:Date.now()}).catch(()=>{});
+  _cardDB_firebase.ref('card_rank/'+un).set({
+    user: un,
+    wins: C.rankWins||0,       // 랭크 대전 승리만
+    losses: C.rankLosses||0,
+    rankPoints: C.rankPoints||0,
+    tier: getTier().name,
+    deck: C.deck||[],          // 비동기 PVP용 덱 공개
+    ts: Date.now()
+  }).catch(()=>{});
 }
 
 async function renderRank() {
@@ -1277,7 +1393,7 @@ async function renderRank() {
   const myCard = document.getElementById('my-rank-card');
   const tier = getTier();
   myCard.innerHTML = `<div style="font-family:var(--fn);font-size:12px;color:${tier.color};">${tier.name}</div>
-    <div style="margin-top:4px;font-size:11px;color:var(--sub);">${C.wins}승 ${C.losses}패 · 랭크 포인트 ${C.rankPoints||0}</div>`;
+    <div style="margin-top:4px;font-size:11px;color:var(--sub);">랭크 ${C.rankWins||0}승 ${C.rankLosses||0}패 · 포인트 ${C.rankPoints||0}</div>`;
 
   const list = document.getElementById('rank-list');
   list.innerHTML = `<div style="text-align:center;padding:16px;color:var(--dim);font-size:11px;">불러오는 중...</div>`;
