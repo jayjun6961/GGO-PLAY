@@ -431,36 +431,71 @@ function defaultSave() {
 
 function saveF() {
   F.lastSave = Date.now();
+  // 1) 로컬 캐시 (빠른 렌더용)
   localStorage.setItem(SAVE_KEY, JSON.stringify(F));
+  // 2) Firebase 동기화 (기기간 공유)
+  const un = farmUN();
+  if(un && _farmDB) {
+    _farmDB.ref('farm_data/' + un).set(F).catch(e => console.warn('[Farm] 저장 실패:', e));
+  }
   uploadRank();
 }
 
-function loadF() {
-  try {
-    const s = localStorage.getItem(SAVE_KEY);
-    if(s) {
-      F = JSON.parse(s);
-      // 필드 보정
-      if(!F.tools) F.tools = {bag:0,watering:0,shovel:0,feed:0};
-      if(!F.weekGold) F.weekGold = 0;
-      if(!F.weekKey) F.weekKey = '';
-      if(!F.factorySlot) F.factorySlot = null;
-      if(!F.questProgress) F.questProgress = {};
-      if(!F.questClaimed) F.questClaimed = {};
-    } else {
-      F = defaultSave();
-    }
-  } catch(e) { F = defaultSave(); }
-  // 주간 골드 초기화 체크
+// 로컬스토리지에서 불러와 보정하는 헬퍼
+function _applyFarmData(data) {
+  F = data;
+  if(!F.tools) F.tools = {bag:0,watering:0,shovel:0,feed:0};
+  if(!F.weekGold) F.weekGold = 0;
+  if(!F.weekKey) F.weekKey = '';
+  if(!F.factorySlot) F.factorySlot = null;
+  if(!F.questProgress) F.questProgress = {};
+  if(!F.questClaimed) F.questClaimed = {};
+  if(!F.warehouse) F.warehouse = {};
+  if(!F.fields || !Array.isArray(F.fields)) F.fields = Array(12).fill(null);
+  if(!F.ranch || !Array.isArray(F.ranch)) F.ranch = Array(6).fill(null);
+  // 주간 골드 초기화
   const wk = getWeekKey();
   if(F.weekKey !== wk) { F.weekKey = wk; F.weekGold = 0; }
-  // 일일 퀘스트 초기화 체크
+  // 일일 퀘스트 초기화
   const today = getTodayKey();
   if(F.questDate !== today) {
     F.questDate = today;
     F.questProgress = {};
     F.questClaimed = {};
   }
+}
+
+function loadF() {
+  // 우선 로컬캐시로 빠르게 초기 렌더
+  try {
+    const s = localStorage.getItem(SAVE_KEY);
+    if(s) _applyFarmData(JSON.parse(s));
+    else F = defaultSave();
+  } catch(e) { F = defaultSave(); }
+}
+
+// Firebase에서 최신 데이터 불러오기 (비동기)
+async function loadFFromFirebase() {
+  const un = farmUN();
+  if(!un || !_farmDB) return;
+  try {
+    const snap = await _farmDB.ref('farm_data/' + un).get();
+    if(snap && snap.exists()) {
+      const remote = snap.val();
+      // 더 최신 데이터를 사용 (lastSave 비교)
+      if(!F.lastSave || (remote.lastSave && remote.lastSave > F.lastSave)) {
+        _applyFarmData(remote);
+        // 로컬캐시도 갱신
+        localStorage.setItem(SAVE_KEY, JSON.stringify(F));
+        updateHUD();
+        renderField();
+        farmToast('☁️ 클라우드 데이터 불러오기 완료!');
+      }
+    } else {
+      // Firebase에 데이터 없으면 현재 로컬 데이터 업로드
+      if(farmUN()) saveF();
+    }
+  } catch(e) { console.warn('[Farm] Firebase 로드 실패:', e); }
 }
 
 // ═══════════════════════════════════════
@@ -1337,16 +1372,20 @@ function startTimer() {
 // ═══════════════════════════════════════
 //  초기화
 // ═══════════════════════════════════════
-window.addEventListener('DOMContentLoaded', () => {
-  loadF();
+window.addEventListener('DOMContentLoaded', async () => {
+  loadF();        // 로컬캐시 먼저 (빠른 렌더)
   initFirebase();
   updateHUD();
   renderField();
   startTimer();
 
-  // 로그인 안된 경우 안내
   if(!farmUN()) {
-    farmToast('💡 GGO PLAY 로그인 시 순위 및 연동 기능을 사용할 수 있습니다');
+    farmToast('💡 GGO PLAY 로그인 시 기기간 데이터 동기화가 됩니다');
+  } else {
+    // Firebase에서 최신 데이터 동기화
+    await loadFFromFirebase();
+    renderField();
+    updateHUD();
   }
 });
 
