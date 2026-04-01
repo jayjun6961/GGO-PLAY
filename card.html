@@ -487,15 +487,53 @@ function defaultSave() {
   };
 }
 
-function saveC() { C.lastSave=Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(C)); uploadRank(); }
-function loadC() {
-  try { const s=localStorage.getItem(SAVE_KEY); C = s ? JSON.parse(s) : defaultSave(); }
-  catch(e) { C = defaultSave(); }
+function saveC() {
+  C.lastSave = Date.now();
+  // 1) 로컬 캐시
+  localStorage.setItem(SAVE_KEY, JSON.stringify(C));
+  // 2) Firebase 동기화
+  const un = cardUN();
+  if(un && _cardDB_firebase) {
+    _cardDB_firebase.ref('card_data/' + un).set(C).catch(e => console.warn('[Card] 저장 실패:', e));
+  }
+  uploadRank();
+}
+function _applyCardData(data) {
+  C = data;
   if(!C.cards) C.cards={};
   if(!C.deck) C.deck=[];
   if(!C.pity) C.pity=0;
   if(!C.storyCleared) C.storyCleared=[];
   if(!C.rankPoints) C.rankPoints=0;
+  if(!C.wins) C.wins=0;
+  if(!C.losses) C.losses=0;
+  if(!C.stone && C.stone!==0) C.stone=200;
+}
+
+function loadC() {
+  try { const s=localStorage.getItem(SAVE_KEY); C = s ? JSON.parse(s) : defaultSave(); }
+  catch(e) { C = defaultSave(); }
+  _applyCardData(C);
+}
+
+async function loadCFromFirebase() {
+  const un = cardUN();
+  if(!un || !_cardDB_firebase) return;
+  try {
+    const snap = await _cardDB_firebase.ref('card_data/' + un).get();
+    if(snap && snap.exists()) {
+      const remote = snap.val();
+      if(!C.lastSave || (remote.lastSave && remote.lastSave > C.lastSave)) {
+        _applyCardData(remote);
+        localStorage.setItem(SAVE_KEY, JSON.stringify(C));
+        updateHUD();
+        renderBattleLobby();
+        cardToast('☁️ 클라우드 데이터 불러오기 완료!');
+      }
+    } else {
+      if(cardUN()) saveC();
+    }
+  } catch(e) { console.warn('[Card] Firebase 로드 실패:', e); }
 }
 
 // ═══════════════════════════════════════════
@@ -1273,12 +1311,20 @@ async function renderRank() {
 // ═══════════════════════════════════════════
 //  초기화
 // ═══════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', ()=>{
-  loadC();
+window.addEventListener('DOMContentLoaded', async ()=>{
+  loadC();        // 로컬캐시 먼저
   initFirebase();
   updateHUD();
   renderBattleLobby();
-  if(!cardUN()) setTimeout(()=>cardToast('💡 GGO PLAY 로그인 시 랭킹 기능 사용 가능'),1000);
+
+  if(!cardUN()) {
+    setTimeout(()=>cardToast('💡 GGO PLAY 로그인 시 기기간 데이터 동기화가 됩니다'),1000);
+  } else {
+    // Firebase 최신 데이터 동기화
+    await loadCFromFirebase();
+    updateHUD();
+    renderBattleLobby();
+  }
 });
 window.addEventListener('beforeunload',()=>{if(C) saveC();});
 </script>
