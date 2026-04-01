@@ -530,6 +530,7 @@ body::before{
       </div>
       <button class="btn-primary" id="rank-battle-btn" onclick="startRankBattle()" style="width:100%;padding:13px;font-size:12px;letter-spacing:1px;">⚔️ 랭크 대전 시작</button>
       <div style="font-size:9px;color:var(--dim);text-align:center;margin-top:7px;font-family:var(--fn);" id="rank-opponent-info">상대 유저 검색 중...</div>
+      <div style="font-size:9px;color:rgba(239,68,68,.8);text-align:center;margin-top:4px;font-family:var(--fn);" id="rank-deck-warning"></div>
     </div>
 
     <!-- 일반 대전 -->
@@ -987,6 +988,16 @@ function renderBattleLobby() {
   // 일반 대전 전적
   document.getElementById('normal-stat-wins').textContent = C.normalWins||0;
   document.getElementById('normal-stat-stone').textContent = C.stone||0;
+  // 랭크 입장 덱 조건 경고
+  const warn = document.getElementById('rank-deck-warning');
+  const rankBtn = document.getElementById('rank-battle-btn');
+  if(C.deck.length < 20) {
+    if(warn) warn.textContent = `⚠️ 랭크 입장 불가: 덱 ${C.deck.length}/20장 (20장 필요)`;
+    if(rankBtn) { rankBtn.disabled = true; rankBtn.style.opacity = '.5'; }
+  } else {
+    if(warn) warn.textContent = '';
+    if(rankBtn) { rankBtn.disabled = false; rankBtn.style.opacity = '1'; }
+  }
   // 상대 검색 비동기
   loadRankOpponent();
 }
@@ -1045,15 +1056,15 @@ function _launchBattle(aiDeck, type, enemyName) {
     myHand:[], enemyHand:[],
     myField:[], enemyField:[],
     myDiscard:[], enemyDiscard:[],
-    turn:1, phase:'draw',
+    turn:1, phase:'deploy', // 시작부터 배치 가능
     selectedCard:null, gameOver:false, skillUsed:false,
   };
   document.getElementById('battle-lobby').style.display='none';
   document.getElementById('battle-arena').style.display='block';
-  document.getElementById('turn-display').textContent='턴 1';
+  document.getElementById('turn-display').textContent='TURN 1';
   clearBattleLog();
-  battleLog(`⚔️ ${type==='rank'?'랭크':'일반'} 대전 시작!`, '#a855f7');
-  drawCards(3);
+  battleLog(`⚔️ ${type==='rank'?'랭크':'일반'} 대전 시작! 카드를 배치하세요!`, '#a855f7');
+  drawCards(3); // 시작 카드 3장 드로우
   renderBattleArena();
 }
 
@@ -1066,7 +1077,7 @@ function startBattle(type) {
 
 // 랭크 대전 시작
 async function startRankBattle() {
-  if(C.deck.length < 5) { cardToast('덱에 최소 5장 이상 필요합니다!'); return; }
+  if(C.deck.length < 20) { cardToast(`⚠️ 랭크 대전은 덱 20장 필수! (현재 ${C.deck.length}장)`); return; }
   if(!cardUN()) { cardToast('로그인 후 이용 가능합니다'); return; }
   let aiDeck, enemyName;
   if(_rankOpponent && _rankOpponent.deck && _rankOpponent.deck.length >= 5) {
@@ -1621,11 +1632,17 @@ function openCardModal(id) {
   document.getElementById('card-modal-body').innerHTML = renderCardFull(card);
   const inDeck = C.deck.filter(d=>d===id).length;
   const canAdd = inDeck<3 && (C.cards[id]||0)>inDeck && C.deck.length<20;
+  const qty = C.cards[id] || 0;
+  const sellStone = SELL_STONE[card.grade] || 1;
   document.getElementById('card-modal-actions').innerHTML = `
-    <button class="btn-primary ${canAdd?'':'btn-primary'}" onclick="${canAdd?`addToDeck('${id}');closeCardModal()`:''}"
+    <button class="btn-primary" onclick="${canAdd?`addToDeck('${id}');closeCardModal()`:''}"
       style="flex:1;${!canAdd?'background:rgba(255,255,255,.06);color:var(--dim);cursor:default;':''}">
       ${canAdd?'📚 덱에 추가':'덱 추가 불가'}
-    </button>`;
+    </button>
+    ${qty>0 ? `<button class="btn-primary" onclick="sellCard('${id}')"
+      style="flex:1;background:linear-gradient(135deg,#7a4000,#d97706);color:#fff;box-shadow:0 4px 12px rgba(217,119,6,.3);">
+      💰 판매 (+💎${sellStone})
+    </button>` : ''}`;
   document.getElementById('card-modal').classList.add('show');
 }
 function closeCardModal() { document.getElementById('card-modal').classList.remove('show'); }
@@ -1633,6 +1650,36 @@ function closeCardModal() { document.getElementById('card-modal').classList.remo
 // ═══════════════════════════════════════════
 //  ⑥ 뽑기 (가챠)
 // ═══════════════════════════════════════════
+// 등급별 판매 마법석
+const SELL_STONE = {
+  common:    1,
+  rare:      3,
+  rleg:      5,
+  epic:      10,
+  legend:    20,
+  myth:      30,
+  legendary: 50,
+};
+
+function sellCard(id) {
+  const card = getCardById(id);
+  if(!card) return;
+  const qty = C.cards[id] || 0;
+  if(qty <= 0) { cardToast('보유한 카드가 없습니다'); return; }
+  const stone = SELL_STONE[card.grade] || 1;
+  if(!confirm(`${card.emoji} ${card.name} 1장을 💎 ${stone}개에 판매하시겠습니까?`)) return;
+  C.cards[id] = qty - 1;
+  if(C.cards[id] <= 0) delete C.cards[id];
+  // 덱에서도 1장 제거
+  const di = C.deck.indexOf(id);
+  if(di !== -1) C.deck.splice(di, 1);
+  C.stone += stone;
+  saveC(); updateHUD();
+  closeCardModal();
+  renderCollection();
+  cardToast(`💎 ${card.name} 판매 → 마법석 +${stone}개!`);
+}
+
 const GACHA_POOLS = {
   normal:   [{grade:'common',w:55},{grade:'rare',w:30},{grade:'rleg',w:12},{grade:'epic',w:3}],
   premium:  [{grade:'rleg',w:50},{grade:'epic',w:30},{grade:'legend',w:15},{grade:'myth',w:5}],
