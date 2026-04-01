@@ -4,44 +4,410 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>🃏 카드게임 — GGO PLAY</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
 :root{
-  --bg:#07040e;--bg2:#0e0820;--bg3:#130d24;
-  --purple:#7c3aed;--p2:#a855f7;--p3:#c084fc;
-  --gold:#fbbf24;--green:#34d399;--red:#ef4444;--blue:#60a5fa;--cyan:#22d3ee;
-  --text:#e2e8f0;--dim:#64748b;--sub:#94a3b8;
-  --card-bg:rgba(19,13,36,.95);--border:rgba(124,58,237,.18);
-  --fn:'Orbitron',monospace;--fn2:'Noto Sans KR',sans-serif;
+  --bg:#1a0e2e;--bg2:#231540;--bg3:#2d1a50;
+  --board:#3d2460;--board2:#2a1545;
+  --gold:#f5c842;--gold2:#fde68a;--gold3:#c8a020;
+  --green:#22c55e;--red:#ef4444;--blue:#60a5fa;--cyan:#22d3ee;
+  --purple:#9333ea;--purple2:#a855f7;--purple3:#c084fc;
+  --text:#f0e6ff;--dim:#7c6a9a;--sub:#a89cc8;
+  --fn:'Cinzel',serif;--fn2:'Noto Sans KR',sans-serif;
   /* 등급 컬러 */
   --c-common:#94a3b8;--c-rare:#34d399;--c-rleg:#60a5fa;--c-epic:#a855f7;
-  --c-legend:#fbbf24;--c-myth:#f97316;--c-legendary:#ef4444;
+  --c-legend:#f5c842;--c-myth:#f97316;--c-legendary:#ef4444;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
-body{background:var(--bg);color:var(--text);font-family:var(--fn2);display:flex;flex-direction:column;}
+body{
+  background:radial-gradient(ellipse at top,#2d1a50,#0d0720 60%);
+  color:var(--text);font-family:var(--fn2);display:flex;flex-direction:column;
+  background-attachment:fixed;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='1' fill='rgba(255,255,255,0.03)'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;
+}
 
-/* HUD */
-.hud{background:rgba(7,4,14,.97);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.hud-title{font-family:var(--fn);font-size:15px;font-weight:900;background:linear-gradient(90deg,#fff,var(--p3),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.hud-stat{display:flex;align-items:center;gap:3px;font-size:11px;background:rgba(124,58,237,.1);border:1px solid var(--border);border-radius:12px;padding:3px 8px;}
-.hud-stat b{color:var(--gold);font-family:var(--fn);}
-.hud-rank{font-family:var(--fn);font-size:10px;padding:3px 10px;border-radius:12px;border:1px solid;}
+/* ── HUD (하스스톤 상단바 스타일) ── */
+.hud{
+  position:relative;z-index:10;
+  background:linear-gradient(180deg,#1a0530 0%,#0d0320 100%);
+  border-bottom:2px solid var(--gold3);
+  padding:8px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;
+  box-shadow:0 4px 20px rgba(0,0,0,.6);
+}
+.hud::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(245,200,66,.4),transparent);}
+.hud-title{
+  font-family:var(--fn);font-size:14px;font-weight:900;letter-spacing:1px;
+  background:linear-gradient(180deg,#fde68a,#f5c842,#c8a020);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  text-shadow:none;filter:drop-shadow(0 0 8px rgba(245,200,66,.4));
+}
+.hud-stat{
+  display:flex;align-items:center;gap:3px;font-size:11px;
+  background:rgba(0,0,0,.4);border:1px solid rgba(245,200,66,.3);
+  border-radius:20px;padding:4px 10px;
+}
+.hud-stat b{color:var(--gold);font-family:var(--fn);font-size:12px;}
+.hud-rank{
+  font-family:var(--fn);font-size:9px;padding:3px 10px;
+  border-radius:20px;border:1px solid;letter-spacing:.5px;
+}
 
-/* 탭 */
-.tabs{display:flex;background:rgba(7,4,14,.97);border-bottom:1px solid var(--border);flex-shrink:0;}
-.tab-btn{flex:1;padding:9px 2px;font-size:10px;font-family:var(--fn);color:var(--dim);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;display:flex;flex-direction:column;align-items:center;gap:1px;}
-.tab-btn.active{color:var(--p3);border-bottom-color:var(--p3);}
+/* ── 탭 (카드게임 느낌 탭) ── */
+.tabs{
+  display:flex;
+  background:linear-gradient(180deg,#120428,#0d0320);
+  border-bottom:2px solid rgba(245,200,66,.25);
+  flex-shrink:0;position:relative;z-index:9;
+}
+.tab-btn{
+  flex:1;padding:8px 2px;font-size:9px;font-family:var(--fn);
+  color:var(--dim);border:none;background:none;cursor:pointer;
+  border-bottom:3px solid transparent;transition:.2s;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  letter-spacing:.5px;
+}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);text-shadow:0 0 8px rgba(245,200,66,.5);}
+.tab-btn:hover{color:var(--gold2);}
 .tab-btn .ti{font-size:16px;}
 
-/* 메인 */
-.main{flex:1;overflow:hidden;}
+/* ── 메인 영역 ── */
+.main{flex:1;overflow:hidden;position:relative;z-index:1;}
 .tab-content{display:none;height:100%;overflow-y:auto;padding:12px;}
 .tab-content.active{display:block;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:rgba(147,51,234,.4);border-radius:2px;}
 
-/* ── 카드 컴포넌트 ── */
+/* ══════════════════════════════
+   하스스톤 스타일 카드 (미니)
+══════════════════════════════ */
+.hs-card{
+  position:relative;
+  width:72px;min-width:72px;
+  border-radius:40% 40% 45% 45% / 30% 30% 50% 50%;
+  background:linear-gradient(180deg,#2a1545 0%,#1a0a30 100%);
+  border:2px solid rgba(245,200,66,.4);
+  padding:6px 4px 10px;
+  text-align:center;cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  user-select:none;overflow:visible;
+  box-shadow:0 4px 12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);
+}
+.hs-card:hover{transform:translateY(-8px) scale(1.05);box-shadow:0 12px 30px rgba(0,0,0,.7),0 0 20px rgba(147,51,234,.3);}
+.hs-card.selected{transform:translateY(-14px) scale(1.08);box-shadow:0 16px 40px rgba(0,0,0,.8),0 0 30px rgba(245,200,66,.5);border-color:var(--gold);}
+
+/* 카드 이모지 영역 */
+.hs-card .hc-art{font-size:28px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6));margin:2px 0;}
+.hs-card .hc-name{font-size:7px;font-weight:700;font-family:var(--fn);line-height:1.2;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px;}
+
+/* 하스스톤 스타일 공격력 (왼쪽) / HP (오른쪽) 배지 */
+.hs-card .hc-atk{
+  position:absolute;bottom:-8px;left:-8px;
+  width:24px;height:24px;border-radius:50%;
+  background:radial-gradient(#ef8c00,#c85c00);
+  border:2px solid #fbbf24;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--fn2);font-size:11px;font-weight:900;color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
+  box-shadow:0 2px 6px rgba(0,0,0,.5);
+  z-index:2;
+}
+.hs-card .hc-hp{
+  position:absolute;bottom:-8px;right:-8px;
+  width:24px;height:24px;border-radius:50%;
+  background:radial-gradient(#1e7a1e,#0d4d0d);
+  border:2px solid #34d399;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--fn2);font-size:11px;font-weight:900;color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
+  box-shadow:0 2px 6px rgba(0,0,0,.5);
+  z-index:2;
+}
+.hs-card .hc-hp.damaged{background:radial-gradient(#7a1e1e,#4d0d0d);border-color:var(--red);color:#fca5a5;}
+.hs-card .hc-count{position:absolute;top:-6px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);border:1px solid var(--gold3);border-radius:10px;font-size:8px;padding:1px 5px;font-family:var(--fn);color:var(--gold);white-space:nowrap;}
+.hs-card .hc-skill{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:radial-gradient(#9333ea,#6b21a8);border:1.5px solid #c084fc;font-size:10px;display:flex;align-items:center;justify-content:center;}
+
+/* 등급별 카드 테두리 */
+.hs-card.g-common{border-color:rgba(148,163,184,.5);}
+.hs-card.g-rare{border-color:rgba(52,211,153,.6);box-shadow:0 4px 12px rgba(52,211,153,.2),inset 0 1px 0 rgba(52,211,153,.1);}
+.hs-card.g-rleg{border-color:rgba(96,165,250,.6);box-shadow:0 4px 12px rgba(96,165,250,.2);}
+.hs-card.g-epic{border-color:rgba(168,85,247,.7);box-shadow:0 4px 14px rgba(168,85,247,.3);}
+.hs-card.g-legend{border-color:rgba(245,200,66,.8);box-shadow:0 4px 16px rgba(245,200,66,.3),0 0 30px rgba(245,200,66,.1);}
+.hs-card.g-myth{border-color:rgba(249,115,22,.8);box-shadow:0 4px 16px rgba(249,115,22,.3);}
+.hs-card.g-legendary{border-color:rgba(239,68,68,.8);box-shadow:0 4px 16px rgba(239,68,68,.3),0 0 25px rgba(239,68,68,.15);}
+
+/* 스킬 카드 */
+.hs-card.skill-card{
+  border-radius:14px;
+  background:linear-gradient(180deg,#2a1545 0%,#1a0a30 100%);
+}
+
+/* ══════════════════════════════
+   전장 카드 (배틀 필드용)
+══════════════════════════════ */
+.bc-hs{
+  position:relative;
+  width:64px;min-width:64px;height:80px;
+  border-radius:36% 36% 42% 42% / 28% 28% 46% 46%;
+  background:linear-gradient(180deg,#2a1545,#150930);
+  border:2px solid rgba(245,200,66,.4);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .2s,box-shadow .2s;
+  position:relative;overflow:visible;
+  box-shadow:0 4px 10px rgba(0,0,0,.5);
+}
+.bc-hs:hover{transform:scale(1.08);box-shadow:0 8px 20px rgba(0,0,0,.6),0 0 15px rgba(147,51,234,.3);}
+.bc-hs .bc-art{font-size:26px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));}
+.bc-hs .bc-label{font-size:7px;font-family:var(--fn);color:var(--sub);margin-top:2px;line-height:1.1;text-align:center;max-width:58px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+/* 공격력 배지 (왼쪽 아래) */
+.bc-hs .bc-atk{
+  position:absolute;bottom:-8px;left:-8px;
+  width:22px;height:22px;border-radius:50%;
+  background:radial-gradient(#ef8c00,#c85c00);
+  border:2px solid #fbbf24;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:900;color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
+  box-shadow:0 2px 5px rgba(0,0,0,.4);z-index:2;
+}
+/* HP 배지 (오른쪽 아래) */
+.bc-hs .bc-hp{
+  position:absolute;bottom:-8px;right:-8px;
+  width:22px;height:22px;border-radius:50%;
+  background:radial-gradient(#1e7a1e,#0d4d0d);
+  border:2px solid #34d399;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:900;color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
+  box-shadow:0 2px 5px rgba(0,0,0,.4);z-index:2;
+}
+.bc-hs .bc-hp.low{background:radial-gradient(#c00,#800);border-color:var(--red);animation:hp-pulse .6s infinite alternate;}
+@keyframes hp-pulse{from{box-shadow:0 0 4px rgba(239,68,68,.4);}to{box-shadow:0 0 10px rgba(239,68,68,.8);}}
+/* 상태이상 */
+.bc-hs .bc-status{
+  position:absolute;top:-6px;left:50%;transform:translateX(-50%);
+  font-size:10px;background:rgba(0,0,0,.7);border-radius:8px;padding:1px 4px;
+  display:flex;gap:2px;white-space:nowrap;
+}
+.bc-hs.dead{opacity:.3;filter:grayscale(1);}
+.bc-hs.attacking{animation:attack-anim .3s ease;}
+@keyframes attack-anim{0%,100%{transform:scale(1);}50%{transform:scale(1.2) translateY(-4px);}}
+
+/* ══════════════════════════════
+   전투 씬 (하스스톤 보드 스타일)
+══════════════════════════════ */
+.battle-board{
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 50%, rgba(100,50,180,.15), transparent),
+    linear-gradient(180deg,#0a0520 0%,#1a0a38 40%,#0a0520 100%);
+  border-radius:20px;
+  border:2px solid rgba(245,200,66,.2);
+  padding:12px 8px;margin-bottom:8px;
+  position:relative;overflow:hidden;
+  box-shadow:0 8px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.03);
+  min-height:320px;
+}
+.battle-board::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 30% at 50% 50%,rgba(147,51,234,.06),transparent);
+  pointer-events:none;
+}
+/* 보드 중앙선 */
+.board-divider{
+  position:relative;text-align:center;margin:8px 0;
+  display:flex;align-items:center;gap:8px;
+}
+.board-divider::before,.board-divider::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(245,200,66,.3),transparent);
+}
+.board-divider span{font-family:var(--fn);font-size:9px;color:var(--dim);letter-spacing:2px;}
+
+/* 영웅 초상화 */
+.hero-portrait{
+  display:flex;align-items:center;gap:8px;margin-bottom:6px;
+}
+.hero-face{
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(135deg,#2a1545,#1a0a30);
+  border:3px solid rgba(245,200,66,.5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+  box-shadow:0 4px 12px rgba(0,0,0,.5),0 0 15px rgba(245,200,66,.1);
+}
+.hero-face.enemy{border-color:rgba(239,68,68,.5);box-shadow:0 4px 12px rgba(0,0,0,.5),0 0 15px rgba(239,68,68,.1);}
+.hero-info{flex:1;}
+.hero-name{font-family:var(--fn);font-size:11px;color:var(--gold);letter-spacing:.5px;}
+/* HP 게이지 */
+.hp-gauge{
+  height:10px;background:rgba(0,0,0,.5);
+  border-radius:5px;overflow:hidden;margin:4px 0;
+  border:1px solid rgba(255,255,255,.08);
+  position:relative;
+}
+.hp-fill{height:100%;border-radius:4px;transition:.5s ease;position:relative;}
+.hp-fill::after{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:rgba(255,255,255,.15);border-radius:4px;}
+.hp-fill.my{background:linear-gradient(90deg,#15803d,#22c55e);}
+.hp-fill.enemy{background:linear-gradient(90deg,#b91c1c,#ef4444);}
+.hp-text{font-size:9px;font-family:var(--fn);display:flex;align-items:center;gap:3px;}
+/* HP 수정 뱃지 (하스스톤 영웅 HP 표시) */
+.hero-hp-badge{
+  width:32px;height:32px;border-radius:50%;
+  background:radial-gradient(#1e7a1e,#0d4d0d);
+  border:2px solid #34d399;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:900;color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
+  box-shadow:0 3px 8px rgba(0,0,0,.4);flex-shrink:0;
+}
+.hero-hp-badge.enemy{background:radial-gradient(#7a1e1e,#4d0d0d);border-color:var(--red);}
+.hero-hp-badge.low{animation:hp-pulse .5s infinite alternate;}
+
+/* 필드 영역 */
+.battle-field{
+  display:flex;gap:6px;justify-content:center;align-items:flex-end;
+  flex-wrap:wrap;min-height:92px;padding:4px;
+}
+.field-empty{
+  font-size:10px;color:var(--dim);font-family:var(--fn);
+  letter-spacing:1px;opacity:.5;align-self:center;
+}
+
+/* ══════════════════════════════
+   손패 영역
+══════════════════════════════ */
+.hand-area{
+  display:flex;justify-content:center;align-items:flex-end;
+  gap:4px;padding:8px 4px 16px;overflow-x:auto;min-height:100px;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.3));
+  border-radius:0 0 16px 16px;
+}
+/* 곡선 배열 효과 */
+.hand-area .hs-card:nth-child(1){transform:rotate(-6deg) translateY(8px);}
+.hand-area .hs-card:nth-child(2){transform:rotate(-3deg) translateY(4px);}
+.hand-area .hs-card:nth-child(3){transform:rotate(0deg);}
+.hand-area .hs-card:nth-child(4){transform:rotate(3deg) translateY(4px);}
+.hand-area .hs-card:nth-child(5){transform:rotate(6deg) translateY(8px);}
+.hand-area .hs-card:nth-child(6){transform:rotate(9deg) translateY(12px);}
+.hand-area .hs-card:nth-child(7){transform:rotate(12deg) translateY(16px);}
+.hand-area .hs-card.selected{transform:translateY(-20px) scale(1.1) !important;z-index:10;}
+
+/* 배치/턴종료 버튼 */
+.battle-btns{display:flex;gap:8px;padding:4px 8px;}
+.btn-end-turn{
+  flex:1;padding:12px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,#1e5c1e,#22c55e);
+  color:#fff;font-family:var(--fn);font-size:12px;font-weight:700;
+  cursor:pointer;transition:.15s;letter-spacing:.5px;
+  box-shadow:0 4px 12px rgba(34,197,94,.3);
+}
+.btn-end-turn:hover{background:linear-gradient(135deg,#166534,#16a34a);transform:translateY(-1px);}
+.btn-end-turn:disabled{background:rgba(255,255,255,.08);color:var(--dim);cursor:default;transform:none;box-shadow:none;}
+.btn-deploy{
+  padding:12px 16px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,#5521a8,#7c3aed);
+  color:#fff;font-family:var(--fn);font-size:12px;font-weight:700;
+  cursor:pointer;transition:.15s;letter-spacing:.5px;
+  box-shadow:0 4px 12px rgba(124,58,237,.4);
+}
+.btn-deploy:hover{background:linear-gradient(135deg,#6d28d9,#9333ea);}
+.btn-deploy:disabled{background:rgba(255,255,255,.06);color:var(--dim);cursor:default;box-shadow:none;}
+
+/* 전투 로그 */
+.battle-log{
+  background:rgba(0,0,0,.6);
+  border:1px solid rgba(245,200,66,.15);
+  border-radius:10px;padding:6px 10px;height:80px;
+  overflow-y:auto;font-size:10px;line-height:1.9;
+  font-family:var(--fn2);
+}
+.battle-log::-webkit-scrollbar-thumb{background:var(--purple);}
+
+/* 데미지 팝업 */
+.dmg-pop{position:absolute;font-family:var(--fn2);font-size:16px;font-weight:900;pointer-events:none;animation:dmg-float 1s ease-out forwards;z-index:20;text-shadow:0 2px 4px rgba(0,0,0,.8);}
+@keyframes dmg-float{0%{transform:translateY(0);opacity:1;}100%{transform:translateY(-50px);opacity:0;}}
+
+/* 턴 표시 */
+.turn-badge{
+  text-align:center;font-family:var(--fn);font-size:10px;
+  color:var(--gold);letter-spacing:2px;padding:4px;
+  text-shadow:0 0 8px rgba(245,200,66,.4);
+}
+
+/* ══════════════════════════════
+   로비 (하스스톤 느낌)
+══════════════════════════════ */
+.mode-card{
+  border-radius:18px;padding:16px;margin-bottom:12px;
+  position:relative;overflow:hidden;
+  border:2px solid;transition:.15s;cursor:default;
+}
+.mode-card.rank-mode{
+  background:linear-gradient(135deg,rgba(88,28,135,.4),rgba(30,10,60,.6));
+  border-color:rgba(168,85,247,.5);
+}
+.mode-card.rank-mode::before{
+  content:'⚔️';position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  font-size:64px;opacity:.08;
+}
+.mode-card.normal-mode{
+  background:linear-gradient(135deg,rgba(120,80,0,.3),rgba(60,40,0,.5));
+  border-color:rgba(245,200,66,.4);
+}
+.mode-card.normal-mode::before{
+  content:'🤖';position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  font-size:64px;opacity:.08;
+}
+.mode-title{font-family:var(--fn);font-size:14px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
+.mode-desc{font-size:10px;color:var(--sub);line-height:1.6;margin-bottom:12px;}
+.mode-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.mode-stat-box{
+  background:rgba(0,0,0,.4);border-radius:10px;padding:8px;text-align:center;
+  border:1px solid rgba(255,255,255,.06);
+}
+.mode-stat-val{font-family:var(--fn);font-size:15px;font-weight:700;}
+.mode-stat-lbl{font-size:9px;color:var(--dim);margin-top:2px;}
+
+/* 덱 미리보기 */
+.deck-preview-panel{
+  background:rgba(0,0,0,.3);border:1px solid rgba(245,200,66,.2);
+  border-radius:14px;padding:12px;margin-bottom:12px;
+}
+.deck-preview-title{font-family:var(--fn);font-size:10px;color:var(--gold);margin-bottom:8px;letter-spacing:.5px;}
+.deck-emojis{display:flex;flex-wrap:wrap;gap:4px;min-height:28px;}
+.deck-emoji-item{
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(147,51,234,.15);border:1px solid rgba(147,51,234,.3);
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+
+/* ══════════════════════════════
+   공통 버튼
+══════════════════════════════ */
+.btn-primary{
+  border:none;border-radius:12px;padding:11px;
+  background:linear-gradient(135deg,#5521a8,#7c3aed);
+  color:#fff;font-family:var(--fn);font-size:11px;font-weight:700;
+  cursor:pointer;transition:.15s;letter-spacing:.5px;
+  box-shadow:0 4px 12px rgba(124,58,237,.3);
+}
+.btn-primary:hover{background:linear-gradient(135deg,#6d28d9,#9333ea);transform:translateY(-1px);}
+.btn-primary:active{transform:scale(.97);}
+.btn-primary:disabled{background:rgba(255,255,255,.06);color:var(--dim);cursor:default;transform:none;box-shadow:none;}
+.btn-gold{background:linear-gradient(135deg,#a07010,#d4a017,#f5c842)!important;color:#1a0e2e!important;font-weight:900!important;box-shadow:0 4px 12px rgba(245,200,66,.3)!important;}
+.btn-gold:hover{background:linear-gradient(135deg,#c8a020,#f5c842,#fde68a)!important;}
+.btn-green{background:linear-gradient(135deg,#15803d,#22c55e)!important;box-shadow:0 4px 12px rgba(34,197,94,.3)!important;}
+
+/* ══════════════════════════════
+   카드 컬렉션 / 덱빌더
+══════════════════════════════ */
 .card-mini{border-radius:10px;border:2px solid;padding:8px 6px;text-align:center;cursor:pointer;transition:.15s;position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;user-select:none;}
 .card-mini:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.4);}
 .card-mini:active{transform:scale(.96);}
@@ -52,22 +418,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn2);display:flex;
 .card-mini .cm-stats span{background:rgba(0,0,0,.3);border-radius:4px;padding:1px 4px;}
 .card-mini .cm-grade{position:absolute;top:4px;right:4px;font-size:7px;font-family:var(--fn);font-weight:700;}
 .card-mini .cm-count{position:absolute;top:4px;left:4px;background:rgba(0,0,0,.7);border-radius:6px;font-size:9px;padding:1px 5px;font-family:var(--fn);color:var(--gold);}
-.card-mini.selected{box-shadow:0 0 0 2px var(--gold),0 0 12px rgba(251,191,36,.4);}
 .card-mini.in-deck::after{content:'✓';position:absolute;top:3px;right:3px;font-size:10px;color:var(--green);}
 
-/* 큰 카드 */
 .card-full{border-radius:16px;border:2px solid;padding:14px 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;}
 .card-full .cf-emoji{font-size:52px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5));}
 .card-full .cf-name{font-family:var(--fn);font-size:14px;font-weight:700;}
 .card-full .cf-type{font-size:10px;opacity:.6;}
-.card-full .cf-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px;width:100%;}
 .cf-stat-item{background:rgba(0,0,0,.3);border-radius:8px;padding:5px;text-align:center;}
 .cf-stat-item .sv{font-family:var(--fn);font-size:13px;font-weight:700;}
 .cf-stat-item .sl{font-size:9px;color:var(--dim);}
 .card-full .cf-skill{background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.25);border-radius:8px;padding:6px 8px;width:100%;font-size:10px;color:var(--sub);line-height:1.5;}
 .card-full .cf-grade{position:absolute;top:8px;right:10px;font-size:9px;font-family:var(--fn);font-weight:700;}
 
-/* 등급별 색상 함수 */
+/* 등급 컬러 */
 .g-common{border-color:var(--c-common)!important;color:var(--c-common);}
 .g-rare{border-color:var(--c-rare)!important;color:var(--c-rare);}
 .g-rleg{border-color:var(--c-rleg)!important;color:var(--c-rleg);}
@@ -76,93 +439,46 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn2);display:flex;
 .g-myth{border-color:var(--c-myth)!important;color:var(--c-myth);}
 .g-legendary{border-color:var(--c-legendary)!important;color:var(--c-legendary);}
 
-/* ── 대전 화면 ── */
-.battle-scene{background:linear-gradient(180deg,#0a0118 0%,#1a0a3a 50%,#0a0118 100%);border-radius:16px;padding:12px;margin-bottom:10px;min-height:300px;position:relative;overflow:hidden;}
-.battle-scene::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 50%,rgba(124,58,237,.08),transparent);}
-.battle-vs{display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:10px;}
-.battle-hp-bar{height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;margin:4px 0;}
-.battle-hp-fill{height:100%;border-radius:4px;transition:.4s;}
-.battle-field{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;min-height:90px;align-items:center;}
-.battle-card{border-radius:10px;border:2px solid;padding:6px;text-align:center;width:68px;position:relative;transition:.3s;}
-.battle-card .bc-emoji{font-size:22px;}
-.battle-card .bc-name{font-size:8px;font-family:var(--fn);margin-top:2px;line-height:1.2;}
-.battle-card .bc-hp{font-size:8px;color:var(--green);font-family:var(--fn);}
-.battle-card.attacking{animation:attack .35s ease-in-out;}
-.battle-card.hit{animation:hit-anim .3s ease-in-out;}
-.battle-card.dead{opacity:.3;filter:grayscale(1);}
-@keyframes attack{0%{transform:translateY(0);}40%{transform:translateY(-12px) scale(1.05);}100%{transform:translateY(0);}}
-@keyframes hit-anim{0%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}100%{transform:translateX(0);}}
-.battle-log{background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:10px;padding:8px 10px;height:100px;overflow-y:auto;font-size:10px;line-height:1.8;font-family:var(--fn2);}
-.battle-log::-webkit-scrollbar{width:3px;}
-.battle-log::-webkit-scrollbar-thumb{background:var(--purple);}
-.dmg-pop{position:absolute;font-family:var(--fn);font-size:14px;font-weight:700;pointer-events:none;animation:dmg-float 1s ease-out forwards;z-index:10;}
-@keyframes dmg-float{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-40px) scale(1.3);}}
-
-/* ── 뽑기 ── */
-.gacha-panel{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:12px;text-align:center;}
+/* 뽑기 */
+.gacha-panel{background:rgba(0,0,0,.3);border:1px solid rgba(245,200,66,.2);border-radius:20px;padding:20px;margin-bottom:12px;text-align:center;}
 .gacha-orb{font-size:64px;margin:16px 0;filter:drop-shadow(0 0 20px rgba(168,85,247,.6));animation:orb-pulse 2s infinite alternate;}
-@keyframes orb-pulse{from{filter:drop-shadow(0 0 12px rgba(168,85,247,.4));}to{filter:drop-shadow(0 0 28px rgba(168,85,247,.8));}}
-.gacha-result-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:12px;}
+@keyframes orb-pulse{from{filter:drop-shadow(0 0 10px rgba(168,85,247,.4));}to{filter:drop-shadow(0 0 30px rgba(168,85,247,.9));}}
 .gacha-card{border-radius:10px;border:2px solid;padding:8px 4px;text-align:center;animation:card-reveal .4s ease-out both;}
-@keyframes card-reveal{from{opacity:0;transform:rotateY(90deg) scale(.8);}to{opacity:1;transform:rotateY(0) scale(1);}}
+@keyframes card-reveal{from{transform:scale(.5) rotateY(90deg);opacity:0;}to{transform:scale(1) rotateY(0);opacity:1;}}
 .gacha-card .gc-emoji{font-size:24px;}
 .gacha-card .gc-name{font-size:8px;font-family:var(--fn);margin-top:2px;}
 .gacha-card .gc-grade{font-size:7px;font-family:var(--fn);}
+.gacha-result-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
 
-/* ── 덱 빌더 ── */
-.deck-area{display:flex;gap:10px;flex-direction:column;}
-.deck-slots{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:12px;padding:10px;}
+/* 덱빌더 */
+.deck-slots{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:rgba(0,0,0,.3);border:1px solid rgba(245,200,66,.15);border-radius:12px;padding:10px;}
 .deck-slot{border-radius:8px;border:1px dashed rgba(124,58,237,.3);aspect-ratio:.7;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:.15s;position:relative;}
 .deck-slot.filled{border-style:solid;}
-.deck-slot:hover{border-color:var(--p2);}
-.deck-slot .ds-remove{position:absolute;top:-6px;right:-6px;background:#ef4444;border-radius:50%;width:16px;height:16px;font-size:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;}
+.deck-slot:hover{border-color:var(--purple2);}
+.ds-remove{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:rgba(239,68,68,.7);font-size:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;opacity:0;}
+.deck-slot:hover .ds-remove{opacity:1;}
 .collection-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
-.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-.filter-btn{padding:4px 10px;border-radius:12px;border:1px solid var(--border);font-size:10px;font-family:var(--fn);color:var(--dim);cursor:pointer;background:none;transition:.15s;}
-.filter-btn.active{border-color:var(--p3);color:var(--p3);background:rgba(124,58,237,.1);}
+.filter-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+.filter-btn{padding:5px 10px;border:1px solid var(--border,rgba(124,58,237,.3));border-radius:20px;background:none;color:var(--dim);font-size:10px;cursor:pointer;transition:.15s;font-family:var(--fn);}
+.filter-btn.active{background:rgba(124,58,237,.2);color:var(--purple3);border-color:var(--purple);}
 
-/* ── 스토리 ── */
-.story-chapter{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;cursor:pointer;transition:.15s;}
-.story-chapter:hover{border-color:var(--p2);background:rgba(124,58,237,.06);}
-.story-chapter.locked{opacity:.4;cursor:default;}
-.story-chapter.locked:hover{border-color:var(--border);background:var(--card-bg);}
-.story-chapter.cleared{border-color:rgba(52,211,153,.3);}
-.sc-num{font-family:var(--fn);font-size:20px;font-weight:700;color:var(--p3);width:36px;text-align:center;}
-.sc-info{flex:1;}
-.sc-title{font-family:var(--fn);font-size:13px;}
-.sc-desc{font-size:10px;color:var(--dim);margin-top:2px;}
-.sc-reward{font-size:10px;color:var(--gold);}
-.sc-badge{font-size:16px;flex-shrink:0;}
-
-/* ── 랭킹 ── */
-.rank-tier-badge{display:inline-block;padding:3px 12px;border-radius:12px;font-size:10px;font-family:var(--fn);border:1px solid;}
-.rank-item{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-
-/* ── 카드 상세 모달 ── */
-.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:flex-end;justify-content:center;z-index:200;}
+/* 모달 */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);}
 .modal-ov.show{display:flex;}
-.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:420px;padding:20px 16px 36px;max-height:85vh;overflow-y:auto;}
-.modal-title{font-family:var(--fn);font-size:14px;color:var(--p3);text-align:center;margin-bottom:14px;}
-.modal-close{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.04);color:var(--sub);font-family:var(--fn);font-size:12px;cursor:pointer;margin-top:12px;}
+.modal-box{background:linear-gradient(180deg,#231540,#150e30);border:2px solid rgba(245,200,66,.3);border-radius:20px;padding:20px;width:100%;max-width:340px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 40px rgba(147,51,234,.2);}
+.modal-title{font-family:var(--fn);font-size:15px;color:var(--gold);margin-bottom:14px;text-align:center;letter-spacing:1px;}
+.modal-close{width:100%;padding:11px;margin-top:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:var(--sub);font-family:var(--fn);font-size:11px;cursor:pointer;}
 
-/* ── 토스트 ── */
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(19,13,36,.97);border:1px solid var(--p2);border-radius:20px;padding:9px 20px;font-family:var(--fn);font-size:12px;color:var(--p3);opacity:0;transition:.3s;pointer-events:none;z-index:300;white-space:nowrap;}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+/* 랭킹 */
+.rank-item{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.3);border:1px solid rgba(245,200,66,.1);border-radius:12px;padding:10px 12px;margin-bottom:6px;transition:.15s;}
+.rank-item:hover{background:rgba(124,58,237,.06);}
 
-/* 공통 버튼 */
-.btn-primary{padding:10px 20px;border:none;border-radius:10px;font-family:var(--fn);font-size:12px;cursor:pointer;background:linear-gradient(135deg,var(--purple),var(--p2));color:#fff;transition:.15s;}
-.btn-primary:hover{opacity:.9;}
-.btn-primary:disabled{background:rgba(255,255,255,.08);color:var(--dim);cursor:default;}
-.btn-gold{background:linear-gradient(135deg,#d97706,var(--gold));color:#000;}
-.btn-green{background:linear-gradient(135deg,#059669,var(--green));color:#fff;}
+/* 스토리 */
+.story-chapter{background:rgba(0,0,0,.3);border:1px solid rgba(245,200,66,.15);border-radius:14px;padding:14px;margin-bottom:8px;transition:.15s;}
+.story-chapter:hover{border-color:rgba(245,200,66,.3);}
 
-/* 스크롤바 */
-::-webkit-scrollbar{width:3px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:rgba(124,58,237,.3);border-radius:2px;}
-
-/* 반응형 */
-@media(max-width:380px){.collection-grid{grid-template-columns:repeat(3,1fr);}.gacha-result-grid{grid-template-columns:repeat(5,1fr);}}
+/* 결과 모달 */
+.result-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
 </style>
 </head>
 <body>
@@ -192,92 +508,93 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn2);display:flex;
 <!-- ① 대전 탭 -->
 <div class="tab-content active" id="tab-battle">
   <div id="battle-lobby" style="display:block;">
-    <!-- 내 덱 미리보기 -->
-    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
-      <div style="font-family:var(--fn);font-size:11px;color:var(--p3);margin-bottom:10px;">📚 현재 덱 (<span id="lobby-deck-count">0</span>/20장)</div>
-      <div id="lobby-deck-preview" style="display:flex;flex-wrap:wrap;gap:5px;min-height:32px;"></div>
+    <!-- 덱 미리보기 -->
+    <div class="deck-preview-panel">
+      <div class="deck-preview-title">📚 현재 덱 (<span id="lobby-deck-count">0</span>/20장)</div>
+      <div class="deck-emojis" id="lobby-deck-preview"></div>
     </div>
 
-    <!-- 🔵 랭크 대전 -->
-    <div style="background:rgba(124,58,237,.08);border:2px solid rgba(124,58,237,.35);border-radius:16px;padding:16px;margin-bottom:10px;">
-      <div style="font-family:var(--fn);font-size:14px;color:var(--p3);margin-bottom:4px;">⚔️ 랭크 대전</div>
-      <div style="font-size:10px;color:var(--dim);margin-bottom:12px;line-height:1.6;">실제 유저의 덱과 대결! 승리 시 랭킹 포인트 획득<br>상대방은 AI가 상대방 덱으로 플레이합니다</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
-        <div style="background:rgba(0,0,0,.3);border-radius:8px;padding:8px;text-align:center;">
-          <div style="font-family:var(--fn);font-size:14px;color:var(--green);" id="rank-stat-wins">0</div>
-          <div style="font-size:9px;color:var(--dim);">랭크 승</div>
+    <!-- 랭크 대전 -->
+    <div class="mode-card rank-mode">
+      <div class="mode-title" style="color:var(--purple3);">⚔️ 랭크 대전</div>
+      <div class="mode-desc">실제 유저의 덱과 대결! 승리 시 랭킹 포인트 +15<br>상대방은 AI가 상대 덱으로 플레이합니다</div>
+      <div class="mode-stats">
+        <div class="mode-stat-box">
+          <div class="mode-stat-val" style="color:var(--green);" id="rank-stat-wins">0</div>
+          <div class="mode-stat-lbl">랭크 승</div>
         </div>
-        <div style="background:rgba(0,0,0,.3);border-radius:8px;padding:8px;text-align:center;">
-          <div style="font-family:var(--fn);font-size:14px;color:var(--red);" id="rank-stat-losses">0</div>
-          <div style="font-size:9px;color:var(--dim);">랭크 패</div>
+        <div class="mode-stat-box">
+          <div class="mode-stat-val" style="color:var(--red);" id="rank-stat-losses">0</div>
+          <div class="mode-stat-lbl">랭크 패</div>
         </div>
       </div>
-      <button class="btn-primary" id="rank-battle-btn" onclick="startRankBattle()" style="width:100%;padding:13px;font-size:13px;">⚔️ 랭크 대전 시작</button>
-      <div style="font-size:9px;color:var(--dim);text-align:center;margin-top:6px;" id="rank-opponent-info">상대 유저 검색 중...</div>
+      <button class="btn-primary" id="rank-battle-btn" onclick="startRankBattle()" style="width:100%;padding:13px;font-size:12px;letter-spacing:1px;">⚔️ 랭크 대전 시작</button>
+      <div style="font-size:9px;color:var(--dim);text-align:center;margin-top:7px;font-family:var(--fn);" id="rank-opponent-info">상대 유저 검색 중...</div>
     </div>
 
-    <!-- 🟡 일반 대전 -->
-    <div style="background:rgba(251,191,36,.06);border:2px solid rgba(251,191,36,.25);border-radius:16px;padding:16px;margin-bottom:10px;">
-      <div style="font-family:var(--fn);font-size:14px;color:var(--gold);margin-bottom:4px;">🤖 일반 대전</div>
-      <div style="font-size:10px;color:var(--dim);margin-bottom:12px;line-height:1.6;">AI와 연습 대전 · 승리 시 마법석 획득<br>랭킹에는 반영되지 않습니다</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
-        <div style="background:rgba(0,0,0,.3);border-radius:8px;padding:8px;text-align:center;">
-          <div style="font-family:var(--fn);font-size:14px;color:var(--green);" id="normal-stat-wins">0</div>
-          <div style="font-size:9px;color:var(--dim);">일반 승</div>
+    <!-- 일반 대전 -->
+    <div class="mode-card normal-mode">
+      <div class="mode-title" style="color:var(--gold);">🤖 일반 대전</div>
+      <div class="mode-desc">AI와 연습 대전 · 승리 시 마법석 획득<br>랭킹에는 반영되지 않습니다</div>
+      <div class="mode-stats">
+        <div class="mode-stat-box">
+          <div class="mode-stat-val" style="color:var(--green);" id="normal-stat-wins">0</div>
+          <div class="mode-stat-lbl">일반 승</div>
         </div>
-        <div style="background:rgba(0,0,0,.3);border-radius:8px;padding:8px;text-align:center;">
-          <div style="font-family:var(--fn);font-size:16px;color:var(--gold);" id="normal-stat-stone">0</div>
-          <div style="font-size:9px;color:var(--dim);">획득 마법석</div>
+        <div class="mode-stat-box">
+          <div class="mode-stat-val" style="color:var(--gold);" id="normal-stat-stone">0</div>
+          <div class="mode-stat-lbl">보유 마법석</div>
         </div>
       </div>
-      <button class="btn-primary btn-gold" onclick="startBattle('normal')" style="width:100%;padding:12px;">🤖 일반 대전 시작</button>
+      <button class="btn-primary btn-gold" onclick="startBattle('normal')" style="width:100%;padding:12px;font-size:12px;letter-spacing:1px;">🤖 일반 대전 시작</button>
     </div>
   </div>
 
-  <!-- 배틀 진행 화면 -->
+  <!-- 배틀 진행 화면 (하스스톤 스타일) -->
   <div id="battle-arena" style="display:none;">
-    <div class="battle-scene">
-      <!-- 상대 -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span style="font-size:18px;" id="enemy-avatar">🤖</span>
-        <div style="flex:1;">
-          <div style="font-family:var(--fn);font-size:11px;" id="enemy-name">AI</div>
-          <div class="battle-hp-bar"><div class="battle-hp-fill" id="enemy-hp-fill" style="width:100%;background:linear-gradient(90deg,#ef4444,#f97316);"></div></div>
-          <div style="font-size:9px;color:var(--red);font-family:var(--fn);" id="enemy-hp-text">HP 30</div>
+    <div class="battle-board">
+      <!-- 적 영웅 -->
+      <div class="hero-portrait">
+        <div class="hero-face enemy" id="enemy-avatar">🤖</div>
+        <div class="hero-info">
+          <div class="hero-name" id="enemy-name">AI</div>
+          <div class="hp-gauge"><div class="hp-fill enemy" id="enemy-hp-fill" style="width:100%;"></div></div>
         </div>
+        <div class="hero-hp-badge enemy" id="enemy-hp-badge">30</div>
       </div>
-      <!-- 상대 필드 -->
-      <div class="battle-field" id="enemy-field"></div>
-      <!-- VS -->
-      <div style="text-align:center;font-family:var(--fn);font-size:11px;color:var(--dim);margin:6px 0;">── 전장 ──</div>
+      <!-- 적 필드 -->
+      <div class="battle-field" id="enemy-field"><div class="field-empty">── 빈 필드 ──</div></div>
+
+      <!-- 중앙 구분선 -->
+      <div class="board-divider"><span>⚔ 전 장 ⚔</span></div>
+      <div class="turn-badge" id="turn-display">TURN 1</div>
+
       <!-- 내 필드 -->
-      <div class="battle-field" id="my-field"></div>
-      <!-- 내 HP -->
-      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-        <div style="flex:1;">
-          <div class="battle-hp-bar"><div class="battle-hp-fill" id="my-hp-fill" style="width:100%;background:linear-gradient(90deg,#34d399,#22d3ee);"></div></div>
-          <div style="font-size:9px;color:var(--green);font-family:var(--fn);" id="my-hp-text">HP 30</div>
+      <div class="battle-field" id="my-field"><div class="field-empty">── 빈 필드 ──</div></div>
+      <!-- 내 영웅 -->
+      <div class="hero-portrait" style="flex-direction:row-reverse;">
+        <div class="hero-face" id="my-avatar">👤</div>
+        <div class="hero-info" style="text-align:right;">
+          <div class="hero-name" style="color:var(--green);">나</div>
+          <div class="hp-gauge"><div class="hp-fill my" id="my-hp-fill" style="width:100%;"></div></div>
         </div>
-        <span style="font-size:18px;" id="my-avatar">👤</span>
+        <div class="hero-hp-badge" id="my-hp-badge">30</div>
       </div>
     </div>
-    <!-- 손패 -->
-    <div style="margin-bottom:8px;">
-      <div style="font-family:var(--fn);font-size:10px;color:var(--dim);margin-bottom:6px;">🃏 내 손패 — 카드를 선택해 배치하세요</div>
-      <div id="hand-area" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;"></div>
+
+    <!-- 손패 (곡선 배열) -->
+    <div class="hand-area" id="hand-area"></div>
+
+    <!-- 버튼 -->
+    <div class="battle-btns">
+      <button class="btn-deploy" id="deploy-btn" onclick="deploySelected()" disabled>⬆ 배치</button>
+      <button class="btn-end-turn" onclick="endTurn()" id="end-turn-btn">턴 종료 ▶</button>
     </div>
-    <!-- 배치 버튼 -->
-    <div style="display:flex;gap:8px;">
-      <button class="btn-primary" id="deploy-btn" onclick="deploySelected()" style="flex:1;" disabled>배치하기</button>
-      <button class="btn-primary" onclick="endTurn()" style="flex:1;background:rgba(255,255,255,.08);color:var(--sub);" id="end-turn-btn">턴 종료</button>
-    </div>
+
     <!-- 전투 로그 -->
-    <div style="margin-top:8px;">
-      <div style="font-family:var(--fn);font-size:9px;color:var(--dim);margin-bottom:4px;">📋 전투 로그</div>
+    <div style="margin-top:6px;">
       <div class="battle-log" id="battle-log"></div>
     </div>
-    <!-- 턴 표시 -->
-    <div style="text-align:center;font-family:var(--fn);font-size:11px;color:var(--p3);margin-top:8px;" id="turn-display">턴 1</div>
   </div>
 </div>
 
@@ -378,14 +695,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--fn2);display:flex;
   </div>
 </div>
 
-<!-- 배틀 결과 모달 -->
+<!-- 배틀 결과 모달 (하스스톤 스타일) -->
 <div class="modal-ov" id="result-modal">
-  <div class="modal-box" style="text-align:center;">
-    <div style="font-size:52px;margin-bottom:10px;" id="result-emoji">🏆</div>
-    <div style="font-family:var(--fn);font-size:20px;margin-bottom:8px;" id="result-title">승리!</div>
-    <div style="font-size:12px;color:var(--sub);margin-bottom:16px;" id="result-desc"></div>
-    <div id="result-rewards" style="background:rgba(124,58,237,.08);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
-    <button class="btn-primary" onclick="closeResult()" style="width:100%;padding:12px;">확인</button>
+  <div class="modal-box" style="text-align:center;position:relative;">
+    <div class="result-particles" id="result-particles"></div>
+    <div style="font-size:64px;margin-bottom:8px;animation:orb-pulse 1s infinite alternate;" id="result-emoji">🏆</div>
+    <div style="font-family:var(--fn);font-size:22px;font-weight:700;margin-bottom:6px;letter-spacing:2px;" id="result-title">승리!</div>
+    <div style="font-size:11px;color:var(--sub);margin-bottom:16px;line-height:1.8;" id="result-desc"></div>
+    <div id="result-rewards" style="background:rgba(0,0,0,.3);border:1px solid rgba(245,200,66,.2);border-radius:14px;padding:14px;margin-bottom:16px;"></div>
+    <button class="btn-primary" onclick="closeResult()" style="width:100%;padding:13px;font-size:12px;letter-spacing:1px;">확인</button>
   </div>
 </div>
 
@@ -661,7 +979,7 @@ function renderBattleLobby() {
   preview.innerHTML = C.deck.map(id => {
     const card = getCardById(id);
     if(!card) return '';
-    return `<span style="font-size:18px;" title="${card.name}">${card.emoji}</span>`;
+    return `<div class="deck-emoji-item" title="${card.name}">${card.emoji}</div>`;
   }).join('');
   // 랭크 대전 전적
   document.getElementById('rank-stat-wins').textContent = C.rankWins||0;
@@ -778,50 +1096,67 @@ function renderBattleArena() {
   const enPct = Math.max(0, _battle.enemyHp/30*100);
   document.getElementById('my-hp-fill').style.width = myPct+'%';
   document.getElementById('enemy-hp-fill').style.width = enPct+'%';
-  document.getElementById('my-hp-text').textContent = 'HP '+Math.max(0,_battle.myHp);
-  document.getElementById('enemy-hp-text').textContent = 'HP '+Math.max(0,_battle.enemyHp);
+  // HP 뱃지 업데이트
+  const myBadge = document.getElementById('my-hp-badge');
+  const enBadge = document.getElementById('enemy-hp-badge');
+  if(myBadge) { myBadge.textContent = Math.max(0,_battle.myHp); if(_battle.myHp<=10) myBadge.classList.add('low'); else myBadge.classList.remove('low'); }
+  if(enBadge) { enBadge.textContent = Math.max(0,_battle.enemyHp); if(_battle.enemyHp<=10) enBadge.classList.add('low'); else enBadge.classList.remove('low'); }
 
   // 필드 렌더
   renderField_battle('my-field', _battle.myField, false);
   renderField_battle('enemy-field', _battle.enemyField, true);
 
   // 손패 렌더
+  // 손패: 하스스톤 스타일 카드
   const hand = document.getElementById('hand-area');
   hand.innerHTML = _battle.myHand.map((id,i) => {
     const card = getCardById(id);
     if(!card) return '';
     const gc = gradeCol(card.grade);
     const sel = _battle.selectedCard === i;
-    return `<div class="card-mini ${gradeClass(card.grade)} ${sel?'selected':''}"
-      style="min-width:62px;background:rgba(0,0,0,.4);${sel?'transform:translateY(-6px);':''}"
+    const isSkill = card.type === 'skill';
+    return `<div class="hs-card ${gradeClass(card.grade)} ${isSkill?'skill-card':''} ${sel?'selected':''}"
       onclick="selectHandCard(${i})">
-      <div class="cm-emoji">${card.emoji}</div>
-      <div class="cm-name" style="color:${gc};font-size:8px;">${card.name}</div>
-      ${card.type!=='skill' ? `<div class="cm-stats"><span>❤️${card.hp}</span><span>⚔️${card.atk}</span></div>` : `<div class="cm-type">✨스킬</div>`}
+      <div class="hc-art">${card.emoji}</div>
+      <div class="hc-name" style="color:${gc};">${card.name}</div>
+      ${!isSkill ? `
+        <div class="hc-atk">${card.atk}</div>
+        <div class="hc-hp">${card.hp}</div>
+      ` : `<div class="hc-skill" style="font-size:8px;color:var(--purple3);">✨</div>`}
     </div>`;
   }).join('');
 
-  document.getElementById('deploy-btn').disabled = _battle.selectedCard === null || _battle.phase !== 'deploy';
-  document.getElementById('end-turn-btn').disabled = _battle.phase === 'battle' || _battle.gameOver;
+  const deployBtn = document.getElementById('deploy-btn');
+  const endBtn = document.getElementById('end-turn-btn');
+  if(deployBtn) deployBtn.disabled = _battle.selectedCard === null || _battle.phase !== 'deploy';
+  if(endBtn) endBtn.disabled = _battle.phase === 'battle' || _battle.gameOver;
 }
 
 function renderField_battle(elId, field, isEnemy) {
   const el = document.getElementById(elId);
+  if(field.length === 0) {
+    el.innerHTML = '<div class="field-empty">── 빈 필드 ──</div>';
+    return;
+  }
   el.innerHTML = field.map((fc,i) => {
     const card = getCardById(fc.id);
     if(!card) return '';
     const gc = gradeCol(card.grade);
-    const hpPct = Math.max(0, fc.hp / card.hp * 100);
-    return `<div class="battle-card ${gradeClass(card.grade)} ${fc.dead?'dead':''}" id="bcard-${isEnemy?'e':'m'}-${i}" style="background:rgba(0,0,0,.5);">
-      <div class="bc-emoji">${card.emoji}</div>
-      <div class="bc-name" style="color:${gc};">${card.name}</div>
-      <div class="bc-hp">❤️${fc.hp}</div>
-      ${fc.poison?'<div style="font-size:7px;color:#a855f7;">☠️독</div>':''}
-      ${fc.burn?'<div style="font-size:7px;color:#f97316;">🔥화상</div>':''}
-      ${fc.frozen?'<div style="font-size:7px;color:#60a5fa;">❄️빙결</div>':''}
-      ${fc.stunned?'<div style="font-size:7px;color:#fbbf24;">⚡스턴</div>':''}
+    const hpDamaged = fc.hp < card.hp;
+    const statuses = [
+      fc.poison  ? '☠️' : '',
+      fc.burn    ? '🔥' : '',
+      fc.frozen  ? '❄️' : '',
+      fc.stunned ? '⚡' : '',
+    ].filter(Boolean).join('');
+    return `<div class="bc-hs ${gradeClass(card.grade)} ${fc.dead?'dead':''}" id="bcard-${isEnemy?'e':'m'}-${i}">
+      ${statuses ? `<div class="bc-status">${statuses}</div>` : ''}
+      <div class="bc-art">${card.emoji}</div>
+      <div class="bc-label" style="color:${gc};">${card.name}</div>
+      <div class="bc-atk">${fc.atk}</div>
+      <div class="bc-hp ${hpDamaged?'low':''}">${fc.hp}</div>
     </div>`;
-  }).join('') || `<div style="font-size:11px;color:var(--dim);padding:8px;">빈 필드</div>`;
+  }).join('');
 }
 
 function selectHandCard(idx) {
