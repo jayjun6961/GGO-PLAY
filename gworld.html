@@ -1805,12 +1805,18 @@ async function _doCloudRestore(force=false) {
       try {
         const cloudSave = JSON.parse(cloudSaveRaw);
         const localSave = JSON.parse(localSaveRaw);
-        const cloudAt = cloudSave._savedAt || data._ts || 0;
-        const localAt = localSave._savedAt || parseInt(localStorage.getItem('gwo_last_save_'+un)||'0');
-        // 클라우드가 1초 이상 최신이면 클라우드 사용
-        shouldUseCloud = (cloudAt > localAt + 1000);
-        console.log('[CloudSync] cloud:', cloudAt, 'local:', localAt, '→ useCloud:', shouldUseCloud,
-          'cloud lv:', cloudSave.lv, 'local lv:', localSave.lv);
+        // ★ 관리자 강제 수정 플래그 → 무조건 클라우드 사용
+        if(cloudSave._adminEdit) {
+          shouldUseCloud = true;
+          console.log('[CloudSync] 관리자 수정 데이터 감지 → 강제 클라우드 적용');
+        } else {
+          const cloudAt = cloudSave._savedAt || data._ts || 0;
+          const localAt = localSave._savedAt || parseInt(localStorage.getItem('gwo_last_save_'+un)||'0');
+          // 클라우드가 1초 이상 최신이면 클라우드 사용
+          shouldUseCloud = (cloudAt > localAt + 1000);
+          console.log('[CloudSync] cloud:', cloudAt, 'local:', localAt, '→ useCloud:', shouldUseCloud,
+            'cloud lv:', cloudSave.lv, 'local lv:', localSave.lv);
+        }
       } catch(e) { shouldUseCloud = force; }
     } else if(!localSaveRaw && cloudSaveRaw) {
       shouldUseCloud = true; // 로컬 없으면 무조건 클라우드
@@ -11306,10 +11312,15 @@ async function _syncCharDataFromCloud() {
           try {
             const cloud = JSON.parse(cloudData.keys[charKey]);
             const local = JSON.parse(localRaw);
-            const cloudAt = cloud._savedAt || cloud.savedAt || 0;
-            const localAt = local._savedAt || local.savedAt || 0;
-            if(cloudAt > localAt + 1000) {
+            // 관리자 수정 플래그 또는 타임스탬프 비교
+            if(cloud._adminEdit) {
               localStorage.setItem(charKey, cloudData.keys[charKey]);
+            } else {
+              const cloudAt = cloud._savedAt || cloud.savedAt || 0;
+              const localAt = local._savedAt || local.savedAt || 0;
+              if(cloudAt > localAt + 1000) {
+                localStorage.setItem(charKey, cloudData.keys[charKey]);
+              }
             }
           } catch(e) {}
         }
