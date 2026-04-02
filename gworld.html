@@ -1645,18 +1645,49 @@ function tDef(){
   return d;
 }
 
-function saveG(){gSet('save',{job:G.job,lv:G.lv,hp:G.hp,mp:G.mp,exp:G.exp,gold:G.gold,inv:G.inv,qprog:G.qprog,qclaim:G.qclaim,sk:G.sk,quests:G.quests,equip:G.equip||{},wquests:G.wquests,wqprog:G.wqprog,wqclaim:G.wqclaim,relics:G.relics||[null,null,null,null,null],enhQTotal:G.enhQTotal||0,enhQClaimed:G.enhQClaimed||0,lvQClaim:G.lvQClaim||{}}); if(G.job && typeof saveCurrentChar==='function') saveCurrentChar(); _scheduleCloudSync(); }
+function _buildSaveData() {
+  return {
+    job:G.job, lv:G.lv, hp:G.hp, mp:G.mp, exp:G.exp, gold:G.gold,
+    inv:G.inv, qprog:G.qprog, qclaim:G.qclaim, sk:G.sk, quests:G.quests,
+    equip:G.equip||{}, wquests:G.wquests, wqprog:G.wqprog, wqclaim:G.wqclaim,
+    relics:G.relics||[null,null,null,null,null],
+    enhQTotal:G.enhQTotal||0, enhQClaimed:G.enhQClaimed||0, lvQClaim:G.lvQClaim||{},
+    _savedAt: Date.now()  // 저장 시각 포함
+  };
+}
+
+function saveG() {
+  const saveData = _buildSaveData();
+  gSet('save', saveData);
+  // 로컬 타임스탬프 즉시 갱신
+  const now = Date.now();
+  localStorage.setItem('gwo_last_save_' + gwUN(), String(now));
+  if(G.job && typeof saveCurrentChar==='function') saveCurrentChar();
+  _scheduleCloudSync();
+}
+
+// 중요 이벤트(레벨업/장비/던전) 시 즉시 강제 동기화
+function saveGImmediate(reason) {
+  const saveData = _buildSaveData();
+  gSet('save', saveData);
+  const now = Date.now();
+  localStorage.setItem('gwo_last_save_' + gwUN(), String(now));
+  if(G.job && typeof saveCurrentChar==='function') saveCurrentChar();
+  // debounce 취소 후 즉시 업로드
+  if(_cloudSyncTimer) { clearTimeout(_cloudSyncTimer); _cloudSyncTimer = null; }
+  _doCloudUpload();
+  console.log('[SaveG] 즉시 저장:', reason||'');
+}
 
 // ── 클라우드 동기화 (5초 debounce) ──
 let _cloudSyncTimer = null;
 function _scheduleCloudSync() {
   if(!window._gwDB || !gwUN()) return;
-  // 로컬 마지막 저장 타임스탬프 갱신
-  localStorage.setItem('gwo_last_save_' + gwUN(), String(Date.now()));
   if(_cloudSyncTimer) clearTimeout(_cloudSyncTimer);
-  _cloudSyncTimer = setTimeout(_doCloudUpload, 5000);
+  _cloudSyncTimer = setTimeout(_doCloudUpload, 2000); // 5초→2초
 }
 
+let _uploadRetryCount = 0;
 function _doCloudUpload() {
   if(!window._gwDB) return;
   const un = gwUN(); if(!un) return;
@@ -1668,7 +1699,8 @@ function _doCloudUpload() {
     'gwo_wb_', 'gwo_rdun_daily_', 'gwo_dun_count_',
     'gwo_legion_daily_', 'gwo_pvp_daily_', 'gwo_quest_',
   ];
-  const data = { _ts: Date.now(), keys: {} };
+  const now = Date.now();
+  const data = { _ts: now, _savedAt: now, keys: {} };
   // 고정 키
   SYNC_PREFIXES.forEach(p => {
     const v = localStorage.getItem(p + un);
@@ -1682,7 +1714,20 @@ function _doCloudUpload() {
       data.keys[k] = localStorage.getItem(k);
     }
   }
-  window._gwDB.ref('gworld_sync/' + un).set(data).catch(()=>{});
+  // Firebase 저장 + 실패 시 재시도 (최대 3회)
+  window._gwDB.ref('gworld_sync/' + un).set(data)
+    .then(() => {
+      _uploadRetryCount = 0;
+      // 업로드 성공 후 로컬 타임스탬프를 Firebase와 일치시킴
+      localStorage.setItem('gwo_last_save_' + un, String(now));
+    })
+    .catch(e => {
+      console.warn('[CloudSync] 업로드 실패:', e);
+      if(_uploadRetryCount < 3) {
+        _uploadRetryCount++;
+        setTimeout(_doCloudUpload, 3000 * _uploadRetryCount);
+      }
+    });
 }
 
 // ── 클라우드에서 복원 ──
@@ -1696,14 +1741,35 @@ async function _doCloudRestore(force=false) {
     if(!snap || !snap.exists()) return false;
     const data = snap.val();
     if(!data || !data.keys) return false;
+
+    // ── 핵심 수정: 저장 키에서 _savedAt 비교 후 더 최신 데이터 사용 ──
+    const cloudSaveRaw = data.keys['gwo_save_' + un];
+    const localSaveRaw = localStorage.getItem('gwo_save_' + un);
+    let shouldUseCloud = force;
+
+    if(!shouldUseCloud && cloudSaveRaw && localSaveRaw) {
+      try {
+        const cloudSave = JSON.parse(cloudSaveRaw);
+        const localSave = JSON.parse(localSaveRaw);
+        const cloudAt = cloudSave._savedAt || data._ts || 0;
+        const localAt = localSave._savedAt || parseInt(localStorage.getItem('gwo_last_save_'+un)||'0');
+        // 클라우드가 1초 이상 최신이면 클라우드 사용
+        shouldUseCloud = (cloudAt > localAt + 1000);
+        console.log('[CloudSync] cloud:', cloudAt, 'local:', localAt, '→ useCloud:', shouldUseCloud,
+          'cloud lv:', cloudSave.lv, 'local lv:', localSave.lv);
+      } catch(e) { shouldUseCloud = force; }
+    } else if(!localSaveRaw && cloudSaveRaw) {
+      shouldUseCloud = true; // 로컬 없으면 무조건 클라우드
+    }
+
+    if(!shouldUseCloud && !force) {
+      console.log('[CloudSync] 로컬이 최신 → 복원 스킵');
+      return true;
+    }
+
     let count = 0;
     Object.entries(data.keys).forEach(([k, v]) => {
-      if(force) {
-        localStorage.setItem(k, v); count++;
-      } else {
-        const local = localStorage.getItem(k);
-        if(local === null) { localStorage.setItem(k, v); count++; }
-      }
+      localStorage.setItem(k, v); count++;
     });
     console.log('[CloudSync] 복원된 키:', count, '개 (force:', force, ')');
     return count > 0 || Object.keys(data.keys).length > 0;
@@ -11143,15 +11209,17 @@ function saveCharData(jobId, data) {
 // ── 현재 캐릭터를 직업별 슬롯에 저장 ──
 function saveCurrentChar() {
   if(!G.job) return;
+  const _now = Date.now();
   const data = {
     job:G.job, lv:G.lv, hp:G.hp, mp:G.mp, exp:G.exp,
     gold:G.gold, inv:G.inv, sk:G.sk, equip:G.equip||{},
     qprog:G.qprog, qclaim:G.qclaim, quests:G.quests,
     wquests:G.wquests, wqprog:G.wqprog, wqclaim:G.wqclaim,
     relics:G.relics||[null,null,null,null,null],
-    enhQTotal:G.enhQTotal||0,    // 직업별 강화 횟수 누적
-    enhQClaimed:G.enhQClaimed||0, // 직업별 강화 보상 수령 횟수
-    savedAt: Date.now()
+    enhQTotal:G.enhQTotal||0,
+    enhQClaimed:G.enhQClaimed||0,
+    savedAt: _now,
+    _savedAt: _now  // 타임스탬프 통일
   };
   saveCharData(G.job, data);
   localStorage.setItem(activeJobKey(), G.job);
@@ -11494,44 +11562,62 @@ function initGW(){
     }
   }
   if(!li || !un){gwSC('login');return;}
-  if(loadG()){
-    goTown();
-    setTimeout(pvpUploadProfile, 1200);
-    // 클라우드 타임스탬프 비교: 다른 기기에서 더 최근에 플레이했으면 동기화
-    if(window._gwDB && un) {
-      window._gwDB.ref('gworld_sync/' + un + '/_ts').get().then(snap => {
-        const cloudTs = snap && snap.exists() ? (snap.val()||0) : 0;
-        const localTs = parseInt(localStorage.getItem('gwo_last_save_' + un)||'0');
-        if(cloudTs > localTs + 30000) { // 클라우드가 30초 이상 최신
-          gwT('☁️ 다른 기기의 최신 데이터를 불러옵니다...');
-          _doCloudRestore(true).then(r => {
-            if(r && loadG()) { gwT('✅ 최신 데이터로 업데이트됨!'); recalcStats(); hud(); renderInv(); }
-          });
+  // ── 항상 클라우드 먼저 확인 후 더 최신 데이터 사용 ──
+  if(window._gwDB && un) {
+    gwT('☁️ 데이터 동기화 중...');
+    _doCloudRestore(false).then(cloudUsed => {
+      // 클라우드/로컬 중 최신 데이터로 loadG
+      const loaded = loadG();
+      if(loaded) {
+        goTown();
+        setTimeout(pvpUploadProfile, 1200);
+        if(cloudUsed) {
+          gwT('✅ 최신 데이터 동기화 완료! (Lv.' + G.lv + ')');
         } else {
-          // 로컬이 최신 → 클라우드에 업로드
-          setTimeout(_doCloudUpload, 2000);
+          gwT('✅ 접속 완료 (Lv.' + G.lv + ')');
+          // 로컬이 최신 → 클라우드에 즉시 업로드
+          setTimeout(_doCloudUpload, 1000);
         }
-      }).catch(()=>{ setTimeout(_doCloudUpload, 2000); });
-    }
+      } else {
+        // 데이터 없음 → 캐릭터 선택
+        gwSC('intro');
+        setTimeout(()=>{const cv=document.getElementById('gw-icv');if(cv){cv.width=cv.offsetWidth||320;cv.height=cv.offsetHeight||138;drawIntro(cv);}},40);
+        gwT('캐릭터를 선택해주세요.');
+      }
+    }).catch(() => {
+      // 네트워크 오류 시 로컬 데이터로 진행
+      if(loadG()) {
+        goTown();
+        gwT('⚠️ 오프라인 모드 (로컬 데이터)');
+        setTimeout(pvpUploadProfile, 1200);
+      } else {
+        gwSC('intro');
+        setTimeout(()=>{const cv=document.getElementById('gw-icv');if(cv){cv.width=cv.offsetWidth||320;cv.height=cv.offsetHeight||138;drawIntro(cv);}},40);
+      }
+    });
   } else {
-    // 로컬 데이터 없음 → 클라우드에서 복원 시도
-    gwSC('intro');
-    setTimeout(()=>{const cv=document.getElementById('gw-icv');if(cv){cv.width=cv.offsetWidth||320;cv.height=cv.offsetHeight||138;drawIntro(cv);}},40);
-    if(window._gwDB && un) {
-      gwT('☁️ 클라우드에서 데이터를 불러오는 중...');
-      _doCloudRestore().then(restored => {
-        if(restored && loadG()) {
-          gwT('✅ 클라우드에서 데이터 복원 완료!');
-          goTown();
-          setTimeout(pvpUploadProfile, 1200);
-        } else if(restored) {
-          gwT('☁️ 데이터 복원됨. 캐릭터를 선택해주세요.');
-        }
-      }).catch(()=>{});
+    // Firebase 없음 → 로컬만
+    if(loadG()) {
+      goTown();
+      setTimeout(pvpUploadProfile, 1200);
+    } else {
+      gwSC('intro');
+      setTimeout(()=>{const cv=document.getElementById('gw-icv');if(cv){cv.width=cv.offsetWidth||320;cv.height=cv.offsetHeight||138;drawIntro(cv);}},40);
     }
   }
 }
 
+
+// 페이지 이탈 시 즉시 동기화
+window.addEventListener('beforeunload', () => {
+  if(G && G.job) {
+    if(_cloudSyncTimer) { clearTimeout(_cloudSyncTimer); _cloudSyncTimer = null; }
+    _doCloudUpload();
+  }
+});
+window.addEventListener('pagehide', () => {
+  if(G && G.job) _doCloudUpload();
+});
 
 window.addEventListener('DOMContentLoaded', () => {
   initSidebarProfile();
