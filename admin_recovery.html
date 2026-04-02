@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>🛠️ GGO PLAY 데이터 복구 도구</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d0720;color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;padding:16px;max-width:800px;margin:0 auto;}
+h1{color:#f5c842;font-size:20px;margin-bottom:4px;}
+.sub{color:#7c6a9a;font-size:12px;margin-bottom:20px;}
+.card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;margin-bottom:14px;}
+.card h2{font-size:14px;color:#a855f7;margin-bottom:12px;}
+input,select{width:100%;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#e2e8f0;font-size:13px;margin-bottom:8px;}
+button{padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;margin-right:6px;margin-bottom:6px;}
+.btn-blue{background:#2563eb;color:#fff;}
+.btn-green{background:#15803d;color:#fff;}
+.btn-red{background:#dc2626;color:#fff;}
+.btn-gold{background:#d97706;color:#fff;}
+.btn-gray{background:rgba(255,255,255,.1);color:#94a3b8;}
+pre{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;font-size:11px;overflow-x:auto;white-space:pre-wrap;max-height:300px;overflow-y:auto;margin-top:8px;}
+.stat{display:inline-block;background:rgba(0,0,0,.4);border-radius:6px;padding:4px 10px;font-size:12px;margin:3px;}
+.stat span{color:#f5c842;}
+.warn{color:#f97316;font-size:11px;margin-top:6px;}
+.ok{color:#22c55e;font-size:12px;}
+.err{color:#ef4444;font-size:12px;}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;}
+.badge-lv{background:rgba(168,85,247,.2);color:#a855f7;border:1px solid rgba(168,85,247,.3);}
+.badge-gold{background:rgba(245,200,66,.15);color:#f5c842;}
+.sep{border:none;border-top:1px solid rgba(255,255,255,.08);margin:12px 0;}
+</style>
+</head>
+<body>
+<h1>🛠️ GGO PLAY 데이터 복구 도구</h1>
+<div class="sub">Firebase에 저장된 데이터를 조회하고 복구합니다 · 관리자 전용</div>
+
+<!-- 사용자 조회 -->
+<div class="card">
+  <h2>👤 사용자 데이터 조회</h2>
+  <input id="inp-user" placeholder="사용자명 입력 (예: 호동이)" />
+  <div>
+    <button class="btn-blue" onclick="fetchUser()">🔍 조회</button>
+    <button class="btn-green" onclick="fetchAllUsers()">📋 전체 사용자 목록</button>
+  </div>
+  <pre id="out-user">조회 결과가 여기에 표시됩니다.</pre>
+</div>
+
+<!-- 백업/복구 -->
+<div class="card">
+  <h2>💾 데이터 복구</h2>
+  <input id="inp-restore-user" placeholder="복구할 사용자명" />
+  <div class="warn">⚠️ 주의: Firebase에 저장된 데이터를 이 브라우저의 localStorage에 강제 복원합니다.<br>복구 후 gworld.html에서 해당 계정으로 로그인하면 데이터가 적용됩니다.</div>
+  <hr class="sep">
+  <button class="btn-gold" onclick="restoreToLocal()">📥 Firebase → 로컬 복원</button>
+  <button class="btn-green" onclick="uploadLocalToFirebase()">📤 로컬 → Firebase 업로드</button>
+  <pre id="out-restore">복구 결과가 여기에 표시됩니다.</pre>
+</div>
+
+<!-- 데이터 수동 편집 -->
+<div class="card">
+  <h2>✏️ 레벨/골드 수동 수정</h2>
+  <div class="warn">⚠️ Firebase 데이터를 직접 수정합니다. 신중하게 사용하세요.</div>
+  <hr class="sep">
+  <input id="inp-edit-user" placeholder="수정할 사용자명" />
+  <input id="inp-edit-job" placeholder="직업 (warrior/archer/mage/rogue/paladin)" />
+  <input id="inp-edit-lv" type="number" placeholder="레벨 (비워두면 유지)" />
+  <input id="inp-edit-gold" type="number" placeholder="골드 (비워두면 유지)" />
+  <button class="btn-red" onclick="manualEdit()">🔧 수동 수정 적용</button>
+  <pre id="out-edit">수정 결과가 여기에 표시됩니다.</pre>
+</div>
+
+<!-- 전체 백업 내보내기 -->
+<div class="card">
+  <h2>📦 전체 데이터 백업</h2>
+  <input id="inp-backup-user" placeholder="백업할 사용자명 (비워두면 전체)" />
+  <button class="btn-blue" onclick="exportBackup()">💾 JSON 파일로 내보내기</button>
+  <button class="btn-green" onclick="importBackup()">📂 JSON 파일로 복원</button>
+  <input type="file" id="inp-file" accept=".json" style="display:none" onchange="readBackupFile(event)">
+  <pre id="out-backup">백업 결과가 여기에 표시됩니다.</pre>
+</div>
+
+<script>
+// Firebase 초기화
+const cfg = {
+  apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+  authDomain: "ggo-play.firebaseapp.com",
+  databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ggo-play",
+  storageBucket: "ggo-play.firebasestorage.app",
+};
+if(!firebase.apps.length) firebase.initializeApp(cfg);
+const DB = firebase.database();
+
+function log(elId, msg, append=false) {
+  const el = document.getElementById(elId);
+  if(append) el.textContent += '\n' + msg;
+  else el.textContent = msg;
+}
+
+// ── 사용자 조회 ──
+async function fetchUser() {
+  const un = document.getElementById('inp-user').value.trim();
+  if(!un) { log('out-user','❌ 사용자명을 입력하세요'); return; }
+  log('out-user', '🔍 조회 중...');
+  try {
+    const snap = await DB.ref('gworld_sync/' + un).get();
+    if(!snap.exists()) { log('out-user','❌ Firebase에 데이터 없음: ' + un); return; }
+    const data = snap.val();
+    const ts = data._ts ? new Date(data._ts).toLocaleString('ko-KR') : '?';
+    const savedAt = data._savedAt ? new Date(data._savedAt).toLocaleString('ko-KR') : ts;
+
+    let result = `👤 사용자: ${un}\n`;
+    result += `⏰ 마지막 저장: ${savedAt}\n`;
+    result += `🔑 저장된 키 수: ${Object.keys(data.keys||{}).length}개\n\n`;
+
+    // 메인 세이브 데이터 파싱
+    const saveKey = 'gwo_save_' + un;
+    if(data.keys && data.keys[saveKey]) {
+      try {
+        const save = JSON.parse(data.keys[saveKey]);
+        result += `📊 메인 캐릭터 데이터:\n`;
+        result += `  · 직업: ${save.job || '없음'}\n`;
+        result += `  · 레벨: ${save.lv}\n`;
+        result += `  · 골드: ${(save.gold||0).toLocaleString()}G\n`;
+        result += `  · 인벤토리: ${(save.inv||[]).length}개\n`;
+        const savedAtMain = save._savedAt ? new Date(save._savedAt).toLocaleString('ko-KR') : '미기록';
+        result += `  · 저장시각: ${savedAtMain}\n\n`;
+      } catch(e) { result += `메인 데이터 파싱 오류: ${e}\n\n`; }
+    }
+
+    // 직업별 데이터 파싱
+    const JOBS = ['warrior','archer','mage','rogue','paladin'];
+    result += `🎮 직업별 캐릭터:\n`;
+    JOBS.forEach(job => {
+      const charKey = 'gwo_charsave_' + un + '_' + job;
+      if(data.keys && data.keys[charKey]) {
+        try {
+          const cd = JSON.parse(data.keys[charKey]);
+          const cat = cd.savedAt ? new Date(cd.savedAt).toLocaleString('ko-KR') : '미기록';
+          result += `  · ${job}: Lv.${cd.lv} · 골드 ${(cd.gold||0).toLocaleString()}G · 저장 ${cat}\n`;
+        } catch(e) { result += `  · ${job}: 파싱 오류\n`; }
+      } else {
+        result += `  · ${job}: 데이터 없음\n`;
+      }
+    });
+
+    // 천공의 탑
+    const towerKey = Object.keys(data.keys||{}).find(k=>k.startsWith('gwo_tower_cur_'+un));
+    if(towerKey && data.keys[towerKey]) {
+      result += `\n🏰 천공의 탑: ${data.keys[towerKey]}층 진행 중\n`;
+    }
+
+    log('out-user', result);
+  } catch(e) { log('out-user','❌ 오류: ' + e); }
+}
+
+// ── 전체 사용자 목록 ──
+async function fetchAllUsers() {
+  log('out-user','🔍 전체 사용자 조회 중...');
+  try {
+    const snap = await DB.ref('gworld_sync').get();
+    if(!snap.exists()) { log('out-user','데이터 없음'); return; }
+    const users = [];
+    snap.forEach(child => {
+      const un = child.key;
+      const data = child.val();
+      const ts = data._savedAt || data._ts || 0;
+      const saveKey = 'gwo_save_' + un;
+      let lv = '?', job = '?';
+      if(data.keys && data.keys[saveKey]) {
+        try { const s = JSON.parse(data.keys[saveKey]); lv = s.lv; job = s.job||'?'; } catch{}
+      }
+      users.push({ un, ts, lv, job });
+    });
+    users.sort((a,b) => b.ts - a.ts);
+    let result = `📋 전체 사용자 (${users.length}명):\n\n`;
+    users.forEach((u,i) => {
+      const t = u.ts ? new Date(u.ts).toLocaleString('ko-KR') : '?';
+      result += `${i+1}. ${u.un} — ${u.job} Lv.${u.lv} — ${t}\n`;
+    });
+    log('out-user', result);
+  } catch(e) { log('out-user','❌ 오류: ' + e); }
+}
+
+// ── Firebase → 로컬 복원 ──
+async function restoreToLocal() {
+  const un = document.getElementById('inp-restore-user').value.trim();
+  if(!un) { log('out-restore','❌ 사용자명을 입력하세요'); return; }
+  if(!confirm(`${un}의 Firebase 데이터를 이 브라우저 localStorage에 복원하시겠습니까?\n기존 로컬 데이터는 덮어씌워집니다.`)) return;
+  log('out-restore','📥 복원 중...');
+  try {
+    const snap = await DB.ref('gworld_sync/' + un).get();
+    if(!snap.exists()) { log('out-restore','❌ Firebase에 데이터 없음'); return; }
+    const data = snap.val();
+    if(!data.keys) { log('out-restore','❌ 유효한 데이터 없음'); return; }
+    let count = 0;
+    Object.entries(data.keys).forEach(([k,v]) => {
+      localStorage.setItem(k, v); count++;
+    });
+    // 로그인 정보도 복원
+    localStorage.setItem('ggo_username', un);
+    localStorage.setItem('gwo_last_save_' + un, String(data._ts || Date.now()));
+    log('out-restore', `✅ 복원 완료!\n복원된 키: ${count}개\n사용자: ${un}\n\n→ 이제 gworld.html에서 ${un} 계정으로 로그인하세요.`);
+  } catch(e) { log('out-restore','❌ 오류: ' + e); }
+}
+
+// ── 로컬 → Firebase 업로드 ──
+async function uploadLocalToFirebase() {
+  const un = document.getElementById('inp-restore-user').value.trim() || localStorage.getItem('ggo_username');
+  if(!un) { log('out-restore','❌ 사용자명을 입력하세요'); return; }
+  if(!confirm(`${un}의 현재 로컬 데이터를 Firebase에 업로드하시겠습니까?`)) return;
+  log('out-restore','📤 업로드 중...');
+  try {
+    const PREFIXES = ['gwo_save_','gwo_activejob_','gwo_charsave_','gwo_tower_','gwo_wb_','gwo_quest_','gwo_dun_'];
+    const data = { _ts: Date.now(), _savedAt: Date.now(), keys: {} };
+    for(let i=0; i<localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if(k && PREFIXES.some(p=>k.startsWith(p)) && k.includes(un)) {
+        data.keys[k] = localStorage.getItem(k);
+      }
+    }
+    await DB.ref('gworld_sync/' + un).set(data);
+    log('out-restore', `✅ 업로드 완료!\n업로드된 키: ${Object.keys(data.keys).length}개\n사용자: ${un}`);
+  } catch(e) { log('out-restore','❌ 오류: ' + e); }
+}
+
+// ── 수동 레벨/골드 수정 ──
+async function manualEdit() {
+  const un = document.getElementById('inp-edit-user').value.trim();
+  const job = document.getElementById('inp-edit-job').value.trim();
+  const lv = parseInt(document.getElementById('inp-edit-lv').value);
+  const gold = parseInt(document.getElementById('inp-edit-gold').value);
+  if(!un) { log('out-edit','❌ 사용자명을 입력하세요'); return; }
+  if(!confirm(`${un}의 데이터를 수정하시겠습니까?\n레벨: ${lv||'유지'}, 골드: ${gold||'유지'}`)) return;
+  log('out-edit','🔧 수정 중...');
+  try {
+    const snap = await DB.ref('gworld_sync/' + un).get();
+    if(!snap.exists()) { log('out-edit','❌ 데이터 없음'); return; }
+    const data = snap.val();
+
+    // 메인 세이브 수정
+    const saveKey = 'gwo_save_' + un;
+    if(data.keys && data.keys[saveKey]) {
+      const save = JSON.parse(data.keys[saveKey]);
+      if(!isNaN(lv) && lv > 0) save.lv = lv;
+      if(!isNaN(gold) && gold >= 0) save.gold = gold;
+      save._savedAt = Date.now();
+      data.keys[saveKey] = JSON.stringify(save);
+    }
+
+    // 직업별 세이브 수정
+    if(job) {
+      const charKey = 'gwo_charsave_' + un + '_' + job;
+      if(data.keys && data.keys[charKey]) {
+        const cd = JSON.parse(data.keys[charKey]);
+        if(!isNaN(lv) && lv > 0) cd.lv = lv;
+        if(!isNaN(gold) && gold >= 0) cd.gold = gold;
+        cd.savedAt = Date.now();
+        cd._savedAt = Date.now();
+        data.keys[charKey] = JSON.stringify(cd);
+      }
+    }
+
+    data._ts = Date.now();
+    data._savedAt = Date.now();
+    await DB.ref('gworld_sync/' + un).set(data);
+    log('out-edit', `✅ 수정 완료!\n사용자: ${un}\n레벨: ${lv||'유지'} / 골드: ${gold||'유지'}\n\n→ 사용자가 재접속하면 적용됩니다.`);
+  } catch(e) { log('out-edit','❌ 오류: ' + e); }
+}
+
+// ── 백업 내보내기 ──
+async function exportBackup() {
+  const un = document.getElementById('inp-backup-user').value.trim();
+  log('out-backup','💾 백업 중...');
+  try {
+    let exportData = {};
+    if(un) {
+      const snap = await DB.ref('gworld_sync/' + un).get();
+      if(snap.exists()) exportData[un] = snap.val();
+    } else {
+      const snap = await DB.ref('gworld_sync').get();
+      snap.forEach(child => { exportData[child.key] = child.val(); });
+    }
+    const json = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ggoplay_backup_${un||'all'}_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    log('out-backup', `✅ 백업 완료!\n사용자: ${un||'전체'}\n키 수: ${Object.keys(exportData).length}개`);
+  } catch(e) { log('out-backup','❌ 오류: ' + e); }
+}
+
+function importBackup() { document.getElementById('inp-file').click(); }
+
+async function readBackupFile(e) {
+  const file = e.target.files[0]; if(!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if(!confirm(`백업 파일을 Firebase에 복원하시겠습니까?\n사용자 수: ${Object.keys(data).length}명`)) return;
+    log('out-backup','📂 복원 중...');
+    let count = 0;
+    for(const [un, userData] of Object.entries(data)) {
+      await DB.ref('gworld_sync/' + un).set(userData);
+      count++;
+    }
+    log('out-backup', `✅ 복원 완료! ${count}명 데이터 복원됨`);
+  } catch(e) { log('out-backup','❌ 오류: ' + e); }
+}
+</script>
+</body>
+</html>
