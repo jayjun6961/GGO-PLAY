@@ -11286,8 +11286,55 @@ function saveCurrentChar() {
   localStorage.setItem(activeJobKey(), G.job);
 }
 
-// ── 캐릭터 선택창 열기 ──
-function openCharSelect() { openP('gw-pcharsel'); }
+// ── 캐릭터 선택창 열기 (Firebase에서 최신 데이터 동기화 후 표시) ──
+async function _syncCharDataFromCloud() {
+  if(!window._gwDB || !gwUN()) return;
+  try {
+    const snap = await window._gwDB.ref('gworld_sync/' + gwUN()).get();
+    if(!snap || !snap.exists()) return;
+    const cloudData = snap.val();
+    if(!cloudData || !cloudData.keys) return;
+    const JOBS_LIST = ['warrior','archer','mage','rogue','paladin'];
+    JOBS_LIST.forEach(jobId => {
+      const charKey = 'gwo_charsave_' + gwUN() + '_' + jobId;
+      if(cloudData.keys[charKey]) {
+        const localRaw = localStorage.getItem(charKey);
+        if(!localRaw) {
+          // 로컬에 없으면 바로 복원
+          localStorage.setItem(charKey, cloudData.keys[charKey]);
+        } else {
+          try {
+            const cloud = JSON.parse(cloudData.keys[charKey]);
+            const local = JSON.parse(localRaw);
+            const cloudAt = cloud._savedAt || cloud.savedAt || 0;
+            const localAt = local._savedAt || local.savedAt || 0;
+            if(cloudAt > localAt + 1000) {
+              localStorage.setItem(charKey, cloudData.keys[charKey]);
+            }
+          } catch(e) {}
+        }
+      }
+    });
+    // 통합 골드 동기화
+    const goldKey = 'gwo_shared_gold_' + gwUN();
+    if(cloudData.keys && cloudData.keys[goldKey]) {
+      const localGold = parseInt(localStorage.getItem(goldKey)||'0');
+      const cloudGold = parseInt(cloudData.keys[goldKey]||'0');
+      if(cloudGold > localGold) {
+        localStorage.setItem(goldKey, String(cloudGold));
+        G.gold = cloudGold;
+      }
+    }
+  } catch(e) { console.warn('[syncCharData] 실패:', e); }
+}
+
+function openCharSelect() {
+  openP('gw-pcharsel');
+  // Firebase에서 최신 캐릭터 데이터 동기화 후 패널 갱신
+  _syncCharDataFromCloud().then(() => {
+    renderCharSelectPanel();
+  }).catch(() => {});
+}
 
 // ── 캐릭터 선택창 렌더 ──
 function renderCharSelectPanel() {
@@ -11353,11 +11400,28 @@ function renderCharSelectPanel() {
 }
 
 // ── 직업 전환 ──
-function selectCharJob(jobId) {
+async function selectCharJob(jobId) {
   const job = JOBS[jobId]; if(!job) return;
   if(jobId === G.job) { closeP('gw-pcharsel'); return; }
 
-  const existData = getCharData(jobId);
+  // 로컬에 없으면 Firebase에서 먼저 당겨오기
+  let existData = getCharData(jobId);
+  if(!existData && window._gwDB && gwUN()) {
+    gwT('☁️ 캐릭터 데이터 불러오는 중...');
+    try {
+      const snap = await window._gwDB.ref('gworld_sync/' + gwUN()).get();
+      if(snap && snap.exists()) {
+        const cloudData = snap.val();
+        const charKey = 'gwo_charsave_' + gwUN() + '_' + jobId;
+        if(cloudData && cloudData.keys && cloudData.keys[charKey]) {
+          localStorage.setItem(charKey, cloudData.keys[charKey]);
+          existData = getCharData(jobId);
+          if(existData) gwT('✅ Firebase에서 ' + job.name + ' 데이터 복원!');
+        }
+      }
+    } catch(e) { console.warn('[selectCharJob] Firebase 조회 실패:', e); }
+  }
+
   const msg = existData && existData.lv
     ? `[${job.name}] Lv.${existData.lv} 캐릭터로 전환합니다.`
     : `[${job.name}]로 새 캐릭터를 생성합니다. (1레벨 시작)`;
