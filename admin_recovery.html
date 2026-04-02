@@ -237,36 +237,57 @@ async function manualEdit() {
   log('out-edit','🔧 수정 중...');
   try {
     const snap = await DB.ref('gworld_sync/' + un).get();
-    if(!snap.exists()) { log('out-edit','❌ 데이터 없음'); return; }
-    const data = snap.val();
+    const data = snap && snap.exists() ? snap.val() : { _ts:0, keys:{} };
+    if(!data.keys) data.keys = {};
 
-    // 메인 세이브 수정
+    // ★ 핵심: 로컬보다 확실히 미래 시각으로 설정 → 게임이 반드시 클라우드 우선 선택
+    const FORCE_TS = Date.now() + 999999999;
+
+    // 메인 세이브 수정 (없으면 새로 생성)
     const saveKey = 'gwo_save_' + un;
-    if(data.keys && data.keys[saveKey]) {
-      const save = JSON.parse(data.keys[saveKey]);
-      if(!isNaN(lv) && lv > 0) save.lv = lv;
-      if(!isNaN(gold) && gold >= 0) save.gold = gold;
-      save._savedAt = Date.now();
-      data.keys[saveKey] = JSON.stringify(save);
-    }
+    let save = {};
+    try { save = JSON.parse(data.keys[saveKey] || '{}'); } catch(e) {}
+    if(!isNaN(lv) && lv > 0) save.lv = lv;
+    if(job) save.job = job;  // 현재 직업도 수정
+    if(!isNaN(gold) && gold >= 0) save.gold = gold;
+    save._savedAt = FORCE_TS;
+    save._adminEdit = true;
+    data.keys[saveKey] = JSON.stringify(save);
 
     // 직업별 세이브 수정
-    if(job) {
-      const charKey = 'gwo_charsave_' + un + '_' + job;
-      if(data.keys && data.keys[charKey]) {
-        const cd = JSON.parse(data.keys[charKey]);
-        if(!isNaN(lv) && lv > 0) cd.lv = lv;
+    const jobList = job ? [job] : ['warrior','archer','mage','rogue','paladin'];
+    jobList.forEach(j => {
+      const charKey = 'gwo_charsave_' + un + '_' + j;
+      let cd = {};
+      try { cd = JSON.parse(data.keys[charKey] || '{}'); } catch(e) {}
+      if(cd.job || j === job) {  // 해당 직업 데이터가 있거나 지정 직업이면
+        if(!cd.job) cd.job = j;
+        if(!isNaN(lv) && lv > 0 && j === job) cd.lv = lv;
         if(!isNaN(gold) && gold >= 0) cd.gold = gold;
-        cd.savedAt = Date.now();
-        cd._savedAt = Date.now();
+        cd.savedAt = FORCE_TS;
+        cd._savedAt = FORCE_TS;
+        cd._adminEdit = true;
         data.keys[charKey] = JSON.stringify(cd);
       }
-    }
+    });
 
-    data._ts = Date.now();
-    data._savedAt = Date.now();
+    // 타임스탬프: 로컬보다 확실히 높게
+    data._ts = FORCE_TS;
+    data._savedAt = FORCE_TS;
+
     await DB.ref('gworld_sync/' + un).set(data);
-    log('out-edit', `✅ 수정 완료!\n사용자: ${un}\n레벨: ${lv||'유지'} / 골드: ${gold||'유지'}\n\n→ 사용자가 재접속하면 적용됩니다.`);
+
+    let result = `✅ 수정 완료!\n`;
+    result += `사용자: ${un}\n`;
+    result += `직업: ${job||'전체'} / 레벨: ${lv||'유지'} / 골드: ${gold||'유지'}\n`;
+    result += `\n⚠️ 적용 방법:\n`;
+    result += `사용자가 브라우저에서 F12 → Console에 아래 코드 실행:\n\n`;
+    result += `localStorage.removeItem('gwo_save_${un}');\n`;
+    result += `localStorage.removeItem('gwo_charsave_${un}_${job||'직업명'}');\n`;
+    result += `localStorage.removeItem('gwo_last_save_${un}');\n`;
+    result += `location.reload();\n\n`;
+    result += `또는 사이트 접속 후 F5 새로고침 2~3회`;
+    log('out-edit', result);
   } catch(e) { log('out-edit','❌ 오류: ' + e); }
 }
 
