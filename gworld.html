@@ -1604,8 +1604,59 @@ const gwUN = ()=>{
   return un || '_g';
 };
 const gKey = k=>'gwo_'+k+'_'+gwUN();
-const gGet = k=>{try{return JSON.parse(localStorage.getItem(gKey(k))||'null');}catch{return null;}};
+const gGet = k=>{try{return JSON.parse(localStorage.getItem(gKey(k))||'null');}catch{return null;};};
 const gSet = (k,v)=>localStorage.setItem(gKey(k),JSON.stringify(v));
+
+// ══════════════════════════════════════════
+//  통합 골드 시스템
+//  모든 직업이 하나의 골드 공유
+//  저장 키: gwo_shared_gold_{username}
+// ══════════════════════════════════════════
+function _sharedGoldKey() { return 'gwo_shared_gold_' + gwUN(); }
+
+function getSharedGold() {
+  const raw = localStorage.getItem(_sharedGoldKey());
+  return raw !== null ? parseInt(raw) || 0 : null; // null=미초기화
+}
+
+function setSharedGold(amount) {
+  const v = Math.max(0, Math.floor(amount));
+  localStorage.setItem(_sharedGoldKey(), String(v));
+  G.gold = v;
+  return v;
+}
+
+function addSharedGold(amount) {
+  const cur = getSharedGold() !== null ? getSharedGold() : (G.gold || 0);
+  return setSharedGold(cur + amount);
+}
+
+function spendSharedGold(amount) {
+  const cur = getSharedGold() !== null ? getSharedGold() : (G.gold || 0);
+  if(cur < amount) return false;
+  setSharedGold(cur - amount);
+  return true;
+}
+
+// 마이그레이션: 기존 직업별 골드 중 최대값으로 통합 골드 초기화
+function migrateToSharedGold() {
+  if(getSharedGold() !== null) {
+    G.gold = getSharedGold();
+    return;
+  }
+  const JOBS_LIST = ['warrior','archer','mage','rogue','paladin'];
+  let maxGold = 0;
+  JOBS_LIST.forEach(jobId => {
+    try {
+      const raw = localStorage.getItem('gwo_charsave_' + gwUN() + '_' + jobId);
+      if(raw) { const cd = JSON.parse(raw); if(cd && (cd.gold||0) > maxGold) maxGold = cd.gold||0; }
+    } catch(e) {}
+  });
+  const mainSave = gGet('save');
+  if(mainSave && (mainSave.gold||0) > maxGold) maxGold = mainSave.gold||0;
+  setSharedGold(maxGold);
+  if(maxGold > 0) gwT('💰 통합 골드 시스템 적용! ' + maxGold.toLocaleString() + 'G');
+}
 
 // 게임 상태
 let G={sc:'intro',job:null,lv:1,hp:0,mHP:0,mp:0,mMP:0,atk:0,def:0,
@@ -1646,6 +1697,9 @@ function tDef(){
 }
 
 function _buildSaveData() {
+  // 저장 전 G.gold → 통합 골드 동기화
+  const sharedG = getSharedGold();
+  if(sharedG !== null) G.gold = sharedG;
   return {
     job:G.job, lv:G.lv, hp:G.hp, mp:G.mp, exp:G.exp, gold:G.gold,
     inv:G.inv, qprog:G.qprog, qclaim:G.qclaim, sk:G.sk, quests:G.quests,
@@ -1692,7 +1746,7 @@ function _doCloudUpload() {
   if(!window._gwDB) return;
   const un = gwUN(); if(!un) return;
   const SYNC_PREFIXES = [
-    'gwo_save_', 'gwo_activejob_', 'gwo_dojo_auto_',
+    'gwo_save_', 'gwo_activejob_', 'gwo_dojo_auto_', 'gwo_shared_gold_',
   ];
   const SYNC_DYNAMIC = [
     'gwo_charsave_', 'gwo_tower_cleared_', 'gwo_tower_cur_',
@@ -1793,11 +1847,14 @@ function loadG(){
   const eq=equipBonus();
   Object.assign(G,{job:s.job,lv:s.lv,hp:s.hp??b.mHP,mp:s.mp??b.mMP,mHP:b.mHP,mMP:b.mMP,
     atk:b.atk+eq.atk,def:b.def+eq.def,
-    exp:s.exp||0,gold:s.gold||0,inv:s.inv||[],qprog:s.qprog||{},qclaim:s.qclaim||{},
+    exp:s.exp||0,gold:0,inv:s.inv||[],qprog:s.qprog||{},qclaim:s.qclaim||{},
     sk:s.sk||{},quests:s.quests||makeQ(),
     wquests:s.wquests||makeWeeklyQ(),wqprog:s.wqprog||{},wqclaim:s.wqclaim||{},
     enhQTotal:s.enhQTotal||0,enhQClaimed:s.enhQClaimed||0,lvQClaim:s.lvQClaim||{},
-    relics:s.relics||[null,null,null,null,null],enhQuestTotal:s.enhQuestTotal||{},lvQuestClaimed:s.lvQuestClaimed||{}});return true;
+    relics:s.relics||[null,null,null,null,null],enhQuestTotal:s.enhQuestTotal||{},lvQuestClaimed:s.lvQuestClaimed||{}});
+  // 통합 골드 로드 (마이그레이션 포함)
+  migrateToSharedGold();
+  return true;
 }
 // ════════════════════════════════════════════════════════
 //  NPC 퀘스트 시스템 (직업별 독립)
@@ -1877,7 +1934,7 @@ function claimEnhQ() {
   const target = getEnhQTarget();
   if(total < target) { gwT(`⚒️ 강화 횟수 부족 (${total}/${target}회)`); return; }
   const reward = getEnhQReward(target);
-  G.gold += reward;
+  addSharedGold(reward);
   G.enhQClaimed = (G.enhQClaimed || 0) + 1; // 몇 번째 수령인지 기록
   saveG(); hud();
   gwT(`⚒️ 강화 퀘스트 완료! (${target}회 달성) +${reward.toLocaleString()}G`);
@@ -1911,7 +1968,7 @@ function claimLvQ(lvTarget) {
   const ms = getLvQMilestones().find(m => m.lv === lvTarget);
   if(!ms) return;
   G.lvQClaim[job][lvTarget] = true;
-  G.gold += ms.gR;
+  addSharedGold(ms.gR);
   const magicEx = G.inv.find(i=>i.n==='마법석');
   if(magicEx) magicEx.qty=(magicEx.qty||0)+ms.magicR;
   else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:ms.magicR,_id:Date.now()-2});
@@ -3219,7 +3276,7 @@ function mobDead(){
   const _gainedExp=Math.floor(m.exp*tExpRate());
   const _goldMult=1+(equipBonus().goldBonus||0)/100;
   const _goldGained=Math.floor(m.g*_goldMult);
-  G.exp+=_gainedExp;G.gold+=_goldGained;
+  G.exp+=_gainedExp;addSharedGold(_goldGained);
   blog(`<span class="li">💀 ${m.n} 처치! +${_gainedExp}EXP +${_goldGained}G</span>`);
   if(Math.random()<m.drop){
     // 사냥터별 드롭 등급 확률 테이블
@@ -3306,7 +3363,7 @@ function mobDead(){
 
 function playerDead(){
   stopAuto();window._autoSkillOn=false;blog('<span class="ld">💀 사망!</span>');
-  G.gold=Math.floor(G.gold*.9);G.hp=Math.floor(G.mHP*.3);saveG();
+  setSharedGold(Math.floor(G.gold*.9));G.hp=Math.floor(G.mHP*.3);saveG();
   document.getElementById('gw-dead').classList.add('on');
 }
 function revive(){document.getElementById('gw-dead').classList.remove('on');G.buffs={};goTown();}
@@ -3675,7 +3732,7 @@ function openItemAction(idx){
     }
     if(confirm(`💎 ${it.n} 판매? (+${it.sellPrice||it.val||10} G)`)){
       const sp=it.sellPrice||it.val||10;
-      G.gold+=sp*it.qty;
+      addSharedGold(sp*it.qty);
       G.inv.splice(idx,1);
       hud();saveG();renderInv();
       gwT(`${it.n} 판매! +${sp*it.qty}G`);
@@ -3813,7 +3870,7 @@ function doSell(){
   const sp=it.sellPrice||Math.floor((it.atk||0)*8+(it.def||0)*8+10);
   const qty=it.qty||1;
   const totalSp=sp*qty;
-  G.gold+=totalSp;
+  addSharedGold(totalSp);
   G.inv.splice(_modalIdx,1);
   hud();saveG();renderInv();
   gwT(`${it.n}${qty>1?` ×${qty}`:''} 판매! +${totalSp.toLocaleString()}G`);
@@ -4001,7 +4058,7 @@ function claimQ(qid){
   const q=G.quests.find(x=>x.id===qid);if(!q||G.qclaim[qid])return;
   G.qclaim[qid]=true;
   const gainedExp=Math.floor(q.eR*tExpRate());
-  G.exp+=gainedExp;G.gold+=q.gR;
+  G.exp+=gainedExp;addSharedGold(q.gR);
   while(G.exp>=expNeed(G.lv)&&G.lv<200){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
   gwT(`🎉 일일 퀘스트 완료! +${gainedExp}EXP +${q.gR}G`);hud();saveG();renderQ();renderQdot();
 }
@@ -4010,7 +4067,7 @@ function claimWQ(qid){
   const q=G.wquests.find(x=>x.id===qid);if(!q||G.wqclaim[qid])return;
   G.wqclaim[qid]=true;
   const gainedExp=Math.floor(q.eR*tExpRate());
-  G.exp+=gainedExp; G.gold+=q.gR;
+  G.exp+=gainedExp; addSharedGold(q.gR);
   if(q.magicR){const mEx=G.inv.find(i=>i.n==='마법석');if(mEx)mEx.qty=(mEx.qty||0)+q.magicR;else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:q.magicR,_id:Date.now()});}
   while(G.exp>=expNeed(G.lv)&&G.lv<200){G.exp-=expNeed(G.lv);G.lv++;const b=cBase(G.job,G.lv);G.mHP=b.mHP;G.mMP=b.mMP;}
   gwT(`🎉 주간 퀘스트 완료! +${gainedExp.toLocaleString()}EXP +${q.gR.toLocaleString()}G${q.magicR?' +💎'+q.magicR:''}`);
@@ -4228,7 +4285,7 @@ function enhSlot(slot){
   if(enh>=maxEnh){gwT(`⚠️ 최대 강화 횟수 도달 (+${maxEnh} / ${it.grade})`);return;}
   const cost=enhCost(enh, it.grade, it.slot||slot);
   if(G.gold<cost){gwT(`골드 부족 (${cost}G 필요)`);return;}
-  G.gold-=cost;
+  spendSharedGold(cost);
   it.enh=(it.enh||0)+1;
   G.enhQTotal=(G.enhQTotal||0)+1; // 강화 퀘스트 누적
   // 장비 타입별 강화 효과
@@ -4401,8 +4458,11 @@ function selJob(jid){
 function confirmJob(){
   if(!_selJob)return;
   const j=JOBS[_selJob],b=cBase(_selJob,1);
+  // 신규 캐릭터: 기존 통합 골드 유지 (없으면 100G 지급)
+  const _existGold = getSharedGold();
+  const _startGold = (_existGold !== null && _existGold > 0) ? _existGold : 100;
   Object.assign(G,{job:_selJob,lv:1,mHP:b.mHP,mMP:b.mMP,hp:b.mHP,mp:b.mMP,
-    atk:b.atk,def:b.def,exp:0,gold:100,inv:[],qprog:{},qclaim:{},
+    atk:b.atk,def:b.def,exp:0,gold:_startGold,inv:[],qprog:{},qclaim:{},
     sk:{},buffs:{},defBuff:false,quests:makeQ(),wquests:makeWeeklyQ(),wqprog:{},wqclaim:{},relics:[null,null,null,null,null]});
   // 기본 장비를 equip 슬롯에 장착 (강화 수치 영속 유지)
   G.equip={weapon:null,shield:null,armor:null,boots:null,gloves:null,necklace:null,ring1:null,ring2:null,ring3:null};
@@ -4479,7 +4539,7 @@ function buyPotion(id, qty=1) {
   if(!pot) return;
   const totalPrice = pot.price * qty;
   if(G.gold < totalPrice){ gwT(`💰 골드 부족! (필요: ${totalPrice.toLocaleString()}G)`); return; }
-  G.gold -= totalPrice;
+  spendSharedGold(totalPrice);
   // 인벤에 같은 포션 있으면 수량 증가
   const exist = G.inv.find(i=>i.id===pot.id);
   if(exist) exist.qty=(exist.qty||1)+qty;
@@ -4813,7 +4873,7 @@ function dunBossDead() {
   const expMin=dun.rewards.exp[0],  expMax=dun.rewards.exp[1];
   const goldGain = goldMin + Math.floor(Math.random()*(goldMax-goldMin+1));
   const expGain  = Math.floor((expMin  + Math.floor(Math.random()*(expMax-expMin+1)))*tExpRate());
-  G.gold += goldGain;
+  addSharedGold(goldGain);
   G.exp  += expGain;
 
   // 레벨업 처리
@@ -6147,7 +6207,7 @@ function buyCashItem(itemId) {
   // 아이템 지급
   switch(item.type) {
     case 'gold':
-      G.gold += item.value;
+      addSharedGold(item.value);
       hud(); saveG();
       gwT(`💰 골드 +${item.value.toLocaleString()} 지급! (-${item.gpCost} GP)`);
       break;
@@ -6807,7 +6867,7 @@ function wbClaimReward(date, wbId, jobId=null) {
 
 // ── 현재 G에 보상 직접 적용 (현재 캐릭터용) ──
 function applyWbRewardToG(wb, job, gold, exp, stones, rng, date) {
-  G.gold += gold;
+  addSharedGold(gold);
   G.exp  += exp;
   let lvUp = 0;
   while(G.exp >= expNeed(G.lv) && G.lv < 200) { G.exp -= expNeed(G.lv); G.lv++; lvUp++; }
@@ -7632,7 +7692,7 @@ function claimPVPReward(rank, seasonKey) {
   else if(rank<=10){gold=5000;stones=30;}
   else{gold=3000;stones=10;}
 
-  G.gold += gold;
+  addSharedGold(gold);
   const stEx = G.inv.find(i=>i.n==='마법석');
   if(stEx) stEx.qty=(stEx.qty||0)+stones;
   else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:stones,_id:Date.now()});
@@ -8209,7 +8269,7 @@ function towerMobDead() {
 
   // 보상 계산
   const { gold, exp } = towerGoldExp(floor);
-  G.gold += gold;
+  addSharedGold(gold);
   G.exp  += exp;
 
   let lvUp=0;
@@ -8259,7 +8319,7 @@ function towerMobDead() {
     const bonus500G    = 500000000; // 5억 골드
     const bonus500Mag  = 1000;
     const bonus500Alch = 1000;
-    G.gold += bonus500G;
+    addSharedGold(bonus500G);
     const m500 = G.inv.find(i=>i.n==='마법석');
     if(m500) m500.qty=(m500.qty||0)+bonus500Mag; else G.inv.push({n:'마법석',e:'💎',type:'mat',val:50,grade:'희귀',sellPrice:50,qty:bonus500Mag,_id:Date.now()-3});
     const a500 = G.inv.find(i=>i.n==='연금석');
@@ -8856,7 +8916,7 @@ function relicEnhSlot(slotIdx) {
   if(alchQty < cost.alch) { gwT(`연금석 부족! (${cost.alch}개 필요)`); return; }
 
   // 비용 차감
-  G.gold -= cost.gold;
+  spendSharedGold(cost.gold);
   if(alchItem) {
     alchItem.qty -= cost.alch;
     if(alchItem.qty <= 0) G.inv.splice(G.inv.indexOf(alchItem), 1);
@@ -9180,7 +9240,7 @@ function rdunBossDead() {
   const goldMult = 1+(equipBonus().goldBonus||0)/100;
   const goldGain = Math.floor((30000 + Math.floor(Math.random()*20001)) * goldMult);
   const expGain  = Math.floor((25000 + Math.floor(Math.random()*15001)) * tExpRate());
-  G.gold += goldGain;
+  addSharedGold(goldGain);
   G.exp  += expGain;
 
   let lvUp=0;
@@ -9648,7 +9708,7 @@ function legionBossDead() {
   const expGain =Math.floor((boss.exp[0] +Math.floor(Math.random()*(boss.exp[1]-boss.exp[0]+1)))*tExpRate());
   const magicAmt=boss.magic[0]+Math.floor(Math.random()*(boss.magic[1]-boss.magic[0]+1));
   const alchAmt =boss.alch[0] +Math.floor(Math.random()*(boss.alch[1]-boss.alch[0]+1));
-  G.gold+=goldGain; G.exp+=expGain;
+  addSharedGold(goldGain); G.exp+=expGain;
 
   // 레벨업 처리
   let lvUp=0;
@@ -9995,7 +10055,7 @@ function craftArmorItem(ri) {
   // 재료 차감
   matItem.qty -= recipe.matNeed;
   if(matItem.qty <= 0) G.inv.splice(G.inv.indexOf(matItem), 1);
-  G.gold -= recipe.goldNeed;
+  spendSharedGold(recipe.goldNeed);
 
   // 장비 생성
   const newItem = {
@@ -10162,7 +10222,7 @@ function tryCraft(invIdx) {
   if(G.gold < CRAFT_COST_GOLD) { gwT(`💰 골드가 부족합니다. (필요: ${CRAFT_COST_GOLD.toLocaleString()}G)`); return; }
 
   // 재료 차감 (골드 + 초월 장비 + 빛의 정수)
-  G.gold -= CRAFT_COST_GOLD;
+  spendSharedGold(CRAFT_COST_GOLD);
   G.inv.splice(invIdx, 1); // 초월 장비 제거
   if(essenceItem.qty <= CRAFT_ESSENCE_NEED) {
     G.inv = G.inv.filter(i => i !== essenceItem); // 전부 소모
@@ -10391,7 +10451,7 @@ function makeElixir(defId) {
   }
 
   // 재료 차감
-  G.gold -= def.gold;
+  spendSharedGold(def.gold);
   for(const m of def.mats) {
     const ex = G.inv.find(i=>i.n===m.n);
     ex.qty -= m.qty;
@@ -10613,7 +10673,7 @@ async function aucBuy(key) {
     if(!snap || !snap.exists()) { gwT('이미 판매된 아이템입니다.'); _renderAucBuy(); return; }
 
     // 골드 차감
-    G.gold -= item.price;
+    spendSharedGold(item.price);
 
     // 아이템 인벤 추가
     const newItem = { ...item };
@@ -10895,7 +10955,7 @@ async function aucCollectPayout() {
   const payout=snap&&snap.exists()?snap.val()||0:0;
   if(payout<=0){gwT('수령할 판매대금이 없습니다.');return;}
   await payRef.remove().catch(()=>{});
-  G.gold+=payout;
+  addSharedGold(payout);
   saveG();
   hud();
   gwT(`💰 판매대금 ${payout.toLocaleString()}G 수령 완료!`);
@@ -11212,7 +11272,8 @@ function saveCurrentChar() {
   const _now = Date.now();
   const data = {
     job:G.job, lv:G.lv, hp:G.hp, mp:G.mp, exp:G.exp,
-    gold:G.gold, inv:G.inv, sk:G.sk, equip:G.equip||{},
+    gold:0,     // 골드는 통합 저장 (gwo_shared_gold_*) — 직업별 저장 제외
+    inv:G.inv, sk:G.sk, equip:G.equip||{},
     qprog:G.qprog, qclaim:G.qclaim, quests:G.quests,
     wquests:G.wquests, wqprog:G.wqprog, wqclaim:G.wqclaim,
     relics:G.relics||[null,null,null,null,null],
@@ -11322,7 +11383,9 @@ function selectCharJob(jobId) {
     // 신규 캐릭터 생성
     const b = cBase(jobId, 1);
     const j = JOBS[jobId];
-    G.job = jobId; G.lv = 1; G.exp = 0; G.gold = 500;
+    G.job = jobId; G.lv = 1; G.exp = 0;
+    G.gold = (getSharedGold() !== null && getSharedGold() > 0) ? getSharedGold() : 500;
+    if(getSharedGold() === null) setSharedGold(G.gold);
     G.mHP = b.mHP; G.hp = b.mHP;
     G.mMP = b.mMP; G.mp = b.mMP;
     G.inv = []; G.sk = {}; G.equip = {}; G.buffs = {};
