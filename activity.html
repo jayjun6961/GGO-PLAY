@@ -503,13 +503,15 @@
       const EXP_MAP = {일반:100,희귀:300,에픽:500,전설:1000};
       Object.keys(data).forEach(u => {
         const profile = data[u];
-        // decoExp 기준으로 마이페이지와 동일하게 계산
-        const decoExp = profile?.decoExp || 0;
-        const itemExp = (profile?.items||[]).reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
-        const finalExp = Math.max(decoExp, itemExp);
+        // decoExp: Firebase 저장값 OR 아이템 합산 OR 로컬 스토리지 폴백
+        const firebaseExp = profile?.decoExp || 0;
+        const itemExp     = (profile?.items||[]).reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
+        const localExp    = parseInt(localStorage.getItem('ggo_deco_exp_'+u)||'0');
+        const finalExp    = Math.max(firebaseExp, itemExp, localExp);
+        const decoLv      = Math.floor(finalExp/1000)+1;
         window._actProfileCache[u] = {
-          items: profile?.items || [],
-          decoLv: Math.floor(finalExp/1000)+1,
+          items:   profile?.items || [],
+          decoLv:  decoLv,
           decoExp: finalExp
         };
       });
@@ -560,7 +562,9 @@
       if(s7b?.colors?.[0]) border=`box-shadow:0 0 0 2px ${s7b.colors[0]},0 0 8px ${s7b.colors[0]}55;`;
     }
 
-    return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;overflow:hidden;flex-shrink:0;${border}${extra}">${inner}</div>`;
+    return `<div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;flex-shrink:0;overflow:visible;">
+      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;overflow:hidden;${border}${extra}">${inner}</div>
+    </div>`;
   }
 
   // 이름 효과 HTML
@@ -617,20 +621,25 @@
       // 리스너 데이터 없으면 일회성 get으로 보완
       const EXP_MAP = {일반:100, 희귀:300, 에픽:500, 전설:1000};
 
-      if(window._actDB && Object.keys(window._actProfileCache).length === 0) {
+      // Firebase profiles 초기 로드 (리스너 미수신 시 보완)
+      if(window._actDB) {
         try {
           const snap = await window._actDB.ref('profiles').get();
           if(snap && snap.exists()) {
             const fbData = snap.val();
             Object.keys(fbData).forEach(u => {
-              const profile = fbData[u];
+              const profile   = fbData[u];
+              const firebaseExp = profile?.decoExp || 0;
+              const itemExp   = (profile?.items||[]).reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
+              const localExp  = parseInt(localStorage.getItem('ggo_deco_exp_'+u)||'0');
+              const finalExp  = Math.max(firebaseExp, itemExp, localExp);
               window._actProfileCache[u] = {
-                items: profile?.items || [],
-                decoLv: profile?.decoExp !== undefined
-                  ? Math.floor(profile.decoExp/1000)+1
-                  : Math.floor((profile?.items||[]).reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0)/1000)+1
+                items:   profile?.items || [],
+                decoLv:  Math.floor(finalExp/1000)+1,
+                decoExp: finalExp
               };
             });
+            console.log('[Act] 프로필 초기 로드:', Object.keys(fbData).length+'명');
           }
         } catch(e) { console.warn('[Act] 꾸미기 초기 로드 실패:', e); }
       }
