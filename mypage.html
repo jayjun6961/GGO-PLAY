@@ -410,6 +410,10 @@
     z-index: 1;
   }
 </style>
+<!-- Firebase SDK (클라우드 동기화용) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="sync.js"></script>
 </head>
 <body>
 
@@ -831,6 +835,41 @@
     }
   });
 
+  // ── Firebase 초기화 (프로필 실시간 동기화용) ──
+  window._mpDB = null;
+  try {
+    const fbCfg = {
+      apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+      authDomain: "ggo-play.firebaseapp.com",
+      databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ggo-play",
+      storageBucket: "ggo-play.firebasestorage.app",
+    };
+    if(typeof firebase !== 'undefined') {
+      if(!firebase.apps.length) firebase.initializeApp(fbCfg);
+      window._mpDB = firebase.database();
+    }
+  } catch(e) { console.warn('[MyPage] Firebase 초기화 실패:', e); }
+
+  // ── 내 프로필을 Firebase에 즉시 업로드 ──
+  function uploadProfileToFirebase(items) {
+    const username = sessionStorage.getItem('ggo_username')||'';
+    if(!username || !window._mpDB) return;
+    const equipped = items.filter(it => it.equipped);
+    const expKey = 'ggo_deco_exp_'+username;
+    const EXP_MAP = {일반:100,희귀:300,에픽:500,전설:1000};
+    const savedExp = parseInt(localStorage.getItem(expKey)||'0');
+    const itemExp  = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
+    const decoExp  = Math.max(savedExp, itemExp);
+    window._mpDB.ref('profiles/'+username).set({
+      items: equipped,
+      decoExp: decoExp,
+      ts: Date.now()
+    }).then(() => {
+      console.log('[Profile] Firebase 업로드 완료:', username, equipped.length + '개 장착');
+    }).catch(e => console.warn('[Profile] 업로드 실패:', e));
+  }
+
   function saveItems(items) {
     const username = sessionStorage.getItem('ggo_username')||'';
     // EXP는 보존 — 별도 누적 저장
@@ -842,6 +881,8 @@
     const keepExp = Math.max(prevExp, curExp);
     localStorage.setItem(expKey, keepExp);
     localStorage.setItem('ggo_items_'+username, JSON.stringify(items));
+    // ★ Firebase 실시간 동기화
+    uploadProfileToFirebase(items);
   }
 
   function equipItem(idx, e) {
@@ -1983,6 +2024,8 @@
 
       // 장착 아이템 프로필 반영
       applyEquipped(allItems);
+      // ★ 페이지 로드 시 Firebase에 최신 프로필 업로드
+      setTimeout(() => uploadProfileToFirebase(allItems), 1000);
 
       document.getElementById('loading-state').style.display='none';
       document.getElementById('content-wrap').style.display='block';
