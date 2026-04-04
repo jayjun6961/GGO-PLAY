@@ -331,6 +331,8 @@
     };
     if(!firebase.apps.length) firebase.initializeApp(cfg);
     window._actDB = firebase.database();
+    // 프로필 실시간 동기화 시작
+    setTimeout(startActProfileSync, 800);
   } catch(e) {
     console.warn('Firebase 초기화 실패:', e.message);
     window._actDB = null;
@@ -488,6 +490,100 @@
     }).catch(e => console.warn('프로필 업로드 실패:', e));
   }
 
+  // ── 프로필 캐시 + 실시간 리스너 ──
+  window._actProfileCache = {};
+  let _actProfileListenerActive = false;
+
+  function startActProfileSync() {
+    if(!window._actDB || _actProfileListenerActive) return;
+    _actProfileListenerActive = true;
+    window._actDB.ref('profiles').on('value', snap => {
+      if(!snap || !snap.exists()) return;
+      const data = snap.val();
+      const EXP_MAP = {일반:100,희귀:300,에픽:500,전설:1000};
+      Object.keys(data).forEach(u => {
+        const profile = data[u];
+        window._actProfileCache[u] = {
+          items: profile?.items || [],
+          decoLv: profile?.decoExp !== undefined
+            ? Math.floor(profile.decoExp/1000)+1
+            : Math.floor((profile?.items||[]).reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0)/1000)+1
+        };
+      });
+      console.log('[Act Profile] 실시간 동기화:', Object.keys(data).length + '명');
+    }, e => console.warn('[Act Profile] 리스너 오류:', e));
+  }
+
+  // 프로필 아이콘 HTML 생성 (activity 전용 소형)
+  function getActAvatarHtml(username, size=32) {
+    const cache = window._actProfileCache[username];
+    const items = cache?.items || JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
+    const iconItem = items.find(it=>it.type==='프로필아이콘'&&it.equipped);
+    const borderItem = items.find(it=>it.type==='테두리효과'&&it.equipped);
+
+    let inner = username.charAt(0).toUpperCase()||'?';
+    let bg = 'linear-gradient(135deg,#7c3aed,#5b21b6)';
+    let extra = '';
+
+    if(iconItem) {
+      if(iconItem.visualKey==='시즌7번들상자') {
+        const s7ic = typeof MP_S7!=='undefined' ? MP_S7?.아이콘?.[iconItem._s7Idx||0] : null;
+        if(s7ic) { inner=s7ic.render(size); bg='#0a0000'; extra='overflow:hidden;'; }
+      } else {
+        const g=iconItem.grade, bi=iconItem.itemIdx!==undefined?iconItem.itemIdx:(iconItem.visualIdx||0);
+        const it2=(typeof MP_ICON_ITEMS!=='undefined'?(MP_ICON_ITEMS[g]||[]):[])[bi%((typeof MP_ICON_ITEMS!=='undefined'?MP_ICON_ITEMS[g]?.length:0)||1)];
+        if(it2) {
+          bg='var(--bg-card2,#1e1535)';
+          if(it2.emoji) inner=`<span style="font-size:${Math.floor(size*0.5)}px;line-height:1">${it2.emoji}</span>`;
+          else if(it2.svg) inner=`<svg width="${Math.floor(size*0.7)}" height="${Math.floor(size*0.7)}" viewBox="0 0 52 52" fill="none">${it2.svg}</svg>`;
+          else if(it2.holo) { inner=`<div style="position:absolute;inset:0;border-radius:50%;background:${it2.holo};background-size:200%;${it2.anim?'animation:legendaryFlow 3s ease infinite':''}"></div><div style="position:relative;font-size:${Math.floor(size*0.4)}px">✦</div>`; extra='position:relative;'; }
+          else if(it2.glass) { inner=`<div style="position:absolute;inset:0;border-radius:50%;background:${it2.glass};border:2px solid ${it2.border}"></div><div style="position:relative;font-size:${Math.floor(size*0.4)}px">💠</div>`; extra='position:relative;'; }
+        }
+      }
+    }
+
+    let border='';
+    if(borderItem && !borderItem.visualKey) {
+      const g=borderItem.grade, bi=borderItem.itemIdx!==undefined?borderItem.itemIdx:(borderItem.visualIdx||0);
+      const bd=(typeof MP_BORDER_ITEMS!=='undefined'?(MP_BORDER_ITEMS[g]||[]):[])[bi%((typeof MP_BORDER_ITEMS!=='undefined'?MP_BORDER_ITEMS[g]?.length:0)||1)];
+      if(bd?.color) border=`box-shadow:0 0 0 2px ${bd.color},0 0 6px ${bd.color}55;`;
+    } else if(borderItem?.visualKey==='시즌7번들상자') {
+      const s7b = typeof MP_S7!=='undefined' ? MP_S7?.테두리?.[borderItem._s7Idx||0] : null;
+      if(s7b?.colors?.[0]) border=`box-shadow:0 0 0 2px ${s7b.colors[0]},0 0 8px ${s7b.colors[0]}55;`;
+    }
+
+    return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;overflow:hidden;flex-shrink:0;${border}${extra}">${inner}</div>`;
+  }
+
+  // 이름 효과 HTML
+  function getActNameHtml(username) {
+    const cache = window._actProfileCache[username];
+    const items = cache?.items || JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
+    const nameEffItem = items.find(it=>it.type==='이름색상효과'&&it.equipped);
+    if(!nameEffItem) return `<span>${username}</span>`;
+    if(nameEffItem.visualKey==='시즌7번들상자') {
+      const s7n = typeof MP_S7!=='undefined' ? MP_S7?.이름효과?.[nameEffItem._s7Idx||0] : null;
+      if(s7n) return `<span style="background:${s7n.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:legendaryFlow 3s ease infinite">${username}</span>`;
+    } else {
+      const g2=nameEffItem.grade, bi2=nameEffItem.itemIdx!==undefined?nameEffItem.itemIdx:(nameEffItem.visualIdx||0);
+      const nst=(typeof MP_NAME_EFF_ITEMS!=='undefined'?(MP_NAME_EFF_ITEMS[g2]||[]):[])[bi2%((typeof MP_NAME_EFF_ITEMS!=='undefined'?MP_NAME_EFF_ITEMS[g2]?.length:0)||1)];
+      if(nst?.grad) return `<span style="background:${nst.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;${nst.animated?'animation:legendaryFlow 3s ease infinite':''}">${username}</span>`;
+      if(nst?.color) return `<span style="color:${nst.color};">${username}</span>`;
+    }
+    return `<span>${username}</span>`;
+  }
+
+  // 칭호 HTML
+  function getActTitleHtml(username) {
+    const cache = window._actProfileCache[username];
+    const items = cache?.items || JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
+    const titleItem = items.find(it=>it.type==='칭호'&&it.equipped);
+    if(!titleItem) return '';
+    const tg=titleItem.grade||'일반';
+    const TCOLORS={'일반':'color:#e2e8f0;','희귀':'color:#34d399;','레어':'color:#60a5fa;','에픽':'color:#a855f7;','전설':'background:linear-gradient(90deg,#fbbf24,#f97316,#fbbf24);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:legendaryFlow 3s ease infinite;'};
+    return `<span style="font-size:9px;font-family:'Orbitron',sans-serif;${TCOLORS[tg]||'color:#e2e8f0;'}">< ${titleItem.name} ></span>`;
+  }
+
   async function loadActivity() {
     document.getElementById('loading-state').style.display='block';
     document.getElementById('content-wrap').style.display='none';
@@ -575,12 +671,18 @@
       const top3Html = players.slice(0,3).map((p,i) => {
         const cls = RANK_LABELS[i] || '';
         const rankLabel = `${i+1}위`;
+        const t3Avatar = getActAvatarHtml(p.name, 62);
+        const t3Name   = getActNameHtml(p.name);
+        const t3Title  = getActTitleHtml(p.name);
         return `
           <div class="top-card ${cls}">
             <div class="top-crown">${CROWNS[i]}</div>
-            ${avatarHtml(p.img, 62, 'top-avatar')}
+            ${t3Avatar}
             <div class="top-rank-badge">${rankLabel}</div>
-            <div class="top-name">${p.name}</div>
+            <div class="top-name" style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+              <div>${t3Name}</div>
+              ${t3Title ? `<div>${t3Title}</div>` : ''}
+            </div>
             <div class="top-server">${p.server}</div>
             <div class="top-score">${p.score.toFixed(1)}</div>
             <div class="top-score-label">활동점수</div>
@@ -605,11 +707,18 @@
         const rankCls = rankN<=3 ? RANK_CLS[i] : '';
         const rankDisp = rankN<=3 ? CROWNS[i] : rankN;
         const delay = Math.min(i*30, 400);
+        const actAvatar = getActAvatarHtml(p.name, 32);
+        const actName   = getActNameHtml(p.name);
+        const actTitle  = getActTitleHtml(p.name);
         return `
           <div class="lb-row" style="animation-delay:${delay}ms">
             <div class="lb-rank ${rankCls}">${rankDisp}</div>
-            <div class="lb-avatar-cell">${avatarHtml(p.img, 32, 'lb-avatar')}</div>
-            <div class="lb-name-cell"><div class="lb-name">${p.name}</div></div>
+            <div class="lb-avatar-cell">${actAvatar}</div>
+            <div class="lb-name-cell">
+              <div class="lb-name" style="display:flex;flex-direction:column;gap:1px;">
+                <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">${actName}${actTitle}</div>
+              </div>
+            </div>
             <div class="lb-cell server">${p.server}</div>
             <div class="lb-cell lb-col-bp">${p.bp.toLocaleString()}</div>
             <div class="lb-cell lb-col-ts">${p.ts.toLocaleString()}</div>
