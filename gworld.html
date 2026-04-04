@@ -11799,9 +11799,28 @@ window.addEventListener('pagehide', () => {
   if(G && G.job) _doCloudUpload();
 });
 
+
+  // ── 공통: 내 프로필 Firebase 자동 업로드 ──
+  function _autoUploadMyProfile(db) {
+    const username = sessionStorage.getItem('ggo_username') || '';
+    if(!username || !db) return;
+    const items    = JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
+    const equipped = items.filter(it=>it.equipped);
+    const EXP_MAP  = {일반:100,희귀:300,에픽:500,전설:1000};
+    const savedExp = parseInt(localStorage.getItem('ggo_deco_exp_'+username)||'0');
+    const itemExp  = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
+    const decoExp  = Math.max(savedExp, itemExp);
+    db.ref('profiles/'+username).set({
+      items: equipped, decoExp: decoExp, ts: Date.now()
+    }).then(()=>console.log('[AutoUpload] 프로필 업로드:', username, 'decoLv:', Math.floor(decoExp/1000)+1))
+      .catch(e=>console.warn('[AutoUpload] 실패:', e));
+  }
+
 window.addEventListener('DOMContentLoaded', () => {
   initSidebarProfile();
   initGW();
+  // ★ G월드 접속 시 프로필 자동 업로드
+  setTimeout(() => _autoUploadMyProfile(window._gwDB), 3000);
   // 월드보스 보상 수령 가능 여부 체크 → 메인페이지 알림 등록
   wbCheckRewardNotif();
 });
