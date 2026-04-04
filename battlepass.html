@@ -2101,6 +2101,8 @@
     };
     if(!firebase.apps.length) firebase.initializeApp(cfg);
     window._bpDB = firebase.database();
+    // 페이지 로드 즉시 프로필 실시간 동기화 시작
+    setTimeout(() => { if(typeof startProfileRealtimeSync === 'function') startProfileRealtimeSync(); }, 800);
   } catch(e) {
     console.warn('Firebase 초기화 실패:', e.message);
     window._bpDB = null;
@@ -3051,7 +3053,6 @@
     if(!username || !window._bpDB) return;
     const items    = JSON.parse(localStorage.getItem('ggo_items_' + username) || '[]');
     const equipped = items.filter(it => it.equipped);
-    // 누적 EXP 포함 (activity.html 꾸미기 레벨 정확도 향상)
     const savedExp = parseInt(localStorage.getItem('ggo_deco_exp_' + username) || '0');
     const EXP_MAP  = {일반:100, 희귀:300, 에픽:500, 전설:1000};
     const itemExp  = items.reduce((s,it) => s+(EXP_MAP[it.grade]||0), 0);
@@ -3060,23 +3061,42 @@
       items: equipped,
       decoExp: decoExp,
       ts: Date.now()
-    }).catch(e => console.warn('프로필 업로드 실패:', e));
+    }).then(() => console.log('[BP] 프로필 업로드 완료:', equipped.length + '개'))
+      .catch(e => console.warn('[BP] 프로필 업로드 실패:', e));
+    // 내 프로필도 캐시에 즉시 반영
+    window._profileCache[username] = equipped;
   }
 
-  // 여러 유저의 프로필을 Firebase에서 배치 로드
-  async function loadProfilesFromFirebase(usernames) {
-    if(!window._bpDB || !usernames.length) return;
-    try {
-      const snap = await window._bpDB.ref('profiles').get();
-      if(!snap.exists()) return;
+  // Firebase 실시간 리스너로 전체 프로필 동기화
+  let _profileListenerActive = false;
+  function startProfileRealtimeSync() {
+    if(!window._bpDB || _profileListenerActive) return;
+    _profileListenerActive = true;
+    window._bpDB.ref('profiles').on('value', snap => {
+      if(!snap || !snap.exists()) return;
       const data = snap.val();
-      usernames.forEach(u => {
-        if(data[u]) {
-          window._profileCache[u] = data[u].items || [];
-        }
+      Object.keys(data).forEach(u => {
+        window._profileCache[u] = data[u]?.items || [];
       });
-    } catch(e) {
-      console.warn('프로필 로드 실패:', e);
+      console.log('[Profile] 실시간 동기화:', Object.keys(data).length + '명');
+    }, e => console.warn('[Profile] 리스너 오류:', e));
+  }
+
+  // 배치 로드 (하위 호환)
+  async function loadProfilesFromFirebase(usernames) {
+    if(!window._bpDB) return;
+    if(!_profileListenerActive) startProfileRealtimeSync();
+    // 리스너가 아직 데이터 받기 전이면 일회성 get으로 보완
+    if(Object.keys(window._profileCache).length === 0) {
+      try {
+        const snap = await window._bpDB.ref('profiles').get();
+        if(snap && snap.exists()) {
+          const data = snap.val();
+          Object.keys(data).forEach(u => {
+            window._profileCache[u] = data[u]?.items || [];
+          });
+        }
+      } catch(e) { console.warn('[Profile] 초기 로드 실패:', e); }
     }
   }
 
