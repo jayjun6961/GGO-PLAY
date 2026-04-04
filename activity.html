@@ -446,9 +446,9 @@
 </main>
 
 <script>
-  const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1765510409&single=true&output=csv';
-  // 배틀패스 시트 (A=닉네임, B=배틀패스점수, C=서버)
-  const CSV_BP_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=0&single=true&output=csv';
+  // 활동점수 시트 (gid=1396354260): A=닉네임, B=서버, C=배틀패스점수, D=친선대회점수
+  const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub?gid=1396354260&single=true&output=csv';
+  const CSV_BP_ACT = ''; // 별도 시트 불필요 — 활동점수 시트에 통합
 
   function parseCSV(txt) {
     return txt.trim().split('\n').slice(1).map(line => {
@@ -503,14 +503,22 @@
       const EXP_MAP = {일반:100,희귀:300,에픽:500,전설:1000};
       Object.keys(data).forEach(u => {
         const profile = data[u];
+        // decoExp 기준으로 마이페이지와 동일하게 계산
+        const decoExp = profile?.decoExp || 0;
+        const itemExp = (profile?.items||[]).reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
+        const finalExp = Math.max(decoExp, itemExp);
         window._actProfileCache[u] = {
           items: profile?.items || [],
-          decoLv: profile?.decoExp !== undefined
-            ? Math.floor(profile.decoExp/1000)+1
-            : Math.floor((profile?.items||[]).reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0)/1000)+1
+          decoLv: Math.floor(finalExp/1000)+1,
+          decoExp: finalExp
         };
       });
-      console.log('[Act Profile] 실시간 동기화:', Object.keys(data).length + '명');
+      console.log('[Act Profile] 실시간 동기화:', Object.keys(data).length+'명');
+      // 이미 렌더된 경우 꾸미기 레벨 즉시 갱신
+      document.querySelectorAll('[data-deco-user]').forEach(el => {
+        const u = el.dataset.decoUser;
+        if(window._actProfileCache[u]) el.textContent = 'Lv.'+window._actProfileCache[u].decoLv;
+      });
     }, e => console.warn('[Act Profile] 리스너 오류:', e));
   }
 
@@ -588,80 +596,59 @@
     document.getElementById('loading-state').style.display='block';
     document.getElementById('content-wrap').style.display='none';
     try {
-      // 회원 시트 + 배틀패스 시트 병렬 로드
-      const [resAct, resBP] = await Promise.all([
-        fetch(CSV_ACT+'&t='+Date.now(), {cache:'no-store'}),
-        fetch(CSV_BP_ACT+'&t='+Date.now(), {cache:'no-store'}),
-      ]);
+      // 활동점수 시트 단일 로드 (배틀패스 점수 포함)
+      const resAct = await fetch(CSV_ACT+'&t='+Date.now(), {cache:'no-store'});
       if(!resAct.ok) throw new Error('HTTP '+resAct.status);
-      const rows   = parseCSV(await resAct.text());
-      // 배틀패스 시트: A=닉네임, B=배틀패스점수, C=서버
-      const bpRows = resBP.ok ? parseCSV(await resBP.text()) : [];
-      // 닉네임 → 서버 맵 (활동시트 B열이 서버)
-      const serverMap = {};
-      rows.forEach(r => {
-        const n = (r[0]||'').trim();
-        if(n && (r[1]||'').trim()) serverMap[n] = (r[1]||'').trim();
-      });
+      const rows = parseCSV(await resAct.text());
 
       // 데이터 파싱
-      // 활동점수 시트 컬럼: A=닉네임(r[0]), B=서버(r[1]), C=프로필사진URL(r[2]), D=배틀패스점수(r[3]), E=친선대회점수(r[4]), F=꾸미기레벨(r[5])
+      // 활동점수 시트 컬럼: A=닉네임(r[0]), B=서버(r[1]), C=배틀패스점수(r[2]), D=친선대회점수(r[3])
       const rawPlayers = rows.map(r => {
         const name=(r[0]||'').trim();
         if(!name) return null;
-        const server = (r[1]||'').trim() || serverMap[name] || '';
-        const imgUrl = (r[2]||'').trim();
-        const bp     = parseFloat((r[3]||'').replace(/,/g,''))||0;
-        const ts     = parseFloat((r[4]||'').replace(/,/g,''))||0;
-        const decoLv = parseInt((r[5]||'').replace(/,/g,''))||0; // 시트에서 직접 읽기
-        return {name, server, imgUrl, bp, ts, decoLv};
+        const server = (r[1]||'').trim() || '';
+        const bp     = parseFloat((r[2]||'').replace(/,/g,''))||0;  // C열 = 배틀패스점수
+        const ts     = parseFloat((r[3]||'').replace(/,/g,''))||0;  // D열 = 친선대회점수
+        return {name, server, bp, ts, decoLv:0};
       }).filter(p=>p&&p.name);
 
-      // ── Firebase에서 모든 유저 꾸미기 데이터 배치 로드 ──
+      // ── 꾸미기 레벨: Firebase 실시간 캐시 우선 (마이페이지와 동일) ──
+      // _actProfileCache는 startActProfileSync() 리스너가 실시간으로 채움
+      // 리스너 데이터 없으면 일회성 get으로 보완
       const EXP_MAP = {일반:100, 희귀:300, 에픽:500, 전설:1000};
-      const decoMap = {}; // name → deco level
 
-      // 1순위: Firebase profiles/ (다기기 공유)
-      if(window._actDB) {
+      if(window._actDB && Object.keys(window._actProfileCache).length === 0) {
         try {
           const snap = await window._actDB.ref('profiles').get();
-          if(snap.exists()) {
+          if(snap && snap.exists()) {
             const fbData = snap.val();
-            Object.keys(fbData).forEach(uname => {
-              const profile = fbData[uname];
-              // decoExp (저장된 누적값) 우선, 없으면 아이템 합산으로 계산
-              if(profile.decoExp !== undefined) {
-                decoMap[uname] = Math.floor(profile.decoExp/1000)+1;
-              } else {
-                const items = profile?.items || [];
-                const totalExp = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0), 0);
-                decoMap[uname] = Math.floor(totalExp/1000)+1;
-              }
+            Object.keys(fbData).forEach(u => {
+              const profile = fbData[u];
+              window._actProfileCache[u] = {
+                items: profile?.items || [],
+                decoLv: profile?.decoExp !== undefined
+                  ? Math.floor(profile.decoExp/1000)+1
+                  : Math.floor((profile?.items||[]).reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0)/1000)+1
+              };
             });
           }
-        } catch(e) {
-          console.warn('Firebase 꾸미기 로드 실패:', e);
-        }
+        } catch(e) { console.warn('[Act] 꾸미기 초기 로드 실패:', e); }
       }
 
-      // 2순위: localStorage 폴백 (Firebase에 없는 유저)
-      rawPlayers.forEach(p => {
-        if(!decoMap[p.name]) {
+      // 최종 players 생성: 꾸미기 레벨 = Firebase decoExp 기준 (마이페이지와 동일)
+      const players = rawPlayers.map(p => {
+        const cached = window._actProfileCache[p.name];
+        let deco = 1;
+        if(cached?.decoLv) {
+          deco = cached.decoLv;
+        } else {
+          // 폴백: localStorage
           const savedExp = parseInt(localStorage.getItem('ggo_deco_exp_'+p.name)||'0');
           const items    = JSON.parse(localStorage.getItem('ggo_items_'+p.name)||'[]');
-          const itemExp  = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0), 0);
-          const useExp   = Math.max(savedExp, itemExp);
-          decoMap[p.name] = Math.floor(useExp/1000)+1;
+          const itemExp  = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
+          deco = Math.floor(Math.max(savedExp,itemExp)/1000)+1;
         }
-      });
-
-      // 최종 players 생성: 꾸미기 레벨은 시트 > Firebase > localStorage 순으로 우선
-      const players = rawPlayers.map(p => {
-        const decoFromSheet = p.decoLv || 0;
-        const decoFromFirebase = decoMap[p.name] || 0;
-        const deco = decoFromSheet > 0 ? decoFromSheet : (decoFromFirebase > 0 ? decoFromFirebase : 1);
-        const img = p.imgUrl || '';
-        return {name:p.name, server:p.server, img, bp:p.bp, ts:p.ts, deco, score:calcScore(p.bp,p.ts,deco)};
+        return {name:p.name, server:p.server, img:'', bp:p.bp, ts:p.ts, deco, score:calcScore(p.bp,p.ts,deco)};
       });
 
       // 점수 내림차순 정렬
@@ -689,7 +676,7 @@
             <div class="top-sub-stats">
               <div class="top-sub-stat">BP <span>${p.bp}</span></div>
               <div class="top-sub-stat">친선 <span>${p.ts}</span></div>
-              <div class="top-sub-stat">꾸미기 <span>Lv.${p.deco}</span></div>
+              <div class="top-sub-stat">꾸미기 <span data-deco-user="${p.name}">Lv.${p.deco}</span></div>
             </div>
           </div>`;
       });
@@ -722,7 +709,7 @@
             <div class="lb-cell server">${p.server}</div>
             <div class="lb-cell lb-col-bp">${p.bp.toLocaleString()}</div>
             <div class="lb-cell lb-col-ts">${p.ts.toLocaleString()}</div>
-            <div class="lb-cell lb-col-deco">Lv.${p.deco}</div>
+            <div class="lb-cell lb-col-deco" data-deco-user="${p.name}">Lv.${p.deco}</div>
             <div class="lb-cell score-total ${rankCls}">${p.score.toFixed(1)}</div>
           </div>`;
       }).join('');
