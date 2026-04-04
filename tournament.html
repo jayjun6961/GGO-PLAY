@@ -1982,6 +1982,10 @@
     background-clip: text;
   }
 </style>
+<!-- Firebase SDK (클라우드 동기화용) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="sync.js"></script>
 </head>
 <body>
 <aside class="sidebar">
@@ -2186,6 +2190,104 @@
 
   setActiveNav('tournament');
 
+  // ── 프로필 캐시 ──
+  window._profileCache = window._profileCache || {};
+
+  function getProfileItems(username) {
+    const myUser = sessionStorage.getItem('ggo_username') || '';
+    if(username === myUser) return JSON.parse(localStorage.getItem('ggo_items_' + username) || '[]');
+    if(window._profileCache[username]) return window._profileCache[username];
+    return JSON.parse(localStorage.getItem('ggo_items_' + username) || '[]');
+  }
+
+  function getLbProfile(username, size=36) {
+    if(!username) return { avatarHtml:'<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:rgba(124,58,237,.2);display:flex;align-items:center;justify-content:center;">?</div>', nameHtml:username, titleHtml:'' };
+    const items = getProfileItems(username);
+
+    // 아이콘
+    const iconItem = items.find(it=>it.type==='프로필아이콘'&&it.equipped);
+    let avatarInner = username.charAt(0).toUpperCase()||'?';
+    let avatarBg = 'linear-gradient(135deg,var(--purple-1),var(--purple-3))';
+    let avatarExtra = '';
+    if(iconItem) {
+      if(iconItem.visualKey === '시즌7번들상자') {
+        const s7ic = typeof MP_S7!=='undefined' ? MP_S7.아이콘[iconItem._s7Idx||0] : null;
+        if(s7ic) { avatarInner = s7ic.render(size); avatarBg='#0a0000'; avatarExtra='overflow:hidden;'; }
+      } else {
+        const g = iconItem.grade, bi = iconItem.itemIdx!==undefined?iconItem.itemIdx:(iconItem.visualIdx||0);
+        const it2 = (typeof MP_ICON_ITEMS!=='undefined'?MP_ICON_ITEMS[g]||[]:[])[bi%(MP_ICON_ITEMS?.[g]?.length||1)];
+        if(it2) {
+          avatarBg='var(--bg-card)';
+          if(it2.emoji) avatarInner=`<span style="font-size:${Math.floor(size*0.5)}px;line-height:1">${it2.emoji}</span>`;
+          else if(it2.svg) avatarInner=`<svg width="${Math.floor(size*0.7)}" height="${Math.floor(size*0.7)}" viewBox="0 0 52 52" fill="none">${it2.svg}</svg>`;
+          else if(it2.holo) { avatarInner=`<div style="position:absolute;inset:0;border-radius:50%;background:${it2.holo};background-size:200%;${it2.anim?'animation:legendaryFlow 3s ease infinite':''}"></div><div style="position:relative;font-size:${Math.floor(size*0.4)}px">✦</div>`; avatarExtra='position:relative;'; }
+        }
+      }
+    }
+
+    // 테두리
+    let borderStyle='', svgBorderHtml='';
+    const borderItem = items.find(it=>it.type==='테두리효과'&&it.equipped);
+    if(borderItem) {
+      if(borderItem.visualKey==='시즌7번들상자') {
+        const s7bd = typeof MP_S7!=='undefined' ? MP_S7.테두리[borderItem._s7Idx||0] : null;
+        if(s7bd && typeof s7bd.svgBorder==='function') svgBorderHtml=s7bd.svgBorder(size+8,size);
+        else if(s7bd) borderStyle=`box-shadow:0 0 0 2px ${s7bd.colors?.[0]||'#ef4444'},0 0 8px ${s7bd.colors?.[0]||'#ef4444'}55;`;
+      } else {
+        const g=borderItem.grade, bi=borderItem.itemIdx!==undefined?borderItem.itemIdx:(borderItem.visualIdx||0);
+        const bd=(typeof MP_BORDER_ITEMS!=='undefined'?MP_BORDER_ITEMS[g]||[]:[])[bi%(MP_BORDER_ITEMS?.[g]?.length||1)];
+        if(bd?.color) borderStyle=`box-shadow:0 0 0 2px ${bd.color},0 0 6px ${bd.color}55;`;
+      }
+    }
+    const avatarHtml = `<div style="position:relative;flex-shrink:0;width:${size}px;height:${size}px;${borderStyle}border-radius:50%;overflow:visible;">
+      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;overflow:hidden;position:relative;${avatarExtra}">${avatarInner}</div>
+      ${svgBorderHtml?`<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;">${svgBorderHtml}</div>`:''}
+    </div>`;
+
+    // 이름 효과
+    let nameHtml = username;
+    const nameEffItem = items.find(it=>it.type==='이름색상효과'&&it.equipped);
+    if(nameEffItem) {
+      if(nameEffItem.visualKey==='시즌7번들상자') {
+        const s7n = typeof MP_S7!=='undefined' ? MP_S7.이름효과[nameEffItem._s7Idx||0] : null;
+        if(s7n) nameHtml=`<span style="background:${s7n.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:legendaryFlow 3s ease infinite">${username}</span>`;
+      } else {
+        const g2=nameEffItem.grade, bi2=nameEffItem.itemIdx!==undefined?nameEffItem.itemIdx:(nameEffItem.visualIdx||0);
+        const nst=(typeof MP_NAME_EFF_ITEMS!=='undefined'?MP_NAME_EFF_ITEMS[g2]||[]:[])[bi2%(MP_NAME_EFF_ITEMS?.[g2]?.length||1)];
+        if(nst?.grad) nameHtml=`<span style="background:${nst.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;${nst.animated?'animation:legendaryFlow 3s ease infinite':''}">${username}</span>`;
+        else if(nst?.color) nameHtml=`<span style="color:${nst.color};">${username}</span>`;
+        else if(nst?.shadow) nameHtml=`<span style="text-shadow:${nst.shadow};">${username}</span>`;
+      }
+    }
+
+    // 칭호
+    let titleHtml = '';
+    const titleItem = items.find(it=>it.type==='칭호'&&it.equipped);
+    if(titleItem) {
+      const tg=titleItem.grade||'일반';
+      const TCOLORS={'일반':'color:#e2e8f0;','희귀':'color:#34d399;','레어':'color:#60a5fa;','에픽':'color:#a855f7;','전설':'background:linear-gradient(90deg,#fbbf24,#f97316,#fbbf24);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:legendaryFlow 3s ease infinite;'};
+      titleHtml=`<span class="lb-rank-title t-${tg}" style="${TCOLORS[tg]||''}">< ${titleItem.name} ></span>`;
+    }
+    return { avatarHtml, nameHtml, titleHtml };
+  }
+
+  // Firebase 초기화
+  window._tourDB = null;
+  window._profileCache = window._profileCache || {};
+  try {
+    const fbCfg = {
+      apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+      authDomain: "ggo-play.firebaseapp.com",
+      databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ggo-play",
+      storageBucket: "ggo-play.firebasestorage.app",
+    };
+    if(typeof firebase !== 'undefined') {
+      if(!firebase.apps.length) firebase.initializeApp(fbCfg);
+      window._tourDB = firebase.database();
+    }
+  } catch(e) { console.warn('[Tour] Firebase 초기화 실패:', e); }
+
   async function loadTournament() {
     const top3El = document.getElementById('tour-top3');
     const listEl = document.getElementById('tour-list');
@@ -2203,6 +2305,20 @@
       rows.forEach(r => { window._tourScoreCache[r[0].trim()] = Number(r[1])||0; });
       const avatars = ['⚔️','🔮','🏹','🛡️','🌟','🔥','💧','🌀'];
 
+      // ── Firebase에서 모든 유저 프로필 배치 로드 ──
+      const usernames = rows.map(r => (r[0]||'').trim()).filter(Boolean);
+      if(window._tourDB) {
+        try {
+          const snap = await window._tourDB.ref('profiles').get();
+          if(snap && snap.exists()) {
+            const fbData = snap.val();
+            usernames.forEach(u => {
+              if(fbData[u]) window._profileCache[u] = fbData[u].items || [];
+            });
+          }
+        } catch(e) { console.warn('[Tour] 프로필 로드 실패:', e); }
+      }
+
       // TOP 3
       const top = rows.slice(0,3);
       const order   = top.length>=3 ? [top[1],top[0],top[2]] : top;
@@ -2215,11 +2331,15 @@
         const score  = Number(row[1])||0;
         const server = row[2] || '';
         const tier = getTier(score);
+        const deco3 = getLbProfile(row[0]||'', 52);
         h3 += `<div class="lb-top-card ${classes[ci]}">
           ${classes[ci]==='top1'?'<div class="lb-top-crown">👑</div>':''}
-          <div class="lb-top-avatar">${avatars[rows.indexOf(row)%avatars.length]}</div>
+          <div class="lb-top-avatar" style="display:flex;justify-content:center;margin-bottom:4px">${deco3.avatarHtml}</div>
           <div class="lb-top-rank">${medals[ci]} ${nums[ci]}위</div>
-          <div class="lb-top-name">${row[0]||'—'}</div>
+          <div class="lb-top-name">
+            <span>${deco3.nameHtml}</span>
+          </div>
+          ${deco3.titleHtml ? `<div style="margin-bottom:2px">${deco3.titleHtml}</div>` : ''}
           ${server ? `<div style="font-size:10px;color:var(--accent-cyan);font-family:'Orbitron',sans-serif;letter-spacing:0.5px;margin-bottom:2px">${server}</div>` : ''}
           <div class="lb-top-score">${score.toLocaleString()} pts</div>
           <div class="lb-top-tier tier-${tier.cls}">${tier.icon} ${tier.name}${tier.num?' '+tier.num:''}</div>
@@ -2235,90 +2355,15 @@
         const tier      = getTier(score);
         const nickname  = row[0] || '—';
 
-        // ── 꾸미기 요소 로드 ──
-        const userItems   = JSON.parse(localStorage.getItem('ggo_items_' + nickname) || '[]');
-        const iconItem    = userItems.find(it=>it.type==='프로필아이콘'&&it.equipped);
-        const borderItem  = userItems.find(it=>it.type==='테두리효과'&&it.equipped);
-        const nameEffItem = userItems.find(it=>it.type==='이름색상효과'&&it.equipped);
-        const titleItem   = userItems.find(it=>it.type==='칭호'&&it.equipped);
-
-        // ── 아이콘 HTML ──
-        let avatarInner = nickname.charAt(0).toUpperCase() || '?';
-        let avatarBg    = 'linear-gradient(135deg,var(--purple-1),var(--purple-3))';
-        let avatarExtra = '';
-        if(iconItem) {
-          if(iconItem.visualKey === '시즌7번들상자') {
-            const s7r = MP_S7.아이콘[iconItem._s7Idx||0];
-            if(s7r) { avatarInner = s7r.render(32); avatarBg = '#0a0000'; }
-          } else {
-            const g  = iconItem.grade;
-            const bi = iconItem.itemIdx !== undefined ? iconItem.itemIdx : (iconItem.visualIdx||0);
-            const it2 = (MP_ICON_ITEMS[g]||[])[bi % (MP_ICON_ITEMS[g]?.length||1)];
-            if(it2) {
-              avatarBg = 'var(--bg-card)';
-              if(it2.emoji)      avatarInner = `<span style="font-size:18px;line-height:1">${it2.emoji}</span>`;
-              else if(it2.svg)   avatarInner = `<svg width="28" height="28" viewBox="0 0 52 52" fill="none">${it2.svg}</svg>`;
-              else if(it2.holo)  { avatarInner = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.holo};background-size:200%;${it2.anim?'animation:legendaryFlow 3s ease infinite':''}"></div><div style="position:relative;font-size:14px">✦</div>`; avatarExtra='position:relative;'; }
-              else if(it2.glass) { avatarInner = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.glass};border:2px solid ${it2.border}"></div><div style="position:relative;font-size:14px">💠</div>`; avatarExtra='position:relative;'; }
-            }
-          }
-        }
-
-        // ── 테두리 ──
-        let borderStyle = '';
-        let svgBorderHtml = '';
-        if(borderItem) {
-          if(borderItem.visualKey === '시즌7번들상자') {
-            const s7b = MP_S7.테두리[borderItem._s7Idx||0];
-            if(s7b && typeof s7b.svgBorder === 'function') {
-              svgBorderHtml = s7b.svgBorder(44, 36);
-              borderStyle = '';
-            } else if(s7b) {
-              borderStyle = `box-shadow:${s7b.glow||'0 0 6px rgba(124,58,237,0.6)'};`;
-            }
-          } else {
-            const bg  = borderItem.grade;
-            const bbi = borderItem.itemIdx !== undefined ? borderItem.itemIdx : (borderItem.visualIdx||0);
-            const bList = MP_BORDER_ITEMS[bg]||[];
-            const br  = bList[bbi % (bList.length||1)];
-            if(br) {
-              if(br.color)     borderStyle = `box-shadow:0 0 0 2px ${br.color},0 0 8px ${br.color}55;`;
-              else if(br.grad) borderStyle = `box-shadow:0 0 0 2px transparent;`;
-              if(br.glow)      borderStyle += `box-shadow:0 0 8px ${br.glow};`;
-            }
-          }
-        }
-
-        // ── 이름 HTML ──
-        let nameHtml = '';
-        if(nameEffItem) {
-          if(nameEffItem.visualKey === '시즌7번들상자') {
-            const s7n = MP_S7.이름효과[nameEffItem._s7Idx||0];
-            if(s7n) nameHtml = `<span style="background:${s7n.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:s7NameFlow 2s linear infinite">${nickname}</span>`;
-          } else {
-            const g2  = nameEffItem.grade;
-            const bi2 = nameEffItem.itemIdx !== undefined ? nameEffItem.itemIdx : (nameEffItem.visualIdx||0);
-            const nst = (MP_NAME_EFF_ITEMS[g2]||[])[bi2 % (MP_NAME_EFF_ITEMS[g2]?.length||1)];
-            if(nst && nst.grad)  nameHtml = `<span style="background:${nst.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;${nst.anim?'animation:nameFlow 3s linear infinite':''}">${nickname}</span>`;
-            else if(nst && nst.color) nameHtml = `<span style="color:${nst.color};${nst.glow?'text-shadow:'+nst.glow:''}">${nickname}</span>`;
-          }
-        }
-        if(!nameHtml) nameHtml = nickname;
-
-        // ── 칭호 HTML ──
-        let titleHtml = '';
-        if(titleItem) {
-          const tg = titleItem.grade || '일반';
-          const tName = titleItem.name || '';
-          titleHtml = `<span class="lb-rank-title t-${tg}">${tg==='전설'?`<span>< ${tName} ></span>`:'< '+tName+' >'}</span>`;
-        }
+        // ── 꾸미기 요소 (Firebase 캐시 포함) ──
+        const deco = getLbProfile(nickname, 36);
 
         hl += `<div class="lb-row tour-row ${i<3?'top'+(i+1):''}">
           <div class="lb-rank-num ${i<3?'r'+(i+1):''}">${i+1}</div>
           <div class="lb-nick">
-            <div class="lb-nick-avatar" style="position:relative;flex-shrink:0;${borderStyle}border-radius:50%;"><div style="width:32px;height:32px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:14px;overflow:hidden;position:relative;${avatarExtra}">${avatarInner}</div>${svgBorderHtml}</div>
+            ${deco.avatarHtml}
             <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
-              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">${nameHtml}${titleHtml}</div>
+              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">${deco.nameHtml}${deco.titleHtml}</div>
             </div>
           </div>
           <div style="text-align:center;font-size:11px;color:var(--accent-cyan);font-family:'Orbitron',sans-serif;letter-spacing:0.3px;align-self:center">${server}</div>
