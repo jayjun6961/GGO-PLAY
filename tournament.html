@@ -2253,7 +2253,7 @@
     if(borderItem) {
       if(borderItem.visualKey==='시즌7번들상자') {
         const s7bd = typeof MP_S7!=='undefined' ? MP_S7.테두리[borderItem._s7Idx||0] : null;
-        if(s7bd && typeof s7bd.svgBorder==='function') svgBorderHtml=s7bd.svgBorder(size+8,size);
+        if(s7bd && typeof s7bd.svgBorder==='function') svgBorderHtml=s7bd.svgBorder(size,size);
         else if(s7bd) borderStyle=`box-shadow:0 0 0 2px ${s7bd.colors?.[0]||'#ef4444'},0 0 8px ${s7bd.colors?.[0]||'#ef4444'}55;`;
       } else {
         const g=borderItem.grade, bi=borderItem.itemIdx!==undefined?borderItem.itemIdx:(borderItem.visualIdx||0);
@@ -2261,9 +2261,9 @@
         if(bd?.color) borderStyle=`box-shadow:0 0 0 2px ${bd.color},0 0 6px ${bd.color}55;`;
       }
     }
-    const avatarHtml = `<div style="position:relative;flex-shrink:0;width:${size}px;height:${size}px;${borderStyle}border-radius:50%;overflow:visible;">
-      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;overflow:hidden;position:relative;${avatarExtra}">${avatarInner}</div>
-      ${svgBorderHtml?`<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;">${svgBorderHtml}</div>`:''}
+    const avatarHtml = `<div style="position:relative;flex-shrink:0;width:${size}px;height:${size}px;border-radius:50%;overflow:visible;">
+      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;overflow:hidden;position:relative;${avatarExtra};${borderStyle}">${avatarInner}</div>
+      ${svgBorderHtml?`<div style="position:absolute;inset:0;border-radius:50%;pointer-events:none;overflow:hidden;">${svgBorderHtml}</div>`:''}
     </div>`;
 
     // 이름 효과
@@ -2304,8 +2304,16 @@
     window._tourDB.ref('profiles').on('value', snap => {
       if(!snap || !snap.exists()) return;
       const data = snap.val();
+      const EXP_MAP = {일반:100,희귀:300,에픽:500,전설:1000};
       Object.keys(data).forEach(u => {
-        window._profileCache[u] = data[u]?.items || [];
+        const profile  = data[u];
+        const equipped = profile?.items || [];
+        const fbExp    = profile?.decoExp || 0;
+        const itemExp  = equipped.reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
+        const finalExp = Math.max(fbExp, itemExp);
+        window._profileCache[u] = equipped;
+        window._decoLvCache = window._decoLvCache || {};
+        window._decoLvCache[u] = Math.floor(finalExp/1000)+1;
       });
       console.log('[Tour Profile] 실시간 동기화:', Object.keys(data).length + '명');
       // 리스트 갱신 (이미 로드된 경우)
