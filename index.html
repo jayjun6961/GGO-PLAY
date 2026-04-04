@@ -2716,6 +2716,38 @@
     });
   }
 
+  // ── 내 프로필을 Firebase에 자동 업로드 (배틀패스/친선/활동점수 실시간 반영) ──
+  function uploadProfileFromIndex() {
+    const username = sessionStorage.getItem('ggo_username') || '';
+    if(!username) return;
+    let db = window._gwDB;
+    if(!db) {
+      try {
+        const cfg = {
+          apiKey:"AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+          authDomain:"ggo-play.firebaseapp.com",
+          databaseURL:"https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId:"ggo-play",storageBucket:"ggo-play.firebasestorage.app",
+        };
+        if(!firebase.apps.length) firebase.initializeApp(cfg);
+        db = firebase.database();
+        window._gwDB = db;
+      } catch(e) { return; }
+    }
+    const items   = JSON.parse(localStorage.getItem('ggo_items_'+username)||'[]');
+    const equipped = items.filter(it=>it.equipped);
+    const EXP_MAP = {일반:100,희귀:300,에픽:500,전설:1000};
+    const savedExp = parseInt(localStorage.getItem('ggo_deco_exp_'+username)||'0');
+    const itemExp  = items.reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
+    const decoExp  = Math.max(savedExp, itemExp);
+    db.ref('profiles/'+username).set({
+      items: equipped,
+      decoExp: decoExp,
+      ts: Date.now()
+    }).then(()=>console.log('[Index] 프로필 업로드 완료:', username, 'decoExp:', decoExp))
+      .catch(e=>console.warn('[Index] 프로필 업로드 실패:', e));
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
     initSidebarProfile();
     // 로그인 상태 체크
@@ -2727,7 +2759,8 @@
       document.getElementById('hero-login-btn').style.background = 'linear-gradient(135deg,rgba(52,211,153,0.2),rgba(34,211,238,0.15))';
       document.getElementById('hero-login-btn').style.border = '1px solid rgba(52,211,153,0.35)';
       document.getElementById('hero-login-btn').style.color = '#34d399';
-      // sidebar avatar는 initSidebarProfile()이 처리
+      // ★ 메인페이지 접속 시 Firebase profiles 자동 업로드
+      setTimeout(uploadProfileFromIndex, 2000);
     }
     loadSeasonAward(); loadPickrate(); loadHomeBpRank(); loadHomeEvents(); loadMyActivity();
     loadGworldRank(); // GWORLD 랭킹
