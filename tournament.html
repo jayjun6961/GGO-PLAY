@@ -2223,120 +2223,104 @@
   }
 
   function getLbProfile(username, size=36) {
-    if(!username) return { avatarHtml:'<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:rgba(124,58,237,.2);display:flex;align-items:center;justify-content:center;">?</div>', nameHtml:username, titleHtml:'' };
+    if(!username) return { avatarHtml:`<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#5b21b6);display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;color:#fff">${(username||'?').charAt(0).toUpperCase()}</div>`, nameStyle:'', nameClass:'', titleHtml:'' };
     const items = getProfileItems(username);
 
-    // 아이콘
+    // ── 아이콘 ──
     const iconItem = items.find(it=>it.type==='프로필아이콘'&&it.equipped);
     let avatarInner = username.charAt(0).toUpperCase()||'?';
-    let avatarBg = 'linear-gradient(135deg,var(--purple-1),var(--purple-3))';
+    let avatarBg    = 'linear-gradient(135deg,var(--purple-1),var(--purple-2))';
     let avatarExtra = '';
     if(iconItem) {
       if(iconItem.visualKey === '시즌7번들상자') {
-        const s7ic = typeof MP_S7!=='undefined' ? MP_S7.아이콘[iconItem._s7Idx||0] : null;
+        const s7ic = MP_S7.아이콘[iconItem._s7Idx||0];
         if(s7ic) { avatarInner = s7ic.render(size); avatarBg='#0a0000'; avatarExtra='overflow:hidden;'; }
+        else avatarInner = '<span style="font-size:18px">🔥</span>';
       } else {
-        const g = iconItem.grade, bi = iconItem.itemIdx!==undefined?iconItem.itemIdx:(iconItem.visualIdx||0);
-        const it2 = (typeof MP_ICON_ITEMS!=='undefined'?MP_ICON_ITEMS[g]||[]:[])[bi%(MP_ICON_ITEMS?.[g]?.length||1)];
+        const g  = iconItem.grade;
+        const bi = iconItem.itemIdx!==undefined ? iconItem.itemIdx : (iconItem.visualIdx||0);
+        const it2 = (MP_ICON_ITEMS[g]||[])[bi%(MP_ICON_ITEMS[g]?.length||1)];
         if(it2) {
-          avatarBg='var(--bg-card)';
-          if(it2.emoji) avatarInner=`<span style="font-size:${Math.floor(size*0.5)}px;line-height:1">${it2.emoji}</span>`;
-          else if(it2.svg) avatarInner=`<svg width="${Math.floor(size*0.7)}" height="${Math.floor(size*0.7)}" viewBox="0 0 52 52" fill="none">${it2.svg}</svg>`;
-          else if(it2.holo) { avatarInner=`<div style="position:absolute;inset:0;border-radius:50%;background:${it2.holo};background-size:200%;${it2.anim?'animation:legendaryFlow 3s ease infinite':''}"></div><div style="position:relative;font-size:${Math.floor(size*0.4)}px">✦</div>`; avatarExtra='position:relative;'; }
+          avatarBg = 'var(--bg-card)';
+          if(it2.emoji)      avatarInner = `<span style="font-size:${Math.floor(size*0.52)}px;line-height:1">${it2.emoji}</span>`;
+          else if(it2.svg)   avatarInner = `<svg width="${Math.floor(size*0.7)}" height="${Math.floor(size*0.7)}" viewBox="0 0 52 52" fill="none">${it2.svg}</svg>`;
+          else if(it2.holo)  { avatarInner=`<div style="position:absolute;inset:0;border-radius:50%;background:${it2.holo};background-size:200%;${it2.anim?'animation:legendaryFlow 3s ease infinite':''}"></div><div style="position:relative;font-size:${Math.floor(size*0.4)}px">✦</div>`; avatarExtra='position:relative;'; }
+          else if(it2.glass) { avatarInner=`<div style="position:absolute;inset:0;border-radius:50%;background:${it2.glass};border:2px solid ${it2.border}"></div><div style="position:relative;font-size:${Math.floor(size*0.4)}px">💠</div>`; avatarExtra='position:relative;'; }
         }
       }
     }
 
-    // 테두리
-    let borderStyle='', svgBorderHtml='';
+    // ── 테두리 ── 아이콘 원 바깥에 ring 레이어로 렌더
+    let ringHtml = '';
     const borderItem = items.find(it=>it.type==='테두리효과'&&it.equipped);
     if(borderItem) {
+      const ring = size + 6; // 테두리 링 크기 (아이콘보다 6px 크게)
+      const off  = -3;       // 중앙 정렬 오프셋
       if(borderItem.visualKey==='시즌7번들상자') {
-        const s7bd = typeof MP_S7!=='undefined' ? MP_S7.테두리[borderItem._s7Idx||0] : null;
-        if(s7bd && typeof s7bd.svgBorder==='function') svgBorderHtml=s7bd.svgBorder(size,size);
-        else if(s7bd) borderStyle=`box-shadow:0 0 0 2px ${s7bd.colors?.[0]||'#ef4444'},0 0 8px ${s7bd.colors?.[0]||'#ef4444'}55;`;
+        const s7bd = MP_S7.테두리[borderItem._s7Idx||0];
+        if(s7bd && typeof s7bd.svgBorder==='function') {
+          ringHtml = `<div style="position:absolute;top:${off}px;left:${off}px;width:${ring}px;height:${ring}px;border-radius:50%;pointer-events:none;z-index:2;">${s7bd.svgBorder(ring,size)}</div>`;
+        } else if(s7bd?.colors?.[0]) {
+          ringHtml = `<div style="position:absolute;top:${off}px;left:${off}px;width:${ring}px;height:${ring}px;border-radius:50%;border:2px solid ${s7bd.colors[0]};box-shadow:0 0 8px ${s7bd.colors[0]}88;pointer-events:none;z-index:2;"></div>`;
+        }
       } else {
-        const g=borderItem.grade, bi=borderItem.itemIdx!==undefined?borderItem.itemIdx:(borderItem.visualIdx||0);
-        const bd=(typeof MP_BORDER_ITEMS!=='undefined'?MP_BORDER_ITEMS[g]||[]:[])[bi%(MP_BORDER_ITEMS?.[g]?.length||1)];
-        if(bd?.color) borderStyle=`box-shadow:0 0 0 2px ${bd.color},0 0 6px ${bd.color}55;`;
+        const g  = borderItem.grade;
+        const bi = borderItem.itemIdx!==undefined ? borderItem.itemIdx : (borderItem.visualIdx||0);
+        const bd = (MP_BORDER_ITEMS[g]||[])[bi%(MP_BORDER_ITEMS[g]?.length||1)];
+        if(bd) {
+          if(bd.color) {
+            // 단색 테두리
+            const glow = bd.glow ? `box-shadow:${bd.glow};` : `box-shadow:0 0 6px ${bd.color}88;`;
+            ringHtml = `<div style="position:absolute;top:${off}px;left:${off}px;width:${ring}px;height:${ring}px;border-radius:50%;border:2.5px solid ${bd.color};${glow}pointer-events:none;z-index:2;"></div>`;
+          } else if(bd.grad) {
+            // 그라데이션 테두리 (코스믹 링 등) — conic-gradient 방식
+            const animStyle = (bd.rotating||bd.anim) ? 'animation:legendaryFlow 2s linear infinite;' : '';
+            ringHtml = `<div style="position:absolute;top:${off}px;left:${off}px;width:${ring}px;height:${ring}px;border-radius:50%;padding:2.5px;background:${bd.grad};${animStyle}pointer-events:none;z-index:2;box-sizing:border-box;">
+              <div style="width:100%;height:100%;border-radius:50%;background:var(--bg-card,#0d0720);"></div>
+            </div>`;
+          }
+        }
       }
     }
+
+    // ── avatarHtml: 아이콘 + 테두리 ring 오버레이 ──
     const avatarHtml = `<div style="position:relative;flex-shrink:0;width:${size}px;height:${size}px;border-radius:50%;overflow:visible;">
-      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;overflow:hidden;position:relative;${avatarExtra};${borderStyle}">${avatarInner}</div>
-      ${svgBorderHtml?`<div style="position:absolute;inset:0;border-radius:50%;pointer-events:none;overflow:hidden;">${svgBorderHtml}</div>`:''}
+      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;overflow:hidden;position:relative;${avatarExtra}">${avatarInner}</div>
+      ${ringHtml}
     </div>`;
 
-    // 이름 효과
-    let nameHtml = username;
+    // ── 이름 효과 ──
+    let nameStyle = '';
+    let nameClass = '';
     const nameEffItem = items.find(it=>it.type==='이름색상효과'&&it.equipped);
     if(nameEffItem) {
       if(nameEffItem.visualKey==='시즌7번들상자') {
-        const s7n = typeof MP_S7!=='undefined' ? MP_S7.이름효과[nameEffItem._s7Idx||0] : null;
-        if(s7n) nameHtml=`<span style="background:${s7n.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:legendaryFlow 3s ease infinite">${username}</span>`;
+        const s7n = MP_S7.이름효과[nameEffItem._s7Idx||0];
+        if(s7n) { nameStyle=`background:${s7n.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`; nameClass='lb-name-shimmer'; }
       } else {
-        const g2=nameEffItem.grade, bi2=nameEffItem.itemIdx!==undefined?nameEffItem.itemIdx:(nameEffItem.visualIdx||0);
-        const nst=(typeof MP_NAME_EFF_ITEMS!=='undefined'?MP_NAME_EFF_ITEMS[g2]||[]:[])[bi2%(MP_NAME_EFF_ITEMS?.[g2]?.length||1)];
-        if(nst?.grad) nameHtml=`<span style="background:${nst.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;${nst.animated?'animation:legendaryFlow 3s ease infinite':''}">${username}</span>`;
-        else if(nst?.color) nameHtml=`<span style="color:${nst.color};">${username}</span>`;
-        else if(nst?.shadow) nameHtml=`<span style="text-shadow:${nst.shadow};">${username}</span>`;
+        const g2  = nameEffItem.grade;
+        const bi2 = nameEffItem.itemIdx!==undefined ? nameEffItem.itemIdx : (nameEffItem.visualIdx||0);
+        const nst = (MP_NAME_EFF_ITEMS[g2]||[])[bi2%(MP_NAME_EFF_ITEMS[g2]?.length||1)];
+        if(nst) {
+          if(nst.grad) { nameStyle=`background:${nst.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`; if(nst.animated||nst.anim) nameClass='lb-name-shimmer'; }
+          else if(nst.color) nameStyle=`color:${nst.color};`;
+          else if(nst.shadow) nameStyle=`text-shadow:${nst.shadow};`;
+        }
       }
     }
 
-    // 칭호
+    // ── 칭호 ──
     let titleHtml = '';
     const titleItem = items.find(it=>it.type==='칭호'&&it.equipped);
     if(titleItem) {
-      const tg=titleItem.grade||'일반';
+      const tg = titleItem.grade||'일반';
       const TCOLORS={'일반':'color:#e2e8f0;','희귀':'color:#34d399;','레어':'color:#60a5fa;','에픽':'color:#a855f7;','전설':'background:linear-gradient(90deg,#fbbf24,#f97316,#fbbf24);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:legendaryFlow 3s ease infinite;'};
-      titleHtml=`<span class="lb-rank-title t-${tg}" style="${TCOLORS[tg]||''}">< ${titleItem.name} ></span>`;
+      titleHtml = `<span class="lb-rank-title t-${tg}" style="${TCOLORS[tg]||''}">< ${titleItem.name} ></span>`;
     }
-    return { avatarHtml, nameHtml, titleHtml };
+
+    return { avatarHtml, nameStyle, nameClass, titleHtml };
   }
 
-  // Firebase 초기화 + 실시간 프로필 리스너
-  window._tourDB = null;
-  window._profileCache = window._profileCache || {};
-  let _tourProfileListenerActive = false;
-
-  function startTourProfileSync() {
-    if(!window._tourDB || _tourProfileListenerActive) return;
-    _tourProfileListenerActive = true;
-    window._tourDB.ref('profiles').on('value', snap => {
-      if(!snap || !snap.exists()) return;
-      const data = snap.val();
-      const EXP_MAP = {일반:100,희귀:300,에픽:500,전설:1000};
-      Object.keys(data).forEach(u => {
-        const profile  = data[u];
-        const equipped = profile?.items || [];
-        const fbExp    = profile?.decoExp || 0;
-        const itemExp  = equipped.reduce((s,it)=>s+(EXP_MAP[it.grade]||0),0);
-        const finalExp = Math.max(fbExp, itemExp);
-        window._profileCache[u] = equipped;
-        window._decoLvCache = window._decoLvCache || {};
-        window._decoLvCache[u] = Math.floor(finalExp/1000)+1;
-      });
-      console.log('[Tour Profile] 실시간 동기화:', Object.keys(data).length + '명');
-      // 리스트 갱신 (이미 로드된 경우)
-      if(document.getElementById('tour-list') && document.getElementById('tour-list').innerHTML) {
-        loadTournament();
-      }
-    }, e => console.warn('[Tour Profile] 리스너 오류:', e));
-  }
-
-  try {
-    const fbCfg = {
-      apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
-      authDomain: "ggo-play.firebaseapp.com",
-      databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "ggo-play",
-      storageBucket: "ggo-play.firebasestorage.app",
-    };
-    if(typeof firebase !== 'undefined') {
-      if(!firebase.apps.length) firebase.initializeApp(fbCfg);
-      window._tourDB = firebase.database();
-      setTimeout(startTourProfileSync, 800);
-    }
-  } catch(e) { console.warn('[Tour] Firebase 초기화 실패:', e); }
 
   async function loadTournament() {
     const top3El = document.getElementById('tour-top3');
