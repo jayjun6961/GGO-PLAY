@@ -1760,10 +1760,12 @@ function _doCloudUpload() {
     const v = localStorage.getItem(p + un);
     if(v !== null) data.keys[p + un] = v;
   });
-  // 동적 키
+  // 동적 키 (ggo_items 등 상점 관리 키는 제외)
+  const SHOP_PROTECTED = ['ggo_items_','ggo_currency_','ggo_deco_exp_','ggo_bp_claimed_','ggo_tour_claimed_'];
   for(let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i); if(!k) continue;
     if(data.keys[k] !== undefined) continue;
+    if(SHOP_PROTECTED.some(p => k.startsWith(p))) continue; // 상점 데이터 제외
     if(SYNC_DYNAMIC.some(p => k.startsWith(p)) && k.includes(un)) {
       data.keys[k] = localStorage.getItem(k);
     }
@@ -1829,7 +1831,20 @@ async function _doCloudRestore(force=false) {
 
     let count = 0;
     Object.entries(data.keys).forEach(([k, v]) => {
-      localStorage.setItem(k, v); count++;
+      // ★ ggo_items_, ggo_currency_, ggo_deco_exp_ 는 상점/마이페이지에서 관리
+      // gworld_sync 복원 시 덮어쓰지 않음 (상점 구매 아이템 보호)
+      if(k.startsWith('ggo_items_') ||
+         k.startsWith('ggo_currency_') ||
+         k.startsWith('ggo_deco_exp_') ||
+         k.startsWith('ggo_bp_claimed_') ||
+         k.startsWith('ggo_tour_claimed_')) {
+        // 이미 로컬에 있으면 유지, 없을 때만 복원
+        if(localStorage.getItem(k) === null) {
+          localStorage.setItem(k, v); count++;
+        }
+      } else {
+        localStorage.setItem(k, v); count++;
+      }
     });
     console.log('[CloudSync] 복원된 키:', count, '개 (force:', force, ')');
     return count > 0 || Object.keys(data.keys).length > 0;
