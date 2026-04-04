@@ -3126,7 +3126,7 @@
   }
 
   function getLbProfile(username, size=36) {
-    if(!username) return { avatarHtml:'?', borderStyle:'', nameStyle:'', nameClass:'', titleHtml:'' };
+    if(!username) return { avatarHtml:`<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#5b21b6);display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;color:#fff">${(username||'?').charAt(0).toUpperCase()}</div>`, nameStyle:'', nameClass:'', titleHtml:'' };
     const items = getProfileItems(username);
 
     // ── 아이콘 ──
@@ -3137,7 +3137,7 @@
     if(iconItem) {
       if(iconItem.visualKey === '시즌7번들상자') {
         const s7ic = MP_S7.아이콘[iconItem._s7Idx||0];
-        if(s7ic) { avatarInner = s7ic.render(36); avatarBg='#0a0000'; avatarExtra='overflow:hidden;'; }
+        if(s7ic) { avatarInner = s7ic.render(size); avatarBg='#0a0000'; avatarExtra='overflow:hidden;'; }
         else avatarInner = '<span style="font-size:18px">🔥</span>';
       } else {
         const g  = iconItem.grade;
@@ -3145,41 +3145,51 @@
         const it2 = (MP_ICON_ITEMS[g]||[])[bi%(MP_ICON_ITEMS[g]?.length||1)];
         if(it2) {
           avatarBg = 'var(--bg-card)';
-          if(it2.emoji)       avatarInner = `<span style="font-size:20px;line-height:1">${it2.emoji}</span>`;
-          else if(it2.svg)    avatarInner = `<svg width="28" height="28" viewBox="0 0 52 52" fill="none">${it2.svg}</svg>`;
-          else if(it2.holo)   avatarInner = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.holo};background-size:200%;${it2.anim?'animation:legendaryFlow 3s ease infinite':''}"></div><div style="position:relative;font-size:16px">✦</div>`;
-          else if(it2.glass)  avatarInner = `<div style="position:absolute;inset:0;border-radius:50%;background:${it2.glass};border:2px solid ${it2.border}"></div><div style="position:relative;font-size:16px">💠</div>`;
+          if(it2.emoji)      avatarInner = `<span style="font-size:${Math.floor(size*0.52)}px;line-height:1">${it2.emoji}</span>`;
+          else if(it2.svg)   avatarInner = `<svg width="${Math.floor(size*0.7)}" height="${Math.floor(size*0.7)}" viewBox="0 0 52 52" fill="none">${it2.svg}</svg>`;
+          else if(it2.holo)  { avatarInner=`<div style="position:absolute;inset:0;border-radius:50%;background:${it2.holo};background-size:200%;${it2.anim?'animation:legendaryFlow 3s ease infinite':''}"></div><div style="position:relative;font-size:${Math.floor(size*0.4)}px">✦</div>`; avatarExtra='position:relative;'; }
+          else if(it2.glass) { avatarInner=`<div style="position:absolute;inset:0;border-radius:50%;background:${it2.glass};border:2px solid ${it2.border}"></div><div style="position:relative;font-size:${Math.floor(size*0.4)}px">💠</div>`; avatarExtra='position:relative;'; }
         }
       }
     }
-    // ── 테두리 (avatarHtml 생성 전에 먼저 계산) ──
-    let borderStyle = '';
-    let svgBorderHtml = '';
+
+    // ── 테두리 ── 아이콘 원 바깥에 ring 레이어로 렌더
+    let ringHtml = '';
     const borderItem = items.find(it=>it.type==='테두리효과'&&it.equipped);
     if(borderItem) {
+      const ring = size + 6; // 테두리 링 크기 (아이콘보다 6px 크게)
+      const off  = -3;       // 중앙 정렬 오프셋
       if(borderItem.visualKey==='시즌7번들상자') {
         const s7bd = MP_S7.테두리[borderItem._s7Idx||0];
-        if(s7bd && typeof s7bd.svgBorder === 'function') {
-          // SVG 테두리: 아바타 바깥 wrapper에 오버레이
-          svgBorderHtml = s7bd.svgBorder(size, size);
-        } else if(s7bd) {
-          borderStyle = `box-shadow:0 0 0 2px ${s7bd.colors?.[0]||'#ef4444'},0 0 8px ${s7bd.colors?.[0]||'#ef4444'}55;`;
+        if(s7bd && typeof s7bd.svgBorder==='function') {
+          ringHtml = `<div style="position:absolute;top:${off}px;left:${off}px;width:${ring}px;height:${ring}px;border-radius:50%;pointer-events:none;z-index:2;">${s7bd.svgBorder(ring,size)}</div>`;
+        } else if(s7bd?.colors?.[0]) {
+          ringHtml = `<div style="position:absolute;top:${off}px;left:${off}px;width:${ring}px;height:${ring}px;border-radius:50%;border:2px solid ${s7bd.colors[0]};box-shadow:0 0 8px ${s7bd.colors[0]}88;pointer-events:none;z-index:2;"></div>`;
         }
       } else {
         const g  = borderItem.grade;
         const bi = borderItem.itemIdx!==undefined ? borderItem.itemIdx : (borderItem.visualIdx||0);
         const bd = (MP_BORDER_ITEMS[g]||[])[bi%(MP_BORDER_ITEMS[g]?.length||1)];
         if(bd) {
-          if(bd.color) borderStyle = `box-shadow:0 0 0 2px ${bd.color},0 0 6px ${bd.color}55;`;
-          else if(bd.grad) borderStyle = `box-shadow:0 0 0 2px transparent;outline:2px solid transparent;background-clip:padding-box;`;
+          if(bd.color) {
+            // 단색 테두리
+            const glow = bd.glow ? `box-shadow:${bd.glow};` : `box-shadow:0 0 6px ${bd.color}88;`;
+            ringHtml = `<div style="position:absolute;top:${off}px;left:${off}px;width:${ring}px;height:${ring}px;border-radius:50%;border:2.5px solid ${bd.color};${glow}pointer-events:none;z-index:2;"></div>`;
+          } else if(bd.grad) {
+            // 그라데이션 테두리 (코스믹 링 등) — conic-gradient 방식
+            const animStyle = (bd.rotating||bd.anim) ? 'animation:legendaryFlow 2s linear infinite;' : '';
+            ringHtml = `<div style="position:absolute;top:${off}px;left:${off}px;width:${ring}px;height:${ring}px;border-radius:50%;padding:2.5px;background:${bd.grad};${animStyle}pointer-events:none;z-index:2;box-sizing:border-box;">
+              <div style="width:100%;height:100%;border-radius:50%;background:var(--bg-card,#0d0720);"></div>
+            </div>`;
+          }
         }
       }
     }
-    // avatarHtml: 아이콘은 overflow:hidden, 테두리는 바깥 wrapper에 적용
-    // SVG 테두리: wrapper는 항상 size x size 고정, SVG는 overflow:visible로 바깥 표시
+
+    // ── avatarHtml: 아이콘 + 테두리 ring 오버레이 ──
     const avatarHtml = `<div style="position:relative;flex-shrink:0;width:${size}px;height:${size}px;border-radius:50%;overflow:visible;">
-      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;overflow:hidden;position:relative;${avatarExtra};${borderStyle}">${avatarInner}</div>
-      ${svgBorderHtml ? `<div style="position:absolute;inset:0;border-radius:50%;pointer-events:none;overflow:hidden;">${svgBorderHtml}</div>` : ''}
+      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.42)}px;overflow:hidden;position:relative;${avatarExtra}">${avatarInner}</div>
+      ${ringHtml}
     </div>`;
 
     // ── 이름 효과 ──
@@ -3195,7 +3205,7 @@
         const bi2 = nameEffItem.itemIdx!==undefined ? nameEffItem.itemIdx : (nameEffItem.visualIdx||0);
         const nst = (MP_NAME_EFF_ITEMS[g2]||[])[bi2%(MP_NAME_EFF_ITEMS[g2]?.length||1)];
         if(nst) {
-          if(nst.grad) { nameStyle=`background:${nst.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`; if(nst.animated) nameClass='lb-name-shimmer'; }
+          if(nst.grad) { nameStyle=`background:${nst.grad};background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`; if(nst.animated||nst.anim) nameClass='lb-name-shimmer'; }
           else if(nst.color) nameStyle=`color:${nst.color};`;
           else if(nst.shadow) nameStyle=`text-shadow:${nst.shadow};`;
         }
@@ -3211,8 +3221,9 @@
       titleHtml = `<span class="lb-rank-title t-${tg}" style="${TCOLORS[tg]||''}">< ${titleItem.name} ></span>`;
     }
 
-    return { avatarHtml, borderStyle, nameStyle, nameClass, titleHtml };
+    return { avatarHtml, nameStyle, nameClass, titleHtml };
   }
+
 
   async function loadBattlepass() {
     const top3El = document.getElementById('bp-top3');
