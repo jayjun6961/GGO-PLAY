@@ -830,6 +830,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     z-index: 1;
   }
 </style>
+<!-- Firebase SDK (클라우드 동기화용) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="sync.js"></script>
 </head>
 <body>
 
@@ -2254,7 +2258,10 @@ function showOpenModal(boxDef, grade, item, username) {
         const expGain  = EXP_MAP_SHOP[grade] || 0;
         const expKey   = 'ggo_deco_exp_' + username;
         const prevExp  = parseInt(localStorage.getItem(expKey) || '0');
-        localStorage.setItem(expKey, prevExp + expGain);
+        const newExp   = prevExp + expGain;
+        localStorage.setItem(expKey, newExp);
+        // ★ Firebase profiles에 즉시 동기화 (배틀패스/친선/활동점수 반영)
+        syncShopItemsToFirebase(username, items, newExp);
       }
     }
 
@@ -2625,7 +2632,10 @@ function showS7Modal(fakeDef, picked, isDupe, username, typeMap, allItems, itemK
       addShopNotif(picked.name, '전설', '시즌7 번들 상자', false, 0);
       // EXP
       const expKey='ggo_deco_exp_'+username;
-      localStorage.setItem(expKey, (parseInt(localStorage.getItem(expKey)||'0'))+1000);
+      const newS7Exp = (parseInt(localStorage.getItem(expKey)||'0'))+1000;
+      localStorage.setItem(expKey, newS7Exp);
+      // ★ Firebase 즉시 동기화
+      syncShopItemsToFirebase(username, allItems, newS7Exp);
     }
     closeBtn.style.display='block';
   }, 900);
@@ -2652,6 +2662,37 @@ function loadShop() {
   // 시즌7 배너 미리보기 초기 설정 + 순환
   cycleS7Preview();
   setInterval(cycleS7Preview, 3000);
+}
+
+// ── Firebase 초기화 (상점 아이템 즉시 동기화용) ──
+window._shopDB = null;
+(function() {
+  try {
+    const fbCfg = {
+      apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+      authDomain: "ggo-play.firebaseapp.com",
+      databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ggo-play",
+      storageBucket: "ggo-play.firebasestorage.app",
+    };
+    if(typeof firebase !== 'undefined') {
+      if(!firebase.apps.length) firebase.initializeApp(fbCfg);
+      window._shopDB = firebase.database();
+    }
+  } catch(e) { console.warn('[Shop] Firebase 초기화 실패:', e); }
+})();
+
+// 상점 구매 시 Firebase profiles에 즉시 동기화
+function syncShopItemsToFirebase(username, items, decoExp) {
+  if(!username || !window._shopDB) return;
+  const equipped = items.filter(it => it.equipped);
+  window._shopDB.ref('profiles/' + username).set({
+    items: equipped,
+    decoExp: decoExp || 0,
+    ts: Date.now()
+  }).then(() => {
+    console.log('[Shop] Firebase 프로필 동기화 완료:', username);
+  }).catch(e => console.warn('[Shop] Firebase 동기화 실패:', e));
 }
 
 window.addEventListener('DOMContentLoaded', () => {
