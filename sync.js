@@ -138,6 +138,23 @@
           if (typeof v === 'string' && v.includes(sourceUN))
             targetVal = v.split(sourceUN).join(un);
         }
+        // 낚시 통계/보관함은 force여도 로컬이 더 많은 데이터면 유지
+        const fishProtectedPrefixes = ['ggo_fish_stats_', 'ggo_fish_storage_', 'ggo_fish_dex_'];
+        const isFishProtected = fishProtectedPrefixes.some(p => targetKey.startsWith(p));
+        if(isFishProtected && localStorage.getItem(targetKey) !== null) {
+          try {
+            const localVal = JSON.parse(localStorage.getItem(targetKey));
+            const cloudVal = JSON.parse(targetVal);
+            // 낚시 통계: total이 더 많은 쪽 유지
+            if(localVal && cloudVal && typeof localVal === 'object') {
+              if((localVal.total||0) >= (cloudVal.total||0) && !cloudVal._adminEdit) {
+                // 로컬이 더 많음 → 유지
+                count++;
+                return;
+              }
+            }
+          } catch(e) {}
+        }
         if (force || localStorage.getItem(targetKey) === null) {
           localStorage.setItem(targetKey, targetVal);
           count++;
