@@ -427,6 +427,7 @@
 <!-- Firebase SDK (Realtime Database) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="sync.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
@@ -1366,8 +1367,16 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
       if(!prev ||
          gradeOrder.indexOf(fish.grade) > gradeOrder.indexOf(prev.grade) ||
          (fish.grade===prev.grade && fish.sizeCm > prev.sizeCm)){
-        userRef.set(curr).catch(e => console.warn('Firebase 저장 실패:', e));
-        // 로컬 캐시도 업데이트
+        userRef.set(curr)
+          .then(() => {
+            console.log('[FishRank] 순위 업로드 완료:', curr);
+            // 로컬 캐시 업데이트
+            const key = 'rank_' + cycleKey;
+            if(!_rankCache[key]) _rankCache[key] = {};
+            _rankCache[key][username] = curr;
+          })
+          .catch(e => console.warn('[FishRank] Firebase 저장 실패:', e));
+        // 로컬 캐시도 즉시 업데이트 (Firebase 응답 전에도 표시)
         const key = 'rank_' + cycleKey;
         if(!_rankCache[key]) _rankCache[key] = {};
         _rankCache[key][username] = curr;
@@ -1474,10 +1483,22 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     if(document.visibilityState === 'hidden') {
       _detachRankListener();
     } else if(document.visibilityState === 'visible') {
+      // 순위 탭이 활성화 상태거나 무조건 리스너 재구독
       const rankContent = document.getElementById('fcontent-rank');
       if(rankContent && rankContent.classList.contains('active')) {
         renderRankTab();
+      } else {
+        // 탭이 안 열려있어도 리스너 재구독 준비 (탭 열 때 최신 데이터 보장)
+        _rankListenerKey = null; // 강제 재구독 플래그
       }
+    }
+  });
+
+  // 페이지 포커스 복귀 시도 (모바일 브라우저 대응)
+  window.addEventListener('focus', () => {
+    const rankContent = document.getElementById('fcontent-rank');
+    if(rankContent && rankContent.classList.contains('active') && !_rankListener) {
+      renderRankTab();
     }
   });
 
@@ -1487,6 +1508,13 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     const username = un();
 
     document.getElementById('rank-timer-val').textContent = daysLeft + '일 남음';
+    // Firebase 연결 확인 - 없으면 재시도
+    if(!_fishDB) {
+      const list = document.getElementById('rank-list');
+      if(list) list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-dim);">⚠️ Firebase 연결 중... 잠시 후 다시 시도합니다.</div>';
+      setTimeout(renderRankTab, 2000);
+      return;
+    }
 
     // 자동 지급 여부 확인
     const EPOCH = new Date('2025-01-01').getTime();
@@ -1508,9 +1536,18 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     const list = document.getElementById('rank-list');
     list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-dim);font-size:12px;">🔄 순위 불러오는 중...</div>';
 
-    // 기존 구독 정확하게 해제 후 새로 구독
+    // 기존 구독 해제 후 새로 구독 (항상 fresh 구독)
     _detachRankListener();
     _rankListenerKey = cycleKey;
+
+    // Firebase 규칙 문제 대비: get()으로 일회성 로드도 병행
+    _fishDB.ref('fish_rank/rank_' + cycleKey).get()
+      .then(snap => {
+        if(snap && snap.exists()) {
+          const rankData = snap.val() || {};
+          _rankCache['rank_' + cycleKey] = rankData;
+        }
+      }).catch(()=>{});
 
     _rankListener = _fishDB.ref('fish_rank/rank_' + cycleKey)
       .on('value', snap => {
