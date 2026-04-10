@@ -10192,73 +10192,79 @@ function renderCraftPanel() {
       </div>
     </div>
 
-    <!-- 재료 현황 -->
-    <div style="background:rgba(15,10,30,.8);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
-      <div style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:8px;">📦 합성 재료</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-        <div style="text-align:center;padding:6px;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.2);border-radius:8px;">
-          <div style="font-size:16px">💠</div>
-          <div style="font-size:9px;color:#a78bfa;font-family:'Orbitron',sans-serif;margin-top:2px;">초월 장비</div>
-          <div style="font-size:10px;font-weight:700;color:${transcendItems.length>0?'#34d399':'#ef4444'};">${transcendItems.length}개 보유</div>
-        </div>
-        <div style="text-align:center;padding:6px;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.2);border-radius:8px;">
-          <div style="font-size:16px">✨</div>
-          <div style="font-size:9px;color:#a78bfa;font-family:'Orbitron',sans-serif;margin-top:2px;">빛의 정수</div>
-          <div style="font-size:10px;font-weight:700;color:${essenceOk?'#34d399':'#ef4444'};">${essenceQty}/${CRAFT_ESSENCE_NEED}개</div>
-        </div>
-        <div style="text-align:center;padding:6px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:8px;">
-          <div style="font-size:16px">💰</div>
-          <div style="font-size:9px;color:#fbbf24;font-family:'Orbitron',sans-serif;margin-top:2px;">합성 비용</div>
-          <div style="font-size:10px;font-weight:700;color:${goldOk?'#34d399':'#ef4444'};">${(CRAFT_COST_GOLD/1e8).toFixed(1)}억G</div>
-        </div>
+    <!-- 재료 현황 요약 -->
+    <div style="background:rgba(15,10,30,.8);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;gap:14px;align-items:center;">
+        <span style="font-size:11px;color:${essenceOk?'#34d399':'#ef4444'};">✨ ${essenceQty}/${CRAFT_ESSENCE_NEED}</span>
+        <span style="font-size:11px;color:${goldOk?'#34d399':'#ef4444'};">💰 ${(CRAFT_COST_GOLD/1e8).toFixed(1)}억G</span>
+        <span style="font-size:11px;color:${transcendItems.length>0?'#a78bfa':'#64748b'};">💠 초월 ${transcendItems.length}개</span>
       </div>
-      <div style="margin-top:8px;padding:6px 10px;background:rgba(239,68,68,.06);border-radius:7px;font-size:9px;color:#f87171;font-family:'Noto Sans KR',sans-serif;">
-        ⚠️ 성공률 <b>${(CRAFT_SUCCESS_RATE*100).toFixed(0)}%</b> · 실패 시 재료 소멸 · 골드는 시도 시 차감
-      </div>
+      <div style="font-size:9px;color:#f87171;">성공 ${(CRAFT_SUCCESS_RATE*100).toFixed(0)}%</div>
     </div>
 
     <!-- 초월 장비 선택 목록 -->
-    <div style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:6px;">⚒️ 합성할 초월 장비 선택</div>`;
+    <div style="font-size:9px;color:#64748b;font-family:'Orbitron',sans-serif;margin-bottom:8px;">⚒️ 합성할 초월 장비 선택</div>`;
 
   if(transcendItems.length === 0) {
-    html += `<div style="text-align:center;padding:24px;color:#475569;font-size:12px;font-family:'Noto Sans KR',sans-serif;">
-      초월 등급 장비가 없습니다.<br>
-      <span style="font-size:10px;color:#334155;">월드보스·군단장에서 획득하세요.</span>
-    </div>`;
+    html += '<div style="text-align:center;padding:24px;color:#475569;font-size:12px;font-family:Noto Sans KR,sans-serif;">'
+      + '초월 등급 장비가 없습니다.<br>'
+      + '<span style="font-size:10px;color:#334155;">월드보스·군단장에서 획득하세요.</span>'
+      + '</div>';
   } else {
-    transcendItems.forEach((it, idx) => {
-      const invIdx = G.inv.indexOf(it);
+    transcendItems.forEach(function(it) {
+      const invIdx    = G.inv.indexOf(it);
       const slotLabel = SLOT_LABEL[it.slot] || it.slot || '';
       const canCraft  = essenceOk && goldOk;
-      // 절대자 결과 미리보기
-      const resultItems = getAbsoluteItemForSlot(it.slot, it.subType, it.ringType, it.jobType);
-      const resultPreview = resultItems.length > 0 ? resultItems[0].n : '절대자의 ' + (slotLabel || '장비');
-      html += `
-        <div style="background:rgba(167,139,250,.05);border:1px solid rgba(167,139,250,.2);border-radius:10px;
-          padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
-          <div style="font-size:28px;line-height:1;flex-shrink:0;">${it.e||'💠'}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:11px;font-weight:700;color:#a78bfa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.n}</div>
-            <div style="font-size:9px;color:#64748b;margin-top:2px;">${slotLabel} · 초월</div>
-            <div style="font-size:9px;color:#94a3b8;margin-top:2px;">
-              → <span style="${absoluteGradeStyle('9px')}${resultPreview}</span>
-            </div>
-          </div>
-          <button onclick="tryCraft(${invIdx}, '${it._id||''}')"
-            ${canCraft ? '' : 'disabled'}
-            style="flex-shrink:0;
-              ${canCraft
-                ? 'background:linear-gradient(135deg,rgba(255,255,255,.15),rgba(255,180,220,.25));border:1px solid rgba(255,200,230,.5);color:#fff;cursor:pointer;'
-                : 'background:rgba(71,85,105,.2);border:1px solid #334155;color:#475569;cursor:not-allowed;'
-              }
-              padding:7px 14px;border-radius:8px;font-size:10px;font-family:'Orbitron',sans-serif;font-weight:700;white-space:nowrap;">
-            🌟 합성
-          </button>
-        </div>`;
+      const resultPool = getAbsoluteItemForSlot(it.slot, it.subType, it.ringType, it.jobType);
+      const resultName = resultPool.length > 0 ? resultPool[0].n : ('절대자의 ' + (slotLabel || '장비'));
+      const absStyle   = absoluteGradeStyle('9px');
+      const btnStyle   = canCraft
+        ? 'background:linear-gradient(135deg,rgba(255,255,255,.15),rgba(255,180,220,.25));border:1px solid rgba(255,200,230,.5);color:#fff;cursor:pointer;'
+        : 'background:rgba(71,85,105,.2);border:1px solid #334155;color:#475569;cursor:not-allowed;';
+
+      // 재료 조건 표시
+      const essColor = essenceOk ? '#34d399' : '#ef4444';
+      const gldColor = goldOk    ? '#34d399' : '#ef4444';
+
+      html += '<div style="background:rgba(167,139,250,.05);border:1px solid rgba(167,139,250,.2);border-radius:12px;padding:12px 14px;margin-bottom:10px;">'
+        // 장비 정보 행
+        + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+          + '<div style="font-size:30px;line-height:1;flex-shrink:0;">' + (it.e||'💠') + '</div>'
+          + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-size:12px;font-weight:700;color:#a78bfa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + it.n + '</div>'
+            + '<div style="font-size:9px;color:#64748b;margin-top:2px;">' + slotLabel + ' · 초월 등급</div>'
+            + '<div style="font-size:9px;margin-top:3px;">'
+              + '→ <span style="' + absStyle + '">' + resultName + '</span>'
+            + '</div>'
+          + '</div>'
+        + '</div>'
+        // 재료 조건 행
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">'
+          + '<div style="background:rgba(0,0,0,.3);border-radius:8px;padding:6px 8px;display:flex;align-items:center;gap:6px;">'
+            + '<span style="font-size:14px;">✨</span>'
+            + '<div>'
+              + '<div style="font-size:8px;color:#64748b;">빛의 정수</div>'
+              + '<div style="font-size:10px;font-weight:700;color:' + essColor + ';">' + essenceQty + ' / ' + CRAFT_ESSENCE_NEED + '개</div>'
+            + '</div>'
+          + '</div>'
+          + '<div style="background:rgba(0,0,0,.3);border-radius:8px;padding:6px 8px;display:flex;align-items:center;gap:6px;">'
+            + '<span style="font-size:14px;">💰</span>'
+            + '<div>'
+              + '<div style="font-size:8px;color:#64748b;">합성 골드</div>'
+              + '<div style="font-size:10px;font-weight:700;color:' + gldColor + ';">' + (CRAFT_COST_GOLD/1e8).toFixed(1) + '억G</div>'
+            + '</div>'
+          + '</div>'
+        + '</div>'
+        // 합성 버튼
+        + '<button onclick="tryCraft(' + invIdx + ', '' + (it._id||'') + '')" '
+          + (canCraft ? '' : 'disabled ')
+          + 'style="width:100%;padding:10px;border-radius:9px;font-size:11px;font-family:Orbitron,sans-serif;font-weight:700;' + btnStyle + '">'
+          + '🌟 합성하기 (성공률 ' + (CRAFT_SUCCESS_RATE*100).toFixed(0) + '%)'
+        + '</button>'
+      + '</div>';
     });
   }
 
-  html += `</div>`;  // 닫기는 불필요 (innerHTML)
   el.innerHTML = html;
 }
 
