@@ -10256,7 +10256,7 @@ function renderCraftPanel() {
           + '</div>'
         + '</div>'
         // 합성 버튼
-        + '<button onclick="tryCraft(' + invIdx + ', '' + (it._id||'') + '')" '
+        + '<button onclick="tryCraft(' + invIdx + ', &quot;' + (it._id||'') + '&quot;)" '
           + (canCraft ? '' : 'disabled ')
           + 'style="width:100%;padding:10px;border-radius:9px;font-size:11px;font-family:Orbitron,sans-serif;font-weight:700;' + btnStyle + '">'
           + '🌟 합성하기 (성공률 ' + (CRAFT_SUCCESS_RATE*100).toFixed(0) + '%)'
