@@ -883,12 +883,9 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   let _currentMap  = 'ggo';
 
   function initFishGame() {
-    const savedMap = 'ggo';
-    const stats = getFS('stats') || { total:0 };
-    const totalCatch = stats.total || 0;
-    
-    // 저장된 맵이 해금 조건 미달이면 강가로 초기화
-    _currentMap = (mapDef && totalCatch >= mapDef.unlockAt) ? savedMap : 'river';
+    // 단일 낚시터 — 항상 'ggo'
+    _currentMap = 'ggo';
+    setFS('map', 'ggo');
     renderFishScene();
     renderStats();
     renderRankTab();
@@ -1451,6 +1448,40 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     }
   });
 
+  // 순위 목록 렌더링 공통 함수
+  function _renderRankList(rankData, listEl, cycleKey) {
+    if(!listEl) {
+      listEl = document.getElementById('rank-list');
+      if(!listEl) return;
+    }
+    const gradeOrder = ['일반','희귀','레어','에픽','전설','신화','레전더리','초월'];
+    const rankList = Object.values(rankData || {}).sort((a,b)=>{
+      const gd = gradeOrder.indexOf(b.grade) - gradeOrder.indexOf(a.grade);
+      return gd !== 0 ? gd : b.sizeCm - a.sizeCm;
+    });
+    const myUser = un();
+    if(!rankList.length){
+      listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-family:\'Noto Sans KR\',sans-serif;">아직 등록된 순위가 없습니다<br>낚시를 시작해 기록을 등록하세요!</div>';
+      return;
+    }
+    listEl.innerHTML = rankList.map((r,i) => {
+      const rank = i+1;
+      const fp   = getRankGP(rank);
+      const gi   = FISH_GRADE_INFO[r.grade] || {color:'#94a3b8'};
+      const numCls = rank<=3 ? 'r'+rank : '';
+      const isMine = r.user === myUser;
+      const crownIco = rank===1?'👑':rank===2?'🥈':rank===3?'🥉':'';
+      return `<div class="rank-item ${isMine?'my-rank':''}">
+        <div class="rank-num ${numCls}">${crownIco||rank}</div>
+        <div class="rank-info">
+          <div class="rank-user">${r.user}${isMine?' (나)':''}</div>
+          <div class="rank-fish-detail" style="color:${gi.color}">${r.grade} · ${r.name} · ${r.sizeCm}cm</div>
+        </div>
+        <div class="rank-gp-reward">+${fp.toLocaleString()} GP</div>
+      </div>`;
+    }).join('');
+  }
+
   function renderRankTab() {
     const daysLeft = getRankDaysLeft();
     const cycleKey = 'c' + getRankCycleStart();
@@ -1489,69 +1520,30 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     _detachRankListener();
     _rankListenerKey = cycleKey;
 
-    // Firebase 규칙 문제 대비: get()으로 일회성 로드도 병행
+    // get()으로 먼저 즉시 로드 후 렌더링, 그 다음 실시간 리스너로 갱신
     _fishDB.ref('fish_rank/rank_' + cycleKey).get()
       .then(snap => {
-        if(snap && snap.exists()) {
-          const rankData = snap.val() || {};
-          _rankCache['rank_' + cycleKey] = rankData;
-        }
-      }).catch(()=>{});
+        const rankData = (snap && snap.exists()) ? snap.val() : {};
+        _rankCache['rank_' + cycleKey] = rankData;
+        // 리스너 수신 전에 get() 데이터로 먼저 렌더
+        _renderRankList(rankData, list, cycleKey);
+      }).catch(e => {
+        console.warn('[FishRank] get() 실패:', e);
+        // 로컬 캐시 있으면 사용
+        const cached = _rankCache['rank_' + cycleKey];
+        if(cached) _renderRankList(cached, list, cycleKey);
+      });
 
     _rankListener = _fishDB.ref('fish_rank/rank_' + cycleKey)
       .on('value', snap => {
         const rankData = snap.exists() ? snap.val() : {};
-        // 로컬 캐시 업데이트
         _rankCache['rank_' + cycleKey] = rankData;
-
-        const gradeOrder = ['일반','희귀','레어','에픽','전설','신화','레전더리','초월'];
-        const rankList = Object.values(rankData).sort((a,b)=>{
-          const gd = gradeOrder.indexOf(b.grade) - gradeOrder.indexOf(a.grade);
-          return gd !== 0 ? gd : b.sizeCm - a.sizeCm;
-        });
-        const myUser = un();
-
-        if(!rankList.length){
-          list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-family:\'Noto Sans KR\',sans-serif;">아직 등록된 순위가 없습니다<br>낚시를 시작해 기록을 등록하세요!</div>';
-          return;
-        }
-        list.innerHTML = rankList.map((r,i) => {
-          const rank = i+1;
-          const fp   = getRankGP(rank);
-          const gi   = FISH_GRADE_INFO[r.grade];
-          const numCls = rank<=3 ? 'r'+rank : '';
-          const isMine = r.user === myUser;
-          const crownIco = rank===1?'👑':rank===2?'🥈':rank===3?'🥉':'';
-          return `<div class="rank-item ${isMine?'my-rank':''}">
-            <div class="rank-num ${numCls}">${crownIco||rank}</div>
-            <div class="rank-info">
-              <div class="rank-user">${r.user}${isMine?' (나)':''}</div>
-              <div class="rank-fish-detail" style="color:${gi.color}">${r.grade} · ${r.name} · ${r.sizeCm}cm</div>
-            </div>
-            <div class="rank-gp-reward">+${fp.toLocaleString()} GP</div>
-          </div>`;
-        }).join('');
+        _renderRankList(rankData, list, cycleKey);
       }, err => {
-        // Firebase 실패 시 로컬 캐시로 폴백
-        console.warn('Firebase 순위 읽기 실패, 로컬 캐시 사용:', err);
-        const rankList = getRankList();
-        const myUser = un();
-        if(!rankList.length){
-          list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">아직 등록된 순위가 없습니다</div>';
-          return;
-        }
-        list.innerHTML = rankList.map((r,i) => {
-          const rank=i+1, fp=getRankGP(rank), gi=FISH_GRADE_INFO[r.grade];
-          const isMine=r.user===myUser;
-          return `<div class="rank-item ${isMine?'my-rank':''}">
-            <div class="rank-num ${rank<=3?'r'+rank:''}">${rank===1?'👑':rank===2?'🥈':rank===3?'🥉':rank}</div>
-            <div class="rank-info">
-              <div class="rank-user">${r.user}${isMine?' (나)':''}</div>
-              <div class="rank-fish-detail" style="color:${gi.color}">${r.grade} · ${r.name} · ${r.sizeCm}cm</div>
-            </div>
-            <div class="rank-gp-reward">+${fp.toLocaleString()} GP</div>
-          </div>`;
-        }).join('');
+        console.warn('[FishRank] 실시간 리스너 오류:', err);
+        // 캐시 데이터로 폴백
+        const cached = _rankCache['rank_' + cycleKey] || {};
+        _renderRankList(cached, list, cycleKey);
       });
   }
 
@@ -1774,39 +1766,39 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   const BOSS_DEFS = [
     {
       id:'deep_monster',   name:'심해 괴어',   emoji:'🦑', hp:500,  reward:10000,  perfectDmg:30,  maxClicks:30,
-      unlockMap:'sea',     color:'#60a5fa',
+      unlockCount:100,     color:'#60a5fa',
       desc:'심해에서 솟아오른 거대 생명체',
-      pattern:'shrink',    // 퍼펙트 구간 점점 좁아짐 + 갑자기 가속
+      pattern:'shrink',
     },
     {
       id:'storm_shark',    name:'폭풍 상어',   emoji:'🦈', hp:700,  reward:30000,  perfectDmg:40,  maxClicks:50,
-      unlockMap:'deep',    color:'#a78bfa',
+      unlockCount:200,     color:'#a78bfa',
       desc:'폭풍을 일으키며 질주하는 상어',
-      pattern:'chaos',     // 속도 랜덤 급변
+      pattern:'chaos',
     },
     {
       id:'phantom_jelly',  name:'환영 해파리', emoji:'👻', hp:900,  reward:50000,  perfectDmg:50,  maxClicks:50,
-      unlockMap:'volcano', color:'#f0abfc',
+      unlockCount:300,     color:'#f0abfc',
       desc:'가짜 퍼펙트를 만들어 낚시꾼을 현혹',
-      pattern:'fake',      // 가짜 퍼펙트 구간
+      pattern:'fake',
     },
     {
       id:'flame_eel',      name:'화염 장어',   emoji:'🔥', hp:1200, reward:70000,  perfectDmg:50,  maxClicks:60,
-      unlockMap:'sky',     color:'#f97316',
+      unlockCount:500,     color:'#f97316',
       desc:'분노할수록 더 강해지는 장어. 실수할수록 난이도 급상승',
-      pattern:'rage',      // 퍼펙트 성공 시 2배, 실패 시 난이도 상승
+      pattern:'rage',
     },
     {
       id:'ice_turtle',     name:'빙결 거북',   emoji:'🐢', hp:2000, reward:100000, perfectDmg:60,  maxClicks:70,
-      unlockMap:'space',   color:'#38bdf8',
+      unlockCount:700,     color:'#38bdf8',
       desc:'빈번한 무적 + 좁은 퍼펙트 구간. 타이밍이 생명',
-      pattern:'invincible', // 일정 시간 무적
+      pattern:'invincible',
     },
     {
       id:'thunder_nemo',   name:'번개 니모',   emoji:'🐠', hp:3000, reward:300000, perfectDmg:70,  maxClicks:80,
-      unlockMap:'galaxy',  color:'#fbbf24',
+      unlockCount:1000,    color:'#fbbf24',
       desc:'극단적 위치 변화 + 초고속 + 가짜 구간. 최후의 보스',
-      pattern:'thunder',   // 속도변화 + 페이크 타이밍
+      pattern:'thunder',
     },
   ];
 
@@ -1831,12 +1823,19 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     localStorage.setItem(key, String(getBossTries(bossId)+1));
   }
 
-  // 낚시터 해금 여부 (총 마리수 기반)
+  // 보스 해금 여부 (총 낚은 마리수 기반)
   function isMapUnlocked(mapId) {
+    // 하위 호환 유지 (mapId 대신 bossId로 사용 가능)
+    return isBossUnlocked(mapId);
+  }
+  function isBossUnlocked(bossId) {
     const stats = getFS('stats') || {total:0};
     const totalCatch = stats.total || 0;
-    const map = MAP_DATA.find(m=>m.id===mapId);
-    return map ? totalCatch >= map.unlockAt : false;
+    const boss = BOSS_DEFS.find(b => b.id === bossId);
+    if(boss) return totalCatch >= boss.unlockCount;
+    // unlockMap 방식 호환: mapId로 넘어온 경우 보스에서 찾기
+    const byMap = BOSS_DEFS.find(b => b.unlockMap === bossId || b.id === bossId);
+    return byMap ? totalCatch >= byMap.unlockCount : true;
   }
 
   // ── 보스 탭 렌더 ──
@@ -1866,8 +1865,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     BOSS_DEFS.forEach(boss => {
       const tries   = getBossTries(boss.id);
       const left    = Math.max(0, BOSS_WEEKLY_LIMIT - tries);
-      const unlocked = isMapUnlocked(boss.unlockMap);
-      const mapName  = MAP_DATA.find(m=>m.id===boss.unlockMap)?.name || boss.unlockMap;
+      const unlocked = isBossUnlocked(boss.id);
       const gc       = boss.color;
       const canChallenge = unlocked && left > 0;
 
@@ -1886,7 +1884,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="font-size:10px;font-family:'Orbitron',sans-serif;color:${left>0&&unlocked?'#34d399':'#ef4444'};">
-            ${unlocked ? `도전 ${tries}/${BOSS_WEEKLY_LIMIT}회 · 남은 횟수 ${left}` : `🔒 ${mapName} 해금 필요`}
+            ${unlocked ? `도전 ${tries}/${BOSS_WEEKLY_LIMIT}회 · 남은 횟수 ${left}` : `🔒 총 ${boss.unlockCount}마리 낚아야 해금 (현재 ${totalCatch}마리)`}
           </div>
           <button onclick="startBossChallenge('${boss.id}')"
             ${!canChallenge?'disabled':''}
@@ -1915,7 +1913,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     if(!boss) return;
     const tries = getBossTries(bossId);
     if(tries >= BOSS_WEEKLY_LIMIT){ showFishToast('⛔ 이번 주 도전 횟수를 모두 사용했습니다.'); return; }
-    if(!isMapUnlocked(boss.unlockMap)){ showFishToast('🔒 해당 낚시터를 해금해야 합니다.'); return; }
+    if(!isBossUnlocked(boss.id)){ showFishToast(`🔒 총 ${boss.unlockCount}마리 이상 낚아야 도전할 수 있습니다!`); return; }
 
     _boss.def        = boss;
     _boss.hp         = boss.hp;
