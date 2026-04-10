@@ -515,7 +515,7 @@
       <button class="fish-tab"        id="ftab-storage" onclick="switchFishTab('storage')">📦 보관함</button>
       <button class="fish-tab"        id="ftab-dex"     onclick="switchFishTab('dex')">📖 도감</button>
       <button class="fish-tab"        id="ftab-rank"    onclick="switchFishTab('rank')">🏆 순위</button>
-      <button class="fish-tab"        id="ftab-map"     onclick="switchFishTab('map')">🗺️ 낚시 맵</button>
+
       <button class="fish-tab"        id="ftab-fshop"   onclick="switchFishTab('fshop')">🏪 상점</button>
       <button class="fish-tab"        id="ftab-quest"   onclick="switchFishTab('quest')">📋 일일 퀘스트</button>
     </div>
@@ -663,7 +663,7 @@
 
     <!-- ── 낚시 맵 탭 ── -->
     <div class="fish-tab-content" id="fcontent-map">
-      <div class="section-title">낚시터 선택</div>
+      <div class="section-title">낚시터</div>
       <div class="fish-map-grid" id="map-grid"></div>
     </div>
 
@@ -751,67 +751,11 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
 
   const MAP_DATA = [
     {
-      id:'river', name:'강가 낚시터', emoji:'🏞️',
-      desc:'초보자도 쉽게 즐기는 조용한 강가',
-      bonus:'일반·희귀 출현', priceMult:1.0,
+      id:'ggo', name:'GGO 낚시터', emoji:'🎣',
+      desc:'모든 등급의 물고기가 출현하는 GGO 전용 낚시터',
+      bonus:'전 등급 출현', priceMult:1.5,
       unlockAt:0,
-      grades:{'일반':80,'희귀':20}
-    },
-    {
-      id:'lake', name:'호수 낚시터', emoji:'🏔️',
-      desc:'레어 물고기가 처음 출현하는 조용한 호수',
-      bonus:'레어 물고기 출현', priceMult:1.05,
-      unlockAt:100,
-      grades:{'일반':70,'희귀':20,'레어':10}
-    },
-    {
-      id:'sea', name:'바다 낚시터', emoji:'🌊',
-      desc:'에픽 물고기가 출현하는 드넓은 바다',
-      bonus:'에픽 물고기 출현', priceMult:1.1,
-      unlockAt:300,
-      grades:{'일반':50,'희귀':30,'레어':15,'에픽':5}
-    },
-    {
-      id:'deep', name:'심해 낚시터', emoji:'🌑',
-      desc:'전설 물고기가 출현하는 어두운 심해',
-      bonus:'전설 물고기 출현', priceMult:1.2,
-      unlockAt:500,
-      grades:{'일반':40,'희귀':30,'레어':15,'에픽':10,'전설':5}
-    },
-    {
-      id:'volcano', name:'화산 낚시터', emoji:'🌋',
-      desc:'신화 물고기가 출현하는 마그마 호수',
-      bonus:'신화 물고기 출현', priceMult:1.4,
-      unlockAt:700,
-      grades:{'희귀':40,'레어':30,'에픽':15,'전설':10,'신화':5}
-    },
-    {
-      id:'sky', name:'하늘 낚시터', emoji:'☁️',
-      desc:'레전더리 이전 최고등급이 출현하는 천공 낚시터',
-      bonus:'신화 고확률 출현', priceMult:1.6,
-      unlockAt:1000,
-      grades:{'레어':45,'에픽':30,'전설':15,'신화':10}
-    },
-    {
-      id:'space', name:'우주 낚시터', emoji:'🌌',
-      desc:'레전더리 물고기가 출현하는 신비한 우주 낚시터',
-      bonus:'레전더리 물고기 출현', priceMult:1.8,
-      unlockAt:3000,
-      grades:{'레어':40,'에픽':30,'전설':15,'신화':10,'레전더리':5}
-    },
-    {
-      id:'galaxy', name:'은하수 낚시터', emoji:'🌠',
-      desc:'초월 물고기가 처음 등장하는 신비로운 은하수',
-      bonus:'초월 물고기 출현', priceMult:2.0,
-      unlockAt:5000,
-      grades:{'에픽':40,'전설':30,'신화':15,'레전더리':10,'초월':5}
-    },
-    {
-      id:'infinite', name:'무한 낚시터', emoji:'♾️',
-      desc:'모든 최상위 물고기가 출현하는 무한의 공간',
-      bonus:'초월 고확률 출현', priceMult:2.5,
-      unlockAt:10000,
-      grades:{'전설':45,'신화':30,'레전더리':15,'초월':10}
+      grades:{'일반':80,'희귀':60,'레어':50,'에픽':30,'전설':10,'신화':5,'레전더리':3,'초월':1}
     },
   ];
 
@@ -891,13 +835,18 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
       }
     }
 
-    const total = Object.values(probs).reduce((a,b)=>a+b,0);
-    let r = Math.random() * total;
-    let grade = Object.keys(probs)[0];
-    for(const [g,p] of Object.entries(probs)){
-      r -= p;
-      if(r <= 0){ grade = g; break; }
+    // 등급별 독립 확률 방식: 초월→일반 순으로 각 등급 롤
+    // 가중치 합산 방식으로 변환 (높은 등급에서 낮은 등급 순으로 시도)
+    const gradeOrderAll = ['초월','레전더리','신화','전설','에픽','레어','희귀','일반'];
+    let grade = '일반'; // 기본값
+    for(const g of gradeOrderAll) {
+      if(probs[g] && Math.random() * 100 < probs[g]) {
+        grade = g;
+        break;
+      }
     }
+    // 해당 등급 물고기가 없으면 일반으로 폴백
+    if(!FISH_DB[grade] || FISH_DB[grade].length === 0) grade = '일반';
     // 물고기 선택
     const pool = FISH_DB[grade];
     const fish = pool[Math.floor(Math.random()*pool.length)];
@@ -931,13 +880,13 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   let _perfectStart = 0;
   let _perfectWidth = 0;
   let _currentFish = null;
-  let _currentMap  = 'river';
+  let _currentMap  = 'ggo';
 
   function initFishGame() {
-    const savedMap = getFS('map') || 'river';
+    const savedMap = 'ggo';
     const stats = getFS('stats') || { total:0 };
     const totalCatch = stats.total || 0;
-    const mapDef = MAP_DATA.find(m=>m.id===savedMap);
+    
     // 저장된 맵이 해금 조건 미달이면 강가로 초기화
     _currentMap = (mapDef && totalCatch >= mapDef.unlockAt) ? savedMap : 'river';
     renderFishScene();
@@ -966,7 +915,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     // 현재 맵 이름 항상 최신 상태로 업데이트
     const idleMapEl = document.getElementById('idle-map-text');
     if(idleMapEl) {
-      const mapName = MAP_DATA.find(m=>m.id===(_currentMap||'river'))?.name || '강가 낚시터';
+      const mapName = 'GGO 낚시터';
       idleMapEl.textContent = mapName;
     }
   }
@@ -1620,26 +1569,37 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
   // ── 낚시 맵 ──
   function renderMapTab() {
     const grid = document.getElementById('map-grid');
-    const stats = getFS('stats') || { total:0 };
-    const totalCatch = stats.total || 0;
-    grid.innerHTML = MAP_DATA.map(m => {
-      const active   = m.id === _currentMap;
-      const unlocked = totalCatch >= m.unlockAt;
-      const locked   = !unlocked;
-      const gradeStr = Object.keys(m.grades).join(' · ');
-      const probStr  = Object.entries(m.grades).map(([g,p])=>`${g} ${p}%`).join(', ');
-      const lockMsg  = locked ? `🔒 총 ${m.unlockAt.toLocaleString()}마리 이상 낚아야 해금 (현재 ${totalCatch.toLocaleString()}마리)` : '';
-      return `<div class="fish-map-card ${active?'active-map':''} ${locked?'locked-map':''}"
-        onclick="${locked?`showFishToast('🔒 총 ${m.unlockAt.toLocaleString()}마리 이상 낚으면 해금됩니다!')`:  `selectMap('${m.id}')`}">
-        ${active ? '<div class="fish-map-active-badge">선택중</div>' : ''}
-        ${locked ? '<div class="fish-map-lock-badge">🔒 잠김</div>' : ''}
-        <div class="fish-map-emoji">${m.emoji}</div>
-        <div class="fish-map-name">${m.name}</div>
-        <div class="fish-map-desc">${m.desc}</div>
-        <div class="fish-map-bonus" style="font-size:11px;color:var(--text-dim);margin-top:4px;">${probStr}</div>
-        ${locked ? `<div class="fish-map-lock-msg">${lockMsg}</div>` : ''}
+    if(!grid) return;
+    const GRADE_INFO = [
+      {g:'일반',    p:80,  color:'#94a3b8'},
+      {g:'희귀',    p:60,  color:'#34d399'},
+      {g:'레어',    p:50,  color:'#60a5fa'},
+      {g:'에픽',    p:30,  color:'#a855f7'},
+      {g:'전설',    p:10,  color:'#fbbf24'},
+      {g:'신화',    p:5,   color:'#f97316'},
+      {g:'레전더리',p:3,   color:'#ef4444'},
+      {g:'초월',    p:1,   color:'#a78bfa'},
+    ];
+    grid.innerHTML = `
+      <div style="text-align:center;padding:16px 0 8px;">
+        <div style="font-size:48px;margin-bottom:8px;">🎣</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text-main);font-family:'Orbitron',sans-serif;">GGO 낚시터</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">모든 등급의 물고기가 출현하는 GGO 전용 낚시터</div>
+      </div>
+      <div style="background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.2);border-radius:14px;padding:14px;margin:8px 0;">
+        <div style="font-size:10px;color:var(--text-dim);font-family:'Orbitron',sans-serif;margin-bottom:10px;">📊 등급별 출현 확률</div>
+        ${GRADE_INFO.map(({g,p,color}) => `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+            <div style="font-size:11px;font-weight:600;color:${color};width:58px;flex-shrink:0;">${g}</div>
+            <div style="flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;">
+              <div style="width:${p}%;height:100%;background:${color};border-radius:3px;opacity:0.8;transition:width .4s;"></div>
+            </div>
+            <div style="font-size:11px;font-weight:700;color:${color};width:32px;text-align:right;">${p}%</div>
+          </div>`).join('')}
+        <div style="margin-top:10px;padding:8px;background:rgba(0,0,0,.2);border-radius:8px;font-size:10px;color:var(--text-dim);text-align:center;">
+          ※ 낚시대 등급·퍼펙트 판정에 따라 고등급 확률 상향
+        </div>
       </div>`;
-    }).join('');
   }
 
   function selectMap(id) {
@@ -1750,48 +1710,15 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
 
   // 퀘스트 정의 (맵별 일일 퀘스트 3개씩)
   const QUEST_DEFS = {
-    river: [
-      { id:'r1', icon:'🎣', title:'강가 낚시 입문',    desc:'강가 낚시터에서 5회 낚시하기',       type:'catch_map',  map:'river', target:5,  reward:300 },
-      { id:'r2', icon:'💧', title:'강가 물고기 판매',   desc:'강가에서 잡은 물고기 3마리 판매',    type:'sell_map',   map:'river', target:3,  reward:200 },
-      { id:'r3', icon:'⭐', title:'강가 희귀 낚시',     desc:'강가에서 희귀 이상 물고기 1마리 획득',type:'catch_grade', map:'river', grade:'희귀', target:1, reward:500 },
+    ggo: [
+      { id:'g1', icon:'🎣', title:'낚시 입문',       desc:'GGO 낚시터에서 5회 낚시하기',          type:'catch_map',  map:'ggo', target:5,   reward:300 },
+      { id:'g2', icon:'💧', title:'물고기 판매',      desc:'물고기 3마리 판매하기',                type:'sell_map',   map:'ggo', target:3,   reward:200 },
+      { id:'g3', icon:'⭐', title:'희귀 낚시',        desc:'희귀 이상 물고기 1마리 획득',           type:'catch_grade', grade:'희귀',  target:1,  reward:500 },
+      { id:'g4', icon:'💎', title:'레어 도전',        desc:'레어 이상 물고기 1마리 획득',           type:'catch_grade', grade:'레어',  target:1,  reward:800 },
+      { id:'g5', icon:'💜', title:'에픽 사냥꾼',      desc:'에픽 이상 물고기 1마리 획득',           type:'catch_grade', grade:'에픽',  target:1,  reward:1200 },
+      { id:'g6', icon:'🏆', title:'낚시 10회 도전',   desc:'오늘 10회 낚시하기',                   type:'catch_map',  map:'ggo', target:10,  reward:500 },
     ],
-    lake: [
-      { id:'l1', icon:'🏞️', title:'호수 낚시 탐험',    desc:'호수 낚시터에서 8회 낚시하기',       type:'catch_map',  map:'lake',  target:8,  reward:500 },
-      { id:'l2', icon:'💰', title:'호수 대량 판매',     desc:'호수에서 잡은 물고기 5마리 판매',    type:'sell_map',   map:'lake',  target:5,  reward:400 },
-      { id:'l3', icon:'🔵', title:'호수 레어 낚시',     desc:'호수에서 레어 이상 물고기 1마리 획득',type:'catch_grade', map:'lake', grade:'레어', target:1, reward:800 },
-    ],
-    sea: [
-      { id:'s1', icon:'🌊', title:'바다 낚시 도전',     desc:'바다 낚시터에서 10회 낚시하기',      type:'catch_map',  map:'sea',   target:10, reward:700 },
-      { id:'s2', icon:'🐠', title:'바다 물고기 판매',   desc:'바다에서 잡은 물고기 7마리 판매',    type:'sell_map',   map:'sea',   target:7,  reward:600 },
-      { id:'s3', icon:'💜', title:'바다 에픽 낚시',     desc:'바다에서 에픽 이상 물고기 1마리 획득',type:'catch_grade', map:'sea',  grade:'에픽', target:1, reward:1200 },
-    ],
-    deep: [
-      { id:'d1', icon:'🌑', title:'심해 탐험가',        desc:'심해 낚시터에서 12회 낚시하기',      type:'catch_map',  map:'deep',  target:12, reward:1000 },
-      { id:'d2', icon:'🔮', title:'심해 대량 수확',     desc:'심해에서 잡은 물고기 8마리 판매',    type:'sell_map',   map:'deep',  target:8,  reward:800 },
-      { id:'d3', icon:'🟡', title:'심해 전설 낚시',     desc:'심해에서 전설 이상 물고기 1마리 획득',type:'catch_grade', map:'deep', grade:'전설', target:1, reward:2000 },
-    ],
-    volcano: [
-      { id:'v1', icon:'🌋', title:'화산 도전자',        desc:'화산 낚시터에서 15회 낚시하기',      type:'catch_map',  map:'volcano', target:15, reward:1500 },
-      { id:'v2', icon:'🔥', title:'화산 대폭 판매',     desc:'화산에서 잡은 물고기 10마리 판매',   type:'sell_map',   map:'volcano', target:10, reward:1200 },
-      { id:'v3', icon:'🏆', title:'화산 신화 낚시',     desc:'화산에서 신화 이상 물고기 1마리 획득',type:'catch_grade', map:'volcano', grade:'신화', target:1, reward:5000 },
-    ],
-    sky: [
-      { id:'k1', icon:'☁️', title:'하늘 낚시 수련',    desc:'하늘 낚시터에서 20회 낚시하기',      type:'catch_map',  map:'sky',   target:20, reward:2000 },
-      { id:'k2', icon:'✨', title:'하늘 고급 판매',     desc:'하늘에서 잡은 물고기 12마리 판매',   type:'sell_map',   map:'sky',   target:12, reward:1800 },
-      { id:'k3', icon:'🌌', title:'하늘 신화 두 번',    desc:'하늘에서 신화 물고기 2마리 획득',    type:'catch_grade', map:'sky',  grade:'신화', target:2, reward:8000 },
-    ],
-    space: [
-      { id:'sp1', icon:'🚀', title:'우주 탐험 시작',   desc:'우주 낚시터에서 25회 낚시하기',      type:'catch_map',  map:'space', target:25, reward:3000 },
-      { id:'sp2', icon:'💫', title:'우주 물고기 판매', desc:'우주에서 잡은 물고기 15마리 판매',   type:'sell_map',   map:'space', target:15, reward:2500 },
-      { id:'sp3', icon:'🌠', title:'레전더리 낚시',    desc:'우주에서 레전더리 물고기 1마리 획득', type:'catch_grade', map:'space', grade:'레전더리', target:1, reward:15000 },
-      { id:'gx1', icon:'🌠', title:'은하수 탐험',      desc:'은하수 낚시터에서 20회 낚시하기',     type:'catch_map',  map:'galaxy', target:20, reward:5000 },
-      { id:'gx2', icon:'💠', title:'은하수 판매',      desc:'은하수에서 잡은 물고기 10마리 판매',  type:'sell_map',   map:'galaxy', target:10, reward:4000 },
-      { id:'gx3', icon:'✨', title:'초월 첫 낚시',     desc:'은하수에서 초월 물고기 1마리 획득',   type:'catch_grade', map:'galaxy', grade:'초월', target:1, reward:30000 },
-      { id:'if1', icon:'♾️', title:'무한의 도전',      desc:'무한 낚시터에서 15회 낚시하기',       type:'catch_map',  map:'infinite', target:15, reward:8000 },
-      { id:'if2', icon:'🌟', title:'무한 물고기 판매', desc:'무한에서 잡은 물고기 8마리 판매',     type:'sell_map',   map:'infinite', target:8,  reward:6000 },
-      { id:'if3', icon:'⚡', title:'초월 고급 낚시',   desc:'무한에서 초월 물고기 2마리 획득',     type:'catch_grade', map:'infinite', grade:'초월', target:2, reward:50000 },
-    ],
-  };
+  };;
 
   // 퀘스트 저장 로드
   function loadQuestProgress() {
@@ -2397,7 +2324,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
     const totalCatch= stats.total || 0;
     const allQuests = MAP_DATA
       .filter(m => totalCatch >= m.unlockAt)
-      .flatMap(m => QUEST_DEFS[m.id] || []);
+      .flatMap(() => QUEST_DEFS['ggo'] || []);
 
     if(!allQuests.length) {
       list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);font-family:\'Noto Sans KR\',sans-serif;">아직 해금된 낚시터가 없습니다</div>';
@@ -2760,7 +2687,7 @@ const SIZE_DATA = [{"label": "작은", "mult": 0.8, "range": [5, 15]}, {"label":
       document.getElementById('fish-fp-badge').style.display   = 'flex';
       document.getElementById('fish-gp-badge').style.display   = 'flex';
       // 현재 맵 이름 표시
-      const mapName = MAP_DATA.find(m=>m.id===(_currentMap||'river'))?.name || '강가 낚시터';
+      const mapName = 'GGO 낚시터';
       const idleMapEl = document.getElementById('idle-map-text');
       if(idleMapEl) idleMapEl.textContent = mapName;
       initFishGame();
