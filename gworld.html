@@ -10154,12 +10154,16 @@ function renderCraftPanel() {
   const el = document.getElementById('gw-craftbody');
   if(!el) return;
 
+  // 통합 골드 동기화
+  const currentGold = getSharedGold() !== null ? getSharedGold() : G.gold;
+  G.gold = currentGold;
+
   // 인벤에서 초월 장비 목록 추출
   const transcendItems = G.inv.filter(it => it.grade === '초월' && it.type !== 'mat');
   // 빛의 정수 보유량
   const essenceItem = G.inv.find(i => i.n === '빛의 정수');
   const essenceQty  = essenceItem ? (essenceItem.qty || 0) : 0;
-  const goldOk      = G.gold >= CRAFT_COST_GOLD;
+  const goldOk      = currentGold >= CRAFT_COST_GOLD;
   const essenceOk   = essenceQty >= CRAFT_ESSENCE_NEED;
 
   const SLOT_LABEL = {weapon:'무기',shield:'방패',armor:'갑옷',boots:'신발',gloves:'장갑',shoulder:'견갑',bracelet:'팔찌',earring:'귀걸이',necklace:'목걸이',ring:'반지'};
@@ -10240,7 +10244,7 @@ function renderCraftPanel() {
               → <span style="${absoluteGradeStyle('9px')}${resultPreview}</span>
             </div>
           </div>
-          <button onclick="tryCraft(${invIdx})"
+          <button onclick="tryCraft(${invIdx}, '${it._id||''}')"
             ${canCraft ? '' : 'disabled'}
             style="flex-shrink:0;
               ${canCraft
@@ -10259,15 +10263,30 @@ function renderCraftPanel() {
 }
 
 // 합성 실행
-function tryCraft(invIdx) {
-  const it = G.inv[invIdx];
-  if(!it || it.grade !== '초월') { gwT('⚠️ 유효하지 않은 재료입니다.'); return; }
+function tryCraft(invIdx, itemId='') {
+  // 통합 골드 동기화
+  const currentGold = getSharedGold() !== null ? getSharedGold() : G.gold;
+  G.gold = currentGold;
+
+  // invIdx 유효성: renderCraftPanel 이후 인벤 변화 대비 재탐색
+  let it = G.inv[invIdx];
+  // _id로 정확한 아이템 탐색 (invIdx가 어긋난 경우 대비)
+  if(itemId && (!it || String(it._id) !== String(itemId))) {
+    const byId = G.inv.find(i => String(i._id) === String(itemId) && i.grade === '초월');
+    if(byId) { it = byId; invIdx = G.inv.indexOf(byId); }
+  }
+  if(!it || it.grade !== '초월') {
+    const fallback = G.inv.find(i => i.grade === '초월' && i.type !== 'mat');
+    if(!fallback) { gwT('⚠️ 초월 장비가 없습니다.'); renderCraftPanel(); return; }
+    it = fallback;
+    invIdx = G.inv.indexOf(it);
+  }
 
   // 재료 검증
   const essenceItem = G.inv.find(i => i.n === '빛의 정수');
   const essenceQty  = essenceItem ? (essenceItem.qty || 0) : 0;
   if(essenceQty < CRAFT_ESSENCE_NEED) { gwT(`✨ 빛의 정수가 부족합니다. (${essenceQty}/${CRAFT_ESSENCE_NEED}개)`); return; }
-  if(G.gold < CRAFT_COST_GOLD) { gwT(`💰 골드가 부족합니다. (필요: ${CRAFT_COST_GOLD.toLocaleString()}G)`); return; }
+  if(currentGold < CRAFT_COST_GOLD) { gwT(`💰 골드가 부족합니다. (필요: ${CRAFT_COST_GOLD.toLocaleString()}G)`); return; }
 
   // 재료 차감 (골드 + 초월 장비 + 빛의 정수)
   spendSharedGold(CRAFT_COST_GOLD);
