@@ -432,8 +432,38 @@ function showResult(item){
 function closeModal(){document.getElementById('result-modal').classList.remove('open');}
 
 function saveFeed(item){
-  if(!_db||!username)return;
-  _db.ref('roulette_feed').push({user:username,emoji:item.emoji,name:item.name,qty:item.qty,type:item.type,ts:firebase.database.ServerValue.TIMESTAMP}).catch(e=>console.warn('[Feed]',e));
+  if(!username)return;
+  // 로컬 피드에도 즉시 저장 (Firebase 실패 대비)
+  const localKey = 'ggo_roulette_feed_' + username;
+  const localFeed = JSON.parse(localStorage.getItem(localKey) || '[]');
+  const entry = {user:username, emoji:item.emoji, name:item.name, qty:item.qty, type:item.type, ts:Date.now()};
+  localFeed.unshift(entry);
+  if(localFeed.length > 30) localFeed.length = 30;
+  localStorage.setItem(localKey, JSON.stringify(localFeed));
+
+  // Firebase에 저장
+  if(!_db) { renderLocalFeed(); return; }
+  const ref = _db.ref('roulette_feed');
+  ref.push({
+    user: username,
+    emoji: item.emoji,
+    name: item.name,
+    qty: item.qty,
+    type: item.type,
+    ts: firebase.database.ServerValue.TIMESTAMP
+  }).then(() => {
+    console.log('[Feed] Firebase 저장 성공');
+  }).catch(e => {
+    console.warn('[Feed] Firebase 저장 실패 → 로컬 표시:', e);
+    renderLocalFeed();
+  });
+}
+
+// Firebase 실패 시 로컬 피드로 표시
+function renderLocalFeed(){
+  const localKey = 'ggo_roulette_feed_' + username;
+  const localFeed = JSON.parse(localStorage.getItem(localKey) || '[]');
+  if(localFeed.length > 0) renderFeed(localFeed);
 }
 
 function timeAgo(ts){
@@ -444,16 +474,60 @@ function timeAgo(ts){
   return Math.floor(d/86400000)+'일 전';
 }
 function renderFeed(items){
-  const el=document.getElementById('feed-list');if(!el)return;
-  if(!items||!items.length){el.innerHTML='<div class="feed-empty">아직 획득 내역이 없습니다 🎡</div>';return;}
-  el.innerHTML=items.map(it=>'<div class="feed-item"><div class="feed-item-ico">'+it.emoji+'</div><div class="feed-item-text"><strong>'+it.user+'</strong>님이 룰렛에서 <span class="item-name">'+it.name+(it.qty>1?' × '+it.qty.toLocaleString():'')+'</span>을(를) 획득하였습니다</div><div class="feed-item-time">'+(it.ts?timeAgo(it.ts):'')+'</div></div>').join('');
+  const el = document.getElementById('feed-list'); if(!el) return;
+  if(!items || !items.length){
+    el.innerHTML = '<div class="feed-empty">아직 획득 내역이 없습니다 🎡</div>'; return;
+  }
+  el.innerHTML = items.map(it => {
+    const isMe = it.user === username;
+    const border = isMe ? 'border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.06);' : '';
+    const userTag = isMe
+      ? '<strong style="color:#fbbf24">' + it.user + '</strong> <span style="font-size:9px;background:rgba(251,191,36,.2);color:#fbbf24;padding:1px 5px;border-radius:4px;font-family:Orbitron,sans-serif;">나</span>'
+      : '<strong>' + it.user + '</strong>';
+    return '<div class="feed-item" style="' + border + '">'
+      + '<div class="feed-item-ico">' + it.emoji + '</div>'
+      + '<div class="feed-item-text">'
+      +   userTag + '님이 룰렛에서 '
+      +   '<span class="item-name">' + it.name + (it.qty > 1 ? ' × ' + it.qty.toLocaleString() : '') + '</span>'
+      +   '을(를) 획득하였습니다'
+      + '</div>'
+      + '<div class="feed-item-time">' + (it.ts ? timeAgo(it.ts) : '') + '</div>'
+      + '</div>';
+  }).join('');
 }
 function subscribeFeed(){
-  if(!_db){document.getElementById('feed-list').innerHTML='<div class="feed-empty">Firebase 연결 실패</div>';return;}
-  _db.ref('roulette_feed').orderByChild('ts').limitToLast(50).on('value',snap=>{
-    if(!snap.exists()){renderFeed([]);return;}
-    const arr=[];snap.forEach(c=>arr.push(c.val()));arr.sort((a,b)=>(b.ts||0)-(a.ts||0));renderFeed(arr);
-  },err=>{console.warn('[Feed]',err);document.getElementById('feed-list').innerHTML='<div class="feed-empty">내역을 불러올 수 없습니다</div>';});
+  const feedEl = document.getElementById('feed-list');
+  if(!_db){
+    feedEl.innerHTML = '<div class="feed-empty">Firebase 미연결 — 로컬 내역만 표시됩니다</div>';
+    renderLocalFeed();
+    return;
+  }
+  // 먼저 로컬 피드 즉시 표시 (Firebase 로딩 전 빈 화면 방지)
+  renderLocalFeed();
+
+  _db.ref('roulette_feed').orderByChild('ts').limitToLast(50)
+    .on('value', snap => {
+      if(!snap.exists()){ renderFeed([]); return; }
+      const arr = [];
+      snap.forEach(ch => arr.push(ch.val()));
+      arr.sort((a,b) => (b.ts||0) - (a.ts||0));
+      renderFeed(arr);
+    }, err => {
+      console.warn('[Feed] 실시간 리스너 오류:', err);
+      // Firebase 규칙 문제 → 일회성 get 시도
+      _db.ref('roulette_feed').orderByChild('ts').limitToLast(50).get()
+        .then(snap => {
+          if(!snap.exists()){ renderFeed([]); return; }
+          const arr = [];
+          snap.forEach(ch => arr.push(ch.val()));
+          arr.sort((a,b) => (b.ts||0) - (a.ts||0));
+          renderFeed(arr);
+        })
+        .catch(() => {
+          console.warn('[Feed] get() 도 실패 → 로컬 표시');
+          renderLocalFeed();
+        });
+    });
 }
 
 function renderProbTable(){
