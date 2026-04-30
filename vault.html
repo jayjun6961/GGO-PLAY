@@ -168,6 +168,37 @@
         <div class="gp-info-cost-value">100 GP</div>
       </div>
     </div>
+    <!-- 재화 현황 바 -->
+    <div id="currency-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+      <div class="cur-chip" style="display:flex;align-items:center;gap:6px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:12px;padding:8px 14px;flex:1;min-width:110px;">
+        <span style="font-size:18px">🟡</span>
+        <div>
+          <div style="font-size:9px;color:var(--text-dim);font-family:'Orbitron',sans-serif;letter-spacing:.5px;">GP</div>
+          <div style="font-size:14px;font-weight:700;color:#fbbf24;" id="cur-gp">0</div>
+        </div>
+      </div>
+      <div class="cur-chip" style="display:flex;align-items:center;gap:6px;background:rgba(244,114,182,.12);border:1px solid rgba(244,114,182,.3);border-radius:12px;padding:8px 14px;flex:1;min-width:110px;">
+        <span style="font-size:18px">💎</span>
+        <div>
+          <div style="font-size:9px;color:var(--text-dim);font-family:'Orbitron',sans-serif;letter-spacing:.5px;">루비</div>
+          <div style="font-size:14px;font-weight:700;color:#f472b6;" id="cur-ruby">0</div>
+        </div>
+      </div>
+      <div class="cur-chip" style="display:flex;align-items:center;gap:6px;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);border-radius:12px;padding:8px 14px;flex:1;min-width:110px;">
+        <span style="font-size:18px">🔷</span>
+        <div>
+          <div style="font-size:9px;color:var(--text-dim);font-family:'Orbitron',sans-serif;letter-spacing:.5px;">크리스탈</div>
+          <div style="font-size:14px;font-weight:700;color:#22d3ee;" id="cur-crystal">0</div>
+        </div>
+      </div>
+      <div class="cur-chip" style="display:flex;align-items:center;gap:6px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);border-radius:12px;padding:8px 14px;flex:1;min-width:110px;">
+        <span style="font-size:18px">🎟️</span>
+        <div>
+          <div style="font-size:9px;color:var(--text-dim);font-family:'Orbitron',sans-serif;letter-spacing:.5px;">응모권</div>
+          <div style="font-size:14px;font-weight:700;color:#a78bfa;" id="cur-ticket">0</div>
+        </div>
+      </div>
+    </div>
     <div class="roulette-wrap">
       <div class="roulette-canvas-wrap">
         <div class="roulette-pointer"></div>
@@ -227,15 +258,36 @@ function spendGP(n){
 function addCurrency(type,n){
   if(!username)return;
   const k='ggo_currency_'+username;
-  const cur=JSON.parse(localStorage.getItem(k)||'{"GP":0,"루비":0,"크리스탈":0}');
+  const cur=JSON.parse(localStorage.getItem(k)||'{"GP":0,"루비":0,"크리스탈":0,"응모권":0}');
   cur[type]=(cur[type]||0)+n;
   localStorage.setItem(k,JSON.stringify(cur));
 }
+function getCurrency(type){
+  if(!username)return 0;
+  const cur=JSON.parse(localStorage.getItem('ggo_currency_'+username)||'{"GP":0,"루비":0,"크리스탈":0,"응모권":0}');
+  return parseInt(cur[type])||0;
+}
 function updateGPDisplay(){
   const gp=getGP();
-  const e1=document.getElementById('my-gp'),e2=document.getElementById('topbar-gp');
-  if(e1)e1.textContent=gp.toLocaleString();
+  const ruby=getCurrency('루비');
+  const crystal=getCurrency('크리스탈');
+  const ticket=getCurrency('응모권');
+  // 상단 토픽바
+  const e2=document.getElementById('topbar-gp');
   if(e2)e2.textContent=gp.toLocaleString();
+  // 보유 GP 카드
+  const e1=document.getElementById('my-gp');
+  if(e1)e1.textContent=gp.toLocaleString();
+  // 재화 현황 바지
+  const elRuby=document.getElementById('cur-ruby');
+  const elCrystal=document.getElementById('cur-crystal');
+  const elTicket=document.getElementById('cur-ticket');
+  const elGp=document.getElementById('cur-gp');
+  if(elGp)elGp.textContent=gp.toLocaleString();
+  if(elRuby)elRuby.textContent=ruby.toLocaleString();
+  if(elCrystal)elCrystal.textContent=crystal.toLocaleString();
+  if(elTicket)elTicket.textContent=ticket.toLocaleString();
+  // 룰렛 버튼
   const btn=document.getElementById('spin-btn'),notice=document.getElementById('spin-notice');
   if(btn){
     if(gp<SPIN_COST){btn.disabled=true;if(notice)notice.textContent='GP가 부족합니다. (보유: '+gp+'GP / 필요: '+SPIN_COST+'GP)';}
@@ -364,6 +416,7 @@ function giveReward(item){
   if(item.type==='GP')addCurrency('GP',item.qty);
   else if(item.type==='루비')addCurrency('루비',item.qty);
   else if(item.type==='크리스탈')addCurrency('크리스탈',item.qty);
+  else if(item.type==='응모권')addCurrency('응모권',item.qty);
   else if(item.type==='FP'){const k='ggo_fp_'+username;localStorage.setItem(k,String((parseInt(localStorage.getItem(k)||'0'))+item.qty));}
   else if(item.type==='G골드'){try{const k='gwo_save_'+username;const s=JSON.parse(localStorage.getItem(k)||'null');if(s){s.gold=(s.gold||0)+item.qty;localStorage.setItem(k,JSON.stringify(s));}}catch(e){}}
   updateGPDisplay();
