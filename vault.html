@@ -442,13 +442,11 @@ function saveFeed(item){
   localFeed.unshift(entry);
   if(localFeed.length > 30) localFeed.length = 30;
   localStorage.setItem(localKey, JSON.stringify(localFeed));
-  // 피드 캐시에도 즉시 반영 (재접속 대비)
-  try{
-    const feedCache = JSON.parse(localStorage.getItem(FEED_CACHE_KEY) || '[]');
-    feedCache.unshift(entry);
-    if(feedCache.length > 50) feedCache.length = 50;
-    localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(feedCache));
-  }catch(e){}
+  // feedMap + 캐시에 즉시 반영 (Firebase 저장 성공 전 로컬 우선 표시)
+  const localFbKey = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  _feedMap[localFbKey] = entry;
+  _saveFeedCache();
+  renderFeed(_feedItems);
 
   // Firebase에 저장
   if(!_db) { renderLocalFeed(); return; }
@@ -460,15 +458,15 @@ function saveFeed(item){
     qty: item.qty,
     type: item.type,
     ts: firebase.database.ServerValue.TIMESTAMP
-  }).then(() => {
+  }).then(ref => {
     console.log('[Feed] Firebase 저장 성공');
-    // .on('value') 리스너가 자동으로 최신 데이터를 받아 renderFeed + 캐시 갱신함
+    // child_added 리스너가 자동으로 수신해서 표시
   }).catch(e => {
     console.warn('[Feed] Firebase 저장 실패 → 로컬 직접 삽입:', e);
-    // Firebase 실패 시 로컬 _feedItems에 직접 추가해서 즉시 표시
-    const entry = {user:username, emoji:item.emoji, name:item.name, qty:item.qty, type:item.type, ts:Date.now()};
-    _feedItems.unshift(entry);
-    if(_feedItems.length > 50) _feedItems.length = 50;
+    const fbFallbackKey = 'local_' + Date.now();
+    const entryFb = {user:username, emoji:item.emoji, name:item.name, qty:item.qty, type:item.type, ts:Date.now()};
+    _feedMap[fbFallbackKey] = entryFb;
+    _saveFeedCache();
     renderFeed(_feedItems);
   });
 }
@@ -513,38 +511,60 @@ function renderFeed(items){
 let _feedItems = [];
 
 const FEED_CACHE_KEY = 'ggo_feed_cache';
+let _feedMap = {}; // fbKey → item (중복 방지용)
+
+function _saveFeedCache(){
+  try{
+    const arr = Object.values(_feedMap).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,50);
+    _feedItems = arr;
+    localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(arr));
+  }catch(e){}
+}
 
 function subscribeFeed(){
-  // ── 0단계: 로컬 캐시 즉시 표시 ──
+  // ── 0단계: 캐시 즉시 표시 ──
   const cached = JSON.parse(localStorage.getItem(FEED_CACHE_KEY) || '[]');
-  if(cached.length){ _feedItems = cached; renderFeed(_feedItems); }
-
-  if(!_db){
-    if(!cached.length) renderFeed([]);
-    return;
+  if(cached.length){
+    _feedItems = cached;
+    // 캐시를 feedMap에도 로드 (중복 방지)
+    cached.forEach((item,i) => { _feedMap['cache_'+i] = item; });
+    renderFeed(_feedItems);
   }
 
-  // ── 실시간 value 리스너 ──
-  _db.ref('roulette_feed').orderByChild('ts').limitToLast(50)
-    .on('value', snap => {
-      const arr = [];
-      if(snap && snap.exists()) snap.forEach(ch => arr.push(ch.val()));
-      arr.sort((a,b) => (b.ts||0) - (a.ts||0));
+  if(!_db){ if(!cached.length) renderFeed([]); return; }
 
-      // Firebase에서 받은 데이터가 있으면 무조건 반영
-      if(arr.length > 0){
-        _feedItems = arr;
-        // 캐시 저장 (재접속 시 즉시 표시용)
-        try{ localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(arr)); }catch(e){}
-        renderFeed(_feedItems);
-      } else {
-        // Firebase에 아무것도 없으면 캐시 유지 또는 빈 메시지
-        if(!_feedItems.length) renderFeed([]);
-      }
-    }, err => {
-      console.warn('[Feed] 리스너 오류:', err);
-      if(!_feedItems.length) renderFeed([]);
+  const feedRef = _db.ref('roulette_feed');
+
+  // ── 1단계: 기존 50개 초기 로드 ──
+  feedRef.orderByChild('ts').limitToLast(50).get().then(snap => {
+    if(snap && snap.exists()){
+      _feedMap = {}; // 초기화 후 Firebase 데이터로 채움
+      snap.forEach(ch => { _feedMap[ch.key] = ch.val(); });
+      _saveFeedCache();
+      renderFeed(_feedItems);
+    }
+
+    // ── 2단계: 신규 항목만 child_added로 실시간 수신 ──
+    const latestTs = _feedItems.length ? Math.max(..._feedItems.map(f=>f.ts||0)) : Date.now()-1000;
+    feedRef.orderByChild('ts').startAt(latestTs + 1).on('child_added', snap => {
+      const item = snap.val();
+      if(!item || _feedMap[snap.key]) return; // 이미 있으면 스킵
+      _feedMap[snap.key] = item;
+      _saveFeedCache();
+      renderFeed(_feedItems); // 전체 재렌더 (최신순 정렬 포함)
     });
+
+  }).catch(() => {
+    // get() 실패 시 child_added만으로 운영
+    if(!cached.length) renderFeed([]);
+    feedRef.orderByChild('ts').limitToLast(50).on('child_added', snap => {
+      const item = snap.val();
+      if(!item || _feedMap[snap.key]) return;
+      _feedMap[snap.key] = item;
+      _saveFeedCache();
+      renderFeed(_feedItems);
+    });
+  });
 }
 
 function renderProbTable(){
