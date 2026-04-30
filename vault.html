@@ -453,9 +453,14 @@ function saveFeed(item){
     ts: firebase.database.ServerValue.TIMESTAMP
   }).then(() => {
     console.log('[Feed] Firebase 저장 성공');
+    // child_added 리스너가 곧 받아서 renderFeed 호출하므로 별도 처리 불필요
   }).catch(e => {
-    console.warn('[Feed] Firebase 저장 실패 → 로컬 표시:', e);
-    renderLocalFeed();
+    console.warn('[Feed] Firebase 저장 실패 → 로컬 직접 삽입:', e);
+    // Firebase 실패 시 로컬 _feedItems에 직접 추가해서 즉시 표시
+    const entry = {user:username, emoji:item.emoji, name:item.name, qty:item.qty, type:item.type, ts:Date.now()};
+    _feedItems.unshift(entry);
+    if(_feedItems.length > 50) _feedItems.length = 50;
+    renderFeed(_feedItems);
   });
 }
 
@@ -476,7 +481,7 @@ function timeAgo(ts){
 function renderFeed(items){
   const el = document.getElementById('feed-list'); if(!el) return;
   if(!items || !items.length){
-    el.innerHTML = '<div class="feed-empty">아직 획득 내역이 없습니다 🎡</div>'; return;
+    el.innerHTML = '<div class="feed-empty">아직 획득 내역이 없습니다 🎡<br><span style="font-size:11px;color:var(--text-dim)">룰렛을 돌리면 여기에 표시됩니다</span></div>'; return;
   }
   el.innerHTML = items.map(it => {
     const isMe = it.user === username;
@@ -495,6 +500,9 @@ function renderFeed(items){
       + '</div>';
   }).join('');
 }
+// 피드 항목 배열 (최신순, 최대 50개)
+let _feedItems = [];
+
 function subscribeFeed(){
   const feedEl = document.getElementById('feed-list');
   if(!_db){
@@ -502,30 +510,47 @@ function subscribeFeed(){
     renderLocalFeed();
     return;
   }
-  // 먼저 로컬 피드 즉시 표시 (Firebase 로딩 전 빈 화면 방지)
-  renderLocalFeed();
 
-  _db.ref('roulette_feed').orderByChild('ts').limitToLast(50)
-    .on('value', snap => {
-      if(!snap.exists()){ renderFeed([]); return; }
-      const arr = [];
-      snap.forEach(ch => arr.push(ch.val()));
-      arr.sort((a,b) => (b.ts||0) - (a.ts||0));
-      renderFeed(arr);
-    }, err => {
-      console.warn('[Feed] 실시간 리스너 오류:', err);
-      // Firebase 규칙 문제 → 일회성 get 시도
-      _db.ref('roulette_feed').orderByChild('ts').limitToLast(50).get()
-        .then(snap => {
-          if(!snap.exists()){ renderFeed([]); return; }
-          const arr = [];
-          snap.forEach(ch => arr.push(ch.val()));
-          arr.sort((a,b) => (b.ts||0) - (a.ts||0));
-          renderFeed(arr);
-        })
-        .catch(() => {
-          console.warn('[Feed] get() 도 실패 → 로컬 표시');
-          renderLocalFeed();
+  // ── 1단계: 기존 50개 먼저 한번에 로드 ──
+  _db.ref('roulette_feed').orderByChild('ts').limitToLast(50).get()
+    .then(snap => {
+      _feedItems = [];
+      if(snap.exists()){
+        snap.forEach(ch => _feedItems.push(ch.val()));
+        _feedItems.sort((a,b) => (b.ts||0) - (a.ts||0));
+      }
+      renderFeed(_feedItems);
+
+      // ── 2단계: 이후 새 항목은 child_added로 실시간 수신 ──
+      // 현재 최신 ts 이후 항목만 받음
+      const latestTs = _feedItems.length ? (_feedItems[0].ts || Date.now()) : Date.now();
+      _db.ref('roulette_feed').orderByChild('ts').startAt(latestTs + 1)
+        .on('child_added', snap => {
+          const item = snap.val();
+          if(!item) return;
+          // 중복 방지 (같은 ts+user 조합)
+          const isDup = _feedItems.some(f => f.ts === item.ts && f.user === item.user && f.name === item.name);
+          if(isDup) return;
+          _feedItems.unshift(item);
+          if(_feedItems.length > 50) _feedItems.length = 50;
+          renderFeed(_feedItems);
+        });
+    })
+    .catch(err => {
+      console.warn('[Feed] 로드 실패 → 로컬 표시:', err);
+      renderLocalFeed();
+
+      // 로컬 실패해도 리스너는 붙임
+      _db.ref('roulette_feed').orderByChild('ts').limitToLast(1)
+        .on('child_added', snap => {
+          const item = snap.val();
+          if(!item) return;
+          const isDup = _feedItems.some(f => f.ts === item.ts && f.user === item.user);
+          if(!isDup) {
+            _feedItems.unshift(item);
+            if(_feedItems.length > 50) _feedItems.length = 50;
+            renderFeed(_feedItems);
+          }
         });
     });
 }
