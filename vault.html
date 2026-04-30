@@ -3,26 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>금고 — GGO PLAY</title>
+<title>미션 — GGO PLAY</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg-deep:#0a0612; --bg-card:#130d24; --bg-card2:#1a1035;
-    --purple-1:#7c3aed; --purple-2:#9d5ff5; --purple-3:#c084fc;
-    --accent-pink:#f472b6; --accent-cyan:#22d3ee; --accent-gold:#fbbf24;
-    --text-main:#f0e8ff; --text-sub:#9d8ec4; --text-dim:#5c4e7a;
-    --sidebar-w:72px; --bottombar-h:64px;
-  }
+  :root{--bg-deep:#0a0612;--bg-card:#130d24;--bg-card2:#1a1035;--purple-1:#7c3aed;--purple-2:#9d5ff5;--purple-3:#c084fc;--accent-pink:#f472b6;--accent-cyan:#22d3ee;--accent-gold:#fbbf24;--text-main:#f0e8ff;--text-sub:#9d8ec4;--text-dim:#5c4e7a;--sidebar-w:72px;--bottombar-h:64px;}
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg-deep);color:var(--text-main);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
-  body::before{content:'';position:fixed;inset:0;background:
-    radial-gradient(ellipse 60% 40% at 15% 20%,rgba(124,58,237,0.18) 0%,transparent 70%),
-    radial-gradient(ellipse 50% 50% at 85% 75%,rgba(251,191,36,0.10) 0%,transparent 70%),
-    radial-gradient(ellipse 40% 30% at 50% 50%,rgba(34,211,238,0.05) 0%,transparent 70%);
-    pointer-events:none;z-index:0;}
-
-  /* ── SIDEBAR ── */
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 15% 20%,rgba(124,58,237,0.18) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 85% 75%,rgba(251,191,36,0.10) 0%,transparent 70%);pointer-events:none;z-index:0;}
   .sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:rgba(19,13,36,0.95);border-right:1px solid rgba(124,58,237,0.2);display:flex;flex-direction:column;align-items:center;padding:20px 0;z-index:100;backdrop-filter:blur(20px);}
   .sidebar-logo{width:42px;height:42px;background:linear-gradient(135deg,var(--purple-1),var(--purple-3));border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:white;margin-bottom:32px;box-shadow:0 0 20px rgba(124,58,237,0.5);}
   .sidebar-nav{display:flex;flex-direction:column;gap:8px;flex:1;overflow-y:auto;scrollbar-width:none;}
@@ -34,119 +22,87 @@
   .nav-item:hover .tooltip{opacity:1;}
   .sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:8px;align-items:center;}
   .avatar-sm{width:36px;height:36px;border-radius:50%;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;}
-
-  /* ── MAIN ── */
+  .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottombar-h);background:rgba(13,9,26,0.97);border-top:1px solid rgba(124,58,237,0.15);z-index:100;backdrop-filter:blur(20px);}
+  .bnav-scroll{display:flex;height:100%;overflow-x:auto;scrollbar-width:none;}
+  .bnav-scroll::-webkit-scrollbar{display:none;}
+  .bnav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:64px;padding:0 8px;cursor:pointer;color:var(--text-dim);transition:color 0.2s;flex:1;}
+  .bnav-item.active,.bnav-item:hover{color:var(--purple-3);}
+  .bnav-icon{font-size:20px;line-height:1;}
+  .bnav-label{font-size:9px;white-space:nowrap;}
+  @media(max-width:768px){.sidebar{display:none;}.bottom-nav{display:flex;}.main-wrap{margin-left:0!important;padding-bottom:calc(var(--bottombar-h)+20px)!important}}
   .main-wrap{margin-left:var(--sidebar-w);padding:0 0 80px;position:relative;min-height:100vh;}
-
-  /* ── TOPBAR ── */
   .topbar{display:flex;align-items:center;gap:12px;padding:18px 24px;position:sticky;top:0;z-index:50;background:rgba(10,6,18,0.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(124,58,237,0.1);}
   .topbar-back{width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--purple-3);font-size:18px;transition:all 0.2s;}
   .topbar-back:hover{background:rgba(124,58,237,0.3);}
   .topbar-title{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;color:var(--accent-gold);}
-
-  /* ── CONTENT ── */
-  .content{padding:20px 24px;max-width:600px;margin:0 auto;}
-
-  /* ── 금고 이벤트 헤더 ── */
-  .vault-header{background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(245,158,11,.06));border:1px solid rgba(251,191,36,.25);border-radius:16px;padding:20px;text-align:center;margin-bottom:20px;}
-  .vault-icon{font-size:52px;line-height:1;margin-bottom:8px;filter:drop-shadow(0 0 16px rgba(251,191,36,.5));}
-  .vault-title{font-family:'Orbitron',sans-serif;font-size:18px;font-weight:900;color:var(--accent-gold);margin-bottom:4px;}
-  .vault-desc{font-size:11px;color:#94a3b8;line-height:1.6;}
-
-  /* ── 승리 횟수 카드 ── */
-  .wins-card{background:var(--bg-card);border:1px solid rgba(251,191,36,.2);border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
-  .wins-icon{font-size:32px;}
-  .wins-info{flex:1;}
-  .wins-label{font-size:11px;color:#94a3b8;font-family:'Orbitron',sans-serif;margin-bottom:4px;}
-  .wins-value{font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:var(--accent-gold);}
-  .wins-sub{font-size:11px;color:#64748b;margin-top:2px;}
-  .wins-badge{background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:8px 14px;text-align:center;flex-shrink:0;}
-  .wins-badge-num{font-family:'Orbitron',sans-serif;font-size:18px;font-weight:700;color:var(--accent-gold);}
-  .wins-badge-label{font-size:9px;color:#94a3b8;}
-
-  /* ── 빙고판 ── */
-  .bingo-section{margin-bottom:20px;}
-  .bingo-section-title{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--purple-3);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
-  .bingo-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
-
-  /* ── 빙고 칸 ── */
-  .bingo-cell{aspect-ratio:1;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;border:2px solid rgba(124,58,237,.2);background:rgba(124,58,237,.06);user-select:none;}
-  .bingo-cell:hover:not(.opened):not(.disabled){border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.08);transform:scale(1.03);}
-  .bingo-cell.opened{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.1);cursor:default;}
-  .bingo-cell.disabled{opacity:.45;cursor:not-allowed;}
-  .bingo-cell .cell-num{font-size:8px;color:#475569;font-family:'Orbitron',sans-serif;position:absolute;top:4px;left:5px;}
-  .bingo-cell .cell-emoji{font-size:20px;line-height:1;margin-bottom:2px;}
-  .bingo-cell .cell-val{font-size:9px;font-family:'Orbitron',sans-serif;font-weight:700;color:var(--text-sub);text-align:center;line-height:1.2;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .bingo-cell.opened .cell-val{color:#6ee7b7;}
-  .bingo-cell .cell-lock{font-size:16px;color:#374151;}
-
-  /* ── 빙고 라인 안내 ── */
-  .bingo-lines{background:var(--bg-card);border:1px solid rgba(124,58,237,.15);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
-  .bingo-lines-title{font-size:11px;color:#94a3b8;font-family:'Orbitron',sans-serif;margin-bottom:8px;}
-  .bingo-lines-row{display:flex;flex-wrap:wrap;gap:6px;}
-  .bingo-line-chip{font-size:10px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.25);border-radius:20px;padding:3px 10px;color:var(--purple-3);font-family:'Orbitron',sans-serif;}
-  .bingo-line-chip.complete{background:rgba(251,191,36,.2);border-color:rgba(251,191,36,.4);color:var(--accent-gold);}
-
-  /* ── 토스트 ── */
-  .toast{position:fixed;bottom:calc(var(--bottombar-h)+16px);left:50%;transform:translateX(-50%) translateY(20px);background:rgba(19,13,36,.97);border:1px solid rgba(124,58,237,.4);border-radius:12px;padding:11px 20px;font-size:13px;color:var(--text-main);font-family:'Noto Sans KR',sans-serif;white-space:nowrap;opacity:0;transition:all .3s;z-index:9999;pointer-events:none;}
-  .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
-
-  /* ── 보상 팝업 ── */
-  .reward-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;}
-  .reward-overlay.on{display:flex;}
-  .reward-box{background:var(--bg-card);border:1px solid rgba(251,191,36,.35);border-radius:20px;padding:28px 24px;text-align:center;max-width:320px;width:100%;}
-  .reward-box-icon{font-size:56px;margin-bottom:12px;filter:drop-shadow(0 0 20px rgba(251,191,36,.6));}
-  .reward-box-title{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:var(--accent-gold);margin-bottom:6px;}
-  .reward-box-desc{font-size:13px;color:var(--text-main);margin-bottom:20px;line-height:1.6;}
-  .reward-box-btn{width:100%;padding:13px;background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;border-radius:12px;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}
-
-  /* ── 빙고/전체 보상 섹션 ── */
-  .bonus-section{margin-bottom:20px;}
-  .bonus-section-title{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--purple-3);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
-  .bonus-list{display:flex;flex-direction:column;gap:6px;}
-  .bonus-item{background:var(--bg-card);border:1px solid rgba(124,58,237,.15);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;transition:all .2s;}
-  .bonus-item.claimed{border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.06);}
-  .bonus-item.locked{opacity:.5;}
-  .bonus-item-icon{font-size:22px;flex-shrink:0;}
-  .bonus-item-info{flex:1;}
-  .bonus-item-name{font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:2px;}
-  .bonus-item-reward{font-size:11px;color:#94a3b8;}
-  .bonus-item-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-family:'Orbitron',sans-serif;font-weight:700;flex-shrink:0;}
-  .bonus-item-badge.done{background:rgba(52,211,153,.2);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
-  .bonus-item-badge.ready{background:rgba(251,191,36,.2);color:#fbbf24;border:1px solid rgba(251,191,36,.3);cursor:pointer;}
-  .bonus-item-badge.locked{background:rgba(71,85,105,.2);color:#64748b;border:1px solid rgba(71,85,105,.2);}
-
-  /* ── 로딩 ── */
-  .loading-state{text-align:center;padding:48px 20px;color:#475569;font-size:13px;}
-  .loading-spin{width:28px;height:28px;border:3px solid rgba(124,58,237,.2);border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
-  @keyframes spin{to{transform:rotate(360deg)}}
-
-  /* ── 로그인 안내 ── */
-  .login-notice{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:16px;text-align:center;color:#f87171;font-size:12px;}
-
-  /* ── BOTTOM NAV ── */
-  .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottombar-h);background:rgba(13,10,26,0.95);border-top:1px solid rgba(124,58,237,0.15);z-index:100;backdrop-filter:blur(16px);overflow-x:auto;scrollbar-width:none;}
-  .bottom-nav::-webkit-scrollbar{display:none;}
-  .bnav-scroll{display:flex;min-width:max-content;padding:0 8px;}
-  .bnav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 12px;cursor:pointer;transition:all .15s;color:#5c4e7a;min-width:56px;}
-  .bnav-item.active,.bnav-item:active{color:#c084fc;}
-  .bnav-icon{display:flex;align-items:center;justify-content:center;}
-  .bnav-label{font-size:9px;font-family:'Noto Sans KR',sans-serif;}
-
-  @media(max-width:640px){
-    .sidebar{display:none;}
-    .bottom-nav{display:flex;}
-    .main-wrap{margin-left:0;padding-bottom:calc(var(--bottombar-h)+20px);}
-  }
+  .topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+  .gp-badge{display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:10px;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.25);font-size:13px;font-weight:700;color:var(--accent-gold);}
+  .content{padding:20px 24px;max-width:640px;margin:0 auto;}
+  .page-hero{background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(251,191,36,0.1));border:1px solid rgba(124,58,237,0.2);border-radius:20px;padding:28px 24px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden;}
+  .page-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(251,191,36,0.15),transparent 70%);pointer-events:none;}
+  .page-hero-icon{font-size:48px;margin-bottom:10px;animation:floatY 3s ease-in-out infinite;}
+  @keyframes floatY{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+  .page-hero-title{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:var(--accent-gold);margin-bottom:6px;}
+  .page-hero-desc{font-size:13px;color:var(--text-sub);line-height:1.6;}
+  .gp-info-card{background:var(--bg-card);border:1px solid rgba(124,58,237,0.2);border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+  .gp-info-icon{font-size:28px;}
+  .gp-info-label{font-size:11px;color:var(--text-dim);margin-bottom:2px;}
+  .gp-info-value{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:var(--accent-gold);}
+  .gp-info-cost{margin-left:auto;text-align:right;}
+  .gp-info-cost-label{font-size:10px;color:var(--text-dim);margin-bottom:2px;}
+  .gp-info-cost-value{font-size:13px;color:var(--text-sub);}
+  .roulette-wrap{background:var(--bg-card);border:1px solid rgba(124,58,237,0.25);border-radius:20px;padding:28px 20px;margin-bottom:20px;text-align:center;}
+  .roulette-canvas-wrap{position:relative;display:inline-block;margin-bottom:20px;}
+  #roulette-canvas{border-radius:50%;box-shadow:0 0 40px rgba(124,58,237,0.4),0 0 80px rgba(124,58,237,0.15);}
+  .roulette-pointer{position:absolute;top:-16px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:28px solid var(--accent-gold);filter:drop-shadow(0 4px 8px rgba(251,191,36,0.6));z-index:10;}
+  .spin-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 36px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--purple-1),var(--accent-gold));color:#fff;font-size:15px;font-weight:700;font-family:'Orbitron',sans-serif;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 20px rgba(124,58,237,0.4);letter-spacing:0.5px;}
+  .spin-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 28px rgba(124,58,237,0.6);}
+  .spin-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+  .spin-cost{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:8px;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);font-size:11px;color:var(--accent-gold);margin-top:10px;}
+  .spin-notice{font-size:11px;color:#f87171;margin-top:8px;min-height:18px;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .modal-overlay.open{display:flex;}
+  .result-modal{background:var(--bg-card);border:1px solid rgba(251,191,36,0.3);border-radius:24px;padding:36px 32px;text-align:center;max-width:360px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.6),0 0 40px rgba(251,191,36,0.15);animation:popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);}
+  @keyframes popIn{from{opacity:0;transform:scale(0.7);}to{opacity:1;transform:scale(1);}}
+  .result-emoji{font-size:64px;margin-bottom:12px;}
+  .result-label{font-size:12px;color:var(--text-dim);margin-bottom:4px;font-family:'Orbitron',sans-serif;}
+  .result-name{font-size:22px;font-weight:700;color:var(--accent-gold);margin-bottom:4px;}
+  .result-desc{font-size:13px;color:var(--text-sub);margin-bottom:20px;}
+  .result-close{padding:12px 32px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--purple-1),var(--purple-2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Orbitron',sans-serif;transition:all 0.2s;}
+  .result-close:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,0.5);}
+  .feed-section{background:var(--bg-card);border:1px solid rgba(124,58,237,0.2);border-radius:20px;padding:20px;margin-bottom:20px;}
+  .feed-title{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--text-sub);letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .feed-title::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent-gold);animation:pulse 1.5s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  .feed-list{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;}
+  .feed-list::-webkit-scrollbar{width:3px;}
+  .feed-list::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.3);border-radius:2px;}
+  .feed-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.05);font-size:12px;}
+  .feed-item-ico{font-size:20px;flex-shrink:0;}
+  .feed-item-text{flex:1;color:var(--text-sub);line-height:1.5;}
+  .feed-item-text strong{color:var(--text-main);}
+  .feed-item-text .item-name{color:var(--accent-gold);font-weight:700;}
+  .feed-item-time{font-size:10px;color:var(--text-dim);flex-shrink:0;}
+  .feed-empty{text-align:center;padding:24px;color:var(--text-dim);font-size:13px;}
+  .prob-section{background:var(--bg-card);border:1px solid rgba(124,58,237,0.2);border-radius:20px;padding:20px;margin-bottom:20px;}
+  .prob-title{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--text-sub);letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .prob-title::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--purple-3);}
+  .prob-table{width:100%;border-collapse:collapse;}
+  .prob-table th{font-size:10px;color:var(--text-dim);font-family:'Orbitron',sans-serif;text-align:left;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.06);}
+  .prob-table td{font-size:12px;padding:8px 8px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text-sub);}
+  .prob-table td:first-child{font-size:18px;width:36px;}
+  .item-name-col{color:var(--text-main)!important;font-weight:500;}
+  .prob-col{color:var(--accent-gold)!important;font-family:'Orbitron',sans-serif;font-size:11px!important;text-align:right!important;}
+  .prob-bar-wrap{width:60px;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
+  .prob-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--purple-2),var(--accent-gold));}
+  .spin-icon{display:inline-block;animation:rotate 0.8s linear infinite;}
+  @keyframes rotate{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 </style>
-<!-- Firebase SDK (클라우드 동기화용) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script src="sync.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
 
-<!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-logo">G</div>
   <nav class="sidebar-nav">
@@ -158,572 +114,309 @@
     <button class="nav-item" onclick="location.href='activity.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tooltip">활동점수</span></button>
     <button class="nav-item" onclick="location.href='shop.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><span class="tooltip">상점</span></button>
     <button class="nav-item" onclick="location.href='event.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg><span class="tooltip">이벤트</span></button>
-    <button class="nav-item active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg><span class="tooltip">금고</span></button>
-          </nav>
+    <button class="nav-item active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg><span class="tooltip">미션</span></button>
+  </nav>
   <div class="sidebar-bottom">
     <div class="avatar-sm" onclick="location.href='mypage.html'">👤</div>
   </div>
 </aside>
 
-<!-- BOTTOM NAV -->
 <nav class="bottom-nav">
   <div class="bnav-scroll">
     <div class="bnav-item" onclick="location.href='index.html'"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span><span class="bnav-label">홈</span></div>
     <div class="bnav-item" onclick="location.href='character.html'"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span><span class="bnav-label">캐릭터</span></div>
-    <div class="bnav-item" onclick="location.href='equipment.html'"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18"/><path d="M9 3v18"/></svg></span><span class="bnav-label">장비</span></div>
     <div class="bnav-item" onclick="location.href='battlepass.html'"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="bnav-label">배틀패스</span></div>
     <div class="bnav-item" onclick="location.href='tournament.html'"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h6v8a4 4 0 008 0V4h6"/><path d="M6 8H2"/><path d="M22 8h-4"/><path d="M12 16v4"/><path d="M9 20h6"/></svg></span><span class="bnav-label">친선대회</span></div>
     <div class="bnav-item" onclick="location.href='activity.html'"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span><span class="bnav-label">활동점수</span></div>
-    <div class="bnav-item active"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg></span><span class="bnav-label">금고</span></div>
-          </div>
+    <div class="bnav-item active"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg></span><span class="bnav-label">미션</span></div>
+  </div>
 </nav>
 
-<!-- MAIN -->
+<div class="modal-overlay" id="result-modal">
+  <div class="result-modal">
+    <div class="result-emoji" id="result-emoji">🎉</div>
+    <div class="result-label">🎡 룰렛 당첨!</div>
+    <div class="result-name" id="result-name">-</div>
+    <div class="result-desc" id="result-desc"></div>
+    <button class="result-close" onclick="closeModal()">✓ 확인</button>
+  </div>
+</div>
+
 <div class="main-wrap">
   <div class="topbar">
-    <button class="topbar-back" onclick="history.back()">←</button>
-    <div style="font-size:20px;">🔐</div>
-    <div class="topbar-title">금고 이벤트</div>
+    <div class="topbar-back" onclick="history.back()">←</div>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1" fill="#fbbf24"/></svg>
+    <span class="topbar-title">MISSION</span>
+    <div class="topbar-right">
+      <div class="gp-badge">🟡 <span id="topbar-gp">0</span> GP</div>
+    </div>
   </div>
-
   <div class="content">
-    <div id="loading-state" class="loading-state">
-      <div class="loading-spin"></div>
-      데이터 불러오는 중...
+    <div class="page-hero">
+      <div class="page-hero-icon">🎡</div>
+      <div class="page-hero-title">행운의 룰렛</div>
+      <div class="page-hero-desc">GP를 사용해 룰렛을 돌리고 다양한 보상을 획득하세요!<br>돌림판 1회 비용: <strong style="color:var(--accent-gold)">100 GP</strong></div>
     </div>
-    <div id="main-content" style="display:none;">
-      <!-- 헤더 -->
-      <div class="vault-header">
-        <div class="vault-icon">🔐</div>
-        <div class="vault-title">금고 이벤트</div>
-        <div id="vault-season-badge" style="display:inline-block;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.35);border-radius:20px;padding:3px 12px;font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:#fbbf24;margin:6px 0 4px;">SEASON 1</div>
-        <div class="vault-desc">금고 승리 1회당 빙고 1칸 오픈 가능<br>25칸 모두 오픈하면 특별 보상 획득!</div>
+    <div class="gp-info-card">
+      <div class="gp-info-icon">🟡</div>
+      <div>
+        <div class="gp-info-label">보유 GP</div>
+        <div class="gp-info-value" id="my-gp">0</div>
       </div>
-
-      <!-- 승리 횟수 -->
-      <div id="wins-area"></div>
-
-      <!-- 빙고판 -->
-      <div class="bingo-section">
-        <div class="bingo-section-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
-          빙고판 (5×5)
-        </div>
-        <div class="bingo-grid" id="bingo-grid"></div>
+      <div class="gp-info-cost">
+        <div class="gp-info-cost-label">1회 비용</div>
+        <div class="gp-info-cost-value">100 GP</div>
       </div>
-
-      <!-- 빙고 완성 현황 -->
-      <div class="bingo-lines">
-        <div class="bingo-lines-title">🎯 빙고 완성 현황</div>
-        <div class="bingo-lines-row" id="bingo-lines-row"></div>
+    </div>
+    <div class="roulette-wrap">
+      <div class="roulette-canvas-wrap">
+        <div class="roulette-pointer"></div>
+        <canvas id="roulette-canvas" width="300" height="300"></canvas>
       </div>
+      <div>
+        <button class="spin-btn" id="spin-btn" onclick="spinRoulette()">🎡 룰렛 돌리기</button>
+      </div>
+      <div class="spin-cost">🟡 100 GP 소모</div>
+      <div class="spin-notice" id="spin-notice"></div>
+    </div>
+    <div class="feed-section">
+      <div class="feed-title">LIVE FEED — 실시간 획득 내역</div>
+      <div class="feed-list" id="feed-list">
+        <div class="feed-empty">🎡 룰렛 기록을 불러오는 중...</div>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-title">ITEM TABLE — 아이템 목록 및 확률</div>
+      <table class="prob-table">
+        <thead><tr><th></th><th>아이템명</th><th>수량</th><th style="text-align:right">확률</th></tr></thead>
+        <tbody id="prob-tbody"><tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-dim)">불러오는 중...</td></tr></tbody>
+      </table>
     </div>
   </div>
 </div>
-
-<!-- 보상 팝업 -->
-<div class="reward-overlay" id="reward-overlay">
-  <div class="reward-box">
-    <div class="reward-box-icon" id="reward-icon">🎁</div>
-    <div class="reward-box-title" id="reward-title">보상 획득!</div>
-    <div class="reward-box-desc" id="reward-desc"></div>
-    <button class="reward-box-btn" onclick="closeReward()">확인</button>
-  </div>
-</div>
-
-<!-- 토스트 -->
-<div class="toast" id="toast"></div>
 
 <script>
-// ── 구글시트 CSV URL (gid는 새 탭 추가 후 실제 gid로 교체해주세요) ──
-const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub';
-// 금고 승리 횟수 시트: A=유저명, B=승리횟수
-const CSV_VAULT_WINS   = SHEET_BASE + '?gid=1617306718&single=true&output=csv';
-// 빙고 보상 시트 (칸 + 빙고완성 + 전체완주 통합):
-//   A=타입(칸/빙고/전체), B=키(1~25 / 가로1~가로5·세로1~세로5·대각1·대각2 / 완주), C=보상종류, D=보상값
-const CSV_BINGO_REWARDS = SHEET_BASE + '?gid=1655145276&single=true&output=csv';
+'use strict';
+const SHEET_BASE   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub';
+const CSV_ROULETTE = SHEET_BASE + '?gid=1655145276&single=true&output=csv';
+const SPIN_COST    = 100;
+const username = sessionStorage.getItem('ggo_username') || localStorage.getItem('ggo_username') || '';
 
-// ── 빙고 라인 정의 ──
-const BINGO_LINES = [
-  [1,2,3,4,5],[6,7,8,9,10],[11,12,13,14,15],[16,17,18,19,20],[21,22,23,24,25], // 가로
-  [1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],[5,10,15,20,25], // 세로
-  [1,7,13,19,25],[5,9,13,17,21]  // 대각선
-];
-const LINE_LABELS  = ['가로1','가로2','가로3','가로4','가로5','세로1','세로2','세로3','세로4','세로5','대각1','대각2'];
-const LINE_ICONS   = ['➡','➡','➡','➡','➡','⬇','⬇','⬇','⬇','⬇','↘','↙'];
-const LINE_KEYS    = ['가로1','가로2','가로3','가로4','가로5','세로1','세로2','세로3','세로4','세로5','대각1','대각2'];
+let _db = null;
+(function(){
+  try{
+    const cfg={apiKey:"AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",authDomain:"ggo-play.firebaseapp.com",databaseURL:"https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"ggo-play",storageBucket:"ggo-play.firebasestorage.app"};
+    if(typeof firebase!=='undefined'){if(!firebase.apps.length)firebase.initializeApp(cfg);_db=firebase.database();}
+  }catch(e){console.warn('[Mission] Firebase 실패:',e);}
+})();
 
-// ── 재화 이모지/색상 맵 ──
-const REWARD_MAP = {
-  'GP':      { emoji:'🟡', color:'#fbbf24', label:'GP' },
-  '루비':    { emoji:'💎', color:'#f87171', label:'루비' },
-  '크리스탈':{ emoji:'🔷', color:'#60a5fa', label:'크리스탈' },
-  'FP':      { emoji:'⚡', color:'#a78bfa', label:'FP' },
-  'G골드':   { emoji:'🪙', color:'#fbbf24', label:'G골드' },
-  '칭호':    { emoji:'🏅', color:'#34d399', label:'칭호' },
-};
-
-// ── 상태 ──
-let username = '';
-let isLoggedIn = false;
-let wins = 0;
-let rewards = {};      // {칸번호: {type, value}}
-let bingoRewards = {}; // {'가로1': {type, value}, ...}
-let fullRewards = [];  // [{type, value}] — 완주 보상(여러 개 가능)
-
-function toast(msg) {
-  const t = document.getElementById('toast');
-  if(!t) return;
-  clearTimeout(t._t);
-  t.textContent = msg;
-  t.classList.add('on');
-  t._t = setTimeout(()=>t.classList.remove('on'), 2400);
+function getGP(){
+  if(!username)return 0;
+  const cur=JSON.parse(localStorage.getItem('ggo_currency_'+username)||'{"GP":0,"루비":0,"크리스탈":0}');
+  return parseInt(cur['GP'])||0;
 }
-
-function parseCSV(txt) {
-  return txt.trim().split('\n').slice(1).map(line => {
-    const cols=[]; let cur='',inQ=false;
-    for(let c of line){if(c==='"'){inQ=!inQ;continue;}if(c===','&&!inQ){cols.push(cur.trim());cur='';}else cur+=c;}
-    cols.push(cur.trim());
-    return cols;
-  }).filter(r=>r[0]);
+function spendGP(n){
+  if(!username)return false;
+  const k='ggo_currency_'+username;
+  const cur=JSON.parse(localStorage.getItem(k)||'{"GP":0,"루비":0,"크리스탈":0}');
+  if((cur['GP']||0)<n)return false;
+  cur['GP']=(cur['GP']||0)-n;
+  localStorage.setItem(k,JSON.stringify(cur));
+  return true;
 }
-
-// ── localStorage 키 ──
-const seasonKey     = () => `ggo_vault_season_${username}`;      // 현재 시즌 번호
-const openedKey     = () => `ggo_vault_opened_${username}`;      // 오픈한 칸 배열
-const bingoClaimKey = () => `ggo_vault_bingo_${username}`;       // 빙고 보상 수령 배열
-const fullClaimKey  = () => `ggo_vault_full_${username}`;        // 완주 보상 수령 여부
-
-function getOpened()     { try{return JSON.parse(localStorage.getItem(openedKey())||'[]');}catch{return [];} }
-function getBingoClaim() { try{return JSON.parse(localStorage.getItem(bingoClaimKey())||'[]');}catch{return [];} }
-function getFullClaim()  { return localStorage.getItem(fullClaimKey())==='1'; }
-function saveOpened(arr) { localStorage.setItem(openedKey(), JSON.stringify(arr)); }
-function saveBingoClaim(arr) { localStorage.setItem(bingoClaimKey(), JSON.stringify(arr)); }
-function saveFullClaim() { localStorage.setItem(fullClaimKey(), '1'); }
-
-// ── 시즌 체크 — 시즌이 바뀌면 빙고판 전체 초기화 ──
-let currentSeason = 1; // 시트에서 읽어온 현재 시즌
-
-function checkAndResetSeason(newSeason) {
-  const saved = localStorage.getItem(seasonKey()) || '';
-  if(String(newSeason) !== saved) {
-    // 시즌 변경 감지 → 빙고판 초기화
-    localStorage.removeItem(openedKey());
-    localStorage.removeItem(bingoClaimKey());
-    localStorage.removeItem(fullClaimKey());
-    localStorage.setItem(seasonKey(), String(newSeason));
-    console.log(`[금고] 시즌 ${saved} → ${newSeason} 변경, 빙고판 초기화`);
-    return true; // 초기화 발생
+function addCurrency(type,n){
+  if(!username)return;
+  const k='ggo_currency_'+username;
+  const cur=JSON.parse(localStorage.getItem(k)||'{"GP":0,"루비":0,"크리스탈":0}');
+  cur[type]=(cur[type]||0)+n;
+  localStorage.setItem(k,JSON.stringify(cur));
+}
+function updateGPDisplay(){
+  const gp=getGP();
+  const e1=document.getElementById('my-gp'),e2=document.getElementById('topbar-gp');
+  if(e1)e1.textContent=gp.toLocaleString();
+  if(e2)e2.textContent=gp.toLocaleString();
+  const btn=document.getElementById('spin-btn'),notice=document.getElementById('spin-notice');
+  if(btn){
+    if(gp<SPIN_COST){btn.disabled=true;if(notice)notice.textContent='GP가 부족합니다. (보유: '+gp+'GP / 필요: '+SPIN_COST+'GP)';}
+    else{btn.disabled=false;if(notice)notice.textContent='';}
   }
-  return false;
 }
 
-function remainingOpens() { return Math.max(0, wins - getOpened().length); }
+let ITEMS=[];
+const PALETTE=['#7c3aed','#f472b6','#22d3ee','#fbbf24','#34d399','#f97316','#a78bfa','#60a5fa','#fb7185','#4ade80'];
 
-async function loadAll() {
-  username  = sessionStorage.getItem('ggo_username') || '';
-  isLoggedIn = sessionStorage.getItem('ggo_logged_in') === 'true';
-
-  try {
-    const [rw, rb] = await Promise.all([
-      fetch(CSV_VAULT_WINS    + '&t=' + Date.now(), {cache:'no-store'}),
-      fetch(CSV_BINGO_REWARDS + '&t=' + Date.now(), {cache:'no-store'}),
-    ]);
-
-    // 승리 횟수 + 시즌 파싱 — A=유저명, B=시즌, C=승리횟수
-    const wText = await rw.text();
-    // 헤더 유무 관계없이 전체 행 파싱
-    const wAllRows = wText.trim().split('\n').map(line => {
-      const cols=[]; let cur='',inQ=false;
-      for(let c of line){if(c==='"'){inQ=!inQ;continue;}if(c===','&&!inQ){cols.push(cur.trim());cur='';}else cur+=c;}
-      cols.push(cur.trim());
-      return cols;
-    }).filter(r => r[0]);
-    if(isLoggedIn && username) {
-      const row = wAllRows.find(r => (r[0]||'').trim().toLowerCase() === username.toLowerCase());
-      if(row) {
-        currentSeason = parseInt(row[1]) || 1;  // B열: 시즌 번호
-        wins          = parseInt(row[2]) || 0;  // C열: 승리 횟수
-        checkAndResetSeason(currentSeason);     // 시즌 변경 시 자동 초기화
-      }
-    }
-
-    // 보상 시트 파싱 — A=타입, B=키, C=보상종류, D=보상값
-    const bRows = parseCSV(await rb.text());
-    rewards = {}; bingoRewards = {}; fullRewards = [];
-    bRows.forEach(r => {
-      const type  = (r[0]||'').trim();  // 칸 / 빙고 / 전체
-      const key   = (r[1]||'').trim();  // 숫자 or 가로1 or 완주
-      const rType = (r[2]||'').trim();  // GP / 루비 / ...
-      const rVal  = (r[3]||'').trim();  // 숫자 or 칭호명
-
-      if(type === '칸') {
-        const num = parseInt(key);
-        if(num >= 1 && num <= 25) rewards[num] = {type:rType, value:rVal};
-      } else if(type === '빙고') {
-        // key: 가로1~가로5, 세로1~세로5, 대각1, 대각2
-        bingoRewards[key] = {type:rType, value:rVal};
-      } else if(type === '전체') {
-        // 완주 보상 — 여러 행 가능
-        if(rType) fullRewards.push({type:rType, value:rVal});
-      }
+async function loadItems(){
+  try{
+    const res=await fetch(CSV_ROULETTE+'&t='+Date.now(),{cache:'no-store'});
+    const text=await res.text();
+    const lines=text.trim().split('\n').slice(1);
+    const parsed=[];
+    lines.forEach((line,i)=>{
+      const cols=line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+      if(!cols[1])return;
+      const prob=parseFloat(cols[3])||0;
+      if(prob<=0)return;
+      parsed.push({emoji:cols[0]||'🎁',name:cols[1]||'?',qty:parseInt(cols[2])||1,prob,type:cols[4]||'기타',color:cols[5]||PALETTE[i%PALETTE.length]});
     });
-  } catch(e) {
-    console.warn('데이터 로드 실패:', e);
+    if(parsed.length>0)ITEMS=parsed;
+  }catch(e){console.warn('[Mission] 시트 로드 실패:',e);}
+  if(ITEMS.length===0){
+    ITEMS=[
+      {emoji:'🟡',name:'GP',qty:50,prob:30,type:'GP',color:'#fbbf24'},
+      {emoji:'🟡',name:'GP',qty:100,prob:20,type:'GP',color:'#f59e0b'},
+      {emoji:'🟡',name:'GP',qty:200,prob:15,type:'GP',color:'#d97706'},
+      {emoji:'💎',name:'루비',qty:10,prob:15,type:'루비',color:'#f472b6'},
+      {emoji:'💎',name:'루비',qty:30,prob:8,type:'루비',color:'#ec4899'},
+      {emoji:'🔷',name:'크리스탈',qty:5,prob:7,type:'크리스탈',color:'#22d3ee'},
+      {emoji:'🔷',name:'크리스탈',qty:20,prob:3,type:'크리스탈',color:'#0ea5e9'},
+      {emoji:'⚡',name:'FP',qty:500,prob:2,type:'FP',color:'#a78bfa'},
+    ];
   }
-
-  document.getElementById('loading-state').style.display = 'none';
-  document.getElementById('main-content').style.display  = 'block';
-  render();
+  drawRoulette();
+  renderProbTable();
 }
 
-function render() {
-  renderWins();
-  renderGrid();
-  renderLines();
-  renderBingoBonus();
-  renderFullClear();
+const canvas=document.getElementById('roulette-canvas');
+const ctx=canvas.getContext('2d');
+const CX=150,CY=150,R=138;
+
+function resizeCanvas(){const maxW=Math.min(window.innerWidth-80,300);canvas.style.width=maxW+'px';canvas.style.height=maxW+'px';}
+resizeCanvas();
+window.addEventListener('resize',resizeCanvas);
+
+function drawRoulette(angle){
+  if(!angle)angle=0;
+  if(!ITEMS.length)return;
+  const total=ITEMS.reduce((s,it)=>s+it.prob,0);
+  ctx.clearRect(0,0,300,300);
+  let sa=angle;
+  ITEMS.forEach((it,i)=>{
+    const slice=(it.prob/total)*Math.PI*2;
+    const ea=sa+slice,mid=sa+slice/2;
+    ctx.beginPath();ctx.moveTo(CX,CY);ctx.arc(CX,CY,R,sa,ea);ctx.closePath();
+    ctx.fillStyle=it.color+(i%2===0?'ee':'bb');ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.save();
+    ctx.translate(CX+Math.cos(mid)*R*0.65,CY+Math.sin(mid)*R*0.65);
+    ctx.rotate(mid+Math.PI/2);ctx.textAlign='center';
+    ctx.shadowColor='rgba(0,0,0,0.9)';ctx.shadowBlur=5;
+    ctx.font='15px Noto Sans KR,sans-serif';ctx.fillStyle='#fff';ctx.fillText(it.emoji,0,-11);
+    ctx.font='bold 9px Noto Sans KR,sans-serif';
+    const lbl=(it.name+(it.qty>1?' x'+it.qty:'')).slice(0,8);
+    ctx.fillText(lbl,0,3);
+    ctx.restore();
+    sa=ea;
+  });
+  // 중앙
+  ctx.beginPath();ctx.arc(CX,CY,22,0,Math.PI*2);ctx.fillStyle='#0a0612';ctx.fill();
+  ctx.strokeStyle='rgba(251,191,36,0.7)';ctx.lineWidth=3;ctx.stroke();
+  ctx.fillStyle='#fbbf24';ctx.font='bold 11px Orbitron,sans-serif';ctx.textAlign='center';ctx.shadowBlur=0;ctx.fillText('GO',CX,CY+4);
+  // 외곽
+  ctx.beginPath();ctx.arc(CX,CY,R+3,0,Math.PI*2);ctx.strokeStyle='rgba(251,191,36,0.35)';ctx.lineWidth=5;ctx.stroke();
 }
 
-function renderWins() {
-  // 시즌 배지 업데이트
-  const badge = document.getElementById('vault-season-badge');
-  if(badge) badge.textContent = `SEASON ${currentSeason}`;
+let spinning=false,currentAngle=0;
 
-  const area = document.getElementById('wins-area');
-  if(!isLoggedIn || !username) {
-    area.innerHTML = `<div class="login-notice">🔒 금고 승리 횟수 및 빙고 오픈은 로그인 후 이용 가능합니다.</div>`;
-    return;
-  }
-  const opened = getOpened();
-  const remain = remainingOpens();
-  area.innerHTML = `
-    <div class="wins-card">
-      <div class="wins-icon">🏆</div>
-      <div class="wins-info">
-        <div class="wins-label">금고 승리 횟수</div>
-        <div class="wins-value">${wins}</div>
-        <div class="wins-sub">오픈한 칸: ${opened.length} / 25</div>
-      </div>
-      <div class="wins-badge">
-        <div class="wins-badge-num">${remain}</div>
-        <div class="wins-badge-label">오픈 가능</div>
-      </div>
-    </div>`;
+function pickItem(){
+  const total=ITEMS.reduce((s,it)=>s+it.prob,0);
+  let r=Math.random()*total;
+  for(const it of ITEMS){r-=it.prob;if(r<=0)return it;}
+  return ITEMS[ITEMS.length-1];
 }
 
-function renderGrid() {
-  const grid   = document.getElementById('bingo-grid');
-  const opened = getOpened();
-  const remain = remainingOpens();
-  let html = '';
-  for(let i = 1; i <= 25; i++) {
-    const isOpened = opened.includes(i);
-    const reward   = rewards[i] || null;
-    const rm       = reward ? (REWARD_MAP[reward.type] || {emoji:'🎁',color:'#c084fc',label:reward.type}) : null;
-    const canOpen  = isLoggedIn && !isOpened && remain > 0 && reward;
-
-    if(isOpened && reward) {
-      html += `<div class="bingo-cell opened">
-          <span class="cell-num">${i}</span>
-          <span class="cell-emoji">${rm.emoji}</span>
-          <span class="cell-val" style="color:${rm.color};">${reward.type==='칭호'?reward.value:(reward.value+' '+rm.label)}</span>
-        </div>`;
-    } else if(isOpened) {
-      html += `<div class="bingo-cell opened">
-          <span class="cell-num">${i}</span><span class="cell-emoji">✅</span>
-        </div>`;
-    } else if(!reward) {
-      html += `<div class="bingo-cell disabled">
-          <span class="cell-num">${i}</span><span class="cell-lock">🔒</span>
-        </div>`;
-    } else {
-      const cls = canOpen ? '' : 'disabled';
-      html += `<div class="bingo-cell ${cls}" onclick="${canOpen?`openCell(${i})`:''}">
-          <span class="cell-num">${i}</span>
-          <span class="cell-lock">${!isLoggedIn?'🔒':'❓'}</span>
-        </div>`;
+function spinRoulette(){
+  if(spinning)return;
+  if(!username){document.getElementById('spin-notice').textContent='로그인이 필요합니다.';return;}
+  if(getGP()<SPIN_COST){document.getElementById('spin-notice').textContent='GP가 부족합니다!';return;}
+  if(!spendGP(SPIN_COST))return;
+  updateGPDisplay();
+  spinning=true;
+  const btn=document.getElementById('spin-btn');
+  btn.disabled=true;btn.innerHTML='<span class="spin-icon">⟳</span> 돌리는 중...';
+  const winner=pickItem();
+  const total=ITEMS.reduce((s,it)=>s+it.prob,0);
+  let cumAngle=0;
+  for(const it of ITEMS){const slice=(it.prob/total)*Math.PI*2;if(it===winner){cumAngle+=slice/2;break;}cumAngle+=slice;}
+  const extraSpins=5+Math.floor(Math.random()*3);
+  const targetOffset=(-Math.PI/2-cumAngle-currentAngle+Math.PI*2*100)%(Math.PI*2);
+  const totalDelta=extraSpins*Math.PI*2+targetOffset;
+  const duration=4000+Math.random()*1000;
+  const startTime=performance.now();
+  const startAngle=currentAngle;
+  function easeOut(t){return 1-Math.pow(1-t,4);}
+  function animate(now){
+    const t=Math.min((now-startTime)/duration,1);
+    currentAngle=startAngle+totalDelta*easeOut(t);
+    drawRoulette(currentAngle);
+    if(t<1){requestAnimationFrame(animate);}
+    else{
+      spinning=false;currentAngle=currentAngle%(Math.PI*2);drawRoulette(currentAngle);
+      btn.disabled=false;btn.innerHTML='🎡 룰렛 돌리기';
+      updateGPDisplay();giveReward(winner);showResult(winner);
     }
   }
-  grid.innerHTML = html;
+  requestAnimationFrame(animate);
 }
 
-function renderLines() {
-  const opened = getOpened();
-  const row    = document.getElementById('bingo-lines-row');
-  let html = '';
-  let completeCount = 0;
-  BINGO_LINES.forEach((line, idx) => {
-    const complete = line.every(n => opened.includes(n));
-    if(complete) completeCount++;
-    html += `<span class="bingo-line-chip ${complete?'complete':''}">${LINE_LABELS[idx]}${complete?' ✓':''}</span>`;
-  });
-  row.innerHTML = html;
-  const title = document.querySelector('.bingo-lines-title');
-  if(title) title.textContent = completeCount > 0 ? `🎯 빙고 완성 현황 — ${completeCount}줄 완성!` : '🎯 빙고 완성 현황';
+function giveReward(item){
+  if(!username)return;
+  if(item.type==='GP')addCurrency('GP',item.qty);
+  else if(item.type==='루비')addCurrency('루비',item.qty);
+  else if(item.type==='크리스탈')addCurrency('크리스탈',item.qty);
+  else if(item.type==='FP'){const k='ggo_fp_'+username;localStorage.setItem(k,String((parseInt(localStorage.getItem(k)||'0'))+item.qty));}
+  else if(item.type==='G골드'){try{const k='gwo_save_'+username;const s=JSON.parse(localStorage.getItem(k)||'null');if(s){s.gold=(s.gold||0)+item.qty;localStorage.setItem(k,JSON.stringify(s));}}catch(e){}}
+  updateGPDisplay();
+  saveFeed(item);
 }
 
-// ── 빙고 완성 보상 섹션 ──
-function renderBingoBonus() {
-  if(Object.keys(bingoRewards).length === 0) {
-    document.getElementById('bingo-bonus-section').style.display = 'none';
-    return;
-  }
-  document.getElementById('bingo-bonus-section').style.display = 'block';
-  const opened  = getOpened();
-  const claimed = getBingoClaim();
-  let html = '';
-  LINE_KEYS.forEach((key, idx) => {
-    const line    = BINGO_LINES[idx];
-    const reward  = bingoRewards[key];
-    if(!reward) return;
-    const rm       = REWARD_MAP[reward.type] || {emoji:'🎁',color:'#c084fc',label:reward.type};
-    const complete = line.every(n => opened.includes(n));
-    const isClaimed = claimed.includes(key);
-    const rewardTxt = reward.type==='칭호' ? reward.value : (reward.value+' '+rm.label);
-    let badgeHtml = '';
-    if(isClaimed) {
-      badgeHtml = `<span class="bonus-item-badge done">수령완료</span>`;
-    } else if(complete && isLoggedIn) {
-      badgeHtml = `<span class="bonus-item-badge ready" onclick="claimBingoBonus('${key}')">수령하기</span>`;
-    } else {
-      badgeHtml = `<span class="bonus-item-badge locked">${complete?'로그인 필요':'미완성'}</span>`;
-    }
-    html += `<div class="bonus-item ${isClaimed?'claimed':complete?'':'locked'}">
-      <div class="bonus-item-icon">${LINE_ICONS[idx]}</div>
-      <div class="bonus-item-info">
-        <div class="bonus-item-name">${LINE_LABELS[idx]} 완성</div>
-        <div class="bonus-item-reward" style="color:${rm.color};">${rm.emoji} ${rewardTxt}</div>
-      </div>
-      ${badgeHtml}
-    </div>`;
-  });
-  document.getElementById('bingo-bonus-list').innerHTML = html;
+function showResult(item){
+  document.getElementById('result-emoji').textContent=item.emoji;
+  document.getElementById('result-name').textContent=item.name+(item.qty>1?' × '+item.qty.toLocaleString():'');
+  document.getElementById('result-desc').textContent=item.qty.toLocaleString()+' '+item.name+'을(를) 획득했습니다!';
+  document.getElementById('result-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('result-modal').classList.remove('open');}
+
+function saveFeed(item){
+  if(!_db||!username)return;
+  _db.ref('roulette_feed').push({user:username,emoji:item.emoji,name:item.name,qty:item.qty,type:item.type,ts:firebase.database.ServerValue.TIMESTAMP}).catch(e=>console.warn('[Feed]',e));
 }
 
-function claimBingoBonus(key) {
-  if(!isLoggedIn) { toast('로그인이 필요합니다.'); return; }
-  const opened  = getOpened();
-  const claimed = getBingoClaim();
-  if(claimed.includes(key)) { toast('이미 수령한 보상입니다.'); return; }
-  const idx    = LINE_KEYS.indexOf(key);
-  if(idx < 0) return;
-  const line   = BINGO_LINES[idx];
-  if(!line.every(n => opened.includes(n))) { toast('아직 빙고가 완성되지 않았습니다.'); return; }
-  const reward = bingoRewards[key];
-  if(!reward) return;
-
-  giveReward(reward.type, reward.value, `${LINE_LABELS[idx]} 빙고 완성 보상`);
-  claimed.push(key);
-  saveBingoClaim(claimed);
-
-  const rm = REWARD_MAP[reward.type] || {emoji:'🎁',color:'#c084fc',label:reward.type};
-  const rewardTxt = reward.type==='칭호' ? reward.value : (reward.value+' '+rm.label);
-  showRewardPopup(rm.emoji, `${LINE_LABELS[idx]} 빙고 보상!`, `<span style="font-size:22px;font-weight:700;color:${rm.color};">${rm.emoji} ${rewardTxt}</span><br><span style="font-size:12px;color:#94a3b8;">보상이 지급되었습니다!</span>`);
-  renderBingoBonus();
+function timeAgo(ts){
+  const d=Date.now()-ts;
+  if(d<60000)return Math.floor(d/1000)+'초 전';
+  if(d<3600000)return Math.floor(d/60000)+'분 전';
+  if(d<86400000)return Math.floor(d/3600000)+'시간 전';
+  return Math.floor(d/86400000)+'일 전';
+}
+function renderFeed(items){
+  const el=document.getElementById('feed-list');if(!el)return;
+  if(!items||!items.length){el.innerHTML='<div class="feed-empty">아직 획득 내역이 없습니다 🎡</div>';return;}
+  el.innerHTML=items.map(it=>'<div class="feed-item"><div class="feed-item-ico">'+it.emoji+'</div><div class="feed-item-text"><strong>'+it.user+'</strong>님이 룰렛에서 <span class="item-name">'+it.name+(it.qty>1?' × '+it.qty.toLocaleString():'')+'</span>을(를) 획득하였습니다</div><div class="feed-item-time">'+(it.ts?timeAgo(it.ts):'')+'</div></div>').join('');
+}
+function subscribeFeed(){
+  if(!_db){document.getElementById('feed-list').innerHTML='<div class="feed-empty">Firebase 연결 실패</div>';return;}
+  _db.ref('roulette_feed').orderByChild('ts').limitToLast(50).on('value',snap=>{
+    if(!snap.exists()){renderFeed([]);return;}
+    const arr=[];snap.forEach(c=>arr.push(c.val()));arr.sort((a,b)=>(b.ts||0)-(a.ts||0));renderFeed(arr);
+  },err=>{console.warn('[Feed]',err);document.getElementById('feed-list').innerHTML='<div class="feed-empty">내역을 불러올 수 없습니다</div>';});
 }
 
-// ── 25칸 완주 보상 섹션 ──
-function renderFullClear() {
-  if(fullRewards.length === 0) {
-    document.getElementById('fullclear-section').style.display = 'none';
-    return;
-  }
-  document.getElementById('fullclear-section').style.display = 'block';
-  const opened    = getOpened();
-  const isAllDone = opened.length >= 25;
-  const isClaimed = getFullClaim();
-
-  let rewardListHtml = fullRewards.map(r => {
-    const rm = REWARD_MAP[r.type] || {emoji:'🎁',color:'#c084fc',label:r.type};
-    const txt = r.type==='칭호' ? r.value : (r.value+' '+rm.label);
-    return `<span style="color:${rm.color};">${rm.emoji} ${txt}</span>`;
-  }).join(' &nbsp;+&nbsp; ');
-
-  let badgeHtml = '';
-  if(isClaimed) {
-    badgeHtml = `<span class="bonus-item-badge done">수령완료</span>`;
-  } else if(isAllDone && isLoggedIn) {
-    badgeHtml = `<span class="bonus-item-badge ready" onclick="claimFullClear()">수령하기</span>`;
-  } else {
-    badgeHtml = `<span class="bonus-item-badge locked">${isAllDone?'로그인 필요':'미완성'}</span>`;
-  }
-
-  document.getElementById('fullclear-list').innerHTML = `
-    <div class="bonus-item ${isClaimed?'claimed':isAllDone?'':'locked'}">
-      <div class="bonus-item-icon">🏆</div>
-      <div class="bonus-item-info">
-        <div class="bonus-item-name">25칸 전체 완주</div>
-        <div class="bonus-item-reward">${rewardListHtml}</div>
-      </div>
-      ${badgeHtml}
-    </div>`;
-}
-
-function claimFullClear() {
-  if(!isLoggedIn) { toast('로그인이 필요합니다.'); return; }
-  if(getFullClaim()) { toast('이미 수령한 보상입니다.'); return; }
-  if(getOpened().length < 25) { toast('아직 25칸을 모두 열지 않았습니다.'); return; }
-
-  fullRewards.forEach(r => giveReward(r.type, r.value, '25칸 완주 보상'));
-  saveFullClaim();
-
-  const rewardLines = fullRewards.map(r => {
-    const rm = REWARD_MAP[r.type] || {emoji:'🎁',color:'#c084fc',label:r.type};
-    const txt = r.type==='칭호' ? r.value : (r.value+' '+rm.label);
-    return `<div style="font-size:18px;font-weight:700;color:${rm.color};">${rm.emoji} ${txt}</div>`;
+function renderProbTable(){
+  const tbody=document.getElementById('prob-tbody');if(!tbody||!ITEMS.length)return;
+  const total=ITEMS.reduce((s,it)=>s+it.prob,0);
+  tbody.innerHTML=ITEMS.map(it=>{
+    const pct=((it.prob/total)*100).toFixed(1);
+    const bw=Math.round((it.prob/total)*100);
+    return '<tr><td>'+it.emoji+'</td><td class="item-name-col">'+it.name+'</td><td style="color:var(--text-sub)">'+(it.qty>1?'× '+it.qty.toLocaleString():'-')+'</td><td class="prob-col"><div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><div class="prob-bar-wrap"><div class="prob-bar" style="width:'+bw+'%"></div></div>'+pct+'%</div></td></tr>';
   }).join('');
-  showRewardPopup('🏆', '25칸 완주 달성!', rewardLines + '<div style="font-size:12px;color:#94a3b8;margin-top:8px;">모든 보상이 지급되었습니다!</div>');
-  renderFullClear();
 }
 
-// ── 팝업 큐 — 여러 보상을 순서대로 표시 ──
-let _popupQueue = [];
-let _popupBusy  = false;
-
-function queuePopup(icon, title, descHtml) {
-  _popupQueue.push({ icon, title, descHtml });
-  if(!_popupBusy) _showNextPopup();
-}
-
-function _showNextPopup() {
-  if(_popupQueue.length === 0) { _popupBusy = false; return; }
-  _popupBusy = true;
-  const { icon, title, descHtml } = _popupQueue.shift();
-  showRewardPopup(icon, title, descHtml);
-}
-
-function openCell(num) {
-  if(!isLoggedIn) { toast('로그인이 필요합니다.'); return; }
-  if(remainingOpens() <= 0) { toast('오픈 가능한 횟수가 없습니다.'); return; }
-  const opened = getOpened();
-  if(opened.includes(num)) { toast('이미 오픈한 칸입니다.'); return; }
-  const reward = rewards[num];
-  if(!reward) { toast('보상이 설정되지 않은 칸입니다.'); return; }
-
-  opened.push(num);
-  saveOpened(opened);
-  giveReward(reward.type, reward.value, `빙고판 ${num}번 칸 오픈`);
-
-  // ① 칸 보상 팝업
-  const rm = REWARD_MAP[reward.type] || {emoji:'🎁',color:'#c084fc',label:reward.type};
-  const rewardTxt = reward.type==='칭호' ? reward.value : (reward.value+' '+rm.label);
-  queuePopup(rm.emoji, `${num}번 칸 오픈!`,
-    `<span style="font-size:22px;font-weight:700;color:${rm.color};">${rm.emoji} ${rewardTxt}</span><br>
-     <span style="font-size:12px;color:#94a3b8;">보상이 지급되었습니다!</span>`);
-
-  // ② 새로 완성된 빙고 라인 감지 → 자동 지급 + 팝업 큐
-  const claimed = getBingoClaim();
-  BINGO_LINES.forEach((line, idx) => {
-    const key = LINE_KEYS[idx];
-    if(claimed.includes(key)) return;                // 이미 수령
-    if(!bingoRewards[key]) return;                   // 보상 미설정
-    if(!line.every(n => opened.includes(n))) return; // 미완성
-
-    const br  = bingoRewards[key];
-    const brm = REWARD_MAP[br.type] || {emoji:'🎁',color:'#c084fc',label:br.type};
-    const btxt = br.type==='칭호' ? br.value : (br.value+' '+brm.label);
-    giveReward(br.type, br.value, `${LINE_LABELS[idx]} 빙고 완성 보상`);
-    claimed.push(key);
-    saveBingoClaim(claimed);
-    queuePopup('🎊', `${LINE_LABELS[idx]} 빙고 완성!`,
-      `<span style="font-size:22px;font-weight:700;color:${brm.color};">${brm.emoji} ${btxt}</span><br>
-       <span style="font-size:12px;color:#94a3b8;">빙고 완성 보상이 지급되었습니다!</span>`);
-  });
-
-  // ③ 25칸 완주 감지 → 자동 지급 + 팝업 큐
-  if(opened.length >= 25 && !getFullClaim() && fullRewards.length > 0) {
-    fullRewards.forEach(r => giveReward(r.type, r.value, '25칸 완주 보상'));
-    saveFullClaim();
-    const rewardLines = fullRewards.map(r => {
-      const frm = REWARD_MAP[r.type] || {emoji:'🎁',color:'#c084fc',label:r.type};
-      const txt = r.type==='칭호' ? r.value : (r.value+' '+frm.label);
-      return `<div style="font-size:18px;font-weight:700;color:${frm.color};">${frm.emoji} ${txt}</div>`;
-    }).join('');
-    queuePopup('🏆', '25칸 완주 달성!',
-      rewardLines + '<div style="font-size:12px;color:#94a3b8;margin-top:8px;">완주 보상이 모두 지급되었습니다!</div>');
-  }
-
-  renderGrid();
-  renderWins();
-  renderLines();
-  renderBingoBonus();
-  renderFullClear();
-}
-
-// ── 메인페이지 알림 등록 ──
-function pushNotif(msg, extra) {
-  if(!username) return;
-  const key = 'ggo_notifs_' + username;
-  try {
-    const arr = JSON.parse(localStorage.getItem(key) || '[]');
-    arr.unshift({
-      id: Date.now() + Math.random(),
-      type: 'vault',
-      msg,
-      extra: extra || '',
-      time: new Date().toISOString(),
-      read: false,
-    });
-    if(arr.length > 50) arr.splice(50);
-    localStorage.setItem(key, JSON.stringify(arr));
-  } catch(e) { console.warn('알림 등록 실패:', e); }
-}
-
-function giveReward(type, value, source) {
-  const num = parseInt(value) || 0;
-  const rm  = REWARD_MAP[type] || {emoji:'🎁', label:type};
-  const rewardTxt = type==='칭호' ? value : (value + ' ' + rm.label);
-  // 메인페이지 알림 등록
-  pushNotif(`🔐 금고 보상 획득: ${rm.emoji} ${rewardTxt}`, source || '금고 이벤트');
-
-  if(['GP','루비','크리스탈'].includes(type)) {
-    const currKey = 'ggo_currency_' + username;
-    const curr = JSON.parse(localStorage.getItem(currKey)||'{"루비":0,"크리스탈":0,"GP":0}');
-    if(type === 'GP')       curr['GP']       = (curr['GP']||0) + num;
-    if(type === '루비')     curr['루비']     = (curr['루비']||0) + num;
-    if(type === '크리스탈') curr['크리스탈'] = (curr['크리스탈']||0) + num;
-    localStorage.setItem(currKey, JSON.stringify(curr));
-  } else if(type === 'FP') {
-    const fpKey = 'ggo_fp_' + username;
-    localStorage.setItem(fpKey, String((parseInt(localStorage.getItem(fpKey)||'0')) + num));
-  } else if(type === 'G골드') {
-    try {
-      const saveKey = 'gwo_save_' + username;
-      const save = JSON.parse(localStorage.getItem(saveKey)||'null');
-      if(save) { save.gold = (save.gold||0) + num; localStorage.setItem(saveKey, JSON.stringify(save)); }
-    } catch(e) { console.warn('G골드 지급 실패:', e); }
-  } else if(type === '칭호') {
-    try {
-      const itemKey = 'ggo_items_' + username;
-      const items = JSON.parse(localStorage.getItem(itemKey)||'[]');
-      if(!items.find(it => it.name === value && it.type === '칭호')) {
-        items.push({_id:Date.now(), type:'칭호', name:value, equipped:false, from:'금고이벤트'});
-        localStorage.setItem(itemKey, JSON.stringify(items));
-      }
-    } catch(e) { console.warn('칭호 지급 실패:', e); }
-  }
-}
-
-function showRewardPopup(icon, title, descHtml) {
-  document.getElementById('reward-icon').textContent  = icon;
-  document.getElementById('reward-title').textContent = title;
-  document.getElementById('reward-desc').innerHTML    = descHtml;
-  document.getElementById('reward-overlay').classList.add('on');
-}
-
-function closeReward() {
-  document.getElementById('reward-overlay').classList.remove('on');
-  // 큐에 다음 팝업이 있으면 200ms 후 표시
-  if(_popupQueue.length > 0) {
-    setTimeout(_showNextPopup, 200);
-  } else {
-    _popupBusy = false;
-  }
-}
-
-loadAll();
+window.addEventListener('DOMContentLoaded',()=>{
+  updateGPDisplay();loadItems();subscribeFeed();
+  document.getElementById('result-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+});
 </script>
 </body>
 </html>
