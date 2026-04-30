@@ -3396,12 +3396,19 @@
       }
     }
 
-    // 수령 여부 저장소 키
-    const claimKey = 'ggo_bp_claimed_' + username;
+    // 수령 여부 저장소 키 (시즌8 전용 — 시즌 바뀌면 자동 초기화)
+    const BP_SEASON   = 'S8';
+    const claimKey    = 'ggo_bp_claimed_' + BP_SEASON + '_' + username;
     let claimed = JSON.parse(localStorage.getItem(claimKey)||'[]'); // [step, ...]
 
-    // ── 시즌 초기화: 점수가 0이면 claimed 리셋 제거 (점수 로딩 전 초기화 버그 방지) ──
-    // myScore===0일 때 초기화하지 않음 — Firebase 로딩 지연으로 0이 될 수 있음
+    // 이전 시즌 키 정리 (S7 등 구버전 키 제거)
+    ['S7','S6','S5'].forEach(old => {
+      const oldKey = 'ggo_bp_claimed_' + old + '_' + username;
+      if(localStorage.getItem(oldKey)) localStorage.removeItem(oldKey);
+    });
+    // 구버전 키(시즌 없던 시절) 정리
+    const legacyKey = 'ggo_bp_claimed_' + username;
+    if(localStorage.getItem(legacyKey)) localStorage.removeItem(legacyKey);
 
     // 안내 텍스트
     if(isLoggedIn && username) {
@@ -3500,7 +3507,8 @@
     if(!reward) return;
 
     // 수령 처리
-    const claimKey = 'ggo_bp_claimed_' + username;
+    const BP_SEASON = 'S8';
+    const claimKey  = 'ggo_bp_claimed_' + BP_SEASON + '_' + username;
     let claimed  = JSON.parse(localStorage.getItem(claimKey)||'[]');
     // 이미 수령한 보상이면 중복 지급 방지
     if(claimed.includes(step)) return;
