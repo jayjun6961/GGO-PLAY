@@ -221,6 +221,9 @@
 
     <!-- 내 응모 내역 -->
     <div class="section-title">내 응모 내역</div>
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;line-height:1.6;padding:10px 14px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:10px;">
+      💡 응모 후 운영자가 당첨자를 선정하면 <strong style="color:#fbbf24">✅ 확정</strong> 상태로 변경됩니다.<br>확정된 상품은 운영자에게 별도 문의하여 수령하세요.
+    </div>
     <div class="my-entries" id="my-entries">
       <div class="empty-box">아직 응모 내역이 없습니다 🎟️</div>
     </div>
@@ -395,18 +398,23 @@ function doApply(){
     return;
   }
 
-  // Firebase에 응모 내역 저장
+  // Firebase에 응모 내역 저장 (confirmed: false = 대기중)
   const entry = {
     user: username,
     product: name,
     cost: cost,
-    ts: Date.now()
+    ts: Date.now(),
+    confirmed: false,  // 운영자 확정 전: false / 확정 후: true
+    fbKey: null
   };
 
   if(_db){
-    _db.ref('raffle_entries').push({
-      ...entry,
-      ts: firebase.database.ServerValue.TIMESTAMP
+    const ref = _db.ref('raffle_entries').push();
+    entry.fbKey = ref.key;
+    ref.set({
+      user: username, product: name, cost: cost,
+      ts: firebase.database.ServerValue.TIMESTAMP,
+      confirmed: false
     }).catch(e => console.warn('[Raffle] Firebase 저장 실패:', e));
   }
 
@@ -420,7 +428,7 @@ function doApply(){
   // UI 갱신
   updateUI();
   closeConfirm();
-  renderMyEntries(local);
+  subscribeMyEntries(); // 실시간 구독으로 갱신
 
   // 결과 모달
   document.getElementById('result-desc').textContent =
@@ -432,52 +440,59 @@ function closeResult(){
   document.getElementById('result-modal').classList.remove('open');
 }
 
-// ── 내 응모 내역 ──
-function loadMyEntries(){
+// ── 내 응모 내역 실시간 구독 ──
+function subscribeMyEntries(){
   if(!username) return;
-  // 로컬 내역 표시
   const localKey = 'ggo_raffle_entries_' + username;
   const local = JSON.parse(localStorage.getItem(localKey) || '[]');
 
-  // Firebase 내역 병합
-  if(_db){
-    _db.ref('raffle_entries').orderByChild('user').equalTo(username).limitToLast(20).get()
-      .then(snap => {
-        let fbEntries = [];
-        if(snap.exists()) snap.forEach(ch => fbEntries.push(ch.val()));
-        fbEntries.sort((a,b) => (b.ts||0) - (a.ts||0));
-        // 로컬과 병합 (중복 제거)
-        const merged = [...fbEntries];
-        local.forEach(l => {
-          if(!merged.some(m => m.product === l.product && Math.abs((m.ts||0)-(l.ts||0)) < 5000)){
-            merged.push(l);
-          }
+  if(!_db){ renderMyEntries(local); return; }
+
+  // 실시간 리스너: confirmed 상태 변화 즉시 반영
+  _db.ref('raffle_entries').orderByChild('user').equalTo(username)
+    .on('value', snap => {
+      let fbEntries = [];
+      if(snap.exists()){
+        snap.forEach(ch => {
+          const v = ch.val();
+          fbEntries.push({ ...v, fbKey: ch.key });
         });
-        merged.sort((a,b) => (b.ts||0) - (a.ts||0));
-        renderMyEntries(merged.slice(0, 30));
-      })
-      .catch(() => renderMyEntries(local));
-  } else {
-    renderMyEntries(local);
-  }
+      }
+      fbEntries.sort((a,b) => (b.ts||0) - (a.ts||0));
+
+      // 로컬 캐시 갱신 (confirmed 상태 업데이트)
+      if(fbEntries.length){
+        localStorage.setItem(localKey, JSON.stringify(fbEntries.slice(0,50)));
+      }
+      renderMyEntries(fbEntries.length ? fbEntries : local);
+    }, () => renderMyEntries(local));
 }
+// 하위 호환
+function loadMyEntries(){ subscribeMyEntries(); }
 
 function renderMyEntries(entries){
   const el = document.getElementById('my-entries');
   if(!el) return;
   if(!entries || !entries.length){
-    el.innerHTML = '<div class="empty-box">아직 응모 내역이 없습니다 🎟️</div>';
+    el.innerHTML = '<div class="empty-box">아직 응모 내역이 없습니다 🎟️<br><span style="font-size:11px;color:var(--text-dim)">응모 후 여기에 내역이 표시됩니다</span></div>';
     return;
   }
   el.innerHTML = entries.map(e => {
     const d = new Date(e.ts || 0);
-    const dateStr = e.ts ? `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}` : '';
-    return `<div class="entry-item">
-      <span style="font-size:18px">🎟️</span>
-      <span class="entry-name">${e.product || '-'}</span>
-      <span class="entry-ticket">-${e.cost || 0}장</span>
-      <span class="entry-time">${dateStr}</span>
-    </div>`;
+    const dateStr = e.ts ? d.getMonth()+1+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0') : '';
+    const isConfirmed = e.confirmed === true;
+    const statusBadge = isConfirmed
+      ? '<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(52,211,153,.2);color:#34d399;border:1px solid rgba(52,211,153,.4);font-family:Orbitron,sans-serif;white-space:nowrap;">✅ 확정</span>'
+      : '<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3);font-family:Orbitron,sans-serif;white-space:nowrap;">⏳ 대기중</span>';
+    const rowBg = isConfirmed ? 'background:rgba(52,211,153,.05);border-radius:10px;padding:10px 12px;' : 'padding:10px 4px;';
+    return '<div class="entry-item" style="'+rowBg+'border-bottom:1px solid rgba(255,255,255,.05);">'
+      + '<span style="font-size:18px">🎟️</span>'
+      + '<div style="flex:1;min-width:0;">'
+      +   '<div style="font-size:13px;font-weight:700;color:var(--text-main);margin-bottom:2px;">'+( e.product || '-')+'</div>'
+      +   '<div style="font-size:10px;color:var(--text-dim);">'+dateStr+' · 응모권 '+( e.cost||0)+'장 사용</div>'
+      + '</div>'
+      + statusBadge
+      + '</div>';
   }).join('');
 }
 
@@ -485,6 +500,7 @@ function renderMyEntries(entries){
 window.addEventListener('DOMContentLoaded', () => {
   updateUI();
   loadProducts();
+  subscribeMyEntries();
 });
 </script>
 </body>
