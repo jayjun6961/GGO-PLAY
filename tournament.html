@@ -2313,7 +2313,10 @@
       titleHtml = `<span class="lb-rank-title t-${tg}" style="${TCOLORS[tg]||''}">< ${titleItem.name} ></span>`;
     }
 
-    return { avatarHtml, nameStyle, nameClass, titleHtml };
+    // ── nameHtml 생성 ──
+    const nameHtml = `<span class="lb-nick-name ${nameClass}" style="font-size:13px;font-weight:700;color:#e2e8f0;${nameStyle}">${username}</span>`;
+
+    return { avatarHtml, nameHtml, nameStyle, nameClass, titleHtml };
   }
 
 
