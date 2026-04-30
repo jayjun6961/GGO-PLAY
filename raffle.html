@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>응모 — GGO PLAY</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{--bg-deep:#0a0612;--bg-card:#130d24;--bg-card2:#1a1035;--purple-1:#7c3aed;--purple-2:#9d5ff5;--purple-3:#c084fc;--accent-pink:#f472b6;--accent-cyan:#22d3ee;--accent-gold:#fbbf24;--text-main:#f0e8ff;--text-sub:#9d8ec4;--text-dim:#5c4e7a;--sidebar-w:72px;--bottombar-h:64px;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg-deep);color:var(--text-main);font-family:'Noto Sans KR',sans-serif;min-height:100vh;}
+  /* ── 사이드바 ── */
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:rgba(19,13,36,0.95);border-right:1px solid rgba(124,58,237,0.2);display:flex;flex-direction:column;align-items:center;padding:20px 0;z-index:100;backdrop-filter:blur(20px);}
+  .sidebar-logo{width:42px;height:42px;background:linear-gradient(135deg,var(--purple-1),var(--purple-3));border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:white;margin-bottom:32px;box-shadow:0 0 20px rgba(124,58,237,0.5);}
+  .sidebar-nav{display:flex;flex-direction:column;gap:8px;flex:1;overflow-y:auto;scrollbar-width:none;}
+  .sidebar-nav::-webkit-scrollbar{display:none;}
+  .nav-item{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;position:relative;color:var(--text-dim);border:none;background:transparent;}
+  .nav-item:hover,.nav-item.active{background:rgba(124,58,237,0.2);color:var(--purple-3);box-shadow:0 0 20px rgba(124,58,237,0.3);}
+  .nav-item.active::before{content:'';position:absolute;left:-12px;width:3px;height:24px;background:var(--purple-2);border-radius:0 3px 3px 0;}
+  .nav-item .tooltip{position:absolute;left:60px;background:rgba(19,13,36,0.95);color:var(--text-main);font-size:12px;padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.15s;z-index:200;border:1px solid rgba(124,58,237,0.2);}
+  .nav-item:hover .tooltip{opacity:1;}
+  .sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .avatar-sm{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--purple-1),var(--purple-3));display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;border:2px solid rgba(124,58,237,0.3);}
+  /* ── 하단 네비 (모바일) ── */
+  .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottombar-h);background:rgba(13,9,26,0.97);border-top:1px solid rgba(124,58,237,0.15);z-index:100;backdrop-filter:blur(20px);}
+  .bnav-scroll{display:flex;width:100%;height:100%;align-items:center;justify-content:space-around;overflow-x:auto;scrollbar-width:none;}
+  .bnav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:64px;padding:0 8px;cursor:pointer;color:var(--text-dim);transition:color 0.2s;flex:1;}
+  .bnav-item.active,.bnav-item:hover{color:var(--purple-3);}
+  .bnav-icon{font-size:20px;line-height:1;}
+  .bnav-label{font-size:9px;font-family:'Orbitron',sans-serif;letter-spacing:0.3px;}
+  @media(max-width:768px){.sidebar{display:none;}.bottom-nav{display:flex;}.main-wrap{margin-left:0!important;padding-bottom:calc(var(--bottombar-h)+20px)!important}}
+  /* ── 메인 ── */
+  .main-wrap{margin-left:var(--sidebar-w);padding:0 0 80px;position:relative;min-height:100vh;}
+  .topbar{display:flex;align-items:center;gap:12px;padding:18px 24px;position:sticky;top:0;z-index:50;background:rgba(10,6,18,0.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(124,58,237,0.1);}
+  .topbar-back{width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--purple-3);font-size:18px;transition:all 0.2s;}
+  .topbar-back:hover{background:rgba(124,58,237,0.3);}
+  .topbar-title{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;color:var(--accent-gold);}
+  .topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+  .topbar-badge{display:flex;align-items:center;gap:5px;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#a78bfa;font-family:'Orbitron',sans-serif;}
+  .content{max-width:780px;margin:0 auto;padding:24px 20px;}
+  /* ── 히어로 ── */
+  .page-hero{text-align:center;padding:28px 0 20px;}
+  .page-hero-icon{font-size:52px;margin-bottom:12px;}
+  .page-hero-title{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:var(--text-main);margin-bottom:8px;}
+  .page-hero-desc{font-size:13px;color:var(--text-sub);line-height:1.7;}
+  /* ── 유저 정보 카드 ── */
+  .user-info-card{background:var(--bg-card);border:1px solid rgba(167,139,250,0.25);border-radius:18px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
+  .user-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--purple-1),var(--purple-3));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;font-family:'Orbitron',sans-serif;flex-shrink:0;border:2px solid rgba(192,132,252,0.4);}
+  .user-info-text{flex:1;}
+  .user-name{font-size:16px;font-weight:700;color:var(--text-main);margin-bottom:3px;}
+  .user-sub{font-size:11px;color:var(--text-dim);}
+  .ticket-chip{display:flex;align-items:center;gap:8px;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);border-radius:14px;padding:10px 16px;flex-shrink:0;}
+  .ticket-chip-ico{font-size:22px;}
+  .ticket-chip-info{}
+  .ticket-chip-label{font-size:9px;color:var(--text-dim);font-family:'Orbitron',sans-serif;letter-spacing:.5px;}
+  .ticket-chip-val{font-size:18px;font-weight:900;color:#a78bfa;font-family:'Orbitron',sans-serif;}
+  /* ── 상품 그리드 ── */
+  .section-title{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--text-sub);letter-spacing:1px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .section-title::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent-gold);}
+  .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:28px;}
+  /* ── 상품 카드 ── */
+  .product-card{background:var(--bg-card);border:1px solid rgba(124,58,237,0.2);border-radius:18px;overflow:hidden;transition:all .25s;cursor:pointer;position:relative;}
+  .product-card:hover{transform:translateY(-4px);border-color:rgba(167,139,250,0.5);box-shadow:0 12px 32px rgba(124,58,237,0.25);}
+  .product-card.closed{opacity:.55;cursor:default;}
+  .product-card.closed:hover{transform:none;box-shadow:none;}
+  .product-img{width:100%;height:160px;object-fit:cover;display:block;background:var(--bg-card2);}
+  .product-img-placeholder{width:100%;height:160px;background:linear-gradient(135deg,#1a1035,#0d0820);display:flex;align-items:center;justify-content:center;font-size:48px;}
+  .product-body{padding:14px 16px 16px;}
+  .product-status{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;font-family:'Orbitron',sans-serif;letter-spacing:.5px;}
+  .status-open{background:rgba(52,211,153,.2);color:#34d399;border:1px solid rgba(52,211,153,.35);}
+  .status-closed{background:rgba(100,116,139,.2);color:#64748b;border:1px solid rgba(100,116,139,.35);}
+  .status-soon{background:rgba(251,191,36,.2);color:#fbbf24;border:1px solid rgba(251,191,36,.35);}
+  .product-name{font-size:15px;font-weight:700;color:var(--text-main);margin-bottom:5px;line-height:1.3;}
+  .product-desc{font-size:12px;color:var(--text-sub);margin-bottom:12px;line-height:1.6;}
+  .product-deadline{font-size:10px;color:var(--text-dim);margin-bottom:10px;font-family:'Orbitron',sans-serif;}
+  .product-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .ticket-cost{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#a78bfa;}
+  .ticket-cost-ico{font-size:16px;}
+  .apply-btn{padding:8px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--purple-1),var(--purple-2));color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Orbitron',sans-serif;transition:all .2s;white-space:nowrap;}
+  .apply-btn:hover{box-shadow:0 4px 16px rgba(124,58,237,.5);transform:translateY(-1px);}
+  .apply-btn:disabled{background:rgba(100,116,139,.3);color:var(--text-dim);cursor:not-allowed;transform:none;box-shadow:none;}
+  .apply-btn.applied{background:linear-gradient(135deg,#059669,#34d399);cursor:default;}
+  .apply-btn.applied:hover{transform:none;box-shadow:none;}
+  /* ── 응모 확인 모달 ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(6px);}
+  .modal-overlay.open{opacity:1;pointer-events:auto;}
+  .modal-box{background:var(--bg-card);border:1px solid rgba(167,139,250,.3);border-radius:24px;padding:32px 28px;max-width:360px;width:90%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.6);animation:popIn .3s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes popIn{from{transform:scale(.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .modal-ico{font-size:52px;margin-bottom:12px;}
+  .modal-title{font-size:18px;font-weight:700;color:var(--text-main);margin-bottom:6px;}
+  .modal-desc{font-size:13px;color:var(--text-sub);margin-bottom:6px;line-height:1.6;}
+  .modal-cost{display:inline-flex;align-items:center;gap:6px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);border-radius:10px;padding:6px 14px;font-size:14px;font-weight:700;color:#a78bfa;margin:10px 0 20px;}
+  .modal-btns{display:flex;gap:10px;}
+  .modal-cancel{flex:1;padding:12px;border-radius:12px;border:1px solid rgba(124,58,237,.25);background:rgba(124,58,237,.1);color:var(--text-sub);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+  .modal-cancel:hover{background:rgba(124,58,237,.2);}
+  .modal-confirm{flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--purple-1),var(--purple-2));color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Orbitron',sans-serif;transition:all .2s;}
+  .modal-confirm:hover{box-shadow:0 4px 16px rgba(124,58,237,.5);}
+  /* ── 결과 모달 ── */
+  .result-modal{background:var(--bg-card);border:1px solid rgba(52,211,153,.3);border-radius:24px;padding:32px 28px;max-width:340px;width:90%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.6),0 0 40px rgba(52,211,153,.1);animation:popIn .35s cubic-bezier(.34,1.56,.64,1);}
+  .result-ico{font-size:56px;margin-bottom:12px;}
+  .result-title{font-size:18px;font-weight:700;color:#34d399;margin-bottom:8px;}
+  .result-desc{font-size:13px;color:var(--text-sub);margin-bottom:20px;line-height:1.6;}
+  .result-close{padding:12px 32px;border-radius:12px;border:none;background:linear-gradient(135deg,#059669,#34d399);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Orbitron',sans-serif;}
+  /* ── 로딩/빈 상태 ── */
+  .loading-box{text-align:center;padding:60px 20px;color:var(--text-dim);}
+  .spin{display:inline-block;width:32px;height:32px;border:3px solid rgba(124,58,237,.2);border-top-color:var(--purple-2);border-radius:50%;animation:rotate .8s linear infinite;margin-bottom:12px;}
+  @keyframes rotate{to{transform:rotate(360deg);}}
+  .empty-box{text-align:center;padding:60px 20px;color:var(--text-dim);font-size:14px;}
+  /* ── 내 응모 내역 ── */
+  .my-entries{background:var(--bg-card);border:1px solid rgba(124,58,237,.2);border-radius:18px;padding:20px;margin-bottom:20px;}
+  .entry-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;}
+  .entry-item:last-child{border-bottom:none;}
+  .entry-name{flex:1;color:var(--text-main);font-weight:600;}
+  .entry-ticket{color:#a78bfa;font-weight:700;font-family:'Orbitron',sans-serif;font-size:12px;}
+  .entry-time{font-size:10px;color:var(--text-dim);}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<!-- ══ 사이드바 ══ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">G</div>
+  <nav class="sidebar-nav">
+    <button class="nav-item" onclick="location.href='index.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg><span class="tooltip">홈</span></button>
+    <button class="nav-item" onclick="location.href='character.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="tooltip">캐릭터</span></button>
+    <button class="nav-item" onclick="location.href='equipment.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18"/><path d="M9 3v18"/></svg><span class="tooltip">장비</span></button>
+    <button class="nav-item" onclick="location.href='battlepass.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span class="tooltip">배틀패스</span></button>
+    <button class="nav-item" onclick="location.href='tournament.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h6v8a4 4 0 008 0V4h6"/><path d="M6 8H2"/><path d="M22 8h-4"/><path d="M12 16v4"/><path d="M9 20h6"/></svg><span class="tooltip">친선대회</span></button>
+    <button class="nav-item" onclick="location.href='activity.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg><span class="tooltip">활동점수</span></button>
+    <button class="nav-item" onclick="location.href='shop.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><span class="tooltip">상점</span></button>
+    <button class="nav-item" onclick="location.href='event.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="11" rx="1"/><path d="M3 10h18V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3z"/><path d="M12 6V21"/></svg><span class="tooltip">이벤트</span></button>
+    <button class="nav-item" onclick="location.href='vault.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg><span class="tooltip">미션</span></button>
+    <button class="nav-item active">🎟️<span class="tooltip">응모</span></button>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="avatar-sm" onclick="location.href='mypage.html'">👤</div>
+  </div>
+</aside>
+
+<!-- ══ 하단 네비 (모바일) ══ -->
+<nav class="bottom-nav">
+  <div class="bnav-scroll">
+    <div class="bnav-item" onclick="location.href='index.html'"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span><span class="bnav-label">홈</span></div>
+    <div class="bnav-item" onclick="location.href='character.html'"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span><span class="bnav-label">캐릭터</span></div>
+    <div class="bnav-item" onclick="location.href='battlepass.html'"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="bnav-label">배틀패스</span></div>
+    <div class="bnav-item" onclick="location.href='vault.html'"><span class="bnav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg></span><span class="bnav-label">미션</span></div>
+    <div class="bnav-item active"><span class="bnav-icon">🎟️</span><span class="bnav-label">응모</span></div>
+  </div>
+</nav>
+
+<!-- ══ 응모 확인 모달 ══ -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-box">
+    <div class="modal-ico" id="modal-ico">🎁</div>
+    <div class="modal-title" id="modal-title">응모 확인</div>
+    <div class="modal-desc" id="modal-desc">-</div>
+    <div class="modal-cost">🎟️ <span id="modal-cost">0</span>장 사용</div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeConfirm()">취소</button>
+      <button class="modal-confirm" id="modal-confirm-btn" onclick="doApply()">응모하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 결과 모달 ══ -->
+<div class="modal-overlay" id="result-modal">
+  <div class="result-modal">
+    <div class="result-ico">🎉</div>
+    <div class="result-title">응모 완료!</div>
+    <div class="result-desc" id="result-desc">-</div>
+    <button class="result-close" onclick="closeResult()">확인</button>
+  </div>
+</div>
+
+<!-- ══ 메인 ══ -->
+<div class="main-wrap">
+  <div class="topbar">
+    <div class="topbar-back" onclick="history.back()">←</div>
+    <span style="font-size:20px">🎟️</span>
+    <span class="topbar-title">RAFFLE</span>
+    <div class="topbar-right">
+      <div class="topbar-badge">🎟️ <span id="topbar-ticket">0</span>장</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- 히어로 -->
+    <div class="page-hero">
+      <div class="page-hero-icon">🎟️</div>
+      <div class="page-hero-title">응모 센터</div>
+      <div class="page-hero-desc">룰렛에서 획득한 응모권으로 원하는 상품에 응모하세요!<br>당첨자는 운영자가 별도로 연락드립니다.</div>
+    </div>
+
+    <!-- 유저 정보 -->
+    <div class="user-info-card">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <div class="user-info-text">
+        <div class="user-name" id="user-name-display">로그인 필요</div>
+        <div class="user-sub">응모권을 사용해 원하는 상품에 응모하세요</div>
+      </div>
+      <div class="ticket-chip">
+        <div class="ticket-chip-ico">🎟️</div>
+        <div class="ticket-chip-info">
+          <div class="ticket-chip-label">보유 응모권</div>
+          <div class="ticket-chip-val" id="my-ticket">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 진행중 상품 -->
+    <div class="section-title">진행중인 응모</div>
+    <div id="open-grid" class="product-grid">
+      <div class="loading-box"><div class="spin"></div><br>상품을 불러오는 중...</div>
+    </div>
+
+    <!-- 종료/예정 상품 -->
+    <div class="section-title" id="other-section-title" style="display:none">종료 · 예정</div>
+    <div id="other-grid" class="product-grid"></div>
+
+    <!-- 내 응모 내역 -->
+    <div class="section-title">내 응모 내역</div>
+    <div class="my-entries" id="my-entries">
+      <div class="empty-box">아직 응모 내역이 없습니다 🎟️</div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const SHEET_BASE    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmibDA5_-djeNETtuGqt5I3wtRqGs0oJjEQ8KZOW6qkQpINtLtEMIDNlU4N2IwipF7peIV6qWZKx5J/pub';
+const CSV_RAFFLE    = SHEET_BASE + '?gid=1655145276&single=true&output=csv';
+const username      = sessionStorage.getItem('ggo_username') || localStorage.getItem('ggo_username') || '';
+
+let _db = null;
+let _pendingProduct = null; // 응모 대기 상품
+
+// ── Firebase 초기화 ──
+(function(){
+  try{
+    const cfg = {
+      apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+      authDomain: "ggo-play.firebaseapp.com",
+      databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ggo-play",
+      storageBucket: "ggo-play.firebasestorage.app"
+    };
+    if(typeof firebase !== 'undefined'){
+      if(!firebase.apps.length) firebase.initializeApp(cfg);
+      _db = firebase.database();
+    }
+  } catch(e){ console.warn('[Raffle] Firebase 실패:', e); }
+})();
+
+// ── 응모권 읽기/차감 ──
+function getTicket(){
+  if(!username) return 0;
+  const cur = JSON.parse(localStorage.getItem('ggo_currency_' + username) || '{}');
+  return parseInt(cur['응모권']) || 0;
+}
+function spendTicket(n){
+  if(!username) return false;
+  const k = 'ggo_currency_' + username;
+  const cur = JSON.parse(localStorage.getItem(k) || '{}');
+  if((cur['응모권'] || 0) < n) return false;
+  cur['응모권'] = (cur['응모권'] || 0) - n;
+  localStorage.setItem(k, JSON.stringify(cur));
+  return true;
+}
+
+// ── UI 갱신 ──
+function updateUI(){
+  const t = getTicket();
+  const el1 = document.getElementById('topbar-ticket');
+  const el2 = document.getElementById('my-ticket');
+  if(el1) el1.textContent = t.toLocaleString();
+  if(el2) el2.textContent = t.toLocaleString();
+
+  // 유저 정보
+  const nameEl   = document.getElementById('user-name-display');
+  const avatarEl = document.getElementById('user-avatar');
+  if(username){
+    if(nameEl)   nameEl.textContent   = username;
+    if(avatarEl) avatarEl.textContent = username.charAt(0).toUpperCase();
+  }
+}
+
+// ── CSV 파싱 ──
+function parseCSV(text){
+  const lines = text.trim().split('\n');
+  return lines.slice(1).map(line => {
+    const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+    return cols;
+  }).filter(r => r[0]);
+}
+
+// ── 상품 목록 로드 ──
+async function loadProducts(){
+  const openGrid  = document.getElementById('open-grid');
+  const otherGrid = document.getElementById('other-grid');
+  try {
+    const res  = await fetch(CSV_RAFFLE + '&t=' + Date.now(), { cache: 'no-store' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = parseCSV(await res.text());
+    if(!rows.length) throw new Error('데이터 없음');
+
+    // 내 응모 내역 로드
+    loadMyEntries();
+
+    const open = rows.filter(r => (r[5]||'진행중').trim() === '진행중');
+    const other = rows.filter(r => (r[5]||'').trim() !== '진행중');
+
+    openGrid.innerHTML  = open.length  ? open.map((r,i)  => productCard(r, i, true)).join('')  : '<div class="empty-box">현재 진행중인 응모가 없습니다</div>';
+    otherGrid.innerHTML = other.length ? other.map((r,i) => productCard(r, i, false)).join('') : '';
+    if(other.length){
+      document.getElementById('other-section-title').style.display = 'flex';
+    }
+  } catch(e){
+    console.warn('[Raffle] 시트 로드 실패:', e);
+    openGrid.innerHTML = '<div class="empty-box">⚠️ 상품 목록을 불러올 수 없습니다<br><span style="font-size:11px">구글시트 공개 설정을 확인해주세요</span></div>';
+  }
+}
+
+function productCard(row, idx, isOpen){
+  // A:상품명 B:설명 C:이미지URL D:최소응모권 E:마감일 F:상태
+  const name     = row[0] || '상품';
+  const desc     = row[1] || '';
+  const imgUrl   = row[2] || '';
+  const cost     = parseInt(row[3]) || 1;
+  const deadline = row[4] || '';
+  const status   = (row[5] || '진행중').trim();
+
+  const statusCls  = status === '진행중' ? 'status-open' : status === '예정' ? 'status-soon' : 'status-closed';
+  const statusText = status === '진행중' ? '진행중' : status === '예정' ? '예정' : '종료';
+  const closed     = status !== '진행중';
+
+  const imgHtml = imgUrl
+    ? `<img class="product-img" src="${imgUrl}" alt="${name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      + `<div class="product-img-placeholder" style="display:none">🎁</div>`
+    : `<div class="product-img-placeholder">🎁</div>`;
+
+  const btnLabel = closed ? (status === '예정' ? '준비중' : '종료') : '응모하기';
+  const btnCls   = closed ? '' : '';
+
+  return `<div class="product-card ${closed ? 'closed' : ''}" id="pcard-${idx}">
+    ${imgHtml}
+    <span class="product-status ${statusCls}">${statusText}</span>
+    <div class="product-body">
+      <div class="product-name">${name}</div>
+      ${desc ? `<div class="product-desc">${desc}</div>` : ''}
+      ${deadline ? `<div class="product-deadline">📅 마감: ${deadline}</div>` : ''}
+      <div class="product-footer">
+        <div class="ticket-cost"><span class="ticket-cost-ico">🎟️</span>${cost}장</div>
+        <button class="apply-btn ${btnCls}"
+          ${closed ? 'disabled' : ''}
+          onclick="${closed ? '' : `openConfirm('${name}', ${cost}, '${desc}', '${imgUrl}')`}">
+          ${btnLabel}
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── 응모 확인 모달 ──
+function openConfirm(name, cost, desc, img){
+  if(!username){ alert('로그인이 필요합니다.'); return; }
+  _pendingProduct = { name, cost, desc, img };
+  document.getElementById('modal-ico').textContent  = img ? '🎁' : '🎁';
+  document.getElementById('modal-title').textContent = name;
+  document.getElementById('modal-desc').textContent  = `"${name}"에 응모합니다.\n보유 응모권: ${getTicket()}장`;
+  document.getElementById('modal-cost').textContent  = cost;
+  document.getElementById('confirm-modal').classList.add('open');
+}
+function closeConfirm(){
+  document.getElementById('confirm-modal').classList.remove('open');
+  _pendingProduct = null;
+}
+
+// ── 응모 실행 ──
+function doApply(){
+  if(!_pendingProduct) return;
+  const { name, cost } = _pendingProduct;
+  const ticket = getTicket();
+
+  if(ticket < cost){
+    alert(`응모권이 부족합니다!\n필요: ${cost}장 / 보유: ${ticket}장\n룰렛을 돌려 응모권을 더 획득하세요!`);
+    closeConfirm();
+    return;
+  }
+
+  if(!spendTicket(cost)){
+    alert('응모권 차감에 실패했습니다. 다시 시도해주세요.');
+    return;
+  }
+
+  // Firebase에 응모 내역 저장
+  const entry = {
+    user: username,
+    product: name,
+    cost: cost,
+    ts: Date.now()
+  };
+
+  if(_db){
+    _db.ref('raffle_entries').push({
+      ...entry,
+      ts: firebase.database.ServerValue.TIMESTAMP
+    }).catch(e => console.warn('[Raffle] Firebase 저장 실패:', e));
+  }
+
+  // 로컬에도 저장
+  const localKey = 'ggo_raffle_entries_' + username;
+  const local = JSON.parse(localStorage.getItem(localKey) || '[]');
+  local.unshift(entry);
+  if(local.length > 50) local.length = 50;
+  localStorage.setItem(localKey, JSON.stringify(local));
+
+  // UI 갱신
+  updateUI();
+  closeConfirm();
+  renderMyEntries(local);
+
+  // 결과 모달
+  document.getElementById('result-desc').textContent =
+    `"${name}" 응모가 완료되었습니다!\n사용한 응모권: ${cost}장\n남은 응모권: ${getTicket()}장\n\n당첨 시 운영자가 연락드립니다 🎉`;
+  document.getElementById('result-modal').classList.add('open');
+}
+
+function closeResult(){
+  document.getElementById('result-modal').classList.remove('open');
+}
+
+// ── 내 응모 내역 ──
+function loadMyEntries(){
+  if(!username) return;
+  // 로컬 내역 표시
+  const localKey = 'ggo_raffle_entries_' + username;
+  const local = JSON.parse(localStorage.getItem(localKey) || '[]');
+
+  // Firebase 내역 병합
+  if(_db){
+    _db.ref('raffle_entries').orderByChild('user').equalTo(username).limitToLast(20).get()
+      .then(snap => {
+        let fbEntries = [];
+        if(snap.exists()) snap.forEach(ch => fbEntries.push(ch.val()));
+        fbEntries.sort((a,b) => (b.ts||0) - (a.ts||0));
+        // 로컬과 병합 (중복 제거)
+        const merged = [...fbEntries];
+        local.forEach(l => {
+          if(!merged.some(m => m.product === l.product && Math.abs((m.ts||0)-(l.ts||0)) < 5000)){
+            merged.push(l);
+          }
+        });
+        merged.sort((a,b) => (b.ts||0) - (a.ts||0));
+        renderMyEntries(merged.slice(0, 30));
+      })
+      .catch(() => renderMyEntries(local));
+  } else {
+    renderMyEntries(local);
+  }
+}
+
+function renderMyEntries(entries){
+  const el = document.getElementById('my-entries');
+  if(!el) return;
+  if(!entries || !entries.length){
+    el.innerHTML = '<div class="empty-box">아직 응모 내역이 없습니다 🎟️</div>';
+    return;
+  }
+  el.innerHTML = entries.map(e => {
+    const d = new Date(e.ts || 0);
+    const dateStr = e.ts ? `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}` : '';
+    return `<div class="entry-item">
+      <span style="font-size:18px">🎟️</span>
+      <span class="entry-name">${e.product || '-'}</span>
+      <span class="entry-ticket">-${e.cost || 0}장</span>
+      <span class="entry-time">${dateStr}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── 초기화 ──
+window.addEventListener('DOMContentLoaded', () => {
+  updateUI();
+  loadProducts();
+});
+</script>
+</body>
+</html>
