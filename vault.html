@@ -442,6 +442,13 @@ function saveFeed(item){
   localFeed.unshift(entry);
   if(localFeed.length > 30) localFeed.length = 30;
   localStorage.setItem(localKey, JSON.stringify(localFeed));
+  // 피드 캐시에도 즉시 반영 (재접속 대비)
+  try{
+    const feedCache = JSON.parse(localStorage.getItem(FEED_CACHE_KEY) || '[]');
+    feedCache.unshift(entry);
+    if(feedCache.length > 50) feedCache.length = 50;
+    localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(feedCache));
+  }catch(e){}
 
   // Firebase에 저장
   if(!_db) { renderLocalFeed(); return; }
@@ -455,7 +462,7 @@ function saveFeed(item){
     ts: firebase.database.ServerValue.TIMESTAMP
   }).then(() => {
     console.log('[Feed] Firebase 저장 성공');
-    // child_added 리스너가 곧 받아서 renderFeed 호출하므로 별도 처리 불필요
+    // .on('value') 리스너가 자동으로 최신 데이터를 받아 renderFeed + 캐시 갱신함
   }).catch(e => {
     console.warn('[Feed] Firebase 저장 실패 → 로컬 직접 삽입:', e);
     // Firebase 실패 시 로컬 _feedItems에 직접 추가해서 즉시 표시
@@ -505,55 +512,38 @@ function renderFeed(items){
 // 피드 항목 배열 (최신순, 최대 50개)
 let _feedItems = [];
 
+const FEED_CACHE_KEY = 'ggo_feed_cache';
+
 function subscribeFeed(){
-  const feedEl = document.getElementById('feed-list');
+  // ── 0단계: 로컬 캐시 즉시 표시 ──
+  const cached = JSON.parse(localStorage.getItem(FEED_CACHE_KEY) || '[]');
+  if(cached.length){ _feedItems = cached; renderFeed(_feedItems); }
+
   if(!_db){
-    feedEl.innerHTML = '<div class="feed-empty">Firebase 미연결 — 로컬 내역만 표시됩니다</div>';
-    renderLocalFeed();
+    if(!cached.length) renderFeed([]);
     return;
   }
 
-  // ── 1단계: 기존 50개 먼저 한번에 로드 ──
-  _db.ref('roulette_feed').orderByChild('ts').limitToLast(50).get()
-    .then(snap => {
-      _feedItems = [];
-      if(snap.exists()){
-        snap.forEach(ch => _feedItems.push(ch.val()));
-        _feedItems.sort((a,b) => (b.ts||0) - (a.ts||0));
+  // ── 실시간 value 리스너 ──
+  _db.ref('roulette_feed').orderByChild('ts').limitToLast(50)
+    .on('value', snap => {
+      const arr = [];
+      if(snap && snap.exists()) snap.forEach(ch => arr.push(ch.val()));
+      arr.sort((a,b) => (b.ts||0) - (a.ts||0));
+
+      // Firebase에서 받은 데이터가 있으면 무조건 반영
+      if(arr.length > 0){
+        _feedItems = arr;
+        // 캐시 저장 (재접속 시 즉시 표시용)
+        try{ localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(arr)); }catch(e){}
+        renderFeed(_feedItems);
+      } else {
+        // Firebase에 아무것도 없으면 캐시 유지 또는 빈 메시지
+        if(!_feedItems.length) renderFeed([]);
       }
-      renderFeed(_feedItems);
-
-      // ── 2단계: 이후 새 항목은 child_added로 실시간 수신 ──
-      // 현재 최신 ts 이후 항목만 받음
-      const latestTs = _feedItems.length ? (_feedItems[0].ts || Date.now()) : Date.now();
-      _db.ref('roulette_feed').orderByChild('ts').startAt(latestTs + 1)
-        .on('child_added', snap => {
-          const item = snap.val();
-          if(!item) return;
-          // 중복 방지 (같은 ts+user 조합)
-          const isDup = _feedItems.some(f => f.ts === item.ts && f.user === item.user && f.name === item.name);
-          if(isDup) return;
-          _feedItems.unshift(item);
-          if(_feedItems.length > 50) _feedItems.length = 50;
-          renderFeed(_feedItems);
-        });
-    })
-    .catch(err => {
-      console.warn('[Feed] 로드 실패 → 로컬 표시:', err);
-      renderLocalFeed();
-
-      // 로컬 실패해도 리스너는 붙임
-      _db.ref('roulette_feed').orderByChild('ts').limitToLast(1)
-        .on('child_added', snap => {
-          const item = snap.val();
-          if(!item) return;
-          const isDup = _feedItems.some(f => f.ts === item.ts && f.user === item.user);
-          if(!isDup) {
-            _feedItems.unshift(item);
-            if(_feedItems.length > 50) _feedItems.length = 50;
-            renderFeed(_feedItems);
-          }
-        });
+    }, err => {
+      console.warn('[Feed] 리스너 오류:', err);
+      if(!_feedItems.length) renderFeed([]);
     });
 }
 
