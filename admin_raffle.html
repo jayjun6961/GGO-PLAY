@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>응모 관리자 — GGO PLAY</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0612;--card:#130d24;--card2:#1a1035;--purple:#7c3aed;--p2:#9d5ff5;--p3:#c084fc;--gold:#fbbf24;--green:#34d399;--red:#f87171;--text:#f0e8ff;--dim:#5c4e7a;--sub:#9d8ec4;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;}
+
+  /* ── 로그인 화면 ── */
+  #login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:200;}
+  .login-box{background:var(--card);border:1px solid rgba(124,58,237,.3);border-radius:20px;padding:40px 32px;width:340px;text-align:center;}
+  .login-logo{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:var(--gold);margin-bottom:6px;}
+  .login-sub{font-size:12px;color:var(--dim);margin-bottom:28px;font-family:'Orbitron',sans-serif;}
+  .login-input{width:100%;padding:12px 16px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:10px;color:var(--text);font-size:14px;outline:none;margin-bottom:14px;font-family:'Noto Sans KR',sans-serif;}
+  .login-input:focus{border-color:var(--p3);}
+  .login-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--purple),var(--p2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Orbitron',sans-serif;}
+  .login-err{font-size:11px;color:#f87171;margin-top:8px;display:none;}
+
+  /* ── 메인 ── */
+  #main-screen{display:none;padding:24px;max-width:1100px;margin:0 auto;}
+  .top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;}
+  .top-title{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:var(--gold);}
+  .top-right{display:flex;gap:10px;align-items:center;}
+  .btn-refresh{padding:8px 16px;border-radius:10px;border:1px solid rgba(124,58,237,.3);background:rgba(124,58,237,.12);color:var(--p3);font-size:12px;cursor:pointer;font-family:'Orbitron',sans-serif;transition:all .2s;}
+  .btn-refresh:hover{background:rgba(124,58,237,.25);}
+  .btn-logout{padding:8px 16px;border-radius:10px;border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.1);color:#f87171;font-size:12px;cursor:pointer;font-family:'Orbitron',sans-serif;}
+
+  /* ── 통계 카드 ── */
+  .stats-row{display:flex;gap:14px;margin-bottom:24px;flex-wrap:wrap;}
+  .stat-card{flex:1;min-width:140px;background:var(--card);border:1px solid rgba(124,58,237,.2);border-radius:14px;padding:16px 18px;}
+  .stat-label{font-size:10px;color:var(--dim);font-family:'Orbitron',sans-serif;letter-spacing:.5px;margin-bottom:6px;}
+  .stat-val{font-size:22px;font-weight:900;color:var(--text);font-family:'Orbitron',sans-serif;}
+  .stat-val.green{color:var(--green);}
+  .stat-val.gold{color:var(--gold);}
+  .stat-val.purple{color:var(--p3);}
+
+  /* ── 필터/검색 ── */
+  .filter-bar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;}
+  .filter-select{padding:8px 12px;border-radius:8px;border:1px solid rgba(124,58,237,.25);background:var(--card2);color:var(--text);font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+  .search-input{padding:8px 14px;border-radius:8px;border:1px solid rgba(124,58,237,.25);background:var(--card2);color:var(--text);font-size:12px;outline:none;font-family:'Noto Sans KR',sans-serif;flex:1;min-width:160px;}
+  .search-input:focus{border-color:var(--p3);}
+  .filter-count{font-size:12px;color:var(--dim);margin-left:auto;}
+
+  /* ── 테이블 ── */
+  .table-wrap{background:var(--card);border:1px solid rgba(124,58,237,.15);border-radius:16px;overflow:hidden;margin-bottom:20px;}
+  table{width:100%;border-collapse:collapse;}
+  thead{background:rgba(124,58,237,.12);}
+  th{padding:12px 14px;font-size:11px;font-family:'Orbitron',sans-serif;color:var(--sub);font-weight:700;text-align:left;letter-spacing:.3px;white-space:nowrap;}
+  td{padding:12px 14px;font-size:13px;border-top:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+  tr:hover td{background:rgba(124,58,237,.05);}
+  .td-user{font-weight:700;color:var(--text);}
+  .td-product{color:var(--p3);}
+  .td-cost{color:#a78bfa;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;}
+  .td-time{font-size:11px;color:var(--dim);}
+  .badge-wait{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(251,191,36,.15);color:var(--gold);border:1px solid rgba(251,191,36,.3);font-family:'Orbitron',sans-serif;white-space:nowrap;}
+  .badge-ok{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(52,211,153,.15);color:var(--green);border:1px solid rgba(52,211,153,.3);font-family:'Orbitron',sans-serif;white-space:nowrap;}
+
+  /* ── 버튼 ── */
+  .btn-confirm{padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,#059669,var(--green));color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Orbitron',sans-serif;transition:all .2s;white-space:nowrap;}
+  .btn-confirm:hover{box-shadow:0 3px 12px rgba(52,211,153,.4);transform:translateY(-1px);}
+  .btn-cancel-confirm{padding:6px 14px;border-radius:8px;border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.1);color:#f87171;font-size:11px;font-weight:700;cursor:pointer;font-family:'Orbitron',sans-serif;transition:all .2s;white-space:nowrap;}
+  .btn-cancel-confirm:hover{background:rgba(248,113,113,.2);}
+  .btn-delete{padding:6px 12px;border-radius:8px;border:1px solid rgba(100,116,139,.2);background:transparent;color:var(--dim);font-size:11px;cursor:pointer;transition:all .2s;}
+  .btn-delete:hover{color:#f87171;border-color:rgba(248,113,113,.3);}
+
+  /* ── 빈 상태 / 로딩 ── */
+  .empty-row td{text-align:center;padding:40px;color:var(--dim);}
+  .spin{display:inline-block;width:20px;height:20px;border:2px solid rgba(124,58,237,.2);border-top-color:var(--p2);border-radius:50%;animation:rot .8s linear infinite;vertical-align:middle;margin-right:6px;}
+  @keyframes rot{to{transform:rotate(360deg);}}
+
+  /* ── 토스트 ── */
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(19,13,36,.97);border:1px solid rgba(52,211,153,.4);color:var(--green);padding:10px 22px;border-radius:20px;font-size:13px;font-weight:700;display:none;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+
+  @media(max-width:600px){
+    #main-screen{padding:16px;}
+    th,td{padding:10px 10px;font-size:12px;}
+    .stats-row{gap:10px;}
+  }
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<!-- ══ 관리자 로그인 ══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🎟️ GGO ADMIN</div>
+    <div class="login-sub">RAFFLE MANAGER</div>
+    <input type="password" class="login-input" id="admin-pw" placeholder="관리자 비밀번호 입력" onkeydown="if(event.key==='Enter')doAdminLogin()">
+    <button class="login-btn" onclick="doAdminLogin()">🔐 로그인</button>
+    <div class="login-err" id="login-err">비밀번호가 틀렸습니다.</div>
+  </div>
+</div>
+
+<!-- ══ 메인 관리자 화면 ══ -->
+<div id="main-screen">
+  <div class="top-bar">
+    <div class="top-title">🎟️ 응모 관리</div>
+    <div class="top-right">
+      <button class="btn-refresh" onclick="loadEntries()">🔄 새로고침</button>
+      <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <!-- 통계 -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">전체 응모</div>
+      <div class="stat-val purple" id="stat-total">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">대기중</div>
+      <div class="stat-val gold" id="stat-wait">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">확정 완료</div>
+      <div class="stat-val green" id="stat-done">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">참여 유저</div>
+      <div class="stat-val" id="stat-users">0</div>
+    </div>
+  </div>
+
+  <!-- 필터 -->
+  <div class="filter-bar">
+    <select class="filter-select" id="filter-status" onchange="applyFilter()">
+      <option value="all">전체 상태</option>
+      <option value="wait">⏳ 대기중</option>
+      <option value="confirmed">✅ 확정</option>
+    </select>
+    <select class="filter-select" id="filter-product" onchange="applyFilter()">
+      <option value="all">전체 상품</option>
+    </select>
+    <input type="text" class="search-input" id="search-input" placeholder="유저명 검색..." oninput="applyFilter()">
+    <span class="filter-count" id="filter-count"></span>
+  </div>
+
+  <!-- 테이블 -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>유저명</th>
+          <th>상품</th>
+          <th>응모권</th>
+          <th>응모 일시</th>
+          <th>상태</th>
+          <th>관리</th>
+        </tr>
+      </thead>
+      <tbody id="entries-tbody">
+        <tr class="empty-row"><td colspan="7"><span class="spin"></span>불러오는 중...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ══ 관리자 비밀번호 (원하시는 비밀번호로 변경하세요) ══
+const ADMIN_PASSWORD = 'ggo2024admin';
+const ADMIN_KEY      = 'ggo_admin_auth';
+
+let _db = null;
+let _allEntries = [];  // { fbKey, ...data }
+let _filteredEntries = [];
+
+// ── Firebase 초기화 ──
+(function(){
+  try{
+    const cfg = {
+      apiKey: "AIzaSyCXJrfH4ZrppPgqoN4zhUPVaRE8Mi3WygA",
+      authDomain: "ggo-play.firebaseapp.com",
+      databaseURL: "https://ggo-play-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ggo-play",
+      storageBucket: "ggo-play.firebasestorage.app"
+    };
+    if(typeof firebase !== 'undefined'){
+      if(!firebase.apps.length) firebase.initializeApp(cfg);
+      _db = firebase.database();
+    }
+  } catch(e){ console.warn('[Admin] Firebase 실패:', e); }
+})();
+
+// ── 관리자 로그인 ──
+function doAdminLogin(){
+  const pw = document.getElementById('admin-pw').value;
+  if(pw === ADMIN_PASSWORD){
+    sessionStorage.setItem(ADMIN_KEY, '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-screen').style.display  = 'block';
+    loadEntries();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+    document.getElementById('admin-pw').value = '';
+  }
+}
+function doLogout(){
+  sessionStorage.removeItem(ADMIN_KEY);
+  location.reload();
+}
+
+// ── 자동 로그인 확인 ──
+if(sessionStorage.getItem(ADMIN_KEY) === '1'){
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-screen').style.display  = 'block';
+  window.addEventListener('DOMContentLoaded', loadEntries);
+}
+
+// ── 응모 목록 로드 (실시간) ──
+function loadEntries(){
+  const tbody = document.getElementById('entries-tbody');
+  tbody.innerHTML = '<tr class="empty-row"><td colspan="7"><span class="spin"></span>불러오는 중...</td></tr>';
+  if(!_db){
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">⚠️ Firebase 연결 실패</td></tr>';
+    return;
+  }
+  _db.ref('raffle_entries').orderByChild('ts').on('value', snap => {
+    _allEntries = [];
+    if(snap.exists()){
+      snap.forEach(ch => _allEntries.push({ fbKey: ch.key, ...ch.val() }));
+    }
+    _allEntries.sort((a,b) => (b.ts||0) - (a.ts||0));
+    updateStats();
+    updateProductFilter();
+    applyFilter();
+  });
+}
+
+// ── 통계 갱신 ──
+function updateStats(){
+  const total    = _allEntries.length;
+  const wait     = _allEntries.filter(e => !e.confirmed).length;
+  const done     = _allEntries.filter(e => e.confirmed).length;
+  const users    = new Set(_allEntries.map(e => e.user)).size;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-wait').textContent  = wait;
+  document.getElementById('stat-done').textContent  = done;
+  document.getElementById('stat-users').textContent = users;
+}
+
+// ── 상품 필터 옵션 갱신 ──
+function updateProductFilter(){
+  const sel  = document.getElementById('filter-product');
+  const cur  = sel.value;
+  const prods = [...new Set(_allEntries.map(e => e.product).filter(Boolean))];
+  sel.innerHTML = '<option value="all">전체 상품</option>'
+    + prods.map(p => `<option value="${p}" ${cur===p?'selected':''}>${p}</option>`).join('');
+}
+
+// ── 필터 적용 ──
+function applyFilter(){
+  const status  = document.getElementById('filter-status').value;
+  const product = document.getElementById('filter-product').value;
+  const search  = document.getElementById('search-input').value.trim().toLowerCase();
+
+  _filteredEntries = _allEntries.filter(e => {
+    if(status === 'wait'      && e.confirmed)  return false;
+    if(status === 'confirmed' && !e.confirmed) return false;
+    if(product !== 'all' && e.product !== product) return false;
+    if(search && !(e.user||'').toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  document.getElementById('filter-count').textContent = _filteredEntries.length + '건';
+  renderTable(_filteredEntries);
+}
+
+// ── 테이블 렌더링 ──
+function renderTable(entries){
+  const tbody = document.getElementById('entries-tbody');
+  if(!entries.length){
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">해당 조건의 응모 내역이 없습니다</td></tr>';
+    return;
+  }
+  tbody.innerHTML = entries.map((e, i) => {
+    const d = new Date(e.ts||0);
+    const dateStr = e.ts
+      ? d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate()+' '
+        +d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')
+      : '-';
+    const badge = e.confirmed
+      ? '<span class="badge-ok">✅ 확정</span>'
+      : '<span class="badge-wait">⏳ 대기중</span>';
+    const actionBtns = e.confirmed
+      ? `<button class="btn-cancel-confirm" onclick="cancelConfirm('${e.fbKey}','${(e.user||'').replace(/'/g,"\\'")}')">확정 취소</button>`
+      : `<button class="btn-confirm" onclick="confirmEntry('${e.fbKey}','${(e.user||'').replace(/'/g,"\\'")}','${(e.product||'').replace(/'/g,"\\'")}')">✅ 확정</button>`;
+
+    return `<tr>
+      <td style="color:var(--dim);font-size:11px;">${_allEntries.indexOf(e)+1}</td>
+      <td class="td-user">${e.user || '-'}</td>
+      <td class="td-product">${e.product || '-'}</td>
+      <td class="td-cost">🎟️ ${e.cost || 0}장</td>
+      <td class="td-time">${dateStr}</td>
+      <td>${badge}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${actionBtns}
+        <button class="btn-delete" onclick="deleteEntry('${e.fbKey}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── 확정 처리 ──
+function confirmEntry(fbKey, user, product){
+  if(!_db) return;
+  if(!confirm(`"${user}"님의 "${product}" 응모를 확정하시겠습니까?`)) return;
+  _db.ref('raffle_entries/' + fbKey).update({ confirmed: true })
+    .then(() => showToast('✅ ' + user + '님 응모 확정 완료!'))
+    .catch(e => alert('오류: ' + e.message));
+}
+
+// ── 확정 취소 ──
+function cancelConfirm(fbKey, user){
+  if(!_db) return;
+  if(!confirm('"' + user + '"님의 확정을 취소하시겠습니까?')) return;
+  _db.ref('raffle_entries/' + fbKey).update({ confirmed: false })
+    .then(() => showToast('↩️ 확정이 취소되었습니다'))
+    .catch(e => alert('오류: ' + e.message));
+}
+
+// ── 항목 삭제 ──
+function deleteEntry(fbKey){
+  if(!_db) return;
+  if(!confirm('이 응모 내역을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다.')) return;
+  _db.ref('raffle_entries/' + fbKey).remove()
+    .then(() => showToast('🗑️ 삭제 완료'))
+    .catch(e => alert('오류: ' + e.message));
+}
+
+// ── 토스트 ──
+let _toastTimer;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.style.display = 'none', 2500);
+}
+</script>
+</body>
+</html>
