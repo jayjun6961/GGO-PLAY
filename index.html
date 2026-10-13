@@ -75,7 +75,7 @@
       <form class="form" id="inviteForm" novalidate>
         <div class="field">
           <label for="suCode" data-i18n="inviteLabel"></label>
-          <input class="input code-in" id="suCode" type="text" maxlength="9" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX">
+          <input class="input code-in" id="suCode" type="text" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false">
           <div class="err-msg" id="suCodeErr" aria-live="polite"></div>
         </div>
         <button class="btn" type="submit" data-i18n="inviteBtn"></button>
@@ -158,6 +158,31 @@
         </div>
         <div class="seg" id="adminTabs" role="tablist"></div>
       </div>
+      <form class="codeform" id="codeForm" novalidate hidden>
+        <div class="field">
+          <label for="acCode" data-i18n="acCodeLabel"></label>
+          <input class="input code-in" id="acCode" type="text" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <div class="err-msg" id="acCodeErr" aria-live="polite"></div>
+        </div>
+        <div class="field">
+          <label for="acMax" data-i18n="acMaxLabel"></label>
+          <input class="input" id="acMax" type="number" min="1" step="1" value="70" disabled>
+          <label class="check"><input type="checkbox" id="acUnl" checked><span data-i18n="unlimited"></span></label>
+          <div class="err-msg" id="acMaxErr" aria-live="polite"></div>
+        </div>
+        <div class="field">
+          <label for="acExp" data-i18n="acExpLabel"></label>
+          <select class="input" id="acExp">
+            <option value="30" data-i18n="exp30"></option>
+            <option value="7" data-i18n="exp7"></option>
+            <option value="90" data-i18n="exp90"></option>
+            <option value="0" data-i18n="expNone"></option>
+          </select>
+        </div>
+        <div class="field">
+          <button class="btn" type="submit" data-i18n="createBtn"></button>
+        </div>
+      </form>
       <div id="adminBody"></div>
       <p class="note" id="adminNote"></p>
     </div>
