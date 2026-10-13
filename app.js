@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, writeBatch, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, writeBatch, serverTimestamp, Timestamp, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 /* 각 메뉴의 실제 페이지 주소가 정해지면 아래에 넣으면 됩니다. 비어 있으면 안내 토스트만 표시됩니다. */
@@ -101,7 +101,7 @@ var S = {
     stepInvite: "1. 초대 코드", stepInfo: "2. 정보 입력", stepWait: "3. 승인 대기",
     inviteTitle: "초대 코드 입력", inviteSub: "길드 운영진에게 받은 초대 코드를 입력하세요.",
     inviteLabel: "초대 코드", inviteBtn: "코드 확인", inviteHelp: "코드가 없다면 길드 운영진에게 문의하세요.",
-    errInvite: "초대 코드 형식이 올바르지 않습니다. 예: GGO1-A2B3", codeOk: "초대 코드가 확인되었습니다.",
+    errInvite: "초대 코드는 영문 대문자, 숫자, 하이픈으로 4~20자입니다.", codeOk: "초대 코드가 확인되었습니다.",
     infoTitle: "회원 정보 입력", infoSub: "게임 닉네임은 운영진이 길드 명단과 대조하는 데 쓰입니다.",
     nick: "게임 닉네임", pw2: "비밀번호 확인", agree: "길드원이며, 운영진이 길드 명단과 확인하는 것에 동의합니다.",
     submitBtn: "가입 신청", back: "이전",
@@ -123,7 +123,7 @@ var S = {
     newCode: "새 코드 발급", newCodeDone: "새 초대 코드를 발급했습니다.",
     useAvail: "사용 가능", useUsed: "사용됨", useExpired: "만료",
     copy: "복사", copied: "복사했습니다.", copyFail: "복사하지 못했습니다. 코드를 직접 선택해 복사하세요.",
-    sampleAdmin: "예시 데이터입니다.", codeNote: "초대 코드는 1회용이며 발급 7일 뒤 만료됩니다."
+    sampleAdmin: "예시 데이터입니다.", codeNote: "사용 횟수를 다 쓰거나 만료되면 자동으로 막히고, 중지하면 바로 쓸 수 없게 됩니다."
   },
   en: {
     loginTitle: "Log in", loginSub: "GGO PLAY is for guild members only.",
@@ -135,7 +135,7 @@ var S = {
     stepInvite: "1. Invite code", stepInfo: "2. Your info", stepWait: "3. Approval",
     inviteTitle: "Enter invite code", inviteSub: "Enter the invite code you got from a guild officer.",
     inviteLabel: "Invite code", inviteBtn: "Check code", inviteHelp: "No code? Ask a guild officer.",
-    errInvite: "That invite code format is not valid. Example: GGO1-A2B3", codeOk: "Invite code confirmed.",
+    errInvite: "Invite codes use 4 to 20 uppercase letters, numbers, or hyphens.", codeOk: "Invite code confirmed.",
     infoTitle: "Your information", infoSub: "Officers use your in-game nickname to check the guild roster.",
     nick: "In-game nickname", pw2: "Confirm password", agree: "I am a guild member and agree to officers checking the guild roster.",
     submitBtn: "Request access", back: "Back",
@@ -157,7 +157,7 @@ var S = {
     newCode: "Issue new code", newCodeDone: "A new invite code was issued.",
     useAvail: "Available", useUsed: "Used", useExpired: "Expired",
     copy: "Copy", copied: "Copied.", copyFail: "Could not copy. Select the code and copy it by hand.",
-    sampleAdmin: "Sample data.", codeNote: "Invite codes work once and expire 7 days after they are issued."
+    sampleAdmin: "Sample data.", codeNote: "A code stops working when its uses run out or it expires, and right away when you pause it."
   }
 };
 
@@ -174,7 +174,7 @@ Object.assign(S.ko, {
   errNetwork: "네트워크 연결을 확인해 주세요.",
   errIdTaken: "이미 사용 중인 아이디입니다.",
   errInviteNone: "존재하지 않는 초대 코드입니다.",
-  errInviteUsed: "이미 사용되었거나 만료된 초대 코드입니다.",
+  errInviteUsed: "사용할 수 없는 초대 코드입니다. 코드를 다시 확인해 주세요.",
   errInviteExpired: "만료된 초대 코드입니다.",
   errOff: "이용할 수 없는 계정입니다. 운영진에게 문의해 주세요.",
   errNoProfile: "가입 정보를 찾을 수 없습니다. 운영진에게 문의해 주세요.",
@@ -184,7 +184,18 @@ Object.assign(S.ko, {
   loading: "불러오는 중...",
   loadFail: "목록을 불러오지 못했습니다. 새로고침해 주세요.",
   approvedNow: "승인되었습니다. 메인으로 이동합니다.",
-  actionFail: "처리하지 못했습니다. 잠시 후 다시 시도해 주세요."
+  actionFail: "처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+  errInviteFull: "사용 가능 횟수가 모두 소진된 초대 코드입니다.",
+  thUses: "사용 현황", unlimited: "무제한", noExpiry: "없음",
+  useOff: "중지됨", useFull: "소진", pause: "중지", resume: "재개",
+  emptyCodes: "만든 초대 코드가 없습니다. 위에서 새로 만들어 주세요.",
+  acCodeLabel: "초대 코드 (비우면 자동 생성)", acMaxLabel: "사용 가능 횟수", acExpLabel: "만료",
+  exp7: "7일 후", exp30: "30일 후", exp90: "90일 후", expNone: "만료 없음",
+  createBtn: "코드 만들기",
+  errCodeFmt: "코드는 영문 대문자, 숫자, 하이픈 4~20자로 입력하세요.",
+  errCodeExists: "이미 있는 코드입니다.",
+  errMax: "사용 횟수는 1 이상의 숫자로 입력하세요.",
+  codePaused: "초대 코드를 중지했습니다.", codeResumed: "초대 코드를 다시 쓸 수 있게 했습니다."
 });
 Object.assign(S.en, {
   errLogin: "The ID or password is not correct.",
@@ -192,7 +203,7 @@ Object.assign(S.en, {
   errNetwork: "Check your network connection.",
   errIdTaken: "That ID is already taken.",
   errInviteNone: "That invite code does not exist.",
-  errInviteUsed: "That invite code was already used or has expired.",
+  errInviteUsed: "That invite code cannot be used. Please check the code again.",
   errInviteExpired: "That invite code has expired.",
   errOff: "This account cannot be used. Please ask a guild officer.",
   errNoProfile: "Sign-up details were not found. Please ask a guild officer.",
@@ -202,7 +213,18 @@ Object.assign(S.en, {
   loading: "Loading...",
   loadFail: "Could not load the list. Please refresh.",
   approvedNow: "You are approved. Going to the home page.",
-  actionFail: "Could not complete that. Please try again in a moment."
+  actionFail: "Could not complete that. Please try again in a moment.",
+  errInviteFull: "That invite code has no uses left.",
+  thUses: "Uses", unlimited: "Unlimited", noExpiry: "None",
+  useOff: "Paused", useFull: "Used up", pause: "Pause", resume: "Resume",
+  emptyCodes: "No invite codes yet. Create one above.",
+  acCodeLabel: "Invite code (leave blank to generate)", acMaxLabel: "Allowed uses", acExpLabel: "Expires",
+  exp7: "In 7 days", exp30: "In 30 days", exp90: "In 90 days", expNone: "Never",
+  createBtn: "Create code",
+  errCodeFmt: "Use 4 to 20 uppercase letters, numbers, or hyphens.",
+  errCodeExists: "That code already exists.",
+  errMax: "Enter a number of 1 or more.",
+  codePaused: "Invite code paused.", codeResumed: "Invite code is active again."
 });
 
 var order = ["combo", "league", "channel"];
@@ -255,6 +277,15 @@ function errKey(e) {
   if (c === "auth/operation-not-allowed") return "errAuthOff";
   if (c === "permission-denied") return "errPerm";
   return "errGeneric";
+}
+var CODE_RE = /^[A-Z0-9][A-Z0-9-]{3,19}$/;
+function normalizeCode(v) { return v.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 20); }
+/* 초대 코드 상태: ok(사용 가능), off(중지), expired(만료), full(횟수 소진) */
+function codeStatus(c) {
+  if (c.active !== true) return "off";
+  if (c.expiresAt && tsMs(c.expiresAt) < Date.now()) return "expired";
+  if (c.maxUses > 0 && (c.uses || 0) >= c.maxUses) return "full";
+  return "ok";
 }
 function genCode() {
   var alpha = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -402,17 +433,24 @@ function renderAdmin() {
           "</td><td>" + esc(d ? fmtFull(d) : "-") + "</td><td>" + tag(on ? "good" : "mute", on ? s("statusActive") : s("statusOff")) + "</td><td>" + action + "</td></tr>";
       }).join("") + "</tbody></table></div>";
   } else {
-    note = "";
-    html = '<div class="bar"><p>' + esc(s("codeNote")) + '</p><button class="btn sm" type="button" data-act="newcode">' + esc(s("newCode")) + "</button></div>" +
-      '<div class="tbl-wrap"><table><thead><tr><th>' + [s("thCode"), s("thExpire"), s("thStatus"), s("thAction")].join("</th><th>") + "</th></tr></thead><tbody>" +
-      admin.codes.map(function (c) {
-        var expired = !c.used && tsMs(c.expiresAt) < Date.now();
-        var st = c.used ? tag("mute", s("useUsed")) : (expired ? tag("bad", s("useExpired")) : tag("good", s("useAvail")));
-        var cp = (!c.used && !expired) ? '<button class="mini-btn" type="button" data-act="copy" data-id="' + esc(c.id) + '">' + esc(s("copy")) + "</button>" : '<span class="muted">-</span>';
-        var d = tsDate(c.expiresAt);
-        return '<tr><td class="code">' + esc(c.id) + "</td><td>" + esc(d ? fmtDay(d) : "-") + "</td><td>" + st + "</td><td>" + cp + "</td></tr>";
-      }).join("") + "</tbody></table></div>";
+    if (!admin.codes.length) {
+      html = '<p class="empty">' + esc(s("emptyCodes")) + "</p>";
+    } else {
+      html = '<div class="tbl-wrap"><table><thead><tr><th>' + [s("thCode"), s("thUses"), s("thExpire"), s("thStatus"), s("thAction")].join("</th><th>") + "</th></tr></thead><tbody>" +
+        admin.codes.map(function (c) {
+          var st = codeStatus(c);
+          var stTag = st === "ok" ? tag("good", s("useAvail")) : (st === "expired" ? tag("bad", s("useExpired")) : (st === "full" ? tag("warn", s("useFull")) : tag("mute", s("useOff"))));
+          var uses = (c.uses || 0) + " / " + (c.maxUses > 0 ? c.maxUses : s("unlimited"));
+          var d = tsDate(c.expiresAt);
+          var acts = '<span class="act">' +
+            (st === "ok" ? '<button class="mini-btn" type="button" data-act="copy" data-id="' + esc(c.id) + '">' + esc(s("copy")) + "</button>" : "") +
+            '<button class="mini-btn' + (c.active === true ? " danger" : "") + '" type="button" data-act="codeToggle" data-id="' + esc(c.id) + '">' + esc(c.active === true ? s("pause") : s("resume")) + "</button></span>";
+          return '<tr><td class="code">' + esc(c.id) + "</td><td>" + esc(uses) + "</td><td>" + esc(d ? fmtDay(d) : s("noExpiry")) + "</td><td>" + stTag + "</td><td>" + acts + "</td></tr>";
+        }).join("") + "</tbody></table></div>";
+    }
+    note = s("codeNote");
   }
+  $("codeForm").hidden = !(admin.loaded && state.tab === "code");
   $("adminBody").innerHTML = html;
   $("adminNote").textContent = note;
   $("adminNote").hidden = !note;
@@ -586,21 +624,21 @@ $("forgotBtn").addEventListener("click", function () {
 
 /* 회원가입 1단계: 초대 코드 */
 $("suCode").addEventListener("input", function () {
-  var v = this.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
-  if (v.length > 4) v = v.slice(0, 4) + "-" + v.slice(4);
-  this.value = v;
+  this.value = normalizeCode(this.value);
 });
 $("inviteForm").addEventListener("submit", async function (e) {
   e.preventDefault();
   var v = $("suCode").value.trim();
-  if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(v)) { setErr("suCode", "suCodeErr", s("errInvite")); return; }
+  if (!CODE_RE.test(v)) { setErr("suCode", "suCodeErr", s("errInvite")); return; }
   setBusy("inviteForm", true);
   try {
     var snap = await getDoc(doc(db, "inviteCodes", v));
     if (!snap.exists()) { setErr("suCode", "suCodeErr", s("errInviteNone")); return; }
     var d = snap.data();
-    if (d.used) { setErr("suCode", "suCodeErr", s("errInviteUsed")); return; }
-    if (tsMs(d.expiresAt) < Date.now()) { setErr("suCode", "suCodeErr", s("errInviteExpired")); return; }
+    var stc = codeStatus(d);
+    if (stc === "off") { setErr("suCode", "suCodeErr", s("errInviteUsed")); return; }
+    if (stc === "expired") { setErr("suCode", "suCodeErr", s("errInviteExpired")); return; }
+    if (stc === "full") { setErr("suCode", "suCodeErr", s("errInviteFull")); return; }
     setErr("suCode", "suCodeErr", "");
     state.signup = { step: 2, code: v };
     renderSteps();
@@ -636,12 +674,12 @@ $("infoForm").addEventListener("submit", async function (e) {
   state.busy = true;
   try {
     cred = await createUserWithEmailAndPassword(auth, id + ID_DOMAIN, pw);
-    /* 회원 문서 생성과 초대 코드 사용 처리를 한 번에 저장합니다. 둘 중 하나라도 규칙에 막히면 둘 다 취소됩니다. */
+    /* 회원 문서 생성과 초대 코드 사용 횟수 증가를 한 번에 저장합니다. 둘 중 하나라도 규칙에 막히면 둘 다 취소됩니다. */
     var batch = writeBatch(db);
     batch.set(doc(db, "users", cred.user.uid), {
       loginId: id, nickname: nick, role: "member", status: "pending", inviteCode: code, createdAt: serverTimestamp()
     });
-    batch.update(doc(db, "inviteCodes", code), { used: true, usedBy: cred.user.uid });
+    batch.update(doc(db, "inviteCodes", code), { uses: increment(1) });
     await batch.commit();
     ["suCode", "suNick", "suId", "suPw", "suPw2"].forEach(function (x) { $(x).value = ""; });
     $("suAgree").checked = false;
@@ -713,16 +751,11 @@ $("adminBody").addEventListener("click", async function (e) {
       await updateDoc(doc(db, "users", id), { status: next });
       toast(s(next === "active" ? "activated" : "deactivated").replace("{n}", m.nickname));
       await fetchAdmin();
-    } else if (act === "newcode") {
-      var code = genCode();
-      await setDoc(doc(db, "inviteCodes", code), {
-        createdBy: state.user.uid,
-        createdAt: serverTimestamp(),
-        expiresAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        used: false,
-        usedBy: null
-      });
-      toast(s("newCodeDone"));
+    } else if (act === "codeToggle") {
+      var cd = admin.codes.filter(function (x) { return x.id === id; })[0];
+      var wasOn = !!cd && cd.active === true;
+      await updateDoc(doc(db, "inviteCodes", id), { active: !wasOn });
+      toast(s(wasOn ? "codePaused" : "codeResumed"));
       await fetchAdmin();
     } else if (act === "copy") {
       try {
@@ -737,6 +770,46 @@ $("adminBody").addEventListener("click", async function (e) {
     toast(s("actionFail"));
   } finally {
     b.disabled = false;
+  }
+});
+
+/* 초대 코드 만들기 (운영진) */
+$("acCode").addEventListener("input", function () { this.value = normalizeCode(this.value); });
+$("acUnl").addEventListener("change", function () {
+  $("acMax").disabled = this.checked;
+  if (this.checked) setErr("acMax", "acMaxErr", "");
+});
+$("codeForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  var code = $("acCode").value.trim();
+  if (!code) code = genCode();
+  var okCode = setErr("acCode", "acCodeErr", CODE_RE.test(code) ? "" : s("errCodeFmt"));
+  var unl = $("acUnl").checked;
+  var max = unl ? 0 : parseInt($("acMax").value, 10);
+  var okMax = setErr("acMax", "acMaxErr", (unl || (max >= 1 && max <= 100000)) ? "" : s("errMax"));
+  if (!okCode || !okMax) return;
+  var days = parseInt($("acExp").value, 10);
+  setBusy("codeForm", true);
+  try {
+    var ref = doc(db, "inviteCodes", code);
+    var exist = await getDoc(ref);
+    if (exist.exists()) { setErr("acCode", "acCodeErr", s("errCodeExists")); return; }
+    await setDoc(ref, {
+      createdBy: state.user.uid,
+      createdAt: serverTimestamp(),
+      expiresAt: days > 0 ? Timestamp.fromMillis(Date.now() + days * 24 * 60 * 60 * 1000) : null,
+      maxUses: max,
+      uses: 0,
+      active: true
+    });
+    $("acCode").value = "";
+    toast(s("newCodeDone") + " " + code);
+    await fetchAdmin();
+  } catch (err) {
+    console.error(err);
+    toast(s(errKey(err) === "errPerm" ? "errPerm" : "actionFail"));
+  } finally {
+    setBusy("codeForm", false);
   }
 });
 
