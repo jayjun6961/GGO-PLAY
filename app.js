@@ -44,7 +44,7 @@ var T = {
         tips: ["현재는 GGO LEAGUE만 진행 중이며 매주 토요일 22:00에 열립니다.", "GGO MASTERS, GGO ALL STAR, GGO CHAMPIONS는 2027년에 진행될 예정입니다.", "일정은 한국 시간(KST) 기준입니다."]
       },
       channel: {
-        cols: ["서버", "혼잡도", "이동 신청"], top: 2,
+        cols: ["서버", "혼잡도", "이동 신청"],
         rows: [["꼬리아1", ["혼잡", "bad"], "go"], ["꼬리아2", ["혼잡", "bad"], "go"], ["꼬리별", ["여유", "good"], "go"]],
         conds: {
           "꼬리아1": "1만 트로피 이상, 일일 금고 필수, 7일 미접시 추방",
@@ -84,7 +84,7 @@ var T = {
         tips: ["Only GGO LEAGUE is running now, every Saturday at 22:00.", "GGO MASTERS, GGO ALL STAR and GGO CHAMPIONS are planned for 2027.", "Times are in Korea Time (KST)."]
       },
       channel: {
-        cols: ["Server", "Load", "Request"], top: 2,
+        cols: ["Server", "Load", "Request"],
         rows: [["꼬리아1", ["Busy", "bad"], "go"], ["꼬리아2", ["Busy", "bad"], "go"], ["꼬리별", ["Low", "good"], "go"]],
         conds: {
           "꼬리아1": "10,000+ trophies, daily vault required, removed after 7 days of inactivity",
