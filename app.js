@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, writeBatch, serverTimestamp, Timestamp, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, where, addDoc, writeBatch, serverTimestamp, Timestamp, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 /* 각 메뉴의 실제 페이지 주소가 정해지면 아래에 넣으면 됩니다. 비어 있으면 안내 토스트만 표시됩니다. */
@@ -44,10 +44,14 @@ var T = {
         tips: ["현재는 GGO LEAGUE만 진행 중이며 매주 토요일 22:00에 열립니다.", "GGO MASTERS, GGO ALL STAR, GGO CHAMPIONS는 2027년에 진행될 예정입니다.", "일정은 한국 시간(KST) 기준입니다."]
       },
       channel: {
-        cols: ["서버", "혼잡도", "이동"], top: 2,
+        cols: ["서버", "혼잡도", "이동 신청"], top: 2,
         rows: [["꼬리아1", ["혼잡", "bad"], "go"], ["꼬리아2", ["혼잡", "bad"], "go"], ["꼬리별", ["여유", "good"], "go"]],
-        tips: ["꼬리아1, 꼬리아2는 혼잡하고 꼬리별은 여유로운 상태입니다.", "혼잡도가 낮은 서버를 먼저 확인하세요."],
-        goLabel: "이동"
+        conds: {
+          "꼬리아1": "1만 트로피 이상, 일일 금고 필수, 7일 미접시 추방",
+          "꼬리아2": "1만 트로피 이상, 일일 금고 필수, 14일 미접시 추방",
+          "꼬리별": "트로피 제한 없음, 일일 금고 선택, 20일 미접시 추방"
+        },
+        goLabel: "이동 신청"
       }
     }
   },
@@ -80,10 +84,14 @@ var T = {
         tips: ["Only GGO LEAGUE is running now, every Saturday at 22:00.", "GGO MASTERS, GGO ALL STAR and GGO CHAMPIONS are planned for 2027.", "Times are in Korea Time (KST)."]
       },
       channel: {
-        cols: ["Server", "Load", "Move"], top: 2,
+        cols: ["Server", "Load", "Request"], top: 2,
         rows: [["꼬리아1", ["Busy", "bad"], "go"], ["꼬리아2", ["Busy", "bad"], "go"], ["꼬리별", ["Low", "good"], "go"]],
-        tips: ["꼬리아1 and 꼬리아2 are busy, and 꼬리별 has room.", "Check the least busy server first."],
-        goLabel: "Move"
+        conds: {
+          "꼬리아1": "10,000+ trophies, daily vault required, removed after 7 days of inactivity",
+          "꼬리아2": "10,000+ trophies, daily vault required, removed after 14 days of inactivity",
+          "꼬리별": "No trophy limit, daily vault optional, removed after 20 days of inactivity"
+        },
+        goLabel: "Request move"
       }
     }
   }
@@ -195,7 +203,17 @@ Object.assign(S.ko, {
   errCodeFmt: "코드는 영문 대문자, 숫자, 하이픈 4~20자로 입력하세요.",
   errCodeExists: "이미 있는 코드입니다.",
   errMax: "사용 횟수는 1 이상의 숫자로 입력하세요.",
-  codePaused: "초대 코드를 중지했습니다.", codeResumed: "초대 코드를 다시 쓸 수 있게 했습니다."
+  codePaused: "초대 코드를 중지했습니다.", codeResumed: "초대 코드를 다시 쓸 수 있게 했습니다.",
+  condTitle: "조건", moveOpen: "이동 신청하기",
+  moveTitle: "서버 이동 신청", moveSub: "서버 혼잡도와 관계없이 신청할 수 있습니다. 운영진이 조건을 확인한 뒤 승인하면 이동합니다.",
+  mvTarget: "희망 서버", mvFrom: "현재 서버", mvOther: "그 외 / 없음", mvTrophy: "현재 트로피", mvNote: "메모 (선택, 100자 이내)",
+  mvSubmit: "이동 신청하기", myMoves: "내 신청 내역", noMoves: "신청 내역이 없습니다.", moveBack: "메인으로",
+  errTrophy: "트로피는 0 이상의 숫자로 입력하세요.", errMoveSame: "현재 서버와 같은 서버로는 신청할 수 없습니다.",
+  movePendingExists: "처리 중인 신청이 있습니다. 결과가 나온 뒤 다시 신청해 주세요.", moveSent: "이동 신청을 보냈습니다.",
+  mvStPending: "대기 중", mvStApproved: "승인", mvStRejected: "거절",
+  tabMove: "서버 이동", thTarget: "희망 서버", thFrom: "현재 서버", thTrophy: "트로피", thMemo: "메모", thResult: "결과", thDecided: "처리 시각",
+  emptyMoves: "대기 중인 서버 이동 신청이 없습니다.", historyTitle: "처리 내역",
+  moveApproved: "{n}님의 서버 이동을 승인했습니다.", moveRejected: "{n}님의 서버 이동을 거절했습니다."
 });
 Object.assign(S.en, {
   errLogin: "The ID or password is not correct.",
@@ -224,13 +242,25 @@ Object.assign(S.en, {
   errCodeFmt: "Use 4 to 20 uppercase letters, numbers, or hyphens.",
   errCodeExists: "That code already exists.",
   errMax: "Enter a number of 1 or more.",
-  codePaused: "Invite code paused.", codeResumed: "Invite code is active again."
+  codePaused: "Invite code paused.", codeResumed: "Invite code is active again.",
+  condTitle: "Conditions", moveOpen: "Request a move",
+  moveTitle: "Server move request", moveSub: "You can request a move whatever the server load is. An officer checks the conditions and approves it.",
+  mvTarget: "Server to move to", mvFrom: "Current server", mvOther: "Other / none", mvTrophy: "Current trophies", mvNote: "Note (optional, up to 100 characters)",
+  mvSubmit: "Request move", myMoves: "My requests", noMoves: "No requests yet.", moveBack: "Back to home",
+  errTrophy: "Enter trophies as a number of 0 or more.", errMoveSame: "You cannot request the server you are already on.",
+  movePendingExists: "You already have a request in progress. Please wait for the result.", moveSent: "Your move request was sent.",
+  mvStPending: "Pending", mvStApproved: "Approved", mvStRejected: "Rejected",
+  tabMove: "Server moves", thTarget: "To", thFrom: "From", thTrophy: "Trophies", thMemo: "Note", thResult: "Result", thDecided: "Decided",
+  emptyMoves: "No pending server move requests.", historyTitle: "History",
+  moveApproved: "Approved the server move for {n}.", moveRejected: "Rejected the server move for {n}."
 });
 
 var order = ["combo", "league", "channel"];
-var VIEWS = ["loading", "login", "signup", "pending", "admin", "home"];
-var state = { lang: "ko", menu: "combo", view: "loading", tab: "req", signup: { step: 1, code: "" }, user: null, busy: false };
-var admin = { loaded: false, loading: false, failed: false, requests: [], members: [], codes: [] };
+var VIEWS = ["loading", "login", "signup", "pending", "admin", "home", "move"];
+var SERVERS = ["꼬리아1", "꼬리아2", "꼬리별"];
+var state = { lang: "ko", menu: "combo", view: "loading", tab: "req", signup: { step: 1, code: "" }, user: null, busy: false, moveTarget: "꼬리아1", moveFrom: "기타" };
+var myMoves = { loaded: false, failed: false, items: [] };
+var admin = { loaded: false, loading: false, failed: false, requests: [], members: [], codes: [], moves: [] };
 
 /* ---------- 공통 도우미 ---------- */
 function $(id) { return document.getElementById(id); }
@@ -302,12 +332,14 @@ function show(view) {
   var active = !!u && u.status === "active";
   if (view === "admin" && !(active && u.role === "admin")) view = active ? "home" : (u ? "pending" : "login");
   if (view === "home" && !active) view = u ? "pending" : "login";
+  if (view === "move" && !active) view = u ? "pending" : "login";
   if (view === "pending" && !(u && u.status === "pending")) view = active ? "home" : "login";
   if ((view === "login" || view === "signup") && u) view = active ? "home" : "pending";
   state.view = view;
   VIEWS.forEach(function (v) { $("v-" + v).hidden = v !== view; });
   renderAll();
   if (view === "admin") fetchAdmin();
+  if (view === "move") fetchMyMoves();
   window.scrollTo(0, 0);
 }
 
@@ -400,7 +432,8 @@ function renderPending() {
 function tag(cls, text) { return '<span class="tag ' + cls + '">' + esc(text) + "</span>"; }
 
 function renderAdmin() {
-  var tabs = [["req", s("tabReq"), admin.requests.length], ["mem", s("tabMem"), 0], ["code", s("tabCode"), 0]];
+  var pendMoves = admin.moves.filter(function (x) { return x.status === "pending"; });
+  var tabs = [["req", s("tabReq"), admin.requests.length], ["move", s("tabMove"), pendMoves.length], ["mem", s("tabMem"), 0], ["code", s("tabCode"), 0]];
   $("adminTabs").innerHTML = tabs.map(function (t) {
     return '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (state.tab === t[0]) + '">' + esc(t[1]) +
       (t[2] > 0 ? ' <span class="cnt">' + t[2] + "</span>" : "") + "</button>";
@@ -420,6 +453,31 @@ function renderAdmin() {
           return "<tr><td>" + esc(r.nickname) + "</td><td>" + esc(r.loginId) + "</td><td>" + esc(d ? fmtTime(d) : "-") + '</td><td class="code">' + esc(r.inviteCode) + '</td><td><span class="act">' +
             '<button class="mini-btn danger" type="button" data-act="reject" data-id="' + esc(r.id) + '">' + esc(s("reject")) + "</button>" +
             '<button class="mini-btn ok" type="button" data-act="approve" data-id="' + esc(r.id) + '">' + esc(s("approve")) + "</button></span></td></tr>";
+        }).join("") + "</tbody></table></div>";
+    }
+  } else if (state.tab === "move") {
+    var pend = pendMoves.slice().sort(function (a, b) { return tsMs(b.createdAt) - tsMs(a.createdAt); });
+    var done = admin.moves.filter(function (x) { return x.status !== "pending"; })
+      .sort(function (a, b) { return tsMs(b.decidedAt) - tsMs(a.decidedAt); }).slice(0, 20);
+    function srvName(v) { return v === "기타" ? s("mvOther") : v; }
+    if (!pend.length) {
+      html = '<p class="empty">' + esc(s("emptyMoves")) + "</p>";
+    } else {
+      html = '<div class="tbl-wrap"><table><thead><tr><th>' + [s("thNick"), s("thId"), s("thTarget"), s("thFrom"), s("thTrophy"), s("thMemo"), s("thTime"), s("thAction")].join("</th><th>") + "</th></tr></thead><tbody>" +
+        pend.map(function (r) {
+          var d = tsDate(r.createdAt);
+          return "<tr><td>" + esc(r.nickname) + "</td><td>" + esc(r.loginId) + "</td><td>" + esc(r.toServer) + "</td><td>" + esc(srvName(r.fromServer)) + "</td><td>" +
+            esc(Number(r.trophies).toLocaleString()) + '</td><td class="wrap">' + esc(r.note || "-") + "</td><td>" + esc(d ? fmtTime(d) : "-") + '</td><td><span class="act">' +
+            '<button class="mini-btn danger" type="button" data-act="moveReject" data-id="' + esc(r.id) + '">' + esc(s("reject")) + "</button>" +
+            '<button class="mini-btn ok" type="button" data-act="moveApprove" data-id="' + esc(r.id) + '">' + esc(s("approve")) + "</button></span></td></tr>";
+        }).join("") + "</tbody></table></div>";
+    }
+    if (done.length) {
+      html += '<h3 class="sub-title hist">' + esc(s("historyTitle")) + '</h3><div class="tbl-wrap"><table><thead><tr><th>' + [s("thNick"), s("thTarget"), s("thTime"), s("thResult")].join("</th><th>") + "</th></tr></thead><tbody>" +
+        done.map(function (r) {
+          var d = tsDate(r.decidedAt);
+          return "<tr><td>" + esc(r.nickname) + "</td><td>" + esc(r.toServer) + "</td><td>" + esc(d ? fmtTime(d) : "-") + "</td><td>" +
+            (r.status === "approved" ? tag("good", s("mvStApproved")) : tag("bad", s("mvStRejected"))) + "</td></tr>";
         }).join("") + "</tbody></table></div>";
     }
   } else if (state.tab === "mem") {
@@ -473,14 +531,17 @@ function renderPreview() {
   $("thead").innerHTML = "<tr>" + d.cols.map(function (c) { return "<th>" + c + "</th>"; }).join("") + "</tr>";
   $("tbody").innerHTML = d.rows.map(function (r, i) {
     var cells = r.map(function (cell) {
-      if (cell === "go") return '<td><button class="mini-btn" type="button" data-move="1">' + d.goLabel + "</button></td>";
+      if (cell === "go") return '<td><button class="mini-btn" type="button" data-move="' + esc(r[0]) + '">' + d.goLabel + "</button></td>";
       if (Array.isArray(cell)) return '<td><span class="tag ' + cell[1] + '">' + cell[0] + "</span></td>";
       return "<td>" + cell + "</td>";
     }).join("");
     var top = (i === (d.top === undefined ? -1 : d.top)) ? ' class="top"' : "";
     return "<tr" + top + ">" + cells + "</tr>";
   }).join("");
-  $("tips").innerHTML = d.tips.map(function (x) { return "<li>" + x + "</li>"; }).join("");
+  var tipItems = d.conds ? SERVERS.map(function (k) { return "<strong>" + k + "</strong> - " + d.conds[k]; }) : d.tips;
+  $("tips").innerHTML = tipItems.map(function (x) { return "<li>" + x + "</li>"; }).join("");
+  $("tipTitle").textContent = d.conds ? s("condTitle") : t.tipTitle;
+  $("openBtn").textContent = state.menu === "channel" ? s("moveOpen") : t.open;
   $("sampleNote").hidden = state.menu !== "combo";
 }
 
@@ -511,6 +572,54 @@ function renderAll() {
   renderSteps();
   renderPending();
   renderAdmin();
+  renderMove();
+}
+
+/* ---------- 서버 이동 신청 ---------- */
+function renderMove() {
+  var tgt = $("mvTarget");
+  var frm = $("mvFrom");
+  tgt.innerHTML = SERVERS.map(function (o) { return '<option value="' + esc(o) + '">' + esc(o) + "</option>"; }).join("");
+  frm.innerHTML = SERVERS.map(function (o) { return '<option value="' + esc(o) + '">' + esc(o) + "</option>"; }).join("") +
+    '<option value="기타">' + esc(s("mvOther")) + "</option>";
+  tgt.value = state.moveTarget;
+  frm.value = state.moveFrom;
+  $("mvCond").textContent = T[state.lang].data.channel.conds[state.moveTarget] || "";
+  renderMoveList();
+}
+function renderMoveList() {
+  var box = $("myMoves");
+  if (!myMoves.loaded) {
+    box.innerHTML = '<p class="note">' + esc(myMoves.failed ? s("loadFail") : s("loading")) + "</p>";
+    return;
+  }
+  if (!myMoves.items.length) {
+    box.innerHTML = '<p class="note">' + esc(s("noMoves")) + "</p>";
+    return;
+  }
+  box.innerHTML = '<ul class="mlist">' + myMoves.items.map(function (m) {
+    var d = tsDate(m.createdAt);
+    var st = m.status === "approved" ? tag("good", s("mvStApproved")) : (m.status === "rejected" ? tag("bad", s("mvStRejected")) : tag("warn", s("mvStPending")));
+    var from = m.fromServer === "기타" ? s("mvOther") : m.fromServer;
+    return "<li><div><strong>" + esc(m.toServer) + '</strong><span class="d">' + esc(from) + " → " + esc(m.toServer) + " · " +
+      esc(Number(m.trophies).toLocaleString()) + " · " + esc(d ? fmtTime(d) : "-") + "</span></div>" + st + "</li>";
+  }).join("") + "</ul>";
+}
+async function fetchMyMoves() {
+  if (!state.user) return;
+  try {
+    var qs = await getDocs(query(collection(db, "moveRequests"), where("uid", "==", state.user.uid)));
+    var items = [];
+    qs.forEach(function (d) { var x = d.data(); x.id = d.id; items.push(x); });
+    items.sort(function (a, b) { return tsMs(b.createdAt) - tsMs(a.createdAt); });
+    myMoves.items = items;
+    myMoves.loaded = true;
+    myMoves.failed = false;
+  } catch (err) {
+    console.error(err);
+    myMoves.failed = true;
+  }
+  renderMoveList();
 }
 
 /* ---------- 운영진 데이터 (Firestore) ---------- */
@@ -529,6 +638,9 @@ async function fetchAdmin() {
       .sort(function (a, b) { return tsMs(a.createdAt) - tsMs(b.createdAt); });
     admin.codes = [];
     cs.forEach(function (d) { var x = d.data(); x.id = d.id; admin.codes.push(x); });
+    var ms = await getDocs(collection(db, "moveRequests"));
+    admin.moves = [];
+    ms.forEach(function (d) { var x = d.data(); x.id = d.id; admin.moves.push(x); });
     admin.loaded = true;
   } catch (err) {
     console.error(err);
@@ -539,7 +651,12 @@ async function fetchAdmin() {
 }
 
 /* ---------- 이벤트 ---------- */
+function openMove(target) {
+  if (target) state.moveTarget = target;
+  show("move");
+}
 function go() {
+  if (state.menu === "channel") { openMove(""); return; }
   var url = ROUTES[state.menu];
   if (url) { window.location.href = url; } else { toast(T[state.lang].soon); }
 }
@@ -551,7 +668,10 @@ $("menu").addEventListener("click", function (e) {
   renderMenu();
   renderPreview();
 });
-$("tbody").addEventListener("click", function (e) { if (e.target.closest("[data-move]")) go(); });
+$("tbody").addEventListener("click", function (e) {
+  var mb = e.target.closest("[data-move]");
+  if (mb) openMove(mb.getAttribute("data-move"));
+});
 $("openBtn").addEventListener("click", go);
 
 $("langKo").addEventListener("click", function () { state.lang = "ko"; safeSet("ggo-lang", "ko"); renderAll(); });
@@ -576,6 +696,8 @@ $("logoutBtn").addEventListener("click", async function () {
   state.user = null;
   state.signup = { step: 1, code: "" };
   admin.loaded = false;
+  myMoves.items = [];
+  myMoves.loaded = false;
   toast(s("loggedOut"));
   show("login");
 });
@@ -745,6 +867,12 @@ $("adminBody").addEventListener("click", async function (e) {
       await updateDoc(doc(db, "users", id), { status: act === "approve" ? "active" : "rejected" });
       toast(s(act === "approve" ? "approved" : "rejected").replace("{n}", target ? target.nickname : ""));
       await fetchAdmin();
+    } else if (act === "moveApprove" || act === "moveReject") {
+      var mv = admin.moves.filter(function (x) { return x.id === id; })[0];
+      var ok = act === "moveApprove";
+      await updateDoc(doc(db, "moveRequests", id), { status: ok ? "approved" : "rejected", decidedBy: state.user.uid, decidedAt: serverTimestamp() });
+      toast(s(ok ? "moveApproved" : "moveRejected").replace("{n}", mv ? mv.nickname : ""));
+      await fetchAdmin();
     } else if (act === "toggle") {
       var m = admin.members.filter(function (x) { return x.id === id; })[0];
       var next = m.status === "active" ? "off" : "active";
@@ -770,6 +898,48 @@ $("adminBody").addEventListener("click", async function (e) {
     toast(s("actionFail"));
   } finally {
     b.disabled = false;
+  }
+});
+
+/* 서버 이동 신청 */
+$("mvTarget").addEventListener("change", function () {
+  state.moveTarget = this.value;
+  $("mvCond").textContent = T[state.lang].data.channel.conds[state.moveTarget] || "";
+  setErr("mvTarget", "mvTargetErr", "");
+});
+$("mvFrom").addEventListener("change", function () { state.moveFrom = this.value; });
+$("moveForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  var toSrv = $("mvTarget").value;
+  var fromSrv = $("mvFrom").value;
+  var trophyStr = $("mvTrophy").value.trim();
+  var note = $("mvNote").value.trim();
+  var okT = setErr("mvTarget", "mvTargetErr", toSrv !== fromSrv ? "" : s("errMoveSame"));
+  var okR = setErr("mvTrophy", "mvTrophyErr", (/^\d{1,7}$/.test(trophyStr) && parseInt(trophyStr, 10) <= 1000000) ? "" : s("errTrophy"));
+  if (!okT || !okR) return;
+  if (myMoves.items.some(function (x) { return x.status === "pending"; })) { toast(s("movePendingExists")); return; }
+  setBusy("moveForm", true);
+  try {
+    await addDoc(collection(db, "moveRequests"), {
+      uid: state.user.uid,
+      loginId: state.user.loginId,
+      nickname: state.user.nickname,
+      toServer: toSrv,
+      fromServer: fromSrv,
+      trophies: parseInt(trophyStr, 10),
+      note: note,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+    $("mvTrophy").value = "";
+    $("mvNote").value = "";
+    toast(s("moveSent"));
+    await fetchMyMoves();
+  } catch (err) {
+    console.error(err);
+    toast(s(errKey(err) === "errPerm" ? "errPerm" : "actionFail"));
+  } finally {
+    setBusy("moveForm", false);
   }
 });
 
