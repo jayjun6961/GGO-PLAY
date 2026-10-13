@@ -148,6 +148,39 @@
     <p class="note center" data-i18n="contact"></p>
   </section>
 
+  <!-- 서버 이동 신청 -->
+  <section class="card auth" id="v-move" hidden aria-labelledby="moveTitle">
+    <h2 class="auth-title" id="moveTitle" data-i18n="moveTitle"></h2>
+    <p class="auth-sub" data-i18n="moveSub"></p>
+    <form class="form" id="moveForm" novalidate>
+      <div class="field">
+        <label for="mvTarget" data-i18n="mvTarget"></label>
+        <select class="input" id="mvTarget"></select>
+        <div class="hint" id="mvCond"></div>
+        <div class="err-msg" id="mvTargetErr" aria-live="polite"></div>
+      </div>
+      <div class="field">
+        <label for="mvFrom" data-i18n="mvFrom"></label>
+        <select class="input" id="mvFrom"></select>
+      </div>
+      <div class="field">
+        <label for="mvTrophy" data-i18n="mvTrophy"></label>
+        <input class="input" id="mvTrophy" type="number" min="0" step="1" inputmode="numeric">
+        <div class="err-msg" id="mvTrophyErr" aria-live="polite"></div>
+      </div>
+      <div class="field">
+        <label for="mvNote" data-i18n="mvNote"></label>
+        <textarea class="input" id="mvNote" maxlength="100" rows="3"></textarea>
+      </div>
+      <button class="btn" type="submit" data-i18n="mvSubmit"></button>
+    </form>
+    <hr class="divider">
+    <h3 class="sub-title" data-i18n="myMoves"></h3>
+    <div id="myMoves" aria-live="polite"></div>
+    <hr class="divider">
+    <button class="btn ghost" type="button" data-go="home" data-i18n="moveBack"></button>
+  </section>
+
   <!-- 운영진 승인 관리 -->
   <section class="stack" id="v-admin" hidden>
     <div class="card">
