@@ -122,7 +122,7 @@ var S = {
     logout: "로그아웃", loggedOut: "로그아웃했습니다.", adminNav: "승인 관리", homeNav: "메인으로",
     roleAdmin: "운영진", roleMember: "길드원", statusPending: "승인 대기",
     adminTitle: "승인 관리", adminSub: "가입 신청 승인, 회원 관리, 초대 코드 발급을 할 수 있습니다.",
-    tabReq: "가입 신청", tabMem: "회원", tabCode: "초대 코드",
+    tabReq: "가입 신청", tabMem: "회원", tabCode: "초대 코드", tabLeague: "리그 점수",
     thNick: "닉네임", thId: "아이디", thTime: "신청 시각", thCode: "초대 코드", thRole: "권한", thJoined: "가입일", thStatus: "상태", thAction: "관리", thExpire: "만료일",
     approve: "승인", reject: "거절", emptyReq: "대기 중인 가입 신청이 없습니다.",
     approved: "{n}님을 승인했습니다.", rejected: "{n}님의 신청을 거절했습니다.",
@@ -156,7 +156,7 @@ var S = {
     logout: "Log out", loggedOut: "You are logged out.", adminNav: "Approvals", homeNav: "Back to home",
     roleAdmin: "Officer", roleMember: "Member", statusPending: "Pending",
     adminTitle: "Approvals", adminSub: "Approve sign-ups, manage members, and issue invite codes.",
-    tabReq: "Requests", tabMem: "Members", tabCode: "Invite codes",
+    tabReq: "Requests", tabMem: "Members", tabCode: "Invite codes", tabLeague: "League scores",
     thNick: "Nickname", thId: "ID", thTime: "Requested", thCode: "Invite code", thRole: "Role", thJoined: "Joined", thStatus: "Status", thAction: "Actions", thExpire: "Expires",
     approve: "Approve", reject: "Reject", emptyReq: "No pending requests.",
     approved: "Approved {n}.", rejected: "Rejected the request from {n}.",
@@ -255,10 +255,35 @@ Object.assign(S.en, {
   moveApproved: "Approved the server move for {n}.", moveRejected: "Rejected the server move for {n}."
 });
 
+Object.assign(S.ko, {
+  lgTitle: "리그/대회 기록", lgSub: "연도와 대회 종류를 선택하면 참가자 점수와 순위가 표시됩니다.",
+  lgYear: "연도", lgType: "대회 종류", thRank: "순위", thScore: "점수",
+  lgEmpty: "등록된 기록이 없습니다.", lgSoon: "아직 진행하지 않는 대회입니다. 2027년에 진행될 예정입니다.",
+  lgUpdated: "마지막 수정", lgCount: "참가자 {n}명",
+  alHelp: "한 줄에 한 명씩 '닉네임 점수' 형식으로 입력하세요. 순위는 점수가 높은 순서로 자동 계산되고, 같은 점수는 같은 순위가 됩니다. 저장하면 이 연도·대회의 기존 기록을 모두 덮어씁니다.",
+  alPlaceholder: "예)\n꼬리왕 1520\n불릿마스터 1490", alSave: "저장",
+  errLgLine: "{n}번째 줄 형식이 올바르지 않습니다. (닉네임 점수)", errLgDup: "닉네임이 중복되었습니다: {n}",
+  errLgMax: "최대 200명까지 입력할 수 있습니다.", lgSaved: "기록을 저장했습니다."
+});
+Object.assign(S.en, {
+  lgTitle: "League & tournament records", lgSub: "Pick a year and an event to see participant scores and rankings.",
+  lgYear: "Year", lgType: "Event", thRank: "Rank", thScore: "Score",
+  lgEmpty: "No records yet.", lgSoon: "This event is not running yet. It is planned for 2027.",
+  lgUpdated: "Last updated", lgCount: "{n} participants",
+  alHelp: "Enter one person per line as 'nickname score'. Ranks are calculated from the highest score, and equal scores share a rank. Saving replaces all existing records for this year and event.",
+  alPlaceholder: "e.g.\nKkoriKing 1520\nBulletMaster 1490", alSave: "Save",
+  errLgLine: "Line {n} is not in the right format. (nickname score)", errLgDup: "Duplicate nickname: {n}",
+  errLgMax: "You can enter up to 200 people.", lgSaved: "Records saved."
+});
+
 var order = ["combo", "league", "channel"];
-var VIEWS = ["loading", "login", "signup", "pending", "admin", "home", "move"];
+var LG_YEARS = ["2025", "2026"];
+var LG_TYPES = [["league", "GGO LEAGUE"], ["allstars", "GGO ALL STARS"], ["masters", "GGO MASTERS"], ["champions", "GGO CHAMPIONS"]];
+var VIEWS = ["loading", "login", "signup", "pending", "admin", "home", "move", "league"];
 var SERVERS = ["꼬리아1", "꼬리아2", "꼬리별"];
-var state = { lang: "ko", menu: "combo", view: "loading", tab: "req", signup: { step: 1, code: "" }, user: null, busy: false, moveTarget: "꼬리아1", moveFrom: "기타" };
+var state = { lang: "ko", menu: "combo", view: "loading", tab: "req", signup: { step: 1, code: "" }, user: null, busy: false, moveTarget: "꼬리아1", moveFrom: "기타", lg: { year: "2026", type: "league" } };
+var lgData = {};
+var alg = { year: "2026", type: "league", text: "", ready: false, loadedFor: "" };
 var myMoves = { loaded: false, failed: false, items: [] };
 var admin = { loaded: false, loading: false, failed: false, requests: [], members: [], codes: [], moves: [] };
 
@@ -332,7 +357,7 @@ function show(view) {
   var active = !!u && u.status === "active";
   if (view === "admin" && !(active && u.role === "admin")) view = active ? "home" : (u ? "pending" : "login");
   if (view === "home" && !active) view = u ? "pending" : "login";
-  if (view === "move" && !active) view = u ? "pending" : "login";
+  if ((view === "move" || view === "league") && !active) view = u ? "pending" : "login";
   if (view === "pending" && !(u && u.status === "pending")) view = active ? "home" : "login";
   if ((view === "login" || view === "signup") && u) view = active ? "home" : "pending";
   state.view = view;
@@ -340,6 +365,7 @@ function show(view) {
   renderAll();
   if (view === "admin") fetchAdmin();
   if (view === "move") fetchMyMoves();
+  if (view === "league") refreshLeague();
   window.scrollTo(0, 0);
 }
 
@@ -433,7 +459,7 @@ function tag(cls, text) { return '<span class="tag ' + cls + '">' + esc(text) + 
 
 function renderAdmin() {
   var pendMoves = admin.moves.filter(function (x) { return x.status === "pending"; });
-  var tabs = [["req", s("tabReq"), admin.requests.length], ["move", s("tabMove"), pendMoves.length], ["mem", s("tabMem"), 0], ["code", s("tabCode"), 0]];
+  var tabs = [["req", s("tabReq"), admin.requests.length], ["move", s("tabMove"), pendMoves.length], ["mem", s("tabMem"), 0], ["code", s("tabCode"), 0], ["league", s("tabLeague"), 0]];
   $("adminTabs").innerHTML = tabs.map(function (t) {
     return '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (state.tab === t[0]) + '">' + esc(t[1]) +
       (t[2] > 0 ? ' <span class="cnt">' + t[2] + "</span>" : "") + "</button>";
@@ -480,6 +506,8 @@ function renderAdmin() {
             (r.status === "approved" ? tag("good", s("mvStApproved")) : tag("bad", s("mvStRejected"))) + "</td></tr>";
         }).join("") + "</tbody></table></div>";
     }
+  } else if (state.tab === "league") {
+    html = adminLeagueHtml();
   } else if (state.tab === "mem") {
     html = '<div class="tbl-wrap"><table><thead><tr><th>' + [s("thNick"), s("thId"), s("thRole"), s("thJoined"), s("thStatus"), s("thAction")].join("</th><th>") + "</th></tr></thead><tbody>" +
       admin.members.map(function (m) {
@@ -509,6 +537,7 @@ function renderAdmin() {
     note = s("codeNote");
   }
   $("codeForm").hidden = !(admin.loaded && state.tab === "code");
+  if (admin.loaded && state.tab === "league" && !alg.ready && alg.loadedFor !== lgId(alg.year, alg.type)) adminLeagueLoad();
   $("adminBody").innerHTML = html;
   $("adminNote").textContent = note;
   $("adminNote").hidden = !note;
@@ -573,6 +602,105 @@ function renderAll() {
   renderPending();
   renderAdmin();
   renderMove();
+  renderLeague();
+}
+
+/* ---------- 리그/대회 ---------- */
+function lgId(y, t) { return y + "_" + t; }
+function lgTypeName(k) { return LG_TYPES.filter(function (x) { return x[0] === k; })[0][1]; }
+async function loadLeague(y, t, force) {
+  var id = lgId(y, t);
+  if (!force && lgData[id] && lgData[id].status === "ok") return lgData[id];
+  lgData[id] = { status: "loading", rows: [], at: null };
+  try {
+    var snap = await getDoc(doc(db, "leagues", id));
+    var d = snap.exists() ? snap.data() : null;
+    lgData[id] = { status: "ok", rows: d && Array.isArray(d.rows) ? d.rows : [], at: d ? tsDate(d.updatedAt) : null };
+  } catch (err) {
+    console.error(err);
+    lgData[id] = { status: "fail", rows: [], at: null };
+  }
+  return lgData[id];
+}
+/* 점수가 높은 순으로 정렬하고, 같은 점수는 같은 순위(1, 1, 3 …)로 매깁니다. */
+function rankRows(rows) {
+  var list = rows.map(function (r) { return { nickname: String(r.nickname), score: Number(r.score) }; });
+  list.sort(function (a, b) { return b.score - a.score || a.nickname.localeCompare(b.nickname); });
+  var rank = 0;
+  list.forEach(function (r, i) {
+    if (i === 0 || r.score !== list[i - 1].score) rank = i + 1;
+    r.rank = rank;
+  });
+  return list;
+}
+function fmtScore(n) { return Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+function renderLeague() {
+  var y = $("lgYear"), ty = $("lgType");
+  y.innerHTML = LG_YEARS.map(function (v) { return '<option value="' + v + '">' + v + "</option>"; }).join("");
+  ty.innerHTML = LG_TYPES.map(function (v) { return '<option value="' + v[0] + '">' + esc(v[1]) + "</option>"; }).join("");
+  y.value = state.lg.year;
+  ty.value = state.lg.type;
+  var d = lgData[lgId(state.lg.year, state.lg.type)];
+  var html;
+  if (!d || d.status === "loading") {
+    html = '<p class="empty">' + esc(s("loading")) + "</p>";
+  } else if (d.status === "fail") {
+    html = '<p class="empty">' + esc(s("loadFail")) + "</p>";
+  } else if (!d.rows.length) {
+    html = '<p class="empty">' + esc(state.lg.type === "league" ? s("lgEmpty") : s("lgSoon")) + "</p>";
+  } else {
+    var ranked = rankRows(d.rows);
+    html = '<div class="tbl-wrap"><table><thead><tr><th>' + esc(s("thRank")) + "</th><th>" + esc(s("thNick")) + '</th><th class="score">' + esc(s("thScore")) + "</th></tr></thead><tbody>" +
+      ranked.map(function (r) {
+        var cls = r.rank <= 3 ? " r" + r.rank : "";
+        return '<tr><td><span class="rank' + cls + '">' + r.rank + '</span></td><td class="nick">' + esc(r.nickname) + '</td><td class="score">' + esc(fmtScore(r.score)) + "</td></tr>";
+      }).join("") + "</tbody></table></div>" +
+      '<p class="lg-meta">' + esc(s("lgCount").replace("{n}", ranked.length)) + (d.at ? " · " + esc(s("lgUpdated")) + " " + esc(fmtFull(d.at)) : "") + "</p>";
+  }
+  $("lgBody").innerHTML = html;
+}
+async function refreshLeague() {
+  await loadLeague(state.lg.year, state.lg.type, true);
+  renderLeague();
+}
+
+/* 운영진: 리그 점수 입력 */
+function adminLeagueHtml() {
+  var yo = LG_YEARS.map(function (v) { return '<option value="' + v + '"' + (v === alg.year ? " selected" : "") + ">" + v + "</option>"; }).join("");
+  var to = LG_TYPES.map(function (v) { return '<option value="' + v[0] + '"' + (v[0] === alg.type ? " selected" : "") + ">" + esc(v[1]) + "</option>"; }).join("");
+  var body = alg.ready
+    ? '<div class="field"><textarea class="input lg-text" id="alText" spellcheck="false" placeholder="' + esc(s("alPlaceholder")) + '">' + esc(alg.text) + "</textarea>" +
+      '<div class="err-msg" id="alErr" aria-live="polite"></div></div>' +
+      '<button class="btn" type="button" data-act="lgSave">' + esc(s("alSave")) + "</button>"
+    : '<p class="empty">' + esc(s("loading")) + "</p>";
+  return '<div class="lg-admin"><div class="lg-filter"><div class="field"><label>' + esc(s("lgYear")) + '</label><select class="input" data-alg="year">' + yo + "</select></div>" +
+    '<div class="field"><label>' + esc(s("lgType")) + '</label><select class="input" data-alg="type">' + to + "</select></div></div>" + body + "</div>";
+}
+async function adminLeagueLoad() {
+  var y = alg.year, ty = alg.type;
+  alg.loadedFor = lgId(y, ty);
+  alg.ready = false;
+  var d = await loadLeague(y, ty, true);
+  if (alg.year !== y || alg.type !== ty) return;
+  alg.text = rankRows(d.rows).map(function (r) { return r.nickname + " " + r.score; }).join("\n");
+  alg.ready = true;
+  if (state.view === "admin" && state.tab === "league") renderAdmin();
+}
+function parseLeagueText(text) {
+  var rows = [], seen = {}, lines = text.split(/\r?\n/);
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim().replace(/(\d),(?=\d{3}(?:\D|$))/g, "$1");
+    if (!line) continue;
+    var m = /^(.+?)[\s,]+(-?\d+(?:\.\d+)?)$/.exec(line);
+    if (!m || m[1].length > 20 || Math.abs(Number(m[2])) > 1e9) return { error: s("errLgLine").replace("{n}", i + 1) };
+    var nick = m[1].trim();
+    var key = nick.toLowerCase();
+    if (seen[key]) return { error: s("errLgDup").replace("{n}", nick) };
+    seen[key] = true;
+    rows.push({ nickname: nick, score: Number(m[2]) });
+  }
+  if (rows.length > 200) return { error: s("errLgMax") };
+  return { rows: rows };
 }
 
 /* ---------- 서버 이동 신청 ---------- */
@@ -657,6 +785,7 @@ function openMove(target) {
 }
 function go() {
   if (state.menu === "channel") { openMove(""); return; }
+  if (state.menu === "league") { show("league"); return; }
   var url = ROUTES[state.menu];
   if (url) { window.location.href = url; } else { toast(T[state.lang].soon); }
 }
@@ -885,6 +1014,18 @@ $("adminBody").addEventListener("click", async function (e) {
       await updateDoc(doc(db, "inviteCodes", id), { active: !wasOn });
       toast(s(wasOn ? "codePaused" : "codeResumed"));
       await fetchAdmin();
+    } else if (act === "lgSave") {
+      var parsed = parseLeagueText(alg.text);
+      var errEl = $("alErr");
+      if (parsed.error) { if (errEl) errEl.textContent = parsed.error; return; }
+      if (errEl) errEl.textContent = "";
+      var lid = lgId(alg.year, alg.type);
+      await setDoc(doc(db, "leagues", lid), { year: alg.year, type: alg.type, rows: parsed.rows, updatedAt: serverTimestamp(), updatedBy: state.user.uid });
+      delete lgData[lid];
+      await loadLeague(alg.year, alg.type, true);
+      alg.text = rankRows(parsed.rows).map(function (r) { return r.nickname + " " + r.score; }).join("\n");
+      toast(s("lgSaved"));
+      renderAdmin();
     } else if (act === "copy") {
       try {
         await navigator.clipboard.writeText(id);
@@ -899,6 +1040,21 @@ $("adminBody").addEventListener("click", async function (e) {
   } finally {
     b.disabled = false;
   }
+});
+
+/* 리그/대회 */
+$("lgYear").addEventListener("change", function () { state.lg.year = this.value; renderLeague(); refreshLeague(); });
+$("lgType").addEventListener("change", function () { state.lg.type = this.value; renderLeague(); refreshLeague(); });
+$("adminBody").addEventListener("change", function (e) {
+  var sel = e.target.closest("[data-alg]");
+  if (!sel) return;
+  alg[sel.getAttribute("data-alg")] = sel.value;
+  alg.ready = false;
+  alg.loadedFor = "";
+  renderAdmin();
+});
+$("adminBody").addEventListener("input", function (e) {
+  if (e.target.id === "alText") alg.text = e.target.value;
 });
 
 /* 서버 이동 신청 */
