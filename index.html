@@ -181,6 +181,25 @@
     <button class="btn ghost" type="button" data-go="home" data-i18n="moveBack"></button>
   </section>
 
+  <!-- 리그/대회 -->
+  <section class="card" id="v-league" hidden aria-labelledby="lgTitle">
+    <h2 class="sec-title" id="lgTitle" data-i18n="lgTitle"></h2>
+    <p class="muted lg-sub" data-i18n="lgSub"></p>
+    <div class="lg-filter">
+      <div class="field">
+        <label for="lgYear" data-i18n="lgYear"></label>
+        <select class="input" id="lgYear"></select>
+      </div>
+      <div class="field">
+        <label for="lgType" data-i18n="lgType"></label>
+        <select class="input" id="lgType"></select>
+      </div>
+    </div>
+    <div id="lgBody" aria-live="polite"></div>
+    <hr class="divider">
+    <button class="btn ghost" type="button" data-go="home" data-i18n="moveBack"></button>
+  </section>
+
   <!-- 운영진 승인 관리 -->
   <section class="stack" id="v-admin" hidden>
     <div class="card">
