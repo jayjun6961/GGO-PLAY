@@ -284,3 +284,17 @@ td.wrap { white-space: normal; min-width: 140px; max-width: 260px; overflow-wrap
 .mlist li { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--field); border-radius: 10px; padding: 10px 14px; }
 .mlist li > div { min-width: 0; }
 .mlist .d { display: block; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+
+/* 리그/대회 */
+.lg-sub { margin: -12px 0 20px; }
+.lg-filter { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.lg-filter .field { flex: 1; min-width: 160px; }
+.lg-meta { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+td.nick { font-weight: 700; color: var(--fg); }
+td.score, th.score { text-align: right; font-variant-numeric: tabular-nums; }
+.rank { display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 8px; border-radius: 999px; background: var(--field); color: var(--muted); font-weight: 800; font-size: 13px; }
+.rank.r1 { background: #f2c14e; color: #3b2a00; }
+.rank.r2 { background: #c9cfdb; color: #2b3140; }
+.rank.r3 { background: #d9955b; color: #3a1f05; }
+textarea.lg-text { min-height: 220px; font-family: inherit; line-height: 1.6; resize: vertical; }
+.lg-admin { display: grid; gap: 12px; }
