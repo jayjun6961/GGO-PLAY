@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/fireba
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, where, addDoc, writeBatch, serverTimestamp, Timestamp, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
+import { WEIGHTS, POWER_SCALE, CHARACTERS, STATS, SETS, EQUIP, WEAPONS } from "./items.js";
 
 /* 각 메뉴의 실제 페이지 주소가 정해지면 아래에 넣으면 됩니다. 비어 있으면 안내 토스트만 표시됩니다. */
 var ROUTES = { combo: "", league: "", channel: "" };
@@ -256,6 +257,22 @@ Object.assign(S.en, {
 });
 
 Object.assign(S.ko, {
+  cbTitle: "조합 계산기", cbSub: "캐릭터, 장비, 무기를 선택하면 능력치 합계와 총 전투력이 계산됩니다.",
+  cbChar: "캐릭터", cbEquip: "장비", cbWeapon: "무기", cbNone: "선택 안 함",
+  cbEmpty: "장비와 무기를 선택해 보세요.", cbPicked: "선택한 조합", thSlot: "부위", thItem: "아이템", thGain: "능력 향상", thLoss: "능력 저하",
+  cbSets: "세트 효과", cbSetN: "{n}개 장착", cbTotals: "능력치 합계", cbRate: "달성률",
+  cbPower: "총 전투력", cbPowerNote: "공격 50% · 방어 30% · 유틸리티 20% 비중으로, 각 구분의 달성률(가능한 최대치 대비)을 합산해 계산합니다.",
+  catAtk: "공격", catDef: "방어", catUtil: "유틸리티", cbNoStat: "선택한 능력치가 없습니다."
+});
+Object.assign(S.en, {
+  cbTitle: "Combo Calculator", cbSub: "Pick a character, gear and weapon parts to see the stat totals and total combat power.",
+  cbChar: "Character", cbEquip: "Gear", cbWeapon: "Weapon", cbNone: "None",
+  cbEmpty: "Pick some gear and weapon parts.", cbPicked: "Selected combo", thSlot: "Slot", thItem: "Item", thGain: "Boosts", thLoss: "Penalties",
+  cbSets: "Set bonuses", cbSetN: "{n} equipped", cbTotals: "Stat totals", cbRate: "Progress",
+  cbPower: "Total combat power", cbPowerNote: "Attack 50% · Defense 30% · Utility 20%. Each group's progress (against its best possible total) is combined by weight.",
+  catAtk: "Attack", catDef: "Defense", catUtil: "Utility", cbNoStat: "No stats selected."
+});
+Object.assign(S.ko, {
   lgTitle: "리그/대회 기록", lgSub: "연도와 대회 종류를 선택하면 참가자 점수와 순위가 표시됩니다.",
   lgYear: "연도", lgType: "대회 종류", thRank: "순위", thScore: "점수",
   lgEmpty: "등록된 기록이 없습니다.", lgSoon: "아직 진행하지 않는 대회입니다. 2027년에 진행될 예정입니다.",
@@ -279,10 +296,11 @@ Object.assign(S.en, {
 var order = ["combo", "league", "channel"];
 var LG_YEARS = ["2025", "2026"];
 var LG_TYPES = [["league", "GGO LEAGUE"], ["allstars", "GGO ALL STARS"], ["masters", "GGO MASTERS"], ["champions", "GGO CHAMPIONS"]];
-var VIEWS = ["loading", "login", "signup", "pending", "admin", "home", "move", "league"];
+var VIEWS = ["loading", "login", "signup", "pending", "admin", "home", "move", "league", "combo"];
 var SERVERS = ["꼬리아1", "꼬리아2", "꼬리별"];
 var state = { lang: "ko", menu: "combo", view: "loading", tab: "req", signup: { step: 1, code: "" }, user: null, busy: false, moveTarget: "꼬리아1", moveFrom: "기타", lg: { year: "2026", type: "league" } };
 var lgData = {};
+var cb = { char: CHARACTERS[0].id, picks: {} };
 var alg = { year: "2026", type: "league", text: "", ready: false, loadedFor: "" };
 var myMoves = { loaded: false, failed: false, items: [] };
 var admin = { loaded: false, loading: false, failed: false, requests: [], members: [], codes: [], moves: [] };
@@ -357,7 +375,7 @@ function show(view) {
   var active = !!u && u.status === "active";
   if (view === "admin" && !(active && u.role === "admin")) view = active ? "home" : (u ? "pending" : "login");
   if (view === "home" && !active) view = u ? "pending" : "login";
-  if ((view === "move" || view === "league") && !active) view = u ? "pending" : "login";
+  if ((view === "move" || view === "league" || view === "combo") && !active) view = u ? "pending" : "login";
   if (view === "pending" && !(u && u.status === "pending")) view = active ? "home" : "login";
   if ((view === "login" || view === "signup") && u) view = active ? "home" : "pending";
   state.view = view;
@@ -603,6 +621,140 @@ function renderAll() {
   renderAdmin();
   renderMove();
   renderLeague();
+  renderCombo();
+}
+
+/* ---------- 조합 계산기 ---------- */
+var CB_CATS = ["atk", "def", "util"];
+var CB_REF = {};
+var CB_MAX = null;
+function cbImpr(key, v) { return STATS[key].low ? -v : v; }   // 능력 향상은 +, 저하는 -
+function cbVec(fx) {
+  var v = { atk: 0, def: 0, util: 0 };
+  Object.keys(fx).forEach(function (k) { v[STATS[k].cat] += cbImpr(k, fx[k]) / CB_REF[k] * 100 * (STATS[k].w || 1); });
+  return v;
+}
+function cbSetup() {
+  if (CB_MAX) return;
+  function scan(fx) { Object.keys(fx).forEach(function (k) { CB_REF[k] = Math.max(CB_REF[k] || 0, cbImpr(k, fx[k])); }); }
+  EQUIP.concat(WEAPONS).forEach(function (sl) { sl.items.forEach(function (it) { scan(it.fx); }); });
+  Object.keys(SETS).forEach(function (id) { Object.keys(SETS[id].tiers).forEach(function (n) { scan(SETS[id].tiers[n]); }); });
+  EQUIP.concat(WEAPONS).forEach(function (sl) { sl.items.forEach(function (it) { it.vec = cbVec(it.fx); }); });
+  Object.keys(SETS).forEach(function (id) { Object.keys(SETS[id].tiers).forEach(function (n) { SETS[id].tiers[n] = { fx: SETS[id].tiers[n], vec: null }; SETS[id].tiers[n].vec = cbVec(SETS[id].tiers[n].fx); }); });
+  /* 구분별 최대치: 장비는 모든 조합(7^6)을 돌려 세트 효과까지 포함하고, 무기는 칸마다 가장 좋은 부품을 고릅니다. */
+  var max = { atk: 0, def: 0, util: 0 };
+  WEAPONS.forEach(function (sl) {
+    CB_CATS.forEach(function (c) { max[c] += Math.max(0, Math.max.apply(null, sl.items.map(function (it) { return it.vec[c]; }))); });
+  });
+  var eqBest = { atk: 0, def: 0, util: 0 };
+  (function walk(i, sum, cnt) {
+    if (i === EQUIP.length) {
+      var s2 = { atk: sum.atk, def: sum.def, util: sum.util };
+      Object.keys(cnt).forEach(function (id) {
+        var tv = cbTier(id, cnt[id]);
+        if (tv) CB_CATS.forEach(function (c) { s2[c] += tv.vec[c]; });
+      });
+      CB_CATS.forEach(function (c) { if (s2[c] > eqBest[c]) eqBest[c] = s2[c]; });
+      return;
+    }
+    EQUIP[i].items.forEach(function (it) {
+      var ns = { atk: sum.atk + it.vec.atk, def: sum.def + it.vec.def, util: sum.util + it.vec.util };
+      var nc = { g: cnt.g, b: cnt.b };
+      if (it.set) nc[it.set]++;
+      walk(i + 1, ns, nc);
+    });
+  })(0, { atk: 0, def: 0, util: 0 }, { g: 0, b: 0 });
+  CB_CATS.forEach(function (c) { max[c] += eqBest[c]; });
+  CB_MAX = max;
+}
+function cbTier(setId, n) {
+  var best = null;
+  Object.keys(SETS[setId].tiers).map(Number).sort(function (a, b) { return a - b; }).forEach(function (k) { if (n >= k) best = k; });
+  return best === null ? null : Object.assign({ n: best }, SETS[setId].tiers[best]);
+}
+function cbFmt(key, v) {
+  var r = Math.round(v * 100) / 100;
+  return (r > 0 ? "+" : "") + r + STATS[key].unit;
+}
+function cbCalc() {
+  cbSetup();
+  var picked = [];
+  var sum = { atk: 0, def: 0, util: 0 };
+  var totals = {};
+  var cnt = { g: 0, b: 0 };
+  function add(fx) { Object.keys(fx).forEach(function (k) { totals[k] = (totals[k] || 0) + fx[k]; }); }
+  EQUIP.concat(WEAPONS).forEach(function (sl) {
+    var idx = cb.picks[sl.id];
+    if (idx === undefined || idx === "") return;
+    var it = sl.items[Number(idx)];
+    if (!it) return;
+    picked.push({ slot: sl, item: it });
+    CB_CATS.forEach(function (c) { sum[c] += it.vec[c]; });
+    add(it.fx);
+    if (it.set) cnt[it.set]++;
+  });
+  var sets = [];
+  Object.keys(cnt).forEach(function (id) {
+    var tv = cbTier(id, cnt[id]);
+    if (!tv) return;
+    sets.push({ id: id, count: cnt[id], tier: tv });
+    CB_CATS.forEach(function (c) { sum[c] += tv.vec[c]; });
+    add(tv.fx);
+  });
+  var rate = {}, weighted = 0;
+  CB_CATS.forEach(function (c) { rate[c] = sum[c] / CB_MAX[c]; weighted += WEIGHTS[c] * rate[c]; });
+  return { picked: picked, sets: sets, totals: totals, rate: rate, power: Math.max(0, Math.round(weighted * POWER_SCALE)) };
+}
+function cbTags(fx, wantGain) {
+  var out = Object.keys(fx).filter(function (k) { return (cbImpr(k, fx[k]) >= 0) === wantGain; }).map(function (k) {
+    return tag(wantGain ? "good" : "bad", STATS[k][state.lang] + " " + cbFmt(k, fx[k]));
+  });
+  return out.length ? '<span class="tags">' + out.join("") + "</span>" : '<span class="muted">-</span>';
+}
+function renderCombo() {
+  var L = state.lang;
+  function opts(sl, withLv) {
+    return '<option value="">' + esc(s("cbNone")) + "</option>" + sl.items.map(function (it, i) {
+      return '<option value="' + i + '"' + (String(cb.picks[sl.id]) === String(i) ? " selected" : "") + ">" + esc(it.name + (withLv ? " (L" + it.lv + ")" : "")) + "</option>";
+    }).join("");
+  }
+  function field(sl, withLv) {
+    return '<div class="field"><label>' + esc(sl[L]) + '</label><select class="input" data-cb="' + sl.id + '">' + opts(sl, withLv) + "</select></div>";
+  }
+  $("cbSelects").innerHTML =
+    '<div class="cb-group"><h3 class="sub-title">' + esc(s("cbChar")) + '</h3><div class="cb-grid"><div class="field"><select class="input" data-cb="char">' +
+      CHARACTERS.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + "</option>"; }).join("") + "</select></div></div></div>" +
+    '<div class="cb-group"><h3 class="sub-title">' + esc(s("cbEquip")) + '</h3><div class="cb-grid">' + EQUIP.map(function (sl) { return field(sl, false); }).join("") + "</div></div>" +
+    '<div class="cb-group"><h3 class="sub-title">' + esc(s("cbWeapon")) + '</h3><div class="cb-grid">' + WEAPONS.map(function (sl) { return field(sl, true); }).join("") + "</div></div>";
+
+  var r = cbCalc();
+  var html = "";
+  if (!r.picked.length) {
+    html += '<p class="empty">' + esc(s("cbEmpty")) + "</p>";
+  } else {
+    html += '<div class="cb-block"><h3 class="sub-title">' + esc(s("cbPicked")) + '</h3><div class="tbl-wrap"><table><thead><tr><th>' +
+      [s("thSlot"), s("thItem"), s("thGain"), s("thLoss")].join("</th><th>") + "</th></tr></thead><tbody>" +
+      r.picked.map(function (p) {
+        return "<tr><td>" + esc(p.slot[L]) + '</td><td class="nick">' + esc(p.item.name + (p.item.lv ? " (L" + p.item.lv + ")" : "")) + "</td><td>" + cbTags(p.item.fx, true) + "</td><td>" + cbTags(p.item.fx, false) + "</td></tr>";
+      }).join("") + "</tbody></table></div></div>";
+    if (r.sets.length) {
+      html += '<div class="cb-block"><h3 class="sub-title">' + esc(s("cbSets")) + "</h3>" + r.sets.map(function (st) {
+        return "<p><strong>" + esc(SETS[st.id][L]) + "</strong> " + esc(s("cbSetN").replace("{n}", st.count)) + '</p><p class="tags">' +
+          Object.keys(st.tier.fx).map(function (k) { return tag(cbImpr(k, st.tier.fx[k]) >= 0 ? "acc" : "bad", STATS[k][L] + " " + cbFmt(k, st.tier.fx[k])); }).join("") + "</p>";
+      }).join("") + "</div>";
+    }
+  }
+  var catName = { atk: s("catAtk"), def: s("catDef"), util: s("catUtil") };
+  html += '<div class="cb-block"><h3 class="sub-title">' + esc(s("cbTotals")) + '</h3><div class="cb-cats">' + CB_CATS.map(function (c) {
+    var keys = Object.keys(r.totals).filter(function (k) { return STATS[k].cat === c && Math.round(r.totals[k] * 100) !== 0; });
+    var pct = Math.round(r.rate[c] * 1000) / 10;
+    return '<div class="cb-cat"><h4>' + esc(catName[c]) + " " + Math.round(WEIGHTS[c] * 100) + '%</h4><div class="cb-rate">' + pct + '%<small>' + esc(s("cbRate")) + '</small></div><div class="bar"><i style="width:' + Math.max(0, Math.min(100, pct)) + '%"></i></div>' +
+      (keys.length ? '<ul class="cb-stats">' + keys.map(function (k) {
+        return "<li><span>" + esc(STATS[k][L]) + '</span><span class="v ' + (cbImpr(k, r.totals[k]) >= 0 ? "good" : "bad") + '">' + esc(cbFmt(k, r.totals[k])) + "</span></li>";
+      }).join("") + "</ul>" : '<p class="muted">' + esc(s("cbNoStat")) + "</p>") + "</div>";
+  }).join("") + "</div></div>";
+  html += '<div class="power"><div class="lbl">' + esc(s("cbPower")) + "</div><strong>" + r.power.toLocaleString() + "</strong><p>" + esc(s("cbPowerNote")) + "</p></div>";
+  $("cbBody").innerHTML = html;
 }
 
 /* ---------- 리그/대회 ---------- */
@@ -786,6 +938,7 @@ function openMove(target) {
 function go() {
   if (state.menu === "channel") { openMove(""); return; }
   if (state.menu === "league") { show("league"); return; }
+  if (state.menu === "combo") { show("combo"); return; }
   var url = ROUTES[state.menu];
   if (url) { window.location.href = url; } else { toast(T[state.lang].soon); }
 }
@@ -1040,6 +1193,15 @@ $("adminBody").addEventListener("click", async function (e) {
   } finally {
     b.disabled = false;
   }
+});
+
+/* 조합 계산기 */
+$("cbSelects").addEventListener("change", function (e) {
+  var sel = e.target.closest("[data-cb]");
+  if (!sel) return;
+  var k = sel.getAttribute("data-cb");
+  if (k === "char") cb.char = sel.value; else cb.picks[k] = sel.value;
+  renderCombo();
 });
 
 /* 리그/대회 */
